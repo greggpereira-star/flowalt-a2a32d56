@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'https://esm.sh/resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,7 @@ const corsHeaders = {
 
 const MAX_RETRIES = 5
 const RETRY_DELAYS = [60, 300, 900, 3600, 14400] // 1min, 5min, 15min, 1h, 4h
+const ALERT_THRESHOLD = 3 // Send email alert after 3 failed retries
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -132,6 +134,11 @@ Deno.serve(async (req) => {
         } else {
           console.log(`Delivery ${delivery.id} failed with status ${responseStatus}, next retry at ${nextRetryAt}`)
           results.failed++
+
+          // Send email alert if threshold reached
+          if (newRetryCount === ALERT_THRESHOLD) {
+            await sendFailureAlert(delivery, responseStatus, responseBody)
+          }
         }
 
       } catch (err) {
@@ -182,3 +189,95 @@ Deno.serve(async (req) => {
     })
   }
 })
+
+// Send email alert for failed webhooks
+async function sendFailureAlert(
+  delivery: { id: string; event_type: string; subscription?: { name: string; url: string; workspace_id: string } },
+  responseStatus: number,
+  responseBody: string
+) {
+  const resendKey = Deno.env.get('RESEND_API_KEY')
+  if (!resendKey) {
+    console.log('RESEND_API_KEY not configured, skipping email alert')
+    return
+  }
+
+  const resend = new Resend(resendKey)
+
+  try {
+    // Get workspace admin emails
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { data: admins } = await supabase
+      .from('workspace_members')
+      .select(`
+        user_id,
+        profiles:user_id(email, full_name)
+      `)
+      .eq('workspace_id', delivery.subscription?.workspace_id)
+      .limit(5)
+
+    if (!admins?.length) {
+      console.log('No admins found for workspace')
+      return
+    }
+
+    const adminEmails = admins
+      .map((a: any) => a.profiles?.email)
+      .filter(Boolean) as string[]
+
+    if (adminEmails.length === 0) {
+      console.log('No admin emails found')
+      return
+    }
+
+    const webhookName = delivery.subscription?.name || 'Webhook'
+    const webhookUrl = delivery.subscription?.url || 'Unknown URL'
+
+    await resend.emails.send({
+      from: 'Alertas <onboarding@resend.dev>',
+      to: adminEmails,
+      subject: `⚠️ Webhook "${webhookName}" com falhas repetidas`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #dc2626;">⚠️ Alerta de Falha de Webhook</h2>
+          
+          <p>O webhook <strong>${webhookName}</strong> falhou múltiplas vezes e pode precisar de atenção.</p>
+          
+          <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0 0 8px 0;"><strong>Webhook:</strong> ${webhookName}</p>
+            <p style="margin: 0 0 8px 0;"><strong>URL:</strong> ${webhookUrl}</p>
+            <p style="margin: 0 0 8px 0;"><strong>Evento:</strong> ${delivery.event_type}</p>
+            <p style="margin: 0 0 8px 0;"><strong>Status HTTP:</strong> ${responseStatus}</p>
+            <p style="margin: 0;"><strong>Tentativas:</strong> 3 de 5</p>
+          </div>
+          
+          ${responseBody ? `
+          <div style="background: #fef2f2; padding: 16px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0 0 8px 0;"><strong>Resposta do servidor:</strong></p>
+            <pre style="margin: 0; font-size: 12px; overflow-x: auto;">${responseBody.substring(0, 500)}</pre>
+          </div>
+          ` : ''}
+          
+          <p>Por favor, verifique:</p>
+          <ul>
+            <li>Se o endpoint está acessível</li>
+            <li>Se o servidor está retornando respostas válidas (2xx)</li>
+            <li>Se há problemas de autenticação ou certificado SSL</li>
+          </ul>
+          
+          <p style="color: #6b7280; font-size: 12px;">
+            Este email foi enviado automaticamente pelo sistema de monitoramento de webhooks.
+          </p>
+        </div>
+      `,
+    })
+
+    console.log(`Alert email sent for delivery ${delivery.id}`)
+  } catch (err) {
+    console.error('Failed to send alert email:', err)
+  }
+}
