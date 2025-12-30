@@ -32,8 +32,14 @@ export const WEBHOOK_EVENTS = [
   { value: 'card.deleted', label: 'Card excluído' },
   { value: 'comment.created', label: 'Comentário criado' },
   { value: 'checklist.item.completed', label: 'Item de checklist concluído' },
+  { value: 'checklist.item.created', label: 'Item de checklist criado' },
   { value: 'time_entry.logged', label: 'Tempo registrado' },
   { value: 'event.created', label: 'Evento criado' },
+  { value: 'attachment.uploaded', label: 'Anexo enviado' },
+  { value: 'attachment.deleted', label: 'Anexo excluído' },
+  { value: 'sprint.created', label: 'Sprint criado' },
+  { value: 'sprint.completed', label: 'Sprint concluído' },
+  { value: 'sprint.updated', label: 'Sprint atualizado' },
 ];
 
 export function useWebhooks() {
