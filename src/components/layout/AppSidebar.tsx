@@ -71,6 +71,7 @@ const managementItems = [
   { icon: Users, label: 'Coordenação', path: '/coordination' },
   { icon: DollarSign, label: 'Financeiro', path: '/financial' },
   { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
+  { icon: Settings, label: 'API & Integrações', path: '/settings' },
 ];
 
 export const AppSidebar: React.FC = () => {
