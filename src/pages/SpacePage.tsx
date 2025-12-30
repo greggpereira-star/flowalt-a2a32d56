@@ -138,9 +138,9 @@ const SpacePage: React.FC = () => {
 
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
-      <div className="flex flex-col h-full min-h-0">
+      <div className="flex flex-col h-[calc(100vh-4rem)]">
         {/* Fixed Header - Always visible */}
-        <div className="flex-shrink-0 border-b border-border bg-background sticky top-0 z-20">
+        <div className="flex-shrink-0 border-b border-border bg-background">
           <div className="px-4 py-2.5 flex items-center justify-between gap-3">
             {/* Left: Space name (minimal) */}
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
@@ -237,14 +237,14 @@ const SpacePage: React.FC = () => {
           )}
         </div>
 
-        {/* Content - fills remaining space, only this area scrolls horizontally */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        {/* Content - fills remaining space with scroll */}
+        <div className="flex-1 min-h-0">
           {cardsLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : view === 'kanban' ? (
-            <div className="h-full px-4 pt-4 pb-2 overflow-x-auto overflow-y-hidden">
+            <div className="h-full p-4 overflow-auto">
               <KanbanBoard
                 cards={filteredCards}
                 onCardClick={handleCardClick}
@@ -252,7 +252,7 @@ const SpacePage: React.FC = () => {
               />
             </div>
           ) : view === 'kanban-advanced' ? (
-            <div className="h-full px-4 pt-4 pb-2 overflow-x-auto overflow-y-hidden">
+            <div className="h-full p-4 overflow-auto">
               <KanbanAdvanced
                 cards={filteredCards}
                 onCardClick={handleCardClick}
