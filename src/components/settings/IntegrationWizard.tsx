@@ -1,7 +1,4 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,20 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -49,13 +35,12 @@ import {
   Shield,
   Zap,
   Plus,
-  Settings2,
   KeyRound,
-  Building2,
   Banknote,
   Receipt,
   Link2,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -212,6 +197,14 @@ const categoryLabels = {
   fiscal: { label: 'Fiscal', icon: <Receipt className="h-4 w-4" /> },
 };
 
+interface IntegrationStatus {
+  is_active: boolean;
+  configured_at: string;
+  updated_at: string;
+  last_sync_at?: string;
+  sync_status?: string;
+}
+
 interface IntegrationWizardProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -221,14 +214,50 @@ interface IntegrationWizardProps {
 export function IntegrationWizard({ open, onOpenChange, initialIntegration }: IntegrationWizardProps) {
   const { currentWorkspace } = useWorkspace();
   const [isOpen, setIsOpen] = useState(open ?? false);
-  const [step, setStep] = useState<'select' | 'configure' | 'test' | 'complete'>('select');
+  const [step, setStep] = useState<'select' | 'configure' | 'complete'>('select');
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(
     initialIntegration ? integrations.find(i => i.id === initialIntegration) || null : null
   );
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, IntegrationStatus>>({});
+
+  // Fetch integration statuses on mount
+  useEffect(() => {
+    if (currentWorkspace && isOpen) {
+      fetchIntegrationStatuses();
+    }
+  }, [currentWorkspace, isOpen]);
+
+  const fetchIntegrationStatuses = async () => {
+    if (!currentWorkspace) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('integration_credentials')
+        .select('integration_type, is_active, configured_at, updated_at, last_sync_at, sync_status')
+        .eq('workspace_id', currentWorkspace.id);
+
+      if (error) throw error;
+
+      const statusMap: Record<string, IntegrationStatus> = {};
+      for (const item of data || []) {
+        statusMap[item.integration_type] = {
+          is_active: item.is_active || false,
+          configured_at: item.configured_at,
+          updated_at: item.updated_at,
+          last_sync_at: item.last_sync_at || undefined,
+          sync_status: item.sync_status || undefined,
+        };
+      }
+      setIntegrationStatuses(statusMap);
+    } catch (error) {
+      console.error('Error fetching integration statuses:', error);
+    }
+  };
 
   const handleOpenChange = (value: boolean) => {
     setIsOpen(value);
@@ -248,11 +277,18 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
 
   const handleSelectIntegration = (integration: IntegrationConfig) => {
     setSelectedIntegration(integration);
+    
+    // If already configured, pre-fill with empty values (we don't show actual secrets)
+    if (integrationStatuses[integration.id]) {
+      toast.info('Esta integração já está configurada. Preencha novamente para atualizar as credenciais.');
+    }
+    
     setStep('configure');
   };
 
   const handleFieldChange = (fieldName: string, value: string) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
+    setTestResult(null); // Reset test when data changes
   };
 
   const toggleSecretVisibility = (fieldName: string) => {
@@ -272,27 +308,34 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
   };
 
   const handleTestConnection = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || !currentWorkspace || !selectedIntegration) return;
     
-    setIsLoading(true);
+    setIsTesting(true);
     setTestResult(null);
 
     try {
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In a real implementation, you would call an edge function to test the connection
-      // const { data, error } = await supabase.functions.invoke('test-integration', {
-      //   body: { type: selectedIntegration?.id, credentials: formData }
-      // });
+      const { data, error } = await supabase.functions.invoke('integration-manager/test', {
+        body: { 
+          integration_type: selectedIntegration.id,
+          workspace_id: currentWorkspace.id
+        }
+      });
 
-      setTestResult('success');
-      toast.success('Conexão testada com sucesso!');
-    } catch (error) {
+      if (error) throw error;
+
+      if (data?.success) {
+        setTestResult('success');
+        toast.success('Teste de conexão realizado com sucesso!');
+      } else {
+        setTestResult('error');
+        toast.error(data?.message || 'Falha no teste de conexão');
+      }
+    } catch (error: unknown) {
       setTestResult('error');
-      toast.error('Erro ao testar conexão');
+      const errMsg = error instanceof Error ? error.message : 'Erro ao testar conexão';
+      toast.error(errMsg);
     } finally {
-      setIsLoading(false);
+      setIsTesting(false);
     }
   };
 
@@ -302,24 +345,26 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
     setIsLoading(true);
 
     try {
-      // In production, credentials would be stored securely via edge functions
-      // For now, we'll store a reference that the credentials are configured
-      const { error } = await supabase.from('feature_flags').upsert({
-        workspace_id: currentWorkspace.id,
-        flag_key: `integration_${selectedIntegration.id}_configured`,
-        enabled: true,
-        metadata: {
-          configured_at: new Date().toISOString(),
-          ambiente: formData.ambiente || 'sandbox',
-        },
+      const { data, error } = await supabase.functions.invoke('integration-manager/save', {
+        body: {
+          integration_type: selectedIntegration.id,
+          workspace_id: currentWorkspace.id,
+          credentials: formData
+        }
       });
 
       if (error) throw error;
 
-      setStep('complete');
-      toast.success('Integração configurada com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao salvar integração');
+      if (data?.success) {
+        setStep('complete');
+        toast.success('Integração configurada com sucesso!');
+        fetchIntegrationStatuses(); // Refresh statuses
+      } else {
+        throw new Error(data?.error || 'Falha ao salvar credenciais');
+      }
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Erro ao salvar integração';
+      toast.error(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -337,26 +382,42 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
             <div className="grid gap-3">
               {integrations
                 .filter(i => i.category === category)
-                .map(integration => (
-                  <Card
-                    key={integration.id}
-                    className="cursor-pointer transition-all hover:border-primary hover:shadow-md"
-                    onClick={() => handleSelectIntegration(integration)}
-                  >
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                        {integration.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{integration.name}</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {integration.description}
-                        </p>
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-                ))}
+                .map(integration => {
+                  const isConfigured = !!integrationStatuses[integration.id];
+                  
+                  return (
+                    <Card
+                      key={integration.id}
+                      className={`cursor-pointer transition-all hover:border-primary hover:shadow-md ${
+                        isConfigured ? 'border-green-500/50 bg-green-500/5' : ''
+                      }`}
+                      onClick={() => handleSelectIntegration(integration)}
+                    >
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <div className={`p-3 rounded-lg ${
+                          isConfigured ? 'bg-green-500/10 text-green-600' : 'bg-primary/10 text-primary'
+                        }`}>
+                          {integration.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{integration.name}</h4>
+                            {isConfigured && (
+                              <Badge variant="outline" className="border-green-500 text-green-600 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Configurado
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {integration.description}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           </div>
         ))}
@@ -366,6 +427,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
 
   const renderConfigureStep = () => {
     if (!selectedIntegration) return null;
+    const isReconfiguring = !!integrationStatuses[selectedIntegration.id];
 
     return (
       <div className="space-y-6">
@@ -375,7 +437,15 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
             {selectedIntegration.icon}
           </div>
           <div className="flex-1">
-            <h3 className="font-medium">{selectedIntegration.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium">{selectedIntegration.name}</h3>
+              {isReconfiguring && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Reconfigurando
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {selectedIntegration.description}
             </p>
@@ -383,7 +453,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
           <Button variant="outline" size="sm" asChild>
             <a href={selectedIntegration.docsUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
-              Documentação
+              Docs
             </a>
           </Button>
         </div>
@@ -397,7 +467,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {selectedIntegration.features.map((feature, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                 {feature}
               </div>
             ))}
@@ -444,6 +514,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
                     placeholder={field.placeholder}
                     value={formData[field.name] || ''}
                     onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    className="pr-10"
                   />
                   {field.type === 'password' && (
                     <Button
@@ -473,20 +544,20 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
         {/* Security Notice */}
         <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
           <div className="flex items-start gap-3">
-            <Shield className="h-5 w-5 text-amber-600 mt-0.5" />
+            <Shield className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
             <div>
               <h5 className="font-medium text-amber-800 dark:text-amber-200">
                 Segurança
               </h5>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Suas credenciais são criptografadas e armazenadas de forma segura. 
-                Nunca compartilhamos suas chaves com terceiros.
+                Suas credenciais são criptografadas e armazenadas de forma segura no banco de dados. 
+                Apenas membros com acesso financeiro podem visualizar e gerenciar integrações.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Test Connection */}
+        {/* Test Result */}
         {testResult && (
           <div className={`p-4 rounded-lg flex items-center gap-3 ${
             testResult === 'success' 
@@ -497,14 +568,14 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <span className="text-green-700 dark:text-green-300">
-                  Conexão testada com sucesso!
+                  Conexão validada com sucesso!
                 </span>
               </>
             ) : (
               <>
                 <AlertCircle className="h-5 w-5 text-red-600" />
                 <span className="text-red-700 dark:text-red-300">
-                  Falha ao conectar. Verifique suas credenciais.
+                  Verifique suas credenciais e tente novamente.
                 </span>
               </>
             )}
@@ -523,7 +594,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
       <div>
         <h3 className="text-xl font-semibold">Integração Configurada!</h3>
         <p className="text-muted-foreground mt-2">
-          A integração com {selectedIntegration?.name} foi configurada com sucesso.
+          A integração com {selectedIntegration?.name} foi salva com sucesso.
         </p>
       </div>
 
@@ -532,11 +603,11 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            Credenciais salvas com segurança
+            Credenciais salvas e criptografadas
           </li>
           <li className="flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
-            Acesse o módulo Financeiro para usar as novas funcionalidades
+            Acesse o módulo Financeiro para usar as funcionalidades
           </li>
           <li className="flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
@@ -573,27 +644,29 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-2 py-4">
-          {['select', 'configure', 'complete'].map((s, idx) => (
-            <div key={s} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === s 
-                  ? 'bg-primary text-primary-foreground' 
-                  : ['configure', 'complete'].indexOf(step) > ['select', 'configure', 'complete'].indexOf(s)
-                    ? 'bg-green-500 text-white'
-                    : 'bg-muted text-muted-foreground'
-              }`}>
-                {['configure', 'complete'].indexOf(step) > ['select', 'configure', 'complete'].indexOf(s)
-                  ? <CheckCircle2 className="h-4 w-4" />
-                  : idx + 1
-                }
+          {['select', 'configure', 'complete'].map((s, idx) => {
+            const stepIndex = ['select', 'configure', 'complete'].indexOf(step);
+            const thisIndex = idx;
+            const isComplete = stepIndex > thisIndex;
+            const isCurrent = step === s;
+            
+            return (
+              <div key={s} className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  isCurrent
+                    ? 'bg-primary text-primary-foreground' 
+                    : isComplete
+                      ? 'bg-green-500 text-white'
+                      : 'bg-muted text-muted-foreground'
+                }`}>
+                  {isComplete ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                </div>
+                {idx < 2 && (
+                  <div className={`w-12 h-0.5 ${isComplete ? 'bg-green-500' : 'bg-muted'}`} />
+                )}
               </div>
-              {idx < 2 && (
-                <div className={`w-12 h-0.5 ${
-                  ['configure', 'complete'].indexOf(step) > idx ? 'bg-green-500' : 'bg-muted'
-                }`} />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <ScrollArea className="max-h-[50vh] pr-4">
@@ -605,9 +678,12 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
         {/* Actions */}
         <div className="flex justify-between pt-4 border-t">
           {step === 'select' && (
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              Cancelar
-            </Button>
+            <>
+              <div />
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Fechar
+              </Button>
+            </>
           )}
           
           {step === 'configure' && (
@@ -620,34 +696,42 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
                 <Button 
                   variant="outline" 
                   onClick={handleTestConnection}
-                  disabled={isLoading}
+                  disabled={isTesting || isLoading}
                 >
-                  {isLoading ? (
+                  {isTesting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Zap className="h-4 w-4 mr-2" />
                   )}
-                  Testar Conexão
+                  Testar
                 </Button>
                 <Button 
                   onClick={handleSaveIntegration}
-                  disabled={isLoading}
+                  disabled={isLoading || isTesting}
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                   )}
-                  Salvar
+                  Salvar Credenciais
                 </Button>
               </div>
             </>
           )}
           
           {step === 'complete' && (
-            <Button className="ml-auto" onClick={() => handleOpenChange(false)}>
-              Concluir
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => {
+                resetWizard();
+                setStep('select');
+              }}>
+                Configurar outra
+              </Button>
+              <Button onClick={() => handleOpenChange(false)}>
+                Concluir
+              </Button>
+            </>
           )}
         </div>
       </DialogContent>
