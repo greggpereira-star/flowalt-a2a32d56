@@ -1639,6 +1639,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_badge: {
+        Args: {
+          p_badge_type: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           p_api_key_id: string
