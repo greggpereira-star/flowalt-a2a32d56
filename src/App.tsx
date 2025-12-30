@@ -14,6 +14,8 @@ import Auth from "./pages/Auth";
 import NewWorkspace from "./pages/NewWorkspace";
 import SpacePage from "./pages/SpacePage";
 import Dashboard from "./pages/Dashboard";
+import TasksPage from "./pages/TasksPage";
+import TimePage from "./pages/TimePage";
 import CoordinationPage from "./pages/CoordinationPage";
 import AgendaPage from "./pages/AgendaPage";
 import FinancialPage from "./pages/FinancialPage";
@@ -42,6 +44,8 @@ const App = () => (
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
               <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
+              <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
+              <Route path="/time" element={<AuthGuard><TimePage /></AuthGuard>} />
               <Route path="/coordination" element={<AuthGuard><CoordinationPage /></AuthGuard>} />
               <Route path="/calendar" element={<AuthGuard><AgendaPage /></AuthGuard>} />
               <Route path="/financial" element={<AuthGuard><FinancialPage /></AuthGuard>} />
