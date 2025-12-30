@@ -4,6 +4,8 @@ import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useLocation } from 'react-router-dom';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -28,7 +30,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <AppSidebar />
       <SidebarInset>
         {/* Header */}
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -43,6 +45,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className="flex items-center gap-3 px-4">
+            <BadgeProgress compact />
+            <Separator orientation="vertical" className="h-6" />
+            <NotificationCenter />
           </div>
         </header>
 

@@ -905,6 +905,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          title: string
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1325,8 +1369,42 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding: {
         Row: {
+          actions_count: Json | null
+          badges_earned: string[] | null
           completed: boolean | null
           created_at: string | null
           current_step: number | null
@@ -1336,6 +1414,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actions_count?: Json | null
+          badges_earned?: string[] | null
           completed?: boolean | null
           created_at?: string | null
           current_step?: number | null
@@ -1345,6 +1425,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actions_count?: Json | null
+          badges_earned?: string[] | null
           completed?: boolean | null
           created_at?: string | null
           current_step?: number | null
