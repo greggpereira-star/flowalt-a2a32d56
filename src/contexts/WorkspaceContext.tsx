@@ -191,6 +191,35 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (spacesError) console.error('Error creating default spaces:', spacesError);
 
+      // Create default financial categories
+      const defaultCategories: Array<{
+        workspace_id: string;
+        name: string;
+        type: "expense" | "income" | "transfer";
+        color: string;
+        icon: string;
+        is_system: boolean;
+      }> = [
+        { workspace_id: workspace.id, name: 'Salários', type: 'expense', color: '#ef4444', icon: 'users', is_system: true },
+        { workspace_id: workspace.id, name: 'Fornecedores', type: 'expense', color: '#f97316', icon: 'truck', is_system: true },
+        { workspace_id: workspace.id, name: 'Serviços', type: 'expense', color: '#eab308', icon: 'wrench', is_system: true },
+        { workspace_id: workspace.id, name: 'Impostos', type: 'expense', color: '#84cc16', icon: 'landmark', is_system: true },
+        { workspace_id: workspace.id, name: 'Marketing', type: 'expense', color: '#22c55e', icon: 'megaphone', is_system: true },
+        { workspace_id: workspace.id, name: 'Infraestrutura', type: 'expense', color: '#14b8a6', icon: 'building', is_system: true },
+        { workspace_id: workspace.id, name: 'Software', type: 'expense', color: '#06b6d4', icon: 'laptop', is_system: true },
+        { workspace_id: workspace.id, name: 'Outros Gastos', type: 'expense', color: '#6b7280', icon: 'folder', is_system: true },
+        { workspace_id: workspace.id, name: 'Clientes', type: 'income', color: '#10b981', icon: 'briefcase', is_system: true },
+        { workspace_id: workspace.id, name: 'Projetos', type: 'income', color: '#0ea5e9', icon: 'folder-kanban', is_system: true },
+        { workspace_id: workspace.id, name: 'Consultoria', type: 'income', color: '#8b5cf6', icon: 'lightbulb', is_system: true },
+        { workspace_id: workspace.id, name: 'Outras Receitas', type: 'income', color: '#6b7280', icon: 'folder', is_system: true },
+      ];
+
+      const { error: categoriesError } = await supabase
+        .from('financial_categories')
+        .insert(defaultCategories);
+
+      if (categoriesError) console.error('Error creating default categories:', categoriesError);
+
       await fetchWorkspaces();
       setCurrentWorkspace(workspace);
 

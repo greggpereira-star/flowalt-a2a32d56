@@ -12,6 +12,15 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -409,6 +418,46 @@ function CollaboratorDetailView({
             </div>
             <TrendingUp className="w-8 h-8 text-primary" />
           </div>
+
+          {/* Salary Evolution Chart */}
+          {salaryHistory.length > 1 && (
+            <div>
+              <h4 className="font-medium mb-3">Evolução Salarial</h4>
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={[...salaryHistory].reverse().map(entry => ({
+                      date: format(new Date(entry.effective_date), "MMM/yy", { locale: ptBR }),
+                      salary: entry.new_salary,
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="date" className="text-xs" />
+                    <YAxis
+                      tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
+                      className="text-xs"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="salary"
+                      name="Salário"
+                      stroke="hsl(var(--primary))"
+                      fill="hsl(var(--primary) / 0.2)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           <div>
             <h4 className="font-medium mb-3 flex items-center gap-2">

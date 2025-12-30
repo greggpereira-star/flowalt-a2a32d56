@@ -61,6 +61,28 @@ export const useCards = (spaceId: string | undefined) => {
   });
 };
 
+export const useAllCards = () => {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['cards', 'all', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Card[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+};
+
 export const useCardsByFolder = (folderId: string | undefined) => {
   const { currentWorkspace } = useWorkspace();
 
