@@ -1,9 +1,8 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
 
 interface EmptyStateProps {
-  icon: LucideIcon;
+  icon: React.ReactNode;
   title: string;
   description: string;
   tip?: string;
@@ -12,7 +11,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   tip,
@@ -28,8 +27,8 @@ export function EmptyState({
     >
       <div className="relative mb-4">
         <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-        <div className="relative p-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
-          <Icon className="h-10 w-10 text-primary/70" />
+        <div className="relative p-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary/70">
+          {icon}
         </div>
       </div>
       

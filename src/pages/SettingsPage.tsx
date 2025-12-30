@@ -6,9 +6,10 @@ import { WebhookManager } from '@/components/settings/WebhookManager';
 import { WebhookDashboard } from '@/components/settings/WebhookDashboard';
 import { ApiLogsPanel } from '@/components/settings/ApiLogsPanel';
 import { OnboardingSettings } from '@/components/settings/OnboardingSettings';
+import { AutomationsManager } from '@/components/settings/AutomationsManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function SettingsPage() {
@@ -35,6 +36,10 @@ export default function SettingsPage() {
               <Sparkles className="h-4 w-4" />
               Tour & Conquistas
             </TabsTrigger>
+            <TabsTrigger value="automations" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Automações
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
               API Keys
@@ -59,6 +64,10 @@ export default function SettingsPage() {
 
           <TabsContent value="onboarding">
             <OnboardingSettings />
+          </TabsContent>
+
+          <TabsContent value="automations">
+            <AutomationsManager />
           </TabsContent>
 
           <TabsContent value="api-keys">
