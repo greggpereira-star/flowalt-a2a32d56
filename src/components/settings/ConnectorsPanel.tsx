@@ -33,10 +33,12 @@ import {
   Unlink,
   ArrowRight,
   Sparkles,
+  KeyRound,
 } from 'lucide-react';
 import { useConnectors, Connector } from '@/hooks/useConnectors';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { IntegrationWizard } from './IntegrationWizard';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Calendar,
@@ -188,16 +190,19 @@ export function ConnectorsPanel() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" />
-              Conectores
+              Conectores & Integrações
             </CardTitle>
             <CardDescription>
               Integre o Flowalt com serviços externos para automatizar importação de dados
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={handleAnalyzePatterns}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Analisar Padrões
-          </Button>
+          <div className="flex items-center gap-2">
+            <IntegrationWizard />
+            <Button variant="outline" onClick={handleAnalyzePatterns}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Analisar Padrões
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
