@@ -60,14 +60,13 @@ const spaceIconMap: Record<string, React.ElementType> = {
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/' },
-  { icon: FolderKanban, label: 'Minhas Tarefas', path: '/tasks' },
+  { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
   { icon: Clock, label: 'Tempo', path: '/time' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
 ];
 
 const managementItems = [
   { icon: Users, label: 'Coordenação', path: '/coordination' },
-  { icon: BarChart3, label: 'Painel dos Sócios', path: '/partners' },
 ];
 
 export const AppSidebar: React.FC = () => {

@@ -31,6 +31,8 @@ import { BriefingForm, type BriefingData } from './BriefingForm';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { ChecklistPanel } from './ChecklistPanel';
 import { TimeTrackingPanel } from './TimeTrackingPanel';
+import { CommentsPanel } from './CommentsPanel';
+import { AttachmentsPanel } from './AttachmentsPanel';
 import {
   CalendarIcon,
   FileText,
@@ -38,7 +40,8 @@ import {
   Clock,
   Truck,
   Loader2,
-  X,
+  MessageSquare,
+  Paperclip,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -366,6 +369,20 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <Clock className="h-4 w-4 mr-2" />
                     Tempo
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="comments"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Comentários
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="attachments"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Anexos
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -411,6 +428,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                 <TabsContent value="time" className="m-0 p-6">
                   <TimeTrackingPanel cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="comments" className="m-0 p-6">
+                  <CommentsPanel cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="attachments" className="m-0 p-6">
+                  <AttachmentsPanel cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>
