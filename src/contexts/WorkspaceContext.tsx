@@ -4,6 +4,24 @@ import { useAuth } from './AuthContext';
 import type { AppRole, SpaceType } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 
+const generateUuid = (): string => {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c?.randomUUID) return c.randomUUID();
+
+  if (c?.getRandomValues) {
+    const bytes = c.getRandomValues(new Uint8Array(16));
+    // RFC 4122 v4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+};
+
 interface Workspace {
   id: string;
   name: string;
@@ -142,7 +160,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // IMPORTANT: Don't request RETURNING/representation here.
       // The workspaces SELECT policy depends on workspace_members, which doesn't exist yet,
       // so asking for the inserted row can fail with RLS.
-      const workspaceId = crypto.randomUUID();
+      const workspaceId = generateUuid();
 
       const { error: workspaceError } = await supabase
         .from('workspaces')
