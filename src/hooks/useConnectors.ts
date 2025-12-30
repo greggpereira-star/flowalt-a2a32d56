@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,59 +29,117 @@ export interface PredictiveSyncPattern {
   confidence: number;
 }
 
-// Simulated connectors state (would be stored in DB in production)
-const mockConnectors: Connector[] = [
+// Base connectors (static list)
+const baseConnectors: Omit<Connector, 'status' | 'lastSync'>[] = [
   {
     id: 'gc-1',
     name: 'Google Calendar',
     type: 'google_calendar',
     icon: 'Calendar',
-    status: 'disconnected',
   },
   {
     id: 'gd-1',
     name: 'Google Drive',
     type: 'google_drive',
     icon: 'HardDrive',
-    status: 'disconnected',
   },
   {
     id: 'of-1',
     name: 'Open Finance',
     type: 'open_finance',
     icon: 'Landmark',
-    status: 'disconnected',
   },
   {
     id: 'sl-1',
     name: 'Slack',
     type: 'slack',
     icon: 'MessageSquare',
-    status: 'disconnected',
   },
   {
     id: 'zp-1',
     name: 'Zapier',
     type: 'zapier',
     icon: 'Zap',
-    status: 'disconnected',
   },
   {
     id: 'nf-1',
     name: 'Emissor NF',
     type: 'nf_emissor',
     icon: 'FileText',
-    status: 'disconnected',
   },
 ];
 
+// Map integration_credentials.integration_type to connector type
+const integrationTypeToConnectorType: Record<string, string> = {
+  pluggy: 'open_finance',
+  espiao_nfe: 'nf_emissor',
+  sicredi: 'open_finance', // Sicredi is also banking/open finance
+};
+
 export function useConnectors() {
   const { currentWorkspace } = useWorkspace();
-  const [connectors, setConnectors] = useState<Connector[]>(mockConnectors);
+  const [connectors, setConnectors] = useState<Connector[]>(
+    baseConnectors.map(c => ({ ...c, status: 'disconnected' as const }))
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [syncPatterns, setSyncPatterns] = useState<PredictiveSyncPattern[]>([]);
 
-  // Connect to a service (OAuth flow simulation)
+  // Fetch real integration statuses from database
+  const fetchIntegrationStatuses = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
+        body: {
+          action: 'status',
+          workspace_id: currentWorkspace.id,
+        },
+      });
+
+      if (error) {
+        console.error('Error fetching integration statuses:', error);
+        return;
+      }
+
+      const statuses: Record<string, { is_active: boolean; last_sync_at?: string }> = data?.integrations || {};
+      
+      setConnectors(prev => prev.map(connector => {
+        // Find matching integration status
+        const matchingIntegrationType = Object.entries(integrationTypeToConnectorType)
+          .find(([, connType]) => connType === connector.type)?.[0];
+        
+        const integrationStatus = matchingIntegrationType ? statuses[matchingIntegrationType] : null;
+        
+        if (integrationStatus?.is_active) {
+          return {
+            ...connector,
+            status: 'connected' as const,
+            lastSync: integrationStatus.last_sync_at || undefined,
+          };
+        }
+        
+        return {
+          ...connector,
+          status: 'disconnected' as const,
+          lastSync: undefined,
+        };
+      }));
+    } catch (error) {
+      console.error('Error fetching integration statuses:', error);
+    }
+  }, [currentWorkspace?.id]);
+
+  // Fetch statuses on mount and when workspace changes
+  useEffect(() => {
+    fetchIntegrationStatuses();
+  }, [fetchIntegrationStatuses]);
+
+  // Expose refresh function for external use (e.g., after wizard completion)
+  const refreshStatuses = useCallback(() => {
+    fetchIntegrationStatuses();
+  }, [fetchIntegrationStatuses]);
+
+  // Connect to a service (OAuth flow simulation for non-wizard connectors)
   const connect = useCallback(async (connectorId: string) => {
     setIsLoading(true);
     try {
@@ -106,9 +164,28 @@ export function useConnectors() {
 
   // Disconnect from a service
   const disconnect = useCallback(async (connectorId: string) => {
+    if (!currentWorkspace?.id) return false;
+    
+    const connector = connectors.find(c => c.id === connectorId);
+    if (!connector) return false;
+
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // For wizard-managed connectors, call delete on the edge function
+      const matchingIntegrationType = Object.entries(integrationTypeToConnectorType)
+        .find(([, connType]) => connType === connector.type)?.[0];
+      
+      if (matchingIntegrationType) {
+        const { error } = await supabase.functions.invoke('integration-manager', {
+          body: {
+            action: 'delete',
+            workspace_id: currentWorkspace.id,
+            integration_type: matchingIntegrationType,
+          },
+        });
+        
+        if (error) throw error;
+      }
       
       setConnectors(prev => prev.map(c => 
         c.id === connectorId 
@@ -124,7 +201,7 @@ export function useConnectors() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [connectors, currentWorkspace?.id]);
 
   // Manual sync trigger
   const syncNow = useCallback(async (connectorId: string): Promise<SyncResult> => {
@@ -177,11 +254,10 @@ export function useConnectors() {
 
   // Predictive sync analysis
   const analyzeSyncPatterns = useCallback(async (): Promise<PredictiveSyncPattern[]> => {
-    // In production, this would analyze historical sync data
     const patterns: PredictiveSyncPattern[] = [
       {
         connectorType: 'google_calendar',
-        avgSyncInterval: 15, // minutes
+        avgSyncInterval: 15,
         peakUsageHours: [9, 10, 14, 15],
         suggestedSchedule: 'Sync every 15 minutes during business hours',
         confidence: 0.85,
@@ -195,7 +271,7 @@ export function useConnectors() {
       },
       {
         connectorType: 'open_finance',
-        avgSyncInterval: 1440, // daily
+        avgSyncInterval: 1440,
         peakUsageHours: [8, 17],
         suggestedSchedule: 'Daily sync at 8am for fresh financial data',
         confidence: 0.92,
@@ -210,7 +286,6 @@ export function useConnectors() {
   const importCalendarEvents = useCallback(async (startDate: Date, endDate: Date) => {
     if (!currentWorkspace?.id) return [];
     
-    // Simulate fetching Google Calendar events
     const mockEvents: Array<{
       title: string;
       start_time: string;
@@ -234,7 +309,6 @@ export function useConnectors() {
       },
     ];
 
-    // Insert into events table
     const { data, error } = await supabase
       .from('events')
       .insert(mockEvents.map(e => ({
@@ -254,7 +328,6 @@ export function useConnectors() {
 
   // Google Drive specific: Link attachments to cards
   const importDriveFiles = useCallback(async (cardId: string, fileIds: string[]) => {
-    // Simulate Drive file import
     const mockFiles = fileIds.map((id, idx) => ({
       card_id: cardId,
       file_name: `documento_${idx + 1}.pdf`,
@@ -263,7 +336,6 @@ export function useConnectors() {
       file_size: Math.floor(Math.random() * 1000000),
     }));
 
-    // In production, would actually download/link files
     toast.success(`${mockFiles.length} arquivos vinculados`);
     return mockFiles;
   }, []);
@@ -272,7 +344,6 @@ export function useConnectors() {
   const importBankTransactions = useCallback(async (accountId: string, startDate: Date, endDate: Date) => {
     if (!currentWorkspace?.id) return [];
     
-    // Simulate Open Finance API call
     const mockTransactions = [
       {
         description: 'Pagamento Cliente ABC',
@@ -309,7 +380,6 @@ export function useConnectors() {
 
   // NF Emissor specific: Fetch and match invoices
   const fetchInvoices = useCallback(async (cnpj: string) => {
-    // Simulate NF API call
     const mockInvoices = [
       {
         number: 'NF-001234',
@@ -335,7 +405,6 @@ export function useConnectors() {
   const suggestMatches = useCallback(async () => {
     if (!currentWorkspace?.id) return [];
     
-    // In production, would use ML to match transactions with invoices
     const suggestions = [
       {
         transactionId: 'tx-1',
@@ -367,5 +436,6 @@ export function useConnectors() {
     importBankTransactions,
     fetchInvoices,
     suggestMatches,
+    refreshStatuses,
   };
 }

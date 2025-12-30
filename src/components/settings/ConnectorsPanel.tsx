@@ -67,6 +67,7 @@ export function ConnectorsPanel() {
     analyzeSyncPatterns,
     importCalendarEvents,
     importBankTransactions,
+    refreshStatuses,
   } = useConnectors();
 
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null);
@@ -432,6 +433,7 @@ export function ConnectorsPanel() {
         onOpenChange={setWizardOpen}
         initialIntegration={wizardIntegration}
         hideTrigger
+        onSuccess={refreshStatuses}
       />
     </Card>
   );
