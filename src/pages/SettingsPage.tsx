@@ -8,9 +8,12 @@ import { ApiLogsPanel } from '@/components/settings/ApiLogsPanel';
 import { OnboardingSettings } from '@/components/settings/OnboardingSettings';
 import { AutomationsManager } from '@/components/settings/AutomationsManager';
 import { SystemMonitorPanel } from '@/components/settings/SystemMonitorPanel';
+import { FeatureFlagsManager } from '@/components/settings/FeatureFlagsManager';
+import { UsageAnalyticsDashboard } from '@/components/analytics/UsageAnalyticsDashboard';
+import { TemplateManager } from '@/components/templates/TemplateManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function SettingsPage() {
@@ -32,18 +35,30 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="onboarding" className="space-y-6">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="onboarding" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              Tour & Conquistas
+              Tour
             </TabsTrigger>
             <TabsTrigger value="automations" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               Automações
             </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <FileStack className="h-4 w-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="feature-flags" className="flex items-center gap-2">
+              <Flag className="h-4 w-4" />
+              Feature Flags
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              Uso
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
-              API Keys
+              API
             </TabsTrigger>
             <TabsTrigger value="webhooks" className="flex items-center gap-2">
               <Webhook className="h-4 w-4" />
@@ -51,11 +66,11 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="monitoring" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Webhooks Monitor
+              Monitor
             </TabsTrigger>
             <TabsTrigger value="api-logs" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              API Logs
+              Logs
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Monitor className="h-4 w-4" />
@@ -63,7 +78,7 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
-              Documentação
+              Docs
             </TabsTrigger>
           </TabsList>
 
@@ -73,6 +88,18 @@ export default function SettingsPage() {
 
           <TabsContent value="automations">
             <AutomationsManager />
+          </TabsContent>
+
+          <TabsContent value="templates">
+            <TemplateManager />
+          </TabsContent>
+
+          <TabsContent value="feature-flags">
+            <FeatureFlagsManager />
+          </TabsContent>
+
+          <TabsContent value="usage">
+            <UsageAnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="api-keys">

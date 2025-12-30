@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,7 +40,13 @@ interface Space {
 interface Folder {
   id: string;
   name: string;
-  space_id: string;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  description: string | null;
+  steps: unknown;
 }
 
 export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTemplateDialogProps) {
@@ -51,54 +57,76 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [cardPrefix, setCardPrefix] = useState('');
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch template
-  const { data: template, isLoading: templateLoading } = useQuery({
-    queryKey: ['template', templateId],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  // Load template
+  useEffect(() => {
+    async function loadTemplate() {
+      if (!templateId) return;
+      setLoading(true);
+      const { data } = await supabase
         .from('process_templates')
-        .select('*')
+        .select('id, name, description, steps')
         .eq('id', templateId)
         .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!templateId,
-  });
+      setTemplate(data as Template | null);
+      setLoading(false);
+    }
+    loadTemplate();
+  }, [templateId]);
 
-  // Fetch spaces
-  const { data: spaces } = useQuery({
-    queryKey: ['spaces-simple', currentWorkspace?.id],
-    queryFn: async () => {
-      if (!currentWorkspace?.id) return [] as Space[];
-      const result = await supabase
-        .from('spaces')
-        .select('id, name')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('is_active', true);
-      return (result.data ?? []) as Space[];
-    },
-    enabled: !!currentWorkspace?.id,
-  });
+  // Load spaces
+  useEffect(() => {
+    async function loadSpaces() {
+      if (!currentWorkspace?.id) return;
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/spaces?workspace_id=eq.${currentWorkspace.id}&is_active=eq.true&select=id,name`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+          }
+        );
+        const data = await response.json();
+        setSpaces(data ?? []);
+      } catch (e) {
+        console.error('Error loading spaces:', e);
+      }
+    }
+    loadSpaces();
+  }, [currentWorkspace?.id]);
 
-  // Fetch folders for selected space
-  const { data: folders } = useQuery({
-    queryKey: ['folders', selectedSpace],
-    queryFn: async () => {
-      if (!selectedSpace) return [];
-      const { data, error } = await supabase
-        .from('folders')
-        .select('id, name, space_id')
-        .eq('space_id', selectedSpace)
-        .order('name');
-      if (error) throw error;
-      return data as Folder[];
-    },
-    enabled: !!selectedSpace,
-  });
+  // Load folders
+  useEffect(() => {
+    async function loadFolders() {
+      if (!selectedSpace) {
+        setFolders([]);
+        return;
+      }
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/folders?space_id=eq.${selectedSpace}&select=id,name`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+          }
+        );
+        const data = await response.json();
+        setFolders(data ?? []);
+      } catch (e) {
+        console.error('Error loading folders:', e);
+      }
+    }
+    loadFolders();
+  }, [selectedSpace]);
 
-  // Apply template mutation
   const applyMutation = useMutation({
     mutationFn: async () => {
       if (!template || !selectedSpace || !user?.id || !currentWorkspace?.id) {
@@ -113,25 +141,28 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
         estimatedHours?: number;
       }>;
 
-      // Create cards for each step
       const validStatuses = ['backlog', 'todo', 'in_progress', 'review', 'briefing', 'approved', 'delivered', 'archived'] as const;
       type CardStatus = typeof validStatuses[number];
-      
-      const cards = steps.map((step, index) => ({
-        workspace_id: currentWorkspace.id,
-        space_id: selectedSpace,
-        folder_id: selectedFolder || null,
-        title: cardPrefix ? `${cardPrefix} - ${step.title}` : step.title,
-        description: step.description || null,
-        status: (validStatuses.includes(step.status as CardStatus) ? step.status : 'todo') as CardStatus,
-        position: index,
-        created_by: user.id,
-        estimated_hours: step.estimatedHours || null,
-      }));
 
-      const { error } = await supabase.from('cards').insert(cards);
-      if (error) throw error;
-      
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const status = validStatuses.includes(step.status as CardStatus) 
+          ? step.status as CardStatus 
+          : 'todo';
+        
+        await supabase.from('cards').insert({
+          workspace_id: currentWorkspace.id,
+          space_id: selectedSpace,
+          folder_id: selectedFolder || null,
+          title: cardPrefix ? `${cardPrefix} - ${step.title}` : step.title,
+          description: step.description || null,
+          status,
+          position: i,
+          created_by: user.id,
+          estimated_hours: step.estimatedHours || null,
+        });
+      }
+
       return steps.length;
     },
     onSuccess: (count) => {
@@ -145,7 +176,7 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
     },
   });
 
-  if (templateLoading) {
+  if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
@@ -172,7 +203,6 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Template Info */}
           <div className="rounded-lg border p-3 bg-muted/30">
             <div className="flex items-center justify-between">
               <span className="font-medium">{template?.name}</span>
@@ -188,7 +218,6 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
             )}
           </div>
 
-          {/* Space Selection */}
           <div className="grid gap-2">
             <Label>Espaço de Destino *</Label>
             <Select value={selectedSpace} onValueChange={setSelectedSpace}>
@@ -196,7 +225,7 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
                 <SelectValue placeholder="Selecione o espaço" />
               </SelectTrigger>
               <SelectContent>
-                {spaces?.map((space) => (
+                {spaces.map((space) => (
                   <SelectItem key={space.id} value={space.id}>
                     {space.name}
                   </SelectItem>
@@ -205,8 +234,7 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
             </Select>
           </div>
 
-          {/* Folder Selection */}
-          {selectedSpace && folders && folders.length > 0 && (
+          {selectedSpace && folders.length > 0 && (
             <div className="grid gap-2">
               <Label>Pasta (opcional)</Label>
               <Select value={selectedFolder} onValueChange={setSelectedFolder}>
@@ -225,7 +253,6 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
             </div>
           )}
 
-          {/* Card Prefix */}
           <div className="grid gap-2">
             <Label htmlFor="prefix">Prefixo dos Cards (opcional)</Label>
             <Input
@@ -239,7 +266,6 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
             </p>
           </div>
 
-          {/* Preview */}
           {stepCount > 0 && (
             <div className="text-sm text-muted-foreground">
               <p>
