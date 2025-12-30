@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getErrorMessage } from '@/lib/utils';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 import { triggerWebhook } from '@/lib/webhookTrigger';
+
 
 export interface Card {
   id: string;
@@ -185,7 +187,10 @@ export const useCreateCard = () => {
           created_by: user.id,
         });
 
-      if (cardError) throw cardError;
+      if (cardError) {
+        console.error('useCreateCard: insert into cards failed', cardError);
+        throw new Error(getErrorMessage(cardError, 'Falha ao criar card.'));
+      }
 
       // Add to folder if specified
       if (input.folder_id) {
@@ -196,7 +201,10 @@ export const useCreateCard = () => {
             folder_id: input.folder_id,
           });
 
-        if (folderError) throw folderError;
+        if (folderError) {
+          console.error('useCreateCard: insert into card_folders failed', folderError);
+          throw new Error(getErrorMessage(folderError, 'Falha ao vincular pasta.'));
+        }
       }
 
       // Add creator as card member
@@ -208,7 +216,10 @@ export const useCreateCard = () => {
           is_owner: true,
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('useCreateCard: insert into card_members failed', memberError);
+        throw new Error(getErrorMessage(memberError, 'Falha ao adicionar membro ao card.'));
+      }
 
       // Trigger webhook
       triggerWebhook(currentWorkspace.id, 'card.created', {
