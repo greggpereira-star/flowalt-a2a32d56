@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
 
 export interface Attachment {
   id: string;
@@ -75,6 +76,20 @@ export const useUploadAttachment = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      const workspaceId = await getCardWorkspaceId(card_id);
+      if (workspaceId) {
+        triggerWebhook(workspaceId, 'attachment.uploaded', {
+          id: data.id,
+          card_id: data.card_id,
+          file_name: data.file_name,
+          file_type: data.file_type,
+          file_size: data.file_size,
+          uploaded_by: user.id,
+        });
+      }
+
       return data;
     },
     onSuccess: (data) => {
@@ -101,6 +116,17 @@ export const useDeleteAttachment = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Trigger webhook
+      const workspaceId = await getCardWorkspaceId(card_id);
+      if (workspaceId) {
+        triggerWebhook(workspaceId, 'attachment.deleted', {
+          id,
+          card_id,
+          file_url,
+        });
+      }
+
       return { id, card_id };
     },
     onSuccess: (data) => {
