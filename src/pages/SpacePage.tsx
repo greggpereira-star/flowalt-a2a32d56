@@ -138,7 +138,7 @@ const SpacePage: React.FC = () => {
 
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
-      <div className="flex flex-col h-[calc(100vh-56px)] overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* Compact Header */}
         <div className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 py-3">
