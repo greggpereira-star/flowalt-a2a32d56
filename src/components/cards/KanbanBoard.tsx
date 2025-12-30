@@ -1,11 +1,14 @@
 import React from 'react';
 import { TaskCard } from './TaskCard';
+import { CardContextMenu } from './CardContextMenu';
 import { statusConfig } from './CardBadges';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
+import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
-import type { CardStatus } from '@/lib/supabase';
+import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
 interface KanbanBoardProps {
   cards: Card[];
@@ -22,10 +25,75 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onAddCard,
   visibleStatuses = defaultStatuses,
 }) => {
+  const { toast } = useToast();
+  const updateCard = useUpdateCard();
+  const deleteCard = useDeleteCard();
+  const createCard = useCreateCard();
+
   const groupedCards = visibleStatuses.reduce((acc, status) => {
     acc[status] = cards.filter(card => card.status === status);
     return acc;
   }, {} as Record<CardStatus, Card[]>);
+
+  const handleStatusChange = async (card: Card, newStatus: CardStatus) => {
+    try {
+      await updateCard.mutateAsync({ id: card.id, status: newStatus });
+      toast({
+        title: 'Status atualizado',
+        description: `Card movido para ${statusConfig[newStatus].label}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao atualizar',
+        description: 'Não foi possível alterar o status.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleUrgencyChange = async (card: Card, newUrgency: CardUrgency) => {
+    try {
+      await updateCard.mutateAsync({ id: card.id, urgency: newUrgency });
+      toast({ title: 'Prioridade atualizada' });
+    } catch (error) {
+      toast({
+        title: 'Erro ao atualizar',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDuplicate = async (card: Card) => {
+    try {
+      await createCard.mutateAsync({
+        title: `${card.title} (cópia)`,
+        space_id: card.space_id,
+        description: card.description || undefined,
+        status: card.status,
+        urgency: card.urgency,
+        due_date: card.due_date || undefined,
+        client_id: card.client_id || undefined,
+      });
+      toast({ title: 'Card duplicado' });
+    } catch (error) {
+      toast({
+        title: 'Erro ao duplicar',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (card: Card) => {
+    try {
+      await deleteCard.mutateAsync(card.id);
+      toast({ title: 'Card arquivado' });
+    } catch (error) {
+      toast({
+        title: 'Erro ao arquivar',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
@@ -78,11 +146,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 </div>
               ) : (
                 columnCards.map((card) => (
-                  <TaskCard
+                  <CardContextMenu
                     key={card.id}
                     card={card}
-                    onClick={() => onCardClick(card)}
-                  />
+                    onStatusChange={(status) => handleStatusChange(card, status)}
+                    onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                    onDuplicate={() => handleDuplicate(card)}
+                    onDelete={() => handleDelete(card)}
+                  >
+                    <div>
+                      <TaskCard
+                        card={card}
+                        onClick={() => onCardClick(card)}
+                      />
+                    </div>
+                  </CardContextMenu>
                 ))
               )}
             </div>
