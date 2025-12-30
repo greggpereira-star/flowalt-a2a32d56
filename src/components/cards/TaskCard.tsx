@@ -2,7 +2,8 @@ import React from 'react';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
-import { Calendar, Clock, AlertCircle, MessageSquare } from 'lucide-react';
+import { CardRiskIndicators } from './CardRiskIndicators';
+import { Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,8 +18,6 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, isDragging }) => {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
-  const isDueToday = dueDate && isToday(dueDate);
-  const hasBriefingPending = !card.briefing_completed;
 
   return (
     <CardUI
@@ -38,13 +37,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, isDragging })
         </div>
       </CardHeader>
       <CardContent className="p-3 pt-0 space-y-2">
-        {/* Briefing pending indicator */}
-        {hasBriefingPending && (
-          <div className="flex items-center gap-1 text-xs text-warning">
-            <AlertCircle className="h-3 w-3" />
-            <span>Brief pendente</span>
-          </div>
-        )}
+        {/* Risk indicators */}
+        <CardRiskIndicators card={card} />
 
         {/* Description preview */}
         {card.description && (
@@ -60,8 +54,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, isDragging })
               <div
                 className={cn(
                   'flex items-center gap-1',
-                  isOverdue && 'text-destructive',
-                  isDueToday && 'text-warning'
+                  isOverdue && 'text-destructive'
                 )}
               >
                 <Calendar className="h-3 w-3" />
@@ -78,7 +71,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, isDragging })
             )}
           </div>
 
-          {/* Avatar placeholder - will be filled with real data later */}
+          {/* Avatar placeholder */}
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
               {card.owner_id ? 'U' : '?'}
