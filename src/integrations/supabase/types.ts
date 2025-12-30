@@ -361,6 +361,96 @@ export type Database = {
           },
         ]
       }
+      collaborator_details: {
+        Row: {
+          address: Json | null
+          bank_account: string | null
+          bank_agency: string | null
+          bank_name: string | null
+          base_salary: number | null
+          birth_date: string | null
+          contract_type: string | null
+          cpf: string | null
+          created_at: string
+          documents: Json | null
+          emergency_contact: Json | null
+          full_name: string | null
+          hire_date: string | null
+          id: string
+          is_active: boolean | null
+          member_id: string
+          notes: string | null
+          pix_key: string | null
+          rg: string | null
+          updated_at: string
+          weekly_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          address?: Json | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
+          created_at?: string
+          documents?: Json | null
+          emergency_contact?: Json | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id: string
+          notes?: string | null
+          pix_key?: string | null
+          rg?: string | null
+          updated_at?: string
+          weekly_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          address?: Json | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
+          created_at?: string
+          documents?: Json | null
+          emergency_contact?: Json | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id?: string
+          notes?: string | null
+          pix_key?: string | null
+          rg?: string | null
+          updated_at?: string
+          weekly_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_details_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_details_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           card_id: string
@@ -582,6 +672,50 @@ export type Database = {
           },
         ]
       }
+      financial_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folders: {
         Row: {
           color: string | null
@@ -677,6 +811,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      salary_history: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          id: string
+          new_salary: number
+          previous_salary: number | null
+          reason: string | null
+          workspace_id: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_date: string
+          id?: string
+          new_salary: number
+          previous_salary?: number | null
+          reason?: string | null
+          workspace_id: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          id?: string
+          new_salary?: number
+          previous_salary?: number | null
+          reason?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_history_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spaces: {
         Row: {
@@ -893,6 +1078,127 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount: number
+          card_id: string | null
+          category_id: string | null
+          client_id: string | null
+          collaborator_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string
+          id: string
+          installment_number: number | null
+          invoice_number: string | null
+          invoice_url: string | null
+          metadata: Json | null
+          notes: string | null
+          paid_date: string | null
+          parent_transaction_id: string | null
+          recurrence: Database["public"]["Enums"]["recurrence_type"] | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          total_installments: number | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          card_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          collaborator_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date: string
+          id?: string
+          installment_number?: number | null
+          invoice_number?: string | null
+          invoice_url?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          paid_date?: string | null
+          parent_transaction_id?: string | null
+          recurrence?: Database["public"]["Enums"]["recurrence_type"] | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          total_installments?: number | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          card_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          collaborator_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string
+          id?: string
+          installment_number?: number | null
+          invoice_number?: string | null
+          invoice_url?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          paid_date?: string | null
+          parent_transaction_id?: string | null
+          recurrence?: Database["public"]["Enums"]["recurrence_type"] | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          total_installments?: number | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1038,6 +1344,7 @@ export type Database = {
         | "archived"
       card_urgency: "low" | "medium" | "high" | "critical"
       event_type: "meeting" | "recording" | "milestone" | "deadline" | "other"
+      recurrence_type: "none" | "monthly" | "yearly"
       space_type:
         | "designer"
         | "audiovisual"
@@ -1046,6 +1353,8 @@ export type Database = {
         | "administrative"
         | "coordination"
         | "custom"
+      transaction_status: "pending" | "paid" | "cancelled" | "overdue"
+      transaction_type: "income" | "expense" | "transfer"
       workspace_status: "active" | "trial" | "suspended" | "inactive"
     }
     CompositeTypes: {
@@ -1194,6 +1503,7 @@ export const Constants = {
       ],
       card_urgency: ["low", "medium", "high", "critical"],
       event_type: ["meeting", "recording", "milestone", "deadline", "other"],
+      recurrence_type: ["none", "monthly", "yearly"],
       space_type: [
         "designer",
         "audiovisual",
@@ -1203,6 +1513,8 @@ export const Constants = {
         "coordination",
         "custom",
       ],
+      transaction_status: ["pending", "paid", "cancelled", "overdue"],
+      transaction_type: ["income", "expense", "transfer"],
       workspace_status: ["active", "trial", "suspended", "inactive"],
     },
   },
