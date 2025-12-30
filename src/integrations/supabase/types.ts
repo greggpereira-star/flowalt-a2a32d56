@@ -465,6 +465,123 @@ export type Database = {
           },
         ]
       }
+      event_participants: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          responded_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          all_day: boolean | null
+          card_id: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_time: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          is_recurring: boolean | null
+          location: string | null
+          recurrence_rule: string | null
+          space_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          all_day?: boolean | null
+          card_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_rule?: string | null
+          space_id?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          all_day?: boolean | null
+          card_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_rule?: string | null
+          space_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folders: {
         Row: {
           color: string | null
@@ -920,6 +1037,7 @@ export type Database = {
         | "delivered"
         | "archived"
       card_urgency: "low" | "medium" | "high" | "critical"
+      event_type: "meeting" | "recording" | "milestone" | "deadline" | "other"
       space_type:
         | "designer"
         | "audiovisual"
@@ -1075,6 +1193,7 @@ export const Constants = {
         "archived",
       ],
       card_urgency: ["low", "medium", "high", "critical"],
+      event_type: ["meeting", "recording", "milestone", "deadline", "other"],
       space_type: [
         "designer",
         "audiovisual",

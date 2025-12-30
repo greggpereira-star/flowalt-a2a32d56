@@ -84,6 +84,9 @@ export const useMemberCapacity = () => {
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
 
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 7);
+
       const { data: timeEntries, error: timeError } = await supabase
         .from('time_entries')
         .select('user_id, duration_seconds')
@@ -99,6 +102,41 @@ export const useMemberCapacity = () => {
         .in('user_id', memberIds);
 
       if (cardError) throw cardError;
+
+      // Get events for this week (to reduce available capacity)
+      const { data: eventParticipants } = await supabase
+        .from('event_participants')
+        .select('user_id, event_id')
+        .in('user_id', memberIds)
+        .in('status', ['accepted', 'pending']);
+
+      const eventIds = eventParticipants?.map(ep => ep.event_id) || [];
+      let eventHoursByUser: Record<string, number> = {};
+
+      if (eventIds.length > 0) {
+        const { data: events } = await supabase
+          .from('events')
+          .select('id, start_time, end_time, all_day')
+          .in('id', eventIds)
+          .gte('start_time', startOfWeek.toISOString())
+          .lte('end_time', endOfWeek.toISOString());
+
+        // Calculate hours per user from events
+        eventParticipants?.forEach(ep => {
+          const event = events?.find(e => e.id === ep.event_id);
+          if (event) {
+            let hours = 0;
+            if (event.all_day) {
+              hours = 8;
+            } else {
+              const start = new Date(event.start_time);
+              const end = new Date(event.end_time);
+              hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            }
+            eventHoursByUser[ep.user_id] = (eventHoursByUser[ep.user_id] || 0) + hours;
+          }
+        });
+      }
 
       return profiles?.map(profile => {
         const weeklyHours = timeEntries
@@ -116,6 +154,10 @@ export const useMemberCapacity = () => {
           return acc + hours;
         }, 0) || 0;
 
+        const eventHours = Math.round((eventHoursByUser[profile.id] || 0) * 10) / 10;
+        const baseCapacity = 40; // 40h work week
+        const effectiveCapacity = baseCapacity - eventHours;
+
         return {
           id: profile.id,
           name: profile.full_name || profile.email,
@@ -125,7 +167,8 @@ export const useMemberCapacity = () => {
           weekly_hours: Math.round(weeklyHours / 3600 * 10) / 10,
           allocated_hours: allocatedHours,
           active_cards: assignedCards?.length || 0,
-          available_hours: 40 - allocatedHours, // Assuming 40h work week
+          event_hours: eventHours,
+          available_hours: Math.max(0, effectiveCapacity - allocatedHours),
         };
       }) || [];
     },

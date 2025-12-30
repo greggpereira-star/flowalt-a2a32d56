@@ -12,6 +12,7 @@ import NewWorkspace from "./pages/NewWorkspace";
 import SpacePage from "./pages/SpacePage";
 import Dashboard from "./pages/Dashboard";
 import CoordinationPage from "./pages/CoordinationPage";
+import AgendaPage from "./pages/AgendaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
               <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
               <Route path="/coordination" element={<AuthGuard><CoordinationPage /></AuthGuard>} />
+              <Route path="/calendar" element={<AuthGuard><AgendaPage /></AuthGuard>} />
               <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
