@@ -6,6 +6,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { useLocation } from 'react-router-dom';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -13,11 +14,15 @@ interface AppLayoutProps {
 
 const routeNames: Record<string, string> = {
   '/': 'Início',
+  '/dashboard': 'Dashboard',
   '/tasks': 'Minhas Tarefas',
   '/time': 'Tempo',
   '/calendar': 'Agenda',
   '/coordination': 'Coordenação',
+  '/financial': 'Financeiro',
   '/partners': 'Painel dos Sócios',
+  '/gamification': 'Gamificação',
+  '/analytics': 'Análises',
   '/settings': 'Configurações',
 };
 
@@ -57,6 +62,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <main className="flex-1 overflow-auto">
           {children}
         </main>
+
+        {/* Feedback Widget */}
+        <FeedbackWidget />
       </SidebarInset>
     </SidebarProvider>
   );

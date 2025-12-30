@@ -1,14 +1,65 @@
-// Service Worker for Push Notifications
+// Service Worker for PWA + Push Notifications
+const CACHE_NAME = 'flowalt-v1';
+const STATIC_CACHE = 'flowalt-static-v1';
+
+// Static assets to cache for offline
+const STATIC_ASSETS = [
+  '/',
+  '/manifest.json',
+  '/favicon.ico',
+];
+
+// Install - cache static assets
 self.addEventListener('install', (event) => {
   console.log('Service Worker installed');
+  event.waitUntil(
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
   self.skipWaiting();
 });
 
+// Activate - clean old caches
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+          .map((name) => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim();
 });
 
+// Fetch - network first, cache fallback
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests and API calls
+  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('supabase.co')) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
+});
+
+// Push notifications
 self.addEventListener('push', (event) => {
   console.log('Push received:', event);
   
@@ -27,6 +78,7 @@ self.addEventListener('push', (event) => {
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     tag: data.tag || 'default',
+    vibrate: [100, 50, 100],
     data: {
       url: data.url || '/',
     },
@@ -41,6 +93,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Notification click handling
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification click:', event);
   
@@ -55,14 +108,12 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Try to focus existing window
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.navigate(url);
             return client.focus();
           }
         }
-        // Open new window
         if (self.clients.openWindow) {
           return self.clients.openWindow(url);
         }
