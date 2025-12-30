@@ -130,26 +130,30 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!user) return { error: new Error('User not authenticated') };
 
     try {
-      const slug = name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 50) + '-' + Date.now().toString(36);
+      const slug =
+        name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .substring(0, 50) + '-' + Date.now().toString(36);
 
-      const { data: workspace, error: workspaceError } = await supabase
+      // IMPORTANT: Don't request RETURNING/representation here.
+      // The workspaces SELECT policy depends on workspace_members, which doesn't exist yet,
+      // so asking for the inserted row can fail with RLS.
+      const workspaceId = crypto.randomUUID();
+
+      const { error: workspaceError } = await supabase
         .from('workspaces')
-        .insert({ name, slug })
-        .select()
-        .single();
+        .insert({ id: workspaceId, name, slug });
 
       if (workspaceError) throw workspaceError;
 
       const { error: memberError } = await supabase
         .from('workspace_members')
         .insert({
-          workspace_id: workspace.id,
+          workspace_id: workspaceId,
           user_id: user.id,
           function_title: 'Proprietário',
           is_active: true,
@@ -160,7 +164,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
-          workspace_id: workspace.id,
+          workspace_id: workspaceId,
           user_id: user.id,
           role: 'owner',
         });
@@ -176,18 +180,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         { name: 'Coordenação', type: 'coordination', icon: 'layout-dashboard', color: '#6366f1' },
       ];
 
-      const { error: spacesError } = await supabase
-        .from('spaces')
-        .insert(
-          defaultSpaces.map((space, index) => ({
-            workspace_id: workspace.id,
-            name: space.name,
-            type: space.type,
-            icon: space.icon,
-            color: space.color,
-            sort_order: index,
-          }))
-        );
+      const { error: spacesError } = await supabase.from('spaces').insert(
+        defaultSpaces.map((space, index) => ({
+          workspace_id: workspaceId,
+          name: space.name,
+          type: space.type,
+          icon: space.icon,
+          color: space.color,
+          sort_order: index,
+        }))
+      );
 
       if (spacesError) console.error('Error creating default spaces:', spacesError);
 
@@ -195,35 +197,51 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const defaultCategories: Array<{
         workspace_id: string;
         name: string;
-        type: "expense" | "income" | "transfer";
+        type: 'expense' | 'income' | 'transfer';
         color: string;
         icon: string;
         is_system: boolean;
       }> = [
-        { workspace_id: workspace.id, name: 'Salários', type: 'expense', color: '#ef4444', icon: 'users', is_system: true },
-        { workspace_id: workspace.id, name: 'Fornecedores', type: 'expense', color: '#f97316', icon: 'truck', is_system: true },
-        { workspace_id: workspace.id, name: 'Serviços', type: 'expense', color: '#eab308', icon: 'wrench', is_system: true },
-        { workspace_id: workspace.id, name: 'Impostos', type: 'expense', color: '#84cc16', icon: 'landmark', is_system: true },
-        { workspace_id: workspace.id, name: 'Marketing', type: 'expense', color: '#22c55e', icon: 'megaphone', is_system: true },
-        { workspace_id: workspace.id, name: 'Infraestrutura', type: 'expense', color: '#14b8a6', icon: 'building', is_system: true },
-        { workspace_id: workspace.id, name: 'Software', type: 'expense', color: '#06b6d4', icon: 'laptop', is_system: true },
-        { workspace_id: workspace.id, name: 'Outros Gastos', type: 'expense', color: '#6b7280', icon: 'folder', is_system: true },
-        { workspace_id: workspace.id, name: 'Clientes', type: 'income', color: '#10b981', icon: 'briefcase', is_system: true },
-        { workspace_id: workspace.id, name: 'Projetos', type: 'income', color: '#0ea5e9', icon: 'folder-kanban', is_system: true },
-        { workspace_id: workspace.id, name: 'Consultoria', type: 'income', color: '#8b5cf6', icon: 'lightbulb', is_system: true },
-        { workspace_id: workspace.id, name: 'Outras Receitas', type: 'income', color: '#6b7280', icon: 'folder', is_system: true },
+        { workspace_id: workspaceId, name: 'Salários', type: 'expense', color: '#ef4444', icon: 'users', is_system: true },
+        { workspace_id: workspaceId, name: 'Fornecedores', type: 'expense', color: '#f97316', icon: 'truck', is_system: true },
+        { workspace_id: workspaceId, name: 'Serviços', type: 'expense', color: '#eab308', icon: 'wrench', is_system: true },
+        { workspace_id: workspaceId, name: 'Impostos', type: 'expense', color: '#84cc16', icon: 'landmark', is_system: true },
+        { workspace_id: workspaceId, name: 'Marketing', type: 'expense', color: '#22c55e', icon: 'megaphone', is_system: true },
+        { workspace_id: workspaceId, name: 'Infraestrutura', type: 'expense', color: '#14b8a6', icon: 'building', is_system: true },
+        { workspace_id: workspaceId, name: 'Software', type: 'expense', color: '#06b6d4', icon: 'laptop', is_system: true },
+        { workspace_id: workspaceId, name: 'Outros Gastos', type: 'expense', color: '#6b7280', icon: 'folder', is_system: true },
+        { workspace_id: workspaceId, name: 'Clientes', type: 'income', color: '#10b981', icon: 'briefcase', is_system: true },
+        { workspace_id: workspaceId, name: 'Projetos', type: 'income', color: '#0ea5e9', icon: 'folder-kanban', is_system: true },
+        { workspace_id: workspaceId, name: 'Consultoria', type: 'income', color: '#8b5cf6', icon: 'lightbulb', is_system: true },
+        { workspace_id: workspaceId, name: 'Outras Receitas', type: 'income', color: '#6b7280', icon: 'folder', is_system: true },
       ];
 
-      const { error: categoriesError } = await supabase
-        .from('financial_categories')
-        .insert(defaultCategories);
+      const { error: categoriesError } = await supabase.from('financial_categories').insert(defaultCategories);
 
       if (categoriesError) console.error('Error creating default categories:', categoriesError);
 
-      await fetchWorkspaces();
-      setCurrentWorkspace(workspace);
+      // Now that membership exists, reading the workspace row is allowed by policy.
+      const { data: createdWorkspace, error: createdWorkspaceError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', workspaceId)
+        .maybeSingle();
 
-      return { error: null, workspace };
+      if (createdWorkspaceError) throw createdWorkspaceError;
+
+      const fallbackWorkspace: Workspace = {
+        id: workspaceId,
+        name,
+        slug,
+        status: 'active',
+        logo_url: null,
+        settings: {} as Json,
+      };
+
+      await fetchWorkspaces();
+      setCurrentWorkspace(createdWorkspace ?? fallbackWorkspace);
+
+      return { error: null, workspace: createdWorkspace ?? fallbackWorkspace };
     } catch (error) {
       return { error: error as Error };
     }
