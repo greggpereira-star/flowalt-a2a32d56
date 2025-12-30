@@ -37,6 +37,46 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
+  // Parse URL early for status endpoint
+  const url = new URL(req.url)
+  const pathParts = url.pathname.split('/').filter(Boolean)
+  const resource = pathParts[1] || ''
+
+  // Handle status endpoint (no auth required)
+  if (resource === 'status') {
+    const startTime = Date.now()
+    
+    // Check database connectivity
+    const { error: dbError } = await supabase.from('workspaces').select('id').limit(1)
+    const dbLatency = Date.now() - startTime
+    const dbStatus = dbError ? 'unhealthy' : 'healthy'
+
+    const status = {
+      status: dbError ? 'degraded' : 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      services: {
+        database: {
+          status: dbStatus,
+          latency_ms: dbLatency
+        },
+        api: {
+          status: 'healthy',
+          rate_limit: {
+            max_requests: RATE_LIMIT_MAX_REQUESTS,
+            window_minutes: RATE_LIMIT_WINDOW_MINUTES
+          }
+        }
+      },
+      endpoints: ['cards', 'comments', 'time-entries', 'events', 'webhooks', 'status']
+    }
+
+    return new Response(JSON.stringify(status), {
+      status: dbError ? 503 : 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
     // Extract API key from header
     const apiKey = req.headers.get('x-api-key')
@@ -171,12 +211,7 @@ Deno.serve(async (req) => {
       ;(req as any).supabase = supabase
     }
 
-    // Parse URL and route
-    const url = new URL(req.url)
-    const pathParts = url.pathname.split('/').filter(Boolean)
-    
-    // Expected path: /public-api/{resource}/{id?}
-    const resource = pathParts[1] || ''
+    // resourceId from URL path
     const resourceId = pathParts[2]
 
     // Pagination params

@@ -77,6 +77,19 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
+                  <h3 className="font-semibold mb-2">Health Check</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Endpoint público para verificar status da API (sem autenticação):
+                  </p>
+                  <code className="block p-3 bg-muted rounded-lg text-sm">
+                    GET /status
+                  </code>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Retorna status dos serviços, latência do banco e endpoints disponíveis.
+                  </p>
+                </div>
+
+                <div>
                   <h3 className="font-semibold mb-2">Endpoints Disponíveis</h3>
                   <div className="space-y-3">
                     <div className="p-3 border rounded-lg">
