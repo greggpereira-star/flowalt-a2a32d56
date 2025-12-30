@@ -89,9 +89,10 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
       setClientId('');
       onOpenChange(false);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível criar o card.';
       toast({
         title: 'Erro',
-        description: 'Não foi possível criar o card.',
+        description: message,
         variant: 'destructive',
       });
     }
