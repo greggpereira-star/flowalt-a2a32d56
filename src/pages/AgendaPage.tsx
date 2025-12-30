@@ -4,8 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarView } from '@/components/agenda/CalendarView';
 import { UpcomingEvents } from '@/components/agenda/UpcomingEvents';
 import { Calendar, List } from 'lucide-react';
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 const AgendaPage: React.FC = () => {
+  usePageTracking('calendar');
+  
   return (
     <AppLayout>
       <div className="p-6 space-y-6">

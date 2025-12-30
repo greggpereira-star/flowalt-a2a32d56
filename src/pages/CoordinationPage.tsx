@@ -28,10 +28,12 @@ import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useMemberCapacity } from '@/hooks/useWorkspaceMembers';
 import { useDependencies } from '@/hooks/useDependencies';
 import { format, differenceInDays, differenceInHours } from 'date-fns';
+import { usePageTracking } from '@/hooks/usePageTracking';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
 
 const CoordinationPage: React.FC = () => {
+  usePageTracking('coordination');
   const { currentWorkspace } = useWorkspace();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
