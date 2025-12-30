@@ -1325,6 +1325,56 @@ export type Database = {
           },
         ]
       }
+      integration_credentials: {
+        Row: {
+          configured_at: string
+          configured_by: string | null
+          credentials: Json
+          id: string
+          integration_type: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          sync_error: string | null
+          sync_status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          configured_at?: string
+          configured_by?: string | null
+          credentials: Json
+          id?: string
+          integration_type: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          configured_at?: string
+          configured_by?: string | null
+          credentials?: Json
+          id?: string
+          integration_type?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_credentials_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_feedback: {
         Row: {
           category: string

@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.send-email-notification]
 verify_jwt = true
+
+[functions.integration-manager]
+verify_jwt = true
