@@ -17,16 +17,18 @@ export const DragOverlayCard: React.FC<DragOverlayCardProps> = ({ card }) => {
 
   return (
     <div 
-      className="w-[300px] animate-scale-in"
+      className="w-[280px] pointer-events-none"
       style={{
-        transform: 'rotate(-3deg) scale(1.05)',
+        transform: 'rotate(-2deg) scale(1.03)',
         transformOrigin: 'center center',
+        filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.15))',
       }}
     >
       <CardUI
         className={cn(
-          'shadow-2xl border-2 border-primary/30 bg-card/95 backdrop-blur-sm',
-          'ring-4 ring-primary/20',
+          'border-2 border-primary/40 bg-card backdrop-blur-sm',
+          'shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]',
+          'ring-2 ring-primary/30 ring-offset-2 ring-offset-background',
           isOverdue && 'border-destructive/50'
         )}
       >

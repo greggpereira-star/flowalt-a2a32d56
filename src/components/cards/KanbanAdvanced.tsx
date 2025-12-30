@@ -976,9 +976,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         </div>
 
         {/* Kanban Board - scrollable area */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex-1 overflow-auto min-h-0">
           {swimlane === 'none' ? (
-            <div className="flex gap-3 h-full pb-2">
+            <div className="flex gap-3 h-full min-h-full pb-4 pr-4">
               {visibleStatuses.map((status) => renderColumn(status, groupedByStatus[status] || []))}
             </div>
           ) : (
