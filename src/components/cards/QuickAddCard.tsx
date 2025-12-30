@@ -163,8 +163,10 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
       resetForm();
       onOpenChange(false);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível criar o card.';
       toast({
         title: 'Erro ao criar card',
+        description: message,
         variant: 'destructive',
       });
     }

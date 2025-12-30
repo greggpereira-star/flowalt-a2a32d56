@@ -140,59 +140,100 @@ export const useCreateCard = () => {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
+  const generateUuid = (): string => {
+    const c = globalThis.crypto as Crypto | undefined;
+    if (c?.randomUUID) return c.randomUUID();
+
+    if (c?.getRandomValues) {
+      const bytes = c.getRandomValues(new Uint8Array(16));
+      // RFC 4122 v4
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+  };
+
   return useMutation({
     mutationFn: async (input: CreateCardInput) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('Not authenticated');
 
-      const { data: card, error: cardError } = await supabase
+      // Evita depender de RETURNING/SELECT (pode falhar por políticas de leitura)
+      // gerando o ID no cliente.
+      const cardId = generateUuid();
+
+      const status = input.status || 'backlog';
+      const urgency = input.urgency || 'medium';
+
+      const { error: cardError } = await supabase
         .from('cards')
         .insert({
+          id: cardId,
           workspace_id: currentWorkspace.id,
           space_id: input.space_id,
           title: input.title,
           description: input.description,
-          status: input.status || 'backlog',
-          urgency: input.urgency || 'medium',
+          status,
+          urgency,
           due_date: input.due_date,
           client_id: input.client_id,
           owner_id: user.id,
           created_by: user.id,
-        })
-        .select()
-        .single();
+        });
 
       if (cardError) throw cardError;
 
       // Add to folder if specified
       if (input.folder_id) {
-        await supabase
+        const { error: folderError } = await supabase
           .from('card_folders')
           .insert({
-            card_id: card.id,
+            card_id: cardId,
             folder_id: input.folder_id,
           });
+
+        if (folderError) throw folderError;
       }
 
       // Add creator as card member
-      await supabase
+      const { error: memberError } = await supabase
         .from('card_members')
         .insert({
-          card_id: card.id,
+          card_id: cardId,
           user_id: user.id,
           is_owner: true,
         });
 
+      if (memberError) throw memberError;
+
       // Trigger webhook
       triggerWebhook(currentWorkspace.id, 'card.created', {
-        id: card.id,
-        title: card.title,
-        status: card.status,
-        urgency: card.urgency,
-        space_id: card.space_id,
+        id: cardId,
+        title: input.title,
+        status,
+        urgency,
+        space_id: input.space_id,
         created_by: user.id,
       });
 
-      return card;
+      // Retorna um objeto mínimo para invalidar cache e permitir UX.
+      return {
+        id: cardId,
+        workspace_id: currentWorkspace.id,
+        space_id: input.space_id,
+        title: input.title,
+        description: input.description ?? null,
+        status,
+        urgency,
+        due_date: input.due_date ?? null,
+        client_id: input.client_id ?? null,
+        owner_id: user.id,
+        created_by: user.id,
+      } as unknown as Card;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
