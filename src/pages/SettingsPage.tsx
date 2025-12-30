@@ -22,12 +22,14 @@ import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
 import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
 import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
 import { ConfigBackupPanel } from '@/components/settings/ConfigBackupPanel';
+import { ConnectorsPanel } from '@/components/settings/ConnectorsPanel';
+import { PredictiveSyncPanel } from '@/components/settings/PredictiveSyncPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
-  RotateCcw, Search, Store, Heart
+  RotateCcw, Search, Store, Heart, Link2, Brain
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -74,6 +76,14 @@ export default function SettingsPage() {
               <TabsTrigger value="marketplace" className="flex items-center gap-2">
                 <Store className="h-4 w-4" />
                 Marketplace
+              </TabsTrigger>
+              <TabsTrigger value="connectors" className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                Conectores
+              </TabsTrigger>
+              <TabsTrigger value="predictive" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                Preditivo
               </TabsTrigger>
               <TabsTrigger value="api-keys" className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
@@ -157,6 +167,14 @@ export default function SettingsPage() {
 
           <TabsContent value="marketplace">
             <IntegrationMarketplace />
+          </TabsContent>
+
+          <TabsContent value="connectors">
+            <ConnectorsPanel />
+          </TabsContent>
+
+          <TabsContent value="predictive">
+            <PredictiveSyncPanel />
           </TabsContent>
 
           <TabsContent value="api-keys">
