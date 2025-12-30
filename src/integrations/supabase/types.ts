@@ -472,6 +472,100 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliations: {
+        Row: {
+          bank_account_id: string | null
+          bank_name: string | null
+          bank_statement_amount: number
+          bank_statement_date: string
+          bank_statement_description: string | null
+          bank_statement_type: string
+          created_at: string
+          difference_amount: number | null
+          difference_reason: string | null
+          external_id: string | null
+          id: string
+          invoice_id: string | null
+          match_confidence: number | null
+          match_reason: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          source: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          bank_name?: string | null
+          bank_statement_amount: number
+          bank_statement_date: string
+          bank_statement_description?: string | null
+          bank_statement_type: string
+          created_at?: string
+          difference_amount?: number | null
+          difference_reason?: string | null
+          external_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          match_confidence?: number | null
+          match_reason?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          source?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          bank_name?: string | null
+          bank_statement_amount?: number
+          bank_statement_date?: string
+          bank_statement_description?: string | null
+          bank_statement_type?: string
+          created_at?: string
+          difference_amount?: number | null
+          difference_reason?: string | null
+          external_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          match_confidence?: number | null
+          match_reason?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          source?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_automations: {
         Row: {
           action_config: Json
@@ -909,6 +1003,69 @@ export type Database = {
           },
         ]
       }
+      cost_centers: {
+        Row: {
+          budget_monthly: number | null
+          budget_yearly: number | null
+          code: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          budget_monthly?: number | null
+          budget_yearly?: number | null
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          budget_monthly?: number | null
+          budget_yearly?: number | null
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_snapshots: {
         Row: {
           computed_at: string
@@ -1218,6 +1375,151 @@ export type Database = {
           },
         ]
       }
+      financial_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string
+          data: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string | null
+          suggested_actions: Json | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string
+          data?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string | null
+          suggested_actions?: Json | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          data?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string | null
+          suggested_actions?: Json | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_audit_trail: {
+        Row: {
+          action: string
+          anomaly_score: number | null
+          anomaly_type: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          changes: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          is_anomaly: boolean | null
+          new_data: Json | null
+          old_data: Json | null
+          reason: string | null
+          requires_approval: boolean | null
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          anomaly_score?: number | null
+          anomaly_type?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          changes?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          is_anomaly?: boolean | null
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          requires_approval?: boolean | null
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          anomaly_score?: number | null
+          anomaly_type?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          is_anomaly?: boolean | null
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          requires_approval?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_audit_trail_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_categories: {
         Row: {
           color: string | null
@@ -1255,6 +1557,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "financial_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          data: Json
+          generated_at: string
+          generated_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          period_type: string
+          previous_period_data: Json | null
+          report_type: string
+          status: string | null
+          variation_percentage: number | null
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          data?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          period_type: string
+          previous_period_data?: Json | null
+          report_type: string
+          status?: string | null
+          variation_percentage?: number | null
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          data?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          previous_period_data?: Json | null
+          report_type?: string
+          status?: string | null
+          variation_percentage?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_reports_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1415,6 +1779,131 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "internal_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          access_key: string | null
+          card_id: string | null
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          external_id: string | null
+          gross_amount: number
+          id: string
+          invoice_number: string
+          invoice_series: string | null
+          invoice_type: string
+          issue_date: string
+          metadata: Json | null
+          net_amount: number
+          pdf_url: string | null
+          recipient_document: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          service_code: string | null
+          source: string | null
+          status: string
+          tax_amount: number
+          taxes: Json | null
+          transaction_id: string | null
+          updated_at: string
+          workspace_id: string
+          xml_url: string | null
+        }
+        Insert: {
+          access_key?: string | null
+          card_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          gross_amount?: number
+          id?: string
+          invoice_number: string
+          invoice_series?: string | null
+          invoice_type?: string
+          issue_date: string
+          metadata?: Json | null
+          net_amount?: number
+          pdf_url?: string | null
+          recipient_document?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          service_code?: string | null
+          source?: string | null
+          status?: string
+          tax_amount?: number
+          taxes?: Json | null
+          transaction_id?: string | null
+          updated_at?: string
+          workspace_id: string
+          xml_url?: string | null
+        }
+        Update: {
+          access_key?: string | null
+          card_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          gross_amount?: number
+          id?: string
+          invoice_number?: string
+          invoice_series?: string | null
+          invoice_type?: string
+          issue_date?: string
+          metadata?: Json | null
+          net_amount?: number
+          pdf_url?: string | null
+          recipient_document?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          service_code?: string | null
+          source?: string | null
+          status?: string
+          tax_amount?: number
+          taxes?: Json | null
+          transaction_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2045,6 +2534,7 @@ export type Database = {
           category_id: string | null
           client_id: string | null
           collaborator_id: string | null
+          cost_center_id: string | null
           created_at: string
           created_by: string | null
           description: string
@@ -2070,6 +2560,7 @@ export type Database = {
           category_id?: string | null
           client_id?: string | null
           collaborator_id?: string | null
+          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           description: string
@@ -2095,6 +2586,7 @@ export type Database = {
           category_id?: string | null
           client_id?: string | null
           collaborator_id?: string | null
+          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
@@ -2141,6 +2633,13 @@ export type Database = {
             columns: ["collaborator_id"]
             isOneToOne: false
             referencedRelation: "workspace_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
