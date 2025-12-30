@@ -681,6 +681,56 @@ export type Database = {
           },
         ]
       }
+      email_notifications: {
+        Row: {
+          created_at: string
+          email: string
+          error: string | null
+          id: string
+          metadata: Json | null
+          sent_at: string | null
+          status: string
+          subject: string
+          type: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          type: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_participants: {
         Row: {
           created_at: string
@@ -1539,6 +1589,50 @@ export type Database = {
           },
         ]
       }
+      user_levels: {
+        Row: {
+          created_at: string
+          current_level: number
+          id: string
+          level_name: string
+          next_level_score: number
+          total_score: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          level_name?: string
+          next_level_score?: number
+          total_score?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          level_name?: string
+          next_level_score?: number
+          total_score?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_levels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding: {
         Row: {
           actions_count: Json | null
@@ -1827,6 +1921,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user_score: {
+        Args: { p_points: number; p_user_id: string; p_workspace_id: string }
+        Returns: undefined
+      }
       award_badge: {
         Args: {
           p_badge_type: string
@@ -1834,6 +1932,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      calculate_user_level: {
+        Args: { score: number }
+        Returns: {
+          level: number
+          level_name: string
+          next_level_score: number
+        }[]
       }
       check_rate_limit: {
         Args: {
