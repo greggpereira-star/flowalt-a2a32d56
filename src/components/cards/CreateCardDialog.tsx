@@ -21,9 +21,11 @@ import {
 import { useCreateCard } from '@/hooks/useCards';
 import { useClients } from '@/hooks/useClients';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { statusConfig, urgencyConfig } from './CardBadges';
+
 
 interface CreateCardDialogProps {
   open: boolean;
@@ -89,7 +91,8 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
       setClientId('');
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Não foi possível criar o card.';
+      const message = getErrorMessage(error, 'Não foi possível criar o card.');
+      console.error('CreateCardDialog: create card failed', error);
       toast({
         title: 'Erro',
         description: message,

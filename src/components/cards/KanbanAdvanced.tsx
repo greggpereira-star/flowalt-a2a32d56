@@ -346,7 +346,12 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       setQuickAddColumn(null);
       toast({ title: 'Card criado' });
     } catch (error) {
-      toast({ title: 'Erro ao criar card', variant: 'destructive' });
+      console.error('KanbanAdvanced: quick add failed', error);
+      toast({
+        title: 'Erro ao criar card',
+        description: getErrorMessage(error, 'Não foi possível criar o card.'),
+        variant: 'destructive',
+      });
     }
   };
 

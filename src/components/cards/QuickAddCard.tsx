@@ -36,7 +36,7 @@ import { useCreateCard } from '@/hooks/useCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useClients } from '@/hooks/useClients';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -48,6 +48,7 @@ import {
   Upload,
 } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+
 
 type QuickAddMode = 'quick' | 'full';
 
@@ -163,7 +164,8 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
       resetForm();
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Não foi possível criar o card.';
+      const message = getErrorMessage(error, 'Não foi possível criar o card.');
+      console.error('QuickAddCard: create card failed', error);
       toast({
         title: 'Erro ao criar card',
         description: message,
