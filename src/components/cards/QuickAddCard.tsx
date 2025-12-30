@@ -1,0 +1,480 @@
+import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+} from '@/components/ui/drawer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useCreateCard } from '@/hooks/useCards';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useClients } from '@/hooks/useClients';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  CalendarIcon,
+  Plus,
+  X,
+  FileText,
+  CheckSquare,
+  Users,
+  Paperclip,
+  Upload,
+} from 'lucide-react';
+import type { CardStatus, CardUrgency } from '@/lib/supabase';
+
+interface QuickAddCardProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  spaceId: string;
+  folderId?: string;
+  defaultStatus?: CardStatus;
+}
+
+const STATUS_OPTIONS: { value: CardStatus; label: string }[] = [
+  { value: 'backlog', label: 'Backlog' },
+  { value: 'briefing', label: 'Briefing' },
+  { value: 'todo', label: 'A Fazer' },
+  { value: 'in_progress', label: 'Em Progresso' },
+];
+
+const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = [
+  { value: 'low', label: 'Baixa', color: 'bg-slate-500' },
+  { value: 'medium', label: 'Média', color: 'bg-blue-500' },
+  { value: 'high', label: 'Alta', color: 'bg-orange-500' },
+  { value: 'critical', label: 'Crítica', color: 'bg-red-500' },
+];
+
+interface ChecklistItem {
+  id: string;
+  title: string;
+}
+
+export const QuickAddCard: React.FC<QuickAddCardProps> = ({
+  open,
+  onOpenChange,
+  spaceId,
+  folderId,
+  defaultStatus = 'backlog',
+}) => {
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const createCard = useCreateCard();
+  const { data: members } = useWorkspaceMembers();
+  const { data: clients } = useClients();
+
+  // Form state
+  const [mode, setMode] = useState<'quick' | 'full'>('quick');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<CardStatus>(defaultStatus);
+  const [urgency, setUrgency] = useState<CardUrgency>('medium');
+  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [ownerId, setOwnerId] = useState<string>('');
+  const [clientId, setClientId] = useState<string>('');
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+
+  // Reset form
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setStatus(defaultStatus);
+    setUrgency('medium');
+    setDueDate(undefined);
+    setOwnerId('');
+    setClientId('');
+    setChecklist([]);
+    setNewChecklistItem('');
+    setMode('quick');
+  };
+
+  // Add checklist item
+  const addChecklistItem = () => {
+    if (!newChecklistItem.trim()) return;
+    setChecklist([
+      ...checklist,
+      { id: Date.now().toString(), title: newChecklistItem },
+    ]);
+    setNewChecklistItem('');
+  };
+
+  // Remove checklist item
+  const removeChecklistItem = (id: string) => {
+    setChecklist(checklist.filter(item => item.id !== id));
+  };
+
+  // Submit handler
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast({
+        title: 'Título obrigatório',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await createCard.mutateAsync({
+        title,
+        space_id: spaceId,
+        description: description || undefined,
+        status,
+        urgency,
+        due_date: dueDate?.toISOString(),
+        client_id: clientId || undefined,
+      });
+
+      toast({ title: 'Card criado com sucesso!' });
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Erro ao criar card',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const content = (
+    <div className="space-y-4">
+      <Tabs value={mode} onValueChange={(v) => setMode(v as 'quick' | 'full')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="quick">Rápido</TabsTrigger>
+          <TabsTrigger value="full">Completo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="quick" className="space-y-4 mt-4">
+          {/* Title */}
+          <div className="space-y-2">
+            <Label>Título *</Label>
+            <Input
+              placeholder="Nome da tarefa..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {/* Quick options row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Urgência</Label>
+              <Select value={urgency} onValueChange={(v: CardUrgency) => setUrgency(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {URGENCY_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={cn('w-2 h-2 rounded-full', opt.color)} />
+                        {opt.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prazo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !dueDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, 'dd/MM', { locale: ptBR }) : 'Definir'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Responsible */}
+          <div className="space-y-2">
+            <Label>Responsável</Label>
+            <Select value={ownerId} onValueChange={setOwnerId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                {members?.map(member => (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    {member.profile?.full_name || member.profile?.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="full" className="mt-4">
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-4">
+              {/* Title */}
+              <div className="space-y-2">
+                <Label>Título *</Label>
+                <Input
+                  placeholder="Nome da tarefa..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  placeholder="Descreva a tarefa..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Status and Urgency */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={status} onValueChange={(v: CardStatus) => setStatus(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Urgência</Label>
+                  <Select value={urgency} onValueChange={(v: CardUrgency) => setUrgency(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {URGENCY_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <div className="flex items-center gap-2">
+                            <div className={cn('w-2 h-2 rounded-full', opt.color)} />
+                            {opt.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Date and Owner */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Prazo</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !dueDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dueDate ? format(dueDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Definir'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Responsável</Label>
+                  <Select value={ownerId} onValueChange={setOwnerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members?.map(member => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.profile?.full_name || member.profile?.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Client */}
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select value={clientId} onValueChange={setClientId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar cliente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Checklist */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4" />
+                  Checklist Inicial
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Adicionar item..."
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()}
+                  />
+                  <Button variant="outline" size="icon" onClick={addChecklistItem}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {checklist.length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    {checklist.map(item => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded"
+                      >
+                        <span className="text-sm">{item.title}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => removeChecklistItem(item.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Attachments placeholder */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Anexos
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Arraste arquivos ou clique para enviar
+                  </p>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex gap-2 justify-end">
+      <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+        Cancelar
+      </Button>
+      <Button onClick={handleSubmit} disabled={createCard.isPending}>
+        {createCard.isPending ? 'Criando...' : 'Criar Card'}
+      </Button>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Novo Card</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-4">
+            {content}
+          </div>
+          <DrawerFooter>
+            {footer}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Novo Card</DialogTitle>
+        </DialogHeader>
+        {content}
+        <DialogFooter>
+          {footer}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
