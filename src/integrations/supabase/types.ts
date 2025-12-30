@@ -332,6 +332,107 @@ export type Database = {
           },
         ]
       }
+      automation_logs: {
+        Row: {
+          action_result: Json | null
+          action_type: string
+          automation_id: string
+          card_id: string
+          error_message: string | null
+          executed_at: string
+          id: string
+          success: boolean
+          trigger_status: string
+        }
+        Insert: {
+          action_result?: Json | null
+          action_type: string
+          automation_id: string
+          card_id: string
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          success?: boolean
+          trigger_status: string
+        }
+        Update: {
+          action_result?: Json | null
+          action_type?: string
+          automation_id?: string
+          card_id?: string
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          success?: boolean
+          trigger_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "card_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_logs_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_automations: {
+        Row: {
+          action_config: Json
+          action_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          trigger_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger_status: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_folders: {
         Row: {
           card_id: string

@@ -8,6 +8,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { CommandPalette } from "@/components/command/CommandPalette";
+import { KeyboardShortcutsDialog } from "@/components/command/KeyboardShortcutsDialog";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NewWorkspace from "./pages/NewWorkspace";
@@ -34,6 +35,7 @@ const App = () => (
           <WorkspaceProvider>
             <OnboardingTour />
             <CommandPalette />
+            <KeyboardShortcutsDialog />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
