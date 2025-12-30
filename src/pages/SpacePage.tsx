@@ -138,7 +138,7 @@ const SpacePage: React.FC = () => {
 
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* Fixed Header - Always visible */}
         <div className="flex-shrink-0 border-b border-border bg-background">
           <div className="px-4 py-2.5 flex items-center justify-between gap-3">
