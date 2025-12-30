@@ -7,10 +7,35 @@ const corsHeaders = {
 
 const CRITICAL_OVERDUE_DAYS = 3;
 
+// Structured logging helper
+function log(level: 'info' | 'warn' | 'error', message: string, context: Record<string, unknown> = {}, correlationId?: string) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    service: 'overdue-cards-check',
+    message,
+    correlationId,
+    ...context,
+  };
+  
+  if (level === 'error') {
+    console.error(JSON.stringify(entry));
+  } else if (level === 'warn') {
+    console.warn(JSON.stringify(entry));
+  } else {
+    console.log(JSON.stringify(entry));
+  }
+}
+
 Deno.serve(async (req) => {
+  const correlationId = crypto.randomUUID();
+  const startTime = Date.now();
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  log('info', 'Starting overdue cards check', {}, correlationId);
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -37,14 +62,15 @@ Deno.serve(async (req) => {
       .not('owner_id', 'is', null);
 
     if (cardsError) {
-      console.error('Error fetching overdue cards:', cardsError);
+      log('error', 'Error fetching overdue cards', { error: cardsError.message }, correlationId);
       throw cardsError;
     }
 
-    console.log(`Found ${overdueCards?.length || 0} overdue cards`);
+    log('info', `Found ${overdueCards?.length || 0} overdue cards`, { count: overdueCards?.length || 0 }, correlationId);
 
     let notificationsCreated = 0;
     let emailsSent = 0;
+    let errors = 0;
 
     for (const card of overdueCards || []) {
       const daysOverdue = Math.floor(
@@ -94,7 +120,12 @@ Deno.serve(async (req) => {
           });
 
         if (notifError) {
-          console.error('Error creating notification:', notifError);
+          log('error', 'Error creating notification', { 
+            error: notifError.message, 
+            cardId: card.id, 
+            userId 
+          }, correlationId);
+          errors++;
         } else {
           notificationsCreated++;
         }
@@ -134,40 +165,77 @@ Deno.serve(async (req) => {
 
               if (emailResponse.ok) {
                 emailsSent++;
-                console.log(`Email sent for card ${card.id} to user ${userId}`);
+                log('info', 'Email sent', { cardId: card.id, userId }, correlationId);
               } else {
                 const errorText = await emailResponse.text();
-                console.error(`Failed to send email: ${errorText}`);
+                log('error', 'Failed to send email', { error: errorText, cardId: card.id }, correlationId);
+                errors++;
               }
             } catch (emailError) {
-              console.error('Error sending email:', emailError);
+              const errorMsg = emailError instanceof Error ? emailError.message : 'Unknown error';
+              log('error', 'Error sending email', { error: errorMsg, cardId: card.id }, correlationId);
+              errors++;
             }
           }
         }
       }
     }
 
-    console.log(`Created ${notificationsCreated} notifications, sent ${emailsSent} emails`);
+    const duration = Date.now() - startTime;
+    
+    // Record metrics
+    await supabase.rpc('record_metric', {
+      p_metric_type: 'job',
+      p_metric_name: 'overdue_cards_check_duration_ms',
+      p_metric_value: duration,
+      p_dimensions: { 
+        cards_processed: overdueCards?.length || 0,
+        notifications_created: notificationsCreated,
+        emails_sent: emailsSent,
+        errors
+      },
+      p_correlation_id: correlationId
+    });
+
+    log('info', 'Overdue cards check completed', {
+      duration_ms: duration,
+      overdue_cards: overdueCards?.length || 0,
+      notifications_created: notificationsCreated,
+      emails_sent: emailsSent,
+      errors
+    }, correlationId);
 
     return new Response(
       JSON.stringify({
         success: true,
+        correlation_id: correlationId,
+        duration_ms: duration,
         overdue_cards: overdueCards?.length || 0,
         notifications_created: notificationsCreated,
         emails_sent: emailsSent,
+        errors
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-Id': correlationId },
         status: 200,
       }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in overdue-cards-check:', errorMessage);
+    const duration = Date.now() - startTime;
+    
+    log('error', 'Fatal error in overdue-cards-check', { 
+      error: errorMessage, 
+      duration_ms: duration 
+    }, correlationId);
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        correlation_id: correlationId
+      }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-Id': correlationId },
         status: 500,
       }
     );

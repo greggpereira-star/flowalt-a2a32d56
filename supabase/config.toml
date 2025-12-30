@@ -8,3 +8,18 @@ verify_jwt = true
 
 [functions.compute-snapshots]
 verify_jwt = true
+
+[functions.overdue-cards-check]
+verify_jwt = true
+
+[functions.cleanup-job]
+verify_jwt = true
+
+[functions.ranking-snapshot]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.send-email-notification]
+verify_jwt = true
