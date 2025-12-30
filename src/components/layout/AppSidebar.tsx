@@ -46,6 +46,7 @@ import {
   Briefcase,
   Folder,
   DollarSign,
+  PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +70,7 @@ const mainNavItems = [
 const managementItems = [
   { icon: Users, label: 'Coordenação', path: '/coordination' },
   { icon: DollarSign, label: 'Financeiro', path: '/financial' },
+  { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
 ];
 
 export const AppSidebar: React.FC = () => {
