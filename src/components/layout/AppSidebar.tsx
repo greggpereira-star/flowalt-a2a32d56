@@ -229,17 +229,17 @@ export const AppSidebar: React.FC = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start gap-2 px-2">
-              <Avatar className="h-7 w-7">
+              <Avatar className="h-7 w-7 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-1 flex-col items-start text-left">
-                <span className="text-sm font-medium">
-                  {user?.user_metadata?.full_name || 'Usuário'}
+              <div className="flex flex-1 flex-col items-start text-left min-w-0">
+                <span className="text-sm font-medium truncate max-w-[130px]">
+                  {user?.user_metadata?.full_name?.split(' ')[0] || 'Usuário'}
                 </span>
-                <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                <span className="text-xs text-muted-foreground truncate max-w-[130px]">
                   {user?.email}
                 </span>
               </div>
