@@ -11,8 +11,11 @@ import {
   Users,
   DollarSign,
 } from "lucide-react";
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 export default function FinancialPage() {
+  usePageTracking('financial');
+  
   return (
     <>
       <Helmet>

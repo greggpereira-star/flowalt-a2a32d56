@@ -30,6 +30,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'hsl(var(--muted-foreground))',
@@ -53,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const Dashboard: React.FC = () => {
+  usePageTracking('dashboard');
   const { currentWorkspace } = useWorkspace();
 
   // Fetch cards for the workspace
