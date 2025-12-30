@@ -23,6 +23,7 @@ import {
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useToast } from '@/hooks/use-toast';
 import { differenceInSeconds } from 'date-fns';
+import { useSpaces } from '@/hooks/useSpaces';
 
 const Index: React.FC = () => {
   usePageTracking('dashboard');
@@ -31,6 +32,7 @@ const Index: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace, workspaces, loading, createWorkspace } = useWorkspace();
   const [isCreating, setIsCreating] = React.useState(false);
+  const { data: spaces } = useSpaces();
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'Usuário';
 
@@ -319,7 +321,18 @@ const Index: React.FC = () => {
                 </div>
                 <p className="mb-2 font-medium">Workspace criado!</p>
                 <p className="mb-4 text-sm text-muted-foreground">Comece criando seu primeiro card.</p>
-                <Button>
+                <Button onClick={() => {
+                  const firstSpace = spaces?.[0];
+                  if (firstSpace) {
+                    navigate(`/space/${firstSpace.id}`);
+                  } else {
+                    toast({
+                      title: 'Nenhum espaço disponível',
+                      description: 'Crie um espaço primeiro para adicionar cards.',
+                      variant: 'destructive',
+                    });
+                  }
+                }}>
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Card
                 </Button>
