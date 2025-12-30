@@ -35,9 +35,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   useRealtimeNotifications();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
         {/* Header */}
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2 px-4">

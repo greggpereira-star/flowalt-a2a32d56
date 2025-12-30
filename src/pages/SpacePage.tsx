@@ -61,6 +61,15 @@ const SpacePage: React.FC = () => {
   // Enable realtime updates for cards
   useRealtimeCards(spaceId);
 
+  // Lock body scrolling: only the Kanban area should scroll
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
   const [view, setView] = useState<ViewType>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
