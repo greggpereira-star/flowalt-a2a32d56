@@ -30,9 +30,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCreateCard } from '@/hooks/useCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
@@ -45,9 +43,7 @@ import {
   CalendarIcon,
   Plus,
   X,
-  FileText,
   CheckSquare,
-  Users,
   Paperclip,
   Upload,
 } from 'lucide-react';
@@ -168,13 +164,29 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
 
   const content = (
     <div className="space-y-4">
-      <Tabs value={mode} onValueChange={(v) => setMode(v as 'quick' | 'full')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="quick">Rápido</TabsTrigger>
-          <TabsTrigger value="full">Completo</TabsTrigger>
-        </TabsList>
+      <div className="grid w-full grid-cols-2 gap-1 rounded-md bg-muted p-1">
+        <Button
+          type="button"
+          variant={mode === 'quick' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => setMode('quick')}
+          className="justify-center"
+        >
+          Rápido
+        </Button>
+        <Button
+          type="button"
+          variant={mode === 'full' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => setMode('full')}
+          className="justify-center"
+        >
+          Completo
+        </Button>
+      </div>
 
-        <TabsContent value="quick" className="space-y-4 mt-4">
+      {mode === 'quick' ? (
+        <div className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
             <Label>Título *</Label>
@@ -195,7 +207,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {URGENCY_OPTIONS.map(opt => (
+                  {URGENCY_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       <div className="flex items-center gap-2">
                         <div className={cn('w-2 h-2 rounded-full', opt.color)} />
@@ -223,12 +235,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    locale={ptBR}
-                  />
+                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -242,7 +249,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
                 <SelectValue placeholder="Selecionar..." />
               </SelectTrigger>
               <SelectContent>
-                {members?.map(member => (
+                {members?.map((member) => (
                   <SelectItem key={member.user_id} value={member.user_id}>
                     {member.profile?.full_name || member.profile?.email}
                   </SelectItem>
@@ -250,188 +257,180 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
               </SelectContent>
             </Select>
           </div>
-        </TabsContent>
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-4">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input
+                placeholder="Nome da tarefa..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
 
-        <TabsContent value="full" className="mt-4">
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-4">
-              {/* Title */}
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea
+                placeholder="Descreva a tarefa..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Status and Urgency */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Título *</Label>
-                <Input
-                  placeholder="Nome da tarefa..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea
-                  placeholder="Descreva a tarefa..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {/* Status and Urgency */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={status} onValueChange={(v: CardStatus) => setStatus(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Urgência</Label>
-                  <Select value={urgency} onValueChange={(v: CardUrgency) => setUrgency(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {URGENCY_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          <div className="flex items-center gap-2">
-                            <div className={cn('w-2 h-2 rounded-full', opt.color)} />
-                            {opt.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Date and Owner */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Prazo</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !dueDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(dueDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Definir'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Responsável</Label>
-                  <Select value={ownerId} onValueChange={setOwnerId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {members?.map(member => (
-                        <SelectItem key={member.user_id} value={member.user_id}>
-                          {member.profile?.full_name || member.profile?.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Client */}
-              <div className="space-y-2">
-                <Label>Cliente</Label>
-                <Select value={clientId} onValueChange={setClientId}>
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v: CardStatus) => setStatus(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecionar cliente..." />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients?.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                    {STATUS_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Checklist */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CheckSquare className="h-4 w-4" />
-                  Checklist Inicial
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Adicionar item..."
-                    value={newChecklistItem}
-                    onChange={(e) => setNewChecklistItem(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()}
-                  />
-                  <Button variant="outline" size="icon" onClick={addChecklistItem}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {checklist.length > 0 && (
-                  <div className="space-y-1 mt-2">
-                    {checklist.map(item => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-2 bg-muted/50 rounded"
-                      >
-                        <span className="text-sm">{item.title}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => removeChecklistItem(item.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
+                <Label>Urgência</Label>
+                <Select value={urgency} onValueChange={(v: CardUrgency) => setUrgency(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {URGENCY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={cn('w-2 h-2 rounded-full', opt.color)} />
+                          {opt.label}
+                        </div>
+                      </SelectItem>
                     ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Attachments placeholder */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Paperclip className="h-4 w-4" />
-                  Anexos
-                </Label>
-                <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Arraste arquivos ou clique para enviar
-                  </p>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
+
+            {/* Date and Owner */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Prazo</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !dueDate && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dueDate ? format(dueDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Definir'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select value={ownerId} onValueChange={setOwnerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members?.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>
+                        {member.profile?.full_name || member.profile?.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Client */}
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar cliente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <CheckSquare className="h-4 w-4" />
+                Checklist Inicial
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Adicionar item..."
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()}
+                />
+                <Button variant="outline" size="icon" onClick={addChecklistItem}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {checklist.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {checklist.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 bg-muted/50 rounded"
+                    >
+                      <span className="text-sm">{item.title}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeChecklistItem(item.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Attachments placeholder */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Anexos
+              </Label>
+              <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para enviar</p>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 
