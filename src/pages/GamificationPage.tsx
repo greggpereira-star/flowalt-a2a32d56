@@ -5,9 +5,17 @@ import { LeaderboardDashboard } from '@/components/gamification/LeaderboardDashb
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { WeeklyGoalsCard } from '@/components/gamification/WeeklyGoalsCard';
 import { RankingChart } from '@/components/gamification/RankingChart';
+import { UserLevelCard } from '@/components/gamification/UserLevelCard';
+import { LevelLeaderboard } from '@/components/gamification/LevelLeaderboard';
+import { WeeklyGoalsAdmin } from '@/components/gamification/WeeklyGoalsAdmin';
 import { Trophy } from 'lucide-react';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function GamificationPage() {
+  const { currentRole } = useWorkspace();
+  const isAdmin = currentRole === 'admin' || currentRole === 'owner';
+
   return (
     <AppLayout>
       <Helmet>
@@ -28,14 +36,37 @@ export default function GamificationPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <WeeklyGoalsCard />
-          <BadgeProgress />
-        </div>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="levels">Níveis</TabsTrigger>
+            {isAdmin && <TabsTrigger value="admin">Gerenciar Metas</TabsTrigger>}
+          </TabsList>
 
-        <RankingChart />
-        
-        <LeaderboardDashboard />
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <WeeklyGoalsCard />
+              <BadgeProgress />
+            </div>
+
+            <RankingChart />
+            
+            <LeaderboardDashboard />
+          </TabsContent>
+
+          <TabsContent value="levels" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UserLevelCard />
+              <LevelLeaderboard />
+            </div>
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="admin">
+              <WeeklyGoalsAdmin />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </AppLayout>
   );
