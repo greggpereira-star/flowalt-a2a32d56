@@ -220,9 +220,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <div
               key={status}
               className={cn(
-                'flex-shrink-0 w-72 bg-muted/30 rounded-xl flex flex-col border transition-all duration-200',
-                isDropTarget 
-                  ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10' 
+                'flex-shrink-0 w-72 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
+                isDropTarget
+                  ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
                   : 'border-border/30'
               )}
             >

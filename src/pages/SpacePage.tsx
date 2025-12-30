@@ -244,7 +244,7 @@ const SpacePage: React.FC = () => {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : view === 'kanban' ? (
-            <div className="h-full p-4 overflow-x-auto overflow-y-auto">
+            <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
               <KanbanBoard
                 cards={filteredCards}
                 onCardClick={handleCardClick}
@@ -252,7 +252,7 @@ const SpacePage: React.FC = () => {
               />
             </div>
           ) : view === 'kanban-advanced' ? (
-            <div className="h-full p-4 overflow-x-auto overflow-y-auto">
+            <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
               <KanbanAdvanced
                 cards={filteredCards}
                 onCardClick={handleCardClick}

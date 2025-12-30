@@ -9,6 +9,7 @@ import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
+import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,13 +21,16 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderId, cardId }) => {
   const location = useLocation();
   const params = useParams();
-  
+
   // Use params if props not provided
   const effectiveSpaceId = spaceId || params.spaceId;
-  
+
+  // Only Space pages should have fixed viewport + internal scrolling (Kanban area)
+  const isSpaceRoute = location.pathname.startsWith('/space/');
+
   // Enable global keyboard shortcuts
   useGlobalShortcuts();
-  
+
   // Enable realtime notifications
   useRealtimeNotifications();
 
@@ -39,10 +43,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <DynamicBreadcrumb 
-              spaceId={effectiveSpaceId} 
-              folderId={folderId} 
-              cardId={cardId} 
+            <DynamicBreadcrumb
+              spaceId={effectiveSpaceId}
+              folderId={folderId}
+              cardId={cardId}
             />
           </div>
           <div className="flex items-center gap-3 px-4">
@@ -53,9 +57,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <div className={cn('flex-1', isSpaceRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto')}>
+          <div className={cn(isSpaceRoute && 'h-full')}>{children}</div>
+        </div>
 
         {/* Feedback Widget */}
         <FeedbackWidget />
