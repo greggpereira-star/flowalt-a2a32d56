@@ -14,9 +14,12 @@ import { TemplateManager } from '@/components/templates/TemplateManager';
 import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
 import { ApiDocsPanel } from '@/components/settings/ApiDocsPanel';
 import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
+import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
+import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
+import { ConfigBackupPanel } from '@/components/settings/ConfigBackupPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack, Shield, Crown } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
@@ -93,6 +96,18 @@ export default function SettingsPage() {
               <Crown className="h-4 w-4" />
               Admin
             </TabsTrigger>
+            <TabsTrigger value="push" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Push
+            </TabsTrigger>
+            <TabsTrigger value="health" className="flex items-center gap-2">
+              <HeartPulse className="h-4 w-4" />
+              Health
+            </TabsTrigger>
+            <TabsTrigger value="backup" className="flex items-center gap-2">
+              <Archive className="h-4 w-4" />
+              Backup
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="onboarding">
@@ -145,6 +160,18 @@ export default function SettingsPage() {
 
           <TabsContent value="super-admin">
             <SuperAdminDashboard />
+          </TabsContent>
+
+          <TabsContent value="push">
+            <PushNotificationSettings />
+          </TabsContent>
+
+          <TabsContent value="health">
+            <HealthCheckPanel />
+          </TabsContent>
+
+          <TabsContent value="backup">
+            <ConfigBackupPanel />
           </TabsContent>
         </Tabs>
       </div>
