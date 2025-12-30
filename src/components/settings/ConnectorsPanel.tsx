@@ -38,7 +38,7 @@ import {
 import { useConnectors, Connector } from '@/hooks/useConnectors';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { IntegrationWizard } from './IntegrationWizard';
+import { IntegrationWizard, type IntegrationType } from './IntegrationWizard';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Calendar,
@@ -72,8 +72,25 @@ export function ConnectorsPanel() {
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<Record<string, boolean>>({});
+  
+  // State for integration wizard (Open Finance / NF Emissor)
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardIntegration, setWizardIntegration] = useState<IntegrationType | undefined>(undefined);
+
+  // Map connector types to wizard integration types
+  const connectorToWizardType: Record<string, IntegrationType> = {
+    open_finance: 'pluggy',
+    nf_emissor: 'espiao_nfe',
+  };
 
   const handleConnect = async (connector: Connector) => {
+    // If it's Open Finance or NF Emissor, open the wizard instead
+    const wizardType = connectorToWizardType[connector.type];
+    if (wizardType) {
+      setWizardIntegration(wizardType);
+      setWizardOpen(true);
+      return;
+    }
     await connect(connector.id);
   };
 
@@ -408,6 +425,14 @@ export function ConnectorsPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Integration Wizard for Open Finance & NF Emissor */}
+      <IntegrationWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initialIntegration={wizardIntegration}
+        hideTrigger
+      />
     </Card>
   );
 }

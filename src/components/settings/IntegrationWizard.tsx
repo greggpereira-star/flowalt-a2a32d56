@@ -47,7 +47,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 // Integration types
-type IntegrationType = 'sicredi' | 'pluggy' | 'espiao_nfe';
+export type IntegrationType = 'sicredi' | 'pluggy' | 'espiao_nfe';
 
 interface IntegrationConfig {
   id: IntegrationType;
