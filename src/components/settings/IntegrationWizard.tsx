@@ -210,9 +210,10 @@ interface IntegrationWizardProps {
   onOpenChange?: (open: boolean) => void;
   initialIntegration?: IntegrationType;
   hideTrigger?: boolean;
+  onSuccess?: () => void;
 }
 
-export function IntegrationWizard({ open, onOpenChange, initialIntegration, hideTrigger }: IntegrationWizardProps) {
+export function IntegrationWizard({ open, onOpenChange, initialIntegration, hideTrigger, onSuccess }: IntegrationWizardProps) {
   const { currentWorkspace } = useWorkspace();
   const isControlled = typeof open === 'boolean';
   const [internalOpen, setInternalOpen] = useState(false);
@@ -387,6 +388,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration, hide
         setStep('complete');
         toast.success('Integração configurada com sucesso!');
         fetchIntegrationStatuses(); // Refresh statuses
+        onSuccess?.(); // Notify parent to refresh connector statuses
       } else {
         throw new Error(data?.error || 'Falha ao salvar credenciais');
       }
