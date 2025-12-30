@@ -210,7 +210,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 min-w-max pb-2" style={{ height: 'calc(100vh - 10rem)' }}>
+      <div className="flex gap-3 h-full min-w-max pb-4">
         {visibleStatuses.map((status) => {
           const config = statusConfig[status];
           const columnCards = groupedCards[status] || [];
