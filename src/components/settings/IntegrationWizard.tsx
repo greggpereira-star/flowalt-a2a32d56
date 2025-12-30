@@ -209,15 +209,17 @@ interface IntegrationWizardProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   initialIntegration?: IntegrationType;
+  hideTrigger?: boolean;
 }
 
-export function IntegrationWizard({ open, onOpenChange, initialIntegration }: IntegrationWizardProps) {
+export function IntegrationWizard({ open, onOpenChange, initialIntegration, hideTrigger }: IntegrationWizardProps) {
   const { currentWorkspace } = useWorkspace();
-  const [isOpen, setIsOpen] = useState(open ?? false);
+  const isControlled = typeof open === 'boolean';
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = isControlled ? (open as boolean) : internalOpen;
   const [step, setStep] = useState<'select' | 'configure' | 'complete'>('select');
-  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(
-    initialIntegration ? integrations.find(i => i.id === initialIntegration) || null : null
-  );
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null);
+
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -240,12 +242,24 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
     return err instanceof Error ? err.message : fallback;
   };
 
-  // Fetch integration statuses on mount
+  // Fetch integration statuses on open
   useEffect(() => {
     if (currentWorkspace && isOpen) {
       fetchIntegrationStatuses();
     }
   }, [currentWorkspace, isOpen]);
+
+  // If a specific integration was requested, jump straight into its config step
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!initialIntegration) return;
+
+    const integration = integrations.find((i) => i.id === initialIntegration) || null;
+    if (integration) {
+      setSelectedIntegration(integration);
+      setStep('configure');
+    }
+  }, [isOpen, initialIntegration]);
 
   const fetchIntegrationStatuses = async () => {
     if (!currentWorkspace) return;
@@ -270,7 +284,9 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
   };
 
   const handleOpenChange = (value: boolean) => {
-    setIsOpen(value);
+    if (!isControlled) {
+      setInternalOpen(value);
+    }
     onOpenChange?.(value);
     if (!value) {
       resetWizard();
