@@ -48,6 +48,7 @@ import {
   DollarSign,
   PieChart,
   Trophy,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -73,6 +74,7 @@ const managementItems = [
   { icon: DollarSign, label: 'Financeiro', path: '/financial' },
   { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
   { icon: Trophy, label: 'Ranking', path: '/gamification' },
+  { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
   { icon: Settings, label: 'API & Integrações', path: '/settings' },
 ];
 

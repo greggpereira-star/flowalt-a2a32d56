@@ -5,6 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const CRITICAL_OVERDUE_DAYS = 3;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -42,8 +44,13 @@ Deno.serve(async (req) => {
     console.log(`Found ${overdueCards?.length || 0} overdue cards`);
 
     let notificationsCreated = 0;
+    let emailsSent = 0;
 
     for (const card of overdueCards || []) {
+      const daysOverdue = Math.floor(
+        (Date.now() - new Date(card.due_date).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
       // Collect all users to notify (owner + members)
       const usersToNotify = new Set<string>();
       
@@ -71,10 +78,6 @@ Deno.serve(async (req) => {
       for (const userId of usersToNotify) {
         if (alreadyNotifiedUsers.has(userId)) continue;
 
-        const daysOverdue = Math.floor(
-          (Date.now() - new Date(card.due_date).getTime()) / (1000 * 60 * 60 * 24)
-        );
-
         const { error: notifError } = await supabase
           .from('notifications')
           .insert({
@@ -95,16 +98,63 @@ Deno.serve(async (req) => {
         } else {
           notificationsCreated++;
         }
+
+        // Send email for critically overdue cards (>3 days)
+        if (daysOverdue >= CRITICAL_OVERDUE_DAYS) {
+          // Check if email was already sent for this critical threshold
+          const { data: existingEmails } = await supabase
+            .from('email_notifications')
+            .select('id')
+            .eq('type', 'overdue_card')
+            .eq('user_id', userId)
+            .gte('created_at', `${today}T00:00:00Z`)
+            .contains('metadata', { card_id: card.id });
+
+          if (!existingEmails || existingEmails.length === 0) {
+            try {
+              // Call send-email-notification edge function
+              const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  type: 'overdue_card',
+                  workspace_id: card.workspace_id,
+                  user_id: userId,
+                  data: {
+                    card_title: card.title,
+                    due_date: new Date(card.due_date).toLocaleDateString('pt-BR'),
+                    days_overdue: daysOverdue,
+                    card_url: `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/space/${card.workspace_id}?card=${card.id}`,
+                  },
+                }),
+              });
+
+              if (emailResponse.ok) {
+                emailsSent++;
+                console.log(`Email sent for card ${card.id} to user ${userId}`);
+              } else {
+                const errorText = await emailResponse.text();
+                console.error(`Failed to send email: ${errorText}`);
+              }
+            } catch (emailError) {
+              console.error('Error sending email:', emailError);
+            }
+          }
+        }
       }
     }
 
-    console.log(`Created ${notificationsCreated} notifications`);
+    console.log(`Created ${notificationsCreated} notifications, sent ${emailsSent} emails`);
 
     return new Response(
       JSON.stringify({
         success: true,
         overdue_cards: overdueCards?.length || 0,
         notifications_created: notificationsCreated,
+        emails_sent: emailsSent,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
