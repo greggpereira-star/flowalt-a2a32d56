@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { WorkRadar } from '@/components/dashboard/WorkRadar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Plus,
   Clock,
@@ -18,8 +21,11 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react';
+import { usePageTracking } from '@/hooks/usePageTracking';
+import { differenceInSeconds } from 'date-fns';
 
 const Index: React.FC = () => {
+  usePageTracking('dashboard');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentWorkspace, workspaces, loading, createWorkspace } = useWorkspace();
@@ -108,6 +114,86 @@ const Index: React.FC = () => {
     );
   }
 
+  // Fetch real-time stats
+  const { data: myTasks } = useQuery({
+    queryKey: ['index-my-tasks', currentWorkspace?.id, user?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !user?.id) return { count: 0, todayCount: 0 };
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      const { count: totalCount } = await supabase
+        .from('cards')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('owner_id', user.id)
+        .neq('status', 'archived')
+        .neq('status', 'delivered');
+
+      const { count: todayCount } = await supabase
+        .from('cards')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('owner_id', user.id)
+        .neq('status', 'archived')
+        .neq('status', 'delivered')
+        .lte('due_date', today.toISOString());
+
+      return { count: totalCount || 0, todayCount: todayCount || 0 };
+    },
+    enabled: !!currentWorkspace?.id && !!user?.id,
+  });
+
+  const { data: myTimer } = useQuery({
+    queryKey: ['index-my-timer', currentWorkspace?.id, user?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !user?.id) return null;
+
+      const { data } = await supabase
+        .from('time_entries')
+        .select('id, started_at, card:cards(title)')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('user_id', user.id)
+        .eq('is_running', true)
+        .maybeSingle();
+
+      return data;
+    },
+    enabled: !!currentWorkspace?.id && !!user?.id,
+    refetchInterval: 1000,
+  });
+
+  const { data: todayEvents } = useQuery({
+    queryKey: ['index-today-events', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return 0;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { count } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .gte('start_time', today.toISOString())
+        .lt('start_time', tomorrow.toISOString());
+
+      return count || 0;
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  const formatTimer = (startedAt: string): string => {
+    const seconds = differenceInSeconds(new Date(), new Date(startedAt));
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
     <AppLayout>
       <div className="p-6 lg:p-8">
@@ -121,9 +207,17 @@ const Index: React.FC = () => {
           </p>
         </div>
 
+        {/* Work Radar - Main focus area */}
+        <div className="mb-8">
+          <WorkRadar />
+        </div>
+
         {/* Quick Stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="group cursor-pointer transition-all hover:shadow-md">
+          <Card 
+            className="group cursor-pointer transition-all hover:shadow-md"
+            onClick={() => navigate('/tasks')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Tarefas Pendentes
@@ -131,44 +225,57 @@ const Index: React.FC = () => {
               <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{myTasks?.count || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Nenhuma tarefa atribuída
+                {myTasks?.count === 0 ? 'Nenhuma tarefa atribuída' : `${myTasks?.todayCount || 0} para hoje`}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="group cursor-pointer transition-all hover:shadow-md">
+          <Card 
+            className={`group cursor-pointer transition-all hover:shadow-md ${myTimer ? 'border-green-500/50 bg-green-500/5' : ''}`}
+            onClick={() => navigate('/time')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Timer Ativo
               </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className={`h-4 w-4 ${myTimer ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">00:00:00</div>
-              <p className="text-xs text-muted-foreground">
-                Nenhum timer rodando
+              <div className={`text-2xl font-bold ${myTimer ? 'text-green-600' : ''}`}>
+                {myTimer ? formatTimer(myTimer.started_at) : '00:00:00'}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {myTimer ? (myTimer.card as { title: string } | null)?.title || 'Rodando' : 'Nenhum timer rodando'}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="group cursor-pointer transition-all hover:shadow-md">
+          <Card 
+            className={`group cursor-pointer transition-all hover:shadow-md ${(myTasks?.todayCount || 0) > 0 ? 'border-yellow-500/50' : ''}`}
+            onClick={() => navigate('/tasks')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Entregas Hoje
               </CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <AlertCircle className={`h-4 w-4 ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className={`text-2xl font-bold ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-600' : ''}`}>
+                {myTasks?.todayCount || 0}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Nenhuma entrega programada
+                {(myTasks?.todayCount || 0) === 0 ? 'Nenhuma entrega programada' : 'Precisam de atenção'}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="group cursor-pointer transition-all hover:shadow-md">
+          <Card 
+            className="group cursor-pointer transition-all hover:shadow-md"
+            onClick={() => navigate('/calendar')}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Eventos Hoje
@@ -176,9 +283,9 @@ const Index: React.FC = () => {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{todayEvents || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Agenda livre
+                {(todayEvents || 0) === 0 ? 'Agenda livre' : 'Na agenda de hoje'}
               </p>
             </CardContent>
           </Card>

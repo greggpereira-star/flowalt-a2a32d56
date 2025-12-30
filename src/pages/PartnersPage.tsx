@@ -4,6 +4,7 @@ import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { useAccessLogging } from "@/hooks/useAccessLogging";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   TrendingUp,
   TrendingDown,
@@ -205,7 +206,7 @@ export default function PartnersPage() {
   });
 
   return (
-    <>
+    <PermissionGuard permission="canViewPartners">
       <Helmet>
         <title>Painel dos Sócios | FlowAgency</title>
         <meta name="description" content="Visão executiva para tomada de decisão" />
@@ -485,6 +486,6 @@ export default function PartnersPage() {
           </div>
         </div>
       </AppLayout>
-    </>
+    </PermissionGuard>
   );
 }

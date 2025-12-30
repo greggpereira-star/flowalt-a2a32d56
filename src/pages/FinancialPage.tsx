@@ -6,6 +6,7 @@ import { TransactionList } from "@/components/financial/TransactionList";
 import { TransactionForm } from "@/components/financial/TransactionForm";
 import { FinancialDashboard } from "@/components/financial/FinancialDashboard";
 import { CollaboratorManager } from "@/components/financial/CollaboratorManager";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
   List,
@@ -25,7 +26,7 @@ export default function FinancialPage() {
   }, [logFinancialAccess]);
   
   return (
-    <>
+    <PermissionGuard permission="canViewFinancial">
       <Helmet>
         <title>Financeiro | FlowAgency</title>
         <meta name="description" content="Gestão financeira completa com lançamentos, fluxo de caixa e controle de colaboradores" />
@@ -92,6 +93,6 @@ export default function FinancialPage() {
           </Tabs>
         </div>
       </AppLayout>
-    </>
+    </PermissionGuard>
   );
 }
