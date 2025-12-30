@@ -1,8 +1,9 @@
 import { Helmet } from "react-helmet";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePageTracking } from "@/hooks/usePageTracking";
+import { useAccessLogging } from "@/hooks/useAccessLogging";
 import {
   TrendingUp,
   TrendingDown,
@@ -46,7 +47,13 @@ const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"
 
 export default function PartnersPage() {
   usePageTracking('partners');
+  const { logPartnersAccess } = useAccessLogging();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  // Log access to partners dashboard
+  useEffect(() => {
+    logPartnersAccess('dashboard_view');
+  }, [logPartnersAccess]);
   
   const { data: summary } = useFinancialSummary(selectedMonth);
   const { data: cards = [] } = useAllCards();
