@@ -1833,6 +1833,53 @@ export type Database = {
           },
         ]
       }
+      structured_logs: {
+        Row: {
+          context: Json | null
+          correlation_id: string | null
+          created_at: string
+          id: string
+          log_level: string
+          message: string
+          service: string
+          session_id: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          log_level?: string
+          message: string
+          service: string
+          session_id?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          log_level?: string
+          message?: string
+          service?: string
+          session_id?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structured_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_metrics: {
         Row: {
           correlation_id: string | null
@@ -2553,6 +2600,10 @@ export type Database = {
         Args: { p_snapshot_type: string; p_workspace_id: string }
         Returns: undefined
       }
+      compute_executive_kpis: {
+        Args: { p_workspace_id: string }
+        Returns: Json
+      }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
       get_idempotent_response: {
         Args: { p_idempotency_key: string; p_workspace_id: string }
@@ -2585,6 +2636,18 @@ export type Database = {
           p_module: string
           p_user_id: string
           p_workspace_id: string
+        }
+        Returns: undefined
+      }
+      log_structured: {
+        Args: {
+          p_context?: Json
+          p_correlation_id?: string
+          p_level: string
+          p_message: string
+          p_service: string
+          p_session_id?: string
+          p_workspace_id?: string
         }
         Returns: undefined
       }
