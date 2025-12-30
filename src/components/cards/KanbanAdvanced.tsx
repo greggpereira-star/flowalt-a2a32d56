@@ -60,6 +60,7 @@ import {
 import { cn, getErrorMessage } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useDependencies } from '@/hooks/useDependencies';
+import { useCapacity } from '@/hooks/useCapacity';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useClients } from '@/hooks/useClients';
 import { useToast } from '@/hooks/use-toast';
@@ -127,6 +128,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const { data: members } = useWorkspaceMembers();
   const { data: clients } = useClients();
   const { data: dependencies } = useDependencies();
+  const { userSummaries } = useCapacity(cards);
 
   // View state
   const [swimlane, setSwimlane] = useState<SwimlaneOption>('none');
@@ -532,6 +534,11 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     const alerts = getCardAlerts(card);
     const isBlocked = blockedCardIds.has(card.id);
     
+    // Get owner utilization for Risk Radar
+    const ownerUtilization = card.owner_id 
+      ? userSummaries.find(u => u.userId === card.owner_id)?.utilizationPercent || 0
+      : 0;
+    
     return (
       <div key={card.id} className="relative group">
         {isSelectionMode && (
@@ -544,19 +551,17 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
           </div>
         )}
         
-        {/* Alert badges */}
-        {alerts.length > 0 && (
-          <div className="absolute top-2 right-2 z-10 flex gap-1">
-            {alerts.map((alert, idx) => (
+        {/* Alert badges - only show if no RiskRadar (to avoid duplication) */}
+        {alerts.length > 0 && alerts.some(a => a.type !== 'overdue') && (
+          <div className="absolute top-2 right-8 z-10 flex gap-1">
+            {alerts.filter(a => a.type !== 'overdue').map((alert, idx) => (
               <Tooltip key={idx}>
                 <TooltipTrigger asChild>
                   <div className={cn(
                     'p-1.5 rounded-full shadow-sm',
-                    alert.type === 'overdue' && 'bg-destructive text-destructive-foreground',
                     alert.type === 'blocked' && 'bg-purple-500 text-white',
                     alert.type === 'briefing' && 'bg-amber-500 text-black'
                   )}>
-                    {alert.type === 'overdue' && <Clock className="h-3 w-3" />}
                     {alert.type === 'blocked' && <Lock className="h-3 w-3" />}
                     {alert.type === 'briefing' && <AlertTriangle className="h-3 w-3" />}
                   </div>
@@ -582,6 +587,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
             <TaskCard
               card={card}
               onClick={() => isSelectionMode ? toggleCardSelection(card.id) : onCardClick(card)}
+              isBlocked={isBlocked}
+              ownerUtilization={ownerUtilization}
             />
           </div>
         </CardContextMenu>

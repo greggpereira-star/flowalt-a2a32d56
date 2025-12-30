@@ -3,6 +3,7 @@ import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
 import { CardRiskIndicators } from './CardRiskIndicators';
+import { RiskRadar } from './RiskRadar';
 import { Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
@@ -13,22 +14,41 @@ interface TaskCardProps {
   card: Card;
   onClick?: () => void;
   isDragging?: boolean;
+  isBlocked?: boolean;
+  ownerUtilization?: number;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, isDragging }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ 
+  card, 
+  onClick, 
+  isDragging,
+  isBlocked = false,
+  ownerUtilization = 0,
+}) => {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
 
   return (
     <CardUI
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md group',
+        'cursor-pointer transition-all hover:shadow-md group relative',
         isDragging && 'shadow-lg ring-2 ring-primary/50 rotate-2',
-        isOverdue && 'border-destructive/50'
+        isOverdue && 'border-destructive/50',
+        isBlocked && 'border-purple-500/50'
       )}
       onClick={onClick}
     >
-      <CardHeader className="p-3 pb-2">
+      {/* Risk Radar - compact indicator in top right */}
+      <div className="absolute top-2 right-2 z-10">
+        <RiskRadar 
+          card={card} 
+          isBlocked={isBlocked} 
+          ownerUtilization={ownerUtilization}
+          compact 
+        />
+      </div>
+
+      <CardHeader className="p-3 pb-2 pr-8">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
             {card.title}
