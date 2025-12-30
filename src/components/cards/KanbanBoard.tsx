@@ -44,7 +44,7 @@ const DroppableColumn: React.FC<{
     <div
       ref={setNodeRef}
       className={cn(
-        'flex-1 p-2 space-y-2 min-h-[200px] transition-colors duration-200 rounded-b-lg',
+        'flex-1 p-2 space-y-2 min-h-[100px] transition-colors duration-200 rounded-b-lg overflow-y-auto',
         isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
       )}
     >
@@ -210,7 +210,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 h-full min-h-full pb-4">
+      <div className="flex gap-3 h-full min-w-max">
         {visibleStatuses.map((status) => {
           const config = statusConfig[status];
           const columnCards = groupedCards[status] || [];
@@ -220,7 +220,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <div
               key={status}
               className={cn(
-                'flex-shrink-0 w-72 bg-muted/30 rounded-xl flex flex-col border transition-all duration-200',
+                'flex-shrink-0 w-72 bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 max-h-full',
                 isDropTarget 
                   ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10' 
                   : 'border-border/30'

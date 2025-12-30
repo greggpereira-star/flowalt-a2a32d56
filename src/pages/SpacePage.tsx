@@ -237,14 +237,14 @@ const SpacePage: React.FC = () => {
           )}
         </div>
 
-        {/* Content - fills remaining space, only this area scrolls */}
+        {/* Content - fills remaining space, only this area scrolls horizontally */}
         <div className="flex-1 min-h-0 overflow-hidden">
           {cardsLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : view === 'kanban' ? (
-            <div className="h-full p-4 overflow-auto">
+            <div className="h-full px-4 pt-4 pb-2 overflow-x-auto overflow-y-hidden">
               <KanbanBoard
                 cards={filteredCards}
                 onCardClick={handleCardClick}
@@ -252,7 +252,7 @@ const SpacePage: React.FC = () => {
               />
             </div>
           ) : view === 'kanban-advanced' ? (
-            <div className="h-full p-4 overflow-hidden">
+            <div className="h-full px-4 pt-4 pb-2 overflow-x-auto overflow-y-hidden">
               <KanbanAdvanced
                 cards={filteredCards}
                 onCardClick={handleCardClick}
