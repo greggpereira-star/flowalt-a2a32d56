@@ -3,9 +3,10 @@ import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager';
 import { WebhookManager } from '@/components/settings/WebhookManager';
+import { WebhookDashboard } from '@/components/settings/WebhookDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function SettingsPage() {
@@ -36,6 +37,10 @@ export default function SettingsPage() {
               <Webhook className="h-4 w-4" />
               Webhooks
             </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Monitoramento
+            </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
               Documentação
@@ -48,6 +53,10 @@ export default function SettingsPage() {
 
           <TabsContent value="webhooks">
             <WebhookManager />
+          </TabsContent>
+
+          <TabsContent value="monitoring">
+            <WebhookDashboard />
           </TabsContent>
 
           <TabsContent value="docs">
