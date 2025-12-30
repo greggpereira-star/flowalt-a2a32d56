@@ -57,7 +57,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useCardDependencies } from '@/hooks/useDependencies';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
