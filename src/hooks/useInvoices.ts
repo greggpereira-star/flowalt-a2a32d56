@@ -96,16 +96,18 @@ export function useCreateInvoice() {
       net_amount?: number;
       tax_amount?: number;
       invoice_type?: string;
-      invoice_series?: string;
+      invoice_series?: string | null;
       status?: string;
-      client_id?: string;
-      transaction_id?: string;
-      card_id?: string;
-      recipient_name?: string;
-      recipient_document?: string;
-      description?: string;
-      pdf_url?: string;
-      xml_url?: string;
+      client_id?: string | null;
+      transaction_id?: string | null;
+      card_id?: string | null;
+      recipient_name?: string | null;
+      recipient_document?: string | null;
+      recipient_email?: string | null;
+      service_code?: string | null;
+      description?: string | null;
+      pdf_url?: string | null;
+      xml_url?: string | null;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 

@@ -46,7 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCostCenters, useCostCenterWithBudget, useCreateCostCenter, useDeleteCostCenter, CostCenter } from "@/hooks/useCostCenters";
+import { useCostCenters, useCostCentersWithBudget, useCreateCostCenter, useDeleteCostCenter, CostCenter, CostCenterWithActual } from "@/hooks/useCostCenters";
 
 const costCenterSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -63,7 +63,7 @@ type FormData = z.infer<typeof costCenterSchema>;
 export function CostCenterManager() {
   const [open, setOpen] = useState(false);
   const { data: costCenters = [] } = useCostCenters();
-  const { data: centersWithBudget = [] } = useCostCenterWithBudget();
+  const { data: centersWithBudget = [] } = useCostCentersWithBudget();
   const createCostCenter = useCreateCostCenter();
   const deleteCostCenter = useDeleteCostCenter();
 
