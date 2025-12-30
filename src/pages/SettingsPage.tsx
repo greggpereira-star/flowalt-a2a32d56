@@ -15,8 +15,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 export default function SettingsPage() {
+  usePageTracking('settings');
   const { currentWorkspace } = useWorkspace();
   const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-api`;
 
