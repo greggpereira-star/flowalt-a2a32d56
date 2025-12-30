@@ -237,12 +237,15 @@ export function ApplyTemplateDialog({ templateId, open, onOpenChange }: ApplyTem
           {selectedSpace && folders.length > 0 && (
             <div className="grid gap-2">
               <Label>Pasta (opcional)</Label>
-              <Select value={selectedFolder} onValueChange={setSelectedFolder}>
+              <Select
+                value={selectedFolder}
+                onValueChange={(v) => setSelectedFolder(v === '__none__' ? '' : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma pasta" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma pasta</SelectItem>
+                  <SelectItem value="__none__">Nenhuma pasta</SelectItem>
                   {folders.map((folder) => (
                     <SelectItem key={folder.id} value={folder.id}>
                       {folder.name}
