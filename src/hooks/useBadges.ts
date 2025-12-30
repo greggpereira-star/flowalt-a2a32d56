@@ -135,35 +135,40 @@ export function useBadges() {
     mutationFn: async (badgeType: string) => {
       if (!user?.id || !currentWorkspace?.id) throw new Error('No user or workspace');
 
-      // Check if already earned
+      // Check if already earned in local cache
       const existing = userBadges.find(b => b.badge_type === badgeType);
-      if (existing) return existing;
+      if (existing) return null;
 
+      // Use upsert with ON CONFLICT to handle race conditions
       const { data, error } = await supabase
         .from('user_badges')
-        .insert({
+        .upsert(
+          {
+            user_id: user.id,
+            workspace_id: currentWorkspace.id,
+            badge_type: badgeType,
+          },
+          {
+            onConflict: 'user_id,workspace_id,badge_type',
+            ignoreDuplicates: true,
+          }
+        )
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // Only create notification if we actually inserted a new badge
+      if (data) {
+        await supabase.from('notifications').insert({
           user_id: user.id,
           workspace_id: currentWorkspace.id,
-          badge_type: badgeType,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        // Ignore duplicate errors
-        if (error.code === '23505') return null;
-        throw error;
+          type: 'badge_earned',
+          title: 'Nova conquista desbloqueada!',
+          message: `Você ganhou o badge "${BADGE_DEFINITIONS[badgeType]?.name}"`,
+          metadata: { badge_type: badgeType },
+        });
       }
-
-      // Create notification for badge earned
-      await supabase.from('notifications').insert({
-        user_id: user.id,
-        workspace_id: currentWorkspace.id,
-        type: 'badge_earned',
-        title: 'Nova conquista desbloqueada!',
-        message: `Você ganhou o badge "${BADGE_DEFINITIONS[badgeType]?.name}"`,
-        metadata: { badge_type: badgeType },
-      });
 
       return data;
     },
