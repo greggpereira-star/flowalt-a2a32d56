@@ -88,6 +88,7 @@ export default {
           briefing: "hsl(var(--status-briefing))",
           todo: "hsl(var(--status-todo))",
           "in-progress": "hsl(var(--status-in-progress))",
+          inProgress: "hsl(var(--status-in-progress))",
           review: "hsl(var(--status-review))",
           approved: "hsl(var(--status-approved))",
           delivered: "hsl(var(--status-delivered))",
