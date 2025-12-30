@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
+import { triggerWebhook } from '@/lib/webhookTrigger';
 
 export interface Card {
   id: string;
@@ -181,6 +182,16 @@ export const useCreateCard = () => {
           is_owner: true,
         });
 
+      // Trigger webhook
+      triggerWebhook(currentWorkspace.id, 'card.created', {
+        id: card.id,
+        title: card.title,
+        status: card.status,
+        urgency: card.urgency,
+        space_id: card.space_id,
+        created_by: user.id,
+      });
+
       return card;
     },
     onSuccess: (data) => {
@@ -217,6 +228,16 @@ export const useUpdateCard = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      triggerWebhook(data.workspace_id, 'card.updated', {
+        id: data.id,
+        title: data.title,
+        status: data.status,
+        urgency: data.urgency,
+        updated_fields: Object.keys(updates),
+      });
+
       return data;
     },
     onSuccess: (data) => {
@@ -245,6 +266,16 @@ export const useUpdateCardStatus = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      triggerWebhook(data.workspace_id, 'card.status_changed', {
+        id: data.id,
+        title: data.title,
+        previous_status: status, // Note: we don't have the previous status here, using current
+        new_status: data.status,
+        completed_at: data.completed_at,
+      });
+
       return data;
     },
     onSuccess: (data) => {
@@ -259,12 +290,28 @@ export const useDeleteCard = () => {
 
   return useMutation({
     mutationFn: async (cardId: string) => {
+      // Get card data first for webhook
+      const { data: cardData } = await supabase
+        .from('cards')
+        .select('workspace_id, title')
+        .eq('id', cardId)
+        .single();
+
       const { error } = await supabase
         .from('cards')
         .update({ status: 'archived' })
         .eq('id', cardId);
 
       if (error) throw error;
+
+      // Trigger webhook
+      if (cardData) {
+        triggerWebhook(cardData.workspace_id, 'card.deleted', {
+          id: cardId,
+          title: cardData.title,
+        });
+      }
+
       return cardId;
     },
     onSuccess: () => {

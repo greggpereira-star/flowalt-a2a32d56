@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
 
 export interface Comment {
   id: string;
@@ -82,6 +83,19 @@ export const useCreateComment = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      const workspaceId = await getCardWorkspaceId(card_id);
+      if (workspaceId) {
+        triggerWebhook(workspaceId, 'comment.created', {
+          id: data.id,
+          card_id: data.card_id,
+          content: data.content,
+          user_id: user.id,
+          mentions: data.mentions,
+        });
+      }
+
       return data;
     },
     onSuccess: (data) => {
