@@ -180,12 +180,15 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 
               <div className="space-y-2">
                 <Label>Cliente</Label>
-                <Select value={clientId} onValueChange={setClientId}>
+                <Select
+                  value={clientId}
+                  onValueChange={(v) => setClientId(v === '__none__' ? '' : v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
