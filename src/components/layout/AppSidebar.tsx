@@ -98,7 +98,7 @@ export const AppSidebar: React.FC = () => {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
+    <Sidebar className="border-r border-sidebar-border" data-tour="sidebar">
       <SidebarHeader className="p-4">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -109,7 +109,7 @@ export const AppSidebar: React.FC = () => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between px-3 py-2 h-auto">
+            <Button variant="ghost" className="w-full justify-between px-3 py-2 h-auto" data-tour="workspace-selector">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
@@ -162,7 +162,7 @@ export const AppSidebar: React.FC = () => {
 
         <SidebarSeparator />
 
-        <SidebarGroup>
+        <SidebarGroup data-tour="spaces-menu">
           <SidebarGroupLabel>Espaços</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -198,7 +198,7 @@ export const AppSidebar: React.FC = () => {
 
         <SidebarSeparator />
 
-        <SidebarGroup>
+        <SidebarGroup data-tour="management-menu">
           <SidebarGroupLabel>Gestão</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -218,7 +218,7 @@ export const AppSidebar: React.FC = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4" data-tour="user-menu">
         <SidebarSeparator className="mb-4" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
