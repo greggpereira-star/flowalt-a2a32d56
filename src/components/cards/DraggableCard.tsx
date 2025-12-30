@@ -1,8 +1,7 @@
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
-import type { Card } from '@/hooks/useCards';
 
 interface DraggableCardProps {
   id: string;
@@ -20,18 +19,17 @@ export const DraggableCard: React.FC<DraggableCardProps> = ({
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
-  } = useSortable({ 
+  } = useDraggable({ 
     id,
     disabled,
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.3 : 1,
     cursor: disabled ? 'default' : 'grab',
+    zIndex: isDragging ? 1000 : undefined,
   };
 
   return (
@@ -41,8 +39,8 @@ export const DraggableCard: React.FC<DraggableCardProps> = ({
       {...attributes}
       {...listeners}
       className={cn(
-        'touch-none',
-        isDragging && 'z-50'
+        'touch-none select-none',
+        isDragging && 'pointer-events-none'
       )}
     >
       {children}

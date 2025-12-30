@@ -139,116 +139,106 @@ const SpacePage: React.FC = () => {
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
       <div className="flex flex-col h-full min-h-0 overflow-hidden">
-        {/* Compact Header */}
-        <div className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left: Title & Breadcrumb */}
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: space.color }}
-                />
-                <h1 className="text-lg font-semibold truncate">{space.name}</h1>
-                {selectedFolder && folders && (
-                  <>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground truncate">
-                      {folders.find(f => f.id === selectedFolder)?.name}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Search */}
-                <div className="relative hidden sm:block">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    ref={searchInputRef}
-                    placeholder="Buscar... (/)"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 w-40 lg:w-52 text-sm"
-                  />
-                </div>
-
-                {/* View Switcher */}
-                <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
-                  <TabsList className="h-8">
-                    <TabsTrigger value="kanban" className="px-2.5 h-7" title="Kanban Simples">
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                    </TabsTrigger>
-                    <TabsTrigger value="kanban-advanced" className="px-2.5 h-7" title="Kanban Avançado">
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                      <span className="text-[9px] ml-0.5 font-bold">+</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="list" className="px-2.5 h-7">
-                      <List className="h-3.5 w-3.5" />
-                    </TabsTrigger>
-                    <TabsTrigger value="calendar" className="px-2.5 h-7">
-                      <Calendar className="h-3.5 w-3.5" />
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                {/* Add Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" className="h-8 gap-1.5">
-                      <Plus className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Adicionar</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Card (Rápido)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setQuickAddInitialMode('full'); setQuickAddOpen(true); }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Card (Completo)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
-                      <FolderPlus className="h-4 w-4 mr-2" />
-                      Nova Pasta
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+        {/* Fixed Header - Always visible */}
+        <div className="flex-shrink-0 border-b border-border bg-background sticky top-0 z-20">
+          <div className="px-4 py-2.5 flex items-center justify-between gap-3">
+            {/* Left: Space name (minimal) */}
+            <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+              <div
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: space.color }}
+              />
+              <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-none">{space.name}</h1>
             </div>
 
-            {/* Folders Bar - compact */}
-            {folders && folders.length > 0 && (
-              <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5 -mb-0.5">
+            {/* Center: Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                placeholder="Buscar... (/)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 w-full text-sm bg-muted/50 border-0 focus-visible:ring-1"
+              />
+            </div>
+
+            {/* Right: View Switcher + Add Button */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* View Switcher */}
+              <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
+                <TabsList className="h-9 bg-muted/50">
+                  <TabsTrigger value="kanban" className="px-3 h-8" title="Kanban Simples">
+                    <LayoutGrid className="h-4 w-4" />
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban-advanced" className="px-3 h-8" title="Kanban Avançado">
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="text-[9px] ml-0.5 font-bold">+</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="px-3 h-8" title="Lista">
+                    <List className="h-4 w-4" />
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="px-3 h-8" title="Calendário">
+                    <Calendar className="h-4 w-4" />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Add Button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="default" className="h-9 gap-2 px-4">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Adicionar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Card (Rápido)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setQuickAddInitialMode('full'); setQuickAddOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Card (Completo)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    Nova Pasta
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Folders Bar */}
+          {folders && folders.length > 0 && (
+            <div className="px-4 pb-2 flex items-center gap-1.5 overflow-x-auto">
+              <Button
+                variant={selectedFolder === null ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setSelectedFolder(null)}
+                className="h-7 px-2.5 text-xs flex-shrink-0"
+              >
+                Todos
+              </Button>
+              {folders.map((folder) => (
                 <Button
-                  variant={selectedFolder === null ? 'secondary' : 'ghost'}
+                  key={folder.id}
+                  variant={selectedFolder === folder.id ? 'secondary' : 'ghost'}
                   size="sm"
-                  onClick={() => setSelectedFolder(null)}
+                  onClick={() => setSelectedFolder(folder.id)}
                   className="h-7 px-2.5 text-xs flex-shrink-0"
                 >
-                  Todos
+                  <Folder className="h-3 w-3 mr-1" style={{ color: folder.color || undefined }} />
+                  {folder.name}
                 </Button>
-                {folders.map((folder) => (
-                  <Button
-                    key={folder.id}
-                    variant={selectedFolder === folder.id ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSelectedFolder(folder.id)}
-                    className="h-7 px-2.5 text-xs flex-shrink-0"
-                  >
-                    <Folder className="h-3 w-3 mr-1" style={{ color: folder.color || undefined }} />
-                    {folder.name}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Content - fills remaining space */}
-        <div className="flex-1 overflow-hidden">
+        {/* Content - fills remaining space, only this area scrolls */}
+        <div className="flex-1 min-h-0 overflow-hidden">
           {cardsLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -262,15 +252,13 @@ const SpacePage: React.FC = () => {
               />
             </div>
           ) : view === 'kanban-advanced' ? (
-            <div className="h-full flex flex-col overflow-hidden">
-              <div className="flex-1 px-4 pt-4 pb-2 overflow-hidden">
-                <KanbanAdvanced
-                  cards={filteredCards}
-                  onCardClick={handleCardClick}
-                  onAddCard={handleAddCard}
-                  spaceId={spaceId}
-                />
-              </div>
+            <div className="h-full p-4 overflow-hidden">
+              <KanbanAdvanced
+                cards={filteredCards}
+                onCardClick={handleCardClick}
+                onAddCard={handleAddCard}
+                spaceId={spaceId}
+              />
             </div>
           ) : view === 'list' ? (
             <div className="h-full p-4 overflow-auto">

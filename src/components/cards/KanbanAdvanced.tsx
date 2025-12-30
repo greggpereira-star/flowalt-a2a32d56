@@ -1,20 +1,16 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  rectIntersection,
+  useDroppable,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { TaskCard } from './TaskCard';
 import { DraggableCard } from './DraggableCard';
 import { DragOverlayCard } from './DragOverlayCard';
@@ -23,6 +19,19 @@ import { statusConfig } from './CardBadges';
 import { KanbanQuickFilters, applyQuickFilter } from './KanbanQuickFilters';
 import { KanbanColumnMetrics } from './KanbanColumnMetrics';
 import { KanbanInlineQuickAdd } from './KanbanInlineQuickAdd';
+
+// Droppable column area component
+const DroppableColumnArea: React.FC<{ id: string; children: React.ReactNode; className?: string }> = ({ id, children, className }) => {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div 
+      ref={setNodeRef} 
+      className={`${className} ${isOver ? 'bg-primary/5 ring-2 ring-inset ring-primary/30' : ''}`}
+    >
+      {children}
+    </div>
+  );
+};
 import { 
   Filter, 
   ChevronDown, 
@@ -184,10 +193,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
-    }),
-    useSensor(KeyboardSensor)
+    })
   );
 
   // Calculate blocked cards
@@ -719,38 +727,36 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         )}
 
         {/* Column Cards */}
-        <SortableContext items={columnCards.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]">
-            {/* Inline Quick Add */}
-            <KanbanInlineQuickAdd
-              status={status}
-              isOpen={isQuickAddOpen}
-              onOpenChange={(open) => setQuickAddColumn(open ? status : null)}
-              onCreate={handleInlineQuickAdd}
-              members={members}
-              isLoading={createCard.isPending}
-            />
+        <DroppableColumnArea id={status} className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]">
+          {/* Inline Quick Add */}
+          <KanbanInlineQuickAdd
+            status={status}
+            isOpen={isQuickAddOpen}
+            onOpenChange={(open) => setQuickAddColumn(open ? status : null)}
+            onCreate={handleInlineQuickAdd}
+            members={members}
+            isLoading={createCard.isPending}
+          />
 
-            {/* Cards */}
-            {columnCards.length === 0 && !isQuickAddOpen ? (
-              <div 
-                className={cn(
-                  'flex flex-col items-center justify-center py-8 text-center transition-colors rounded-lg',
-                  isDropTarget && 'bg-primary/10 border-2 border-dashed border-primary/30'
-                )}
-              >
-                <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                  <Sparkles className="h-4 w-4 text-muted-foreground/50" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {isDropTarget ? 'Solte aqui' : 'Nenhum card'}
-                </p>
+          {/* Cards */}
+          {columnCards.length === 0 && !isQuickAddOpen ? (
+            <div 
+              className={cn(
+                'flex flex-col items-center justify-center py-8 text-center transition-colors rounded-lg',
+                isDropTarget && 'bg-primary/10 border-2 border-dashed border-primary/30'
+              )}
+            >
+              <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground/50" />
               </div>
-            ) : (
-              columnCards.map(renderCard)
-            )}
-          </div>
-        </SortableContext>
+              <p className="text-xs text-muted-foreground">
+                {isDropTarget ? 'Solte aqui' : 'Nenhum card'}
+              </p>
+            </div>
+          ) : (
+            columnCards.map(renderCard)
+          )}
+        </DroppableColumnArea>
       </div>
     );
   };
@@ -758,7 +764,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
