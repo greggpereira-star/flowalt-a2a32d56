@@ -57,9 +57,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
         </header>
 
         {/* Main Content */}
-        <div className={cn('flex-1', isSpaceRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto')}>
-          <div className={cn(isSpaceRoute && 'h-full')}>{children}</div>
-        </div>
+        <main className={cn('flex-1', isSpaceRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto')}>
+          <div className={cn(isSpaceRoute ? 'h-full min-h-0' : undefined)}>{children}</div>
+        </main>
 
         {/* Feedback Widget */}
         <FeedbackWidget />
