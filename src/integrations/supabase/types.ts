@@ -614,6 +614,101 @@ export type Database = {
           },
         ]
       }
+      sprint_cards: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          card_id: string
+          id: string
+          sprint_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          card_id: string
+          id?: string
+          sprint_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          card_id?: string
+          id?: string
+          sprint_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_cards_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprints: {
+        Row: {
+          allocated_hours: number | null
+          capacity_hours: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          goal: string | null
+          id: string
+          name: string
+          start_date: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allocated_hours?: number | null
+          capacity_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          goal?: string | null
+          id?: string
+          name: string
+          start_date: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allocated_hours?: number | null
+          capacity_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          goal?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           card_id: string
