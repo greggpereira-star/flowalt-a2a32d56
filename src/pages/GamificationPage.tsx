@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LeaderboardDashboard } from '@/components/gamification/LeaderboardDashboard';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
+import { WeeklyGoalsCard } from '@/components/gamification/WeeklyGoalsCard';
+import { RankingChart } from '@/components/gamification/RankingChart';
 import { Trophy } from 'lucide-react';
 
 export default function GamificationPage() {
@@ -26,7 +28,12 @@ export default function GamificationPage() {
           </div>
         </div>
 
-        <BadgeProgress />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <WeeklyGoalsCard />
+          <BadgeProgress />
+        </div>
+
+        <RankingChart />
         
         <LeaderboardDashboard />
       </div>

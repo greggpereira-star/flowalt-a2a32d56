@@ -982,6 +982,100 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          p256dh: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          p256dh: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ranking_history: {
+        Row: {
+          badges_count: number | null
+          cards_completed: number | null
+          cards_created: number | null
+          created_at: string
+          hours_logged: number | null
+          id: string
+          rank: number
+          recorded_at: string
+          score: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          badges_count?: number | null
+          cards_completed?: number | null
+          cards_created?: number | null
+          created_at?: string
+          hours_logged?: number | null
+          id?: string
+          rank: number
+          recorded_at?: string
+          score: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          badges_count?: number | null
+          cards_completed?: number | null
+          cards_created?: number | null
+          created_at?: string
+          hours_logged?: number | null
+          id?: string
+          rank?: number
+          recorded_at?: string
+          score?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salary_history: {
         Row: {
           collaborator_id: string
@@ -1401,6 +1495,50 @@ export type Database = {
           },
         ]
       }
+      user_goal_progress: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string
+          current_value: number | null
+          goal_id: string
+          id: string
+          reward_claimed: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number | null
+          goal_id: string
+          id?: string
+          reward_claimed?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number | null
+          goal_id?: string
+          id?: string
+          reward_claimed?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_goal_progress_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding: {
         Row: {
           actions_count: Json | null
@@ -1563,6 +1701,56 @@ export type Database = {
           },
         ]
       }
+      weekly_goals: {
+        Row: {
+          created_at: string
+          description: string | null
+          goal_type: string
+          id: string
+          is_active: boolean | null
+          reward_badge: string | null
+          reward_points: number | null
+          target_value: number
+          title: string
+          week_start: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          goal_type: string
+          id?: string
+          is_active?: boolean | null
+          reward_badge?: string | null
+          reward_points?: number | null
+          target_value: number
+          title: string
+          week_start: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          goal_type?: string
+          id?: string
+          is_active?: boolean | null
+          reward_badge?: string | null
+          reward_points?: number | null
+          target_value?: number
+          title?: string
+          week_start?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           department: string | null
@@ -1691,6 +1879,15 @@ export type Database = {
           p_request_path: string
           p_response_body: Json
           p_response_status: number
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
+      update_goal_progress: {
+        Args: {
+          p_goal_type: string
+          p_increment?: number
+          p_user_id: string
           p_workspace_id: string
         }
         Returns: undefined
