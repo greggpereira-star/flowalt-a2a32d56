@@ -27,19 +27,37 @@ interface WebhookDelivery {
 }
 
 export const WEBHOOK_EVENTS = [
-  { value: 'card.created', label: 'Card criado' },
-  { value: 'card.updated', label: 'Card atualizado' },
-  { value: 'card.deleted', label: 'Card excluído' },
-  { value: 'comment.created', label: 'Comentário criado' },
-  { value: 'checklist.item.completed', label: 'Item de checklist concluído' },
-  { value: 'checklist.item.created', label: 'Item de checklist criado' },
-  { value: 'time_entry.logged', label: 'Tempo registrado' },
-  { value: 'event.created', label: 'Evento criado' },
-  { value: 'attachment.uploaded', label: 'Anexo enviado' },
-  { value: 'attachment.deleted', label: 'Anexo excluído' },
-  { value: 'sprint.created', label: 'Sprint criado' },
-  { value: 'sprint.completed', label: 'Sprint concluído' },
-  { value: 'sprint.updated', label: 'Sprint atualizado' },
+  // Cards
+  { value: 'card.created', label: 'Card criado', category: 'cards' },
+  { value: 'card.updated', label: 'Card atualizado', category: 'cards' },
+  { value: 'card.deleted', label: 'Card excluído', category: 'cards' },
+  { value: 'card.status_changed', label: 'Status alterado', category: 'cards' },
+  // Comments
+  { value: 'comment.created', label: 'Comentário criado', category: 'cards' },
+  // Checklists
+  { value: 'checklist.item.completed', label: 'Item de checklist concluído', category: 'cards' },
+  { value: 'checklist.item.created', label: 'Item de checklist criado', category: 'cards' },
+  // Time
+  { value: 'time_entry.logged', label: 'Tempo registrado', category: 'time' },
+  // Events
+  { value: 'event.created', label: 'Evento criado', category: 'agenda' },
+  // Attachments
+  { value: 'attachment.uploaded', label: 'Anexo enviado', category: 'cards' },
+  { value: 'attachment.deleted', label: 'Anexo excluído', category: 'cards' },
+  // Sprints
+  { value: 'sprint.created', label: 'Sprint criado', category: 'sprints' },
+  { value: 'sprint.completed', label: 'Sprint concluído', category: 'sprints' },
+  { value: 'sprint.updated', label: 'Sprint atualizado', category: 'sprints' },
+  // Financial
+  { value: 'transaction.created', label: 'Transação criada', category: 'financial' },
+  { value: 'transaction.updated', label: 'Transação atualizada', category: 'financial' },
+  { value: 'transaction.paid', label: 'Transação paga', category: 'financial' },
+  { value: 'invoice.linked', label: 'Nota fiscal vinculada', category: 'financial' },
+  // Clients
+  { value: 'client.created', label: 'Cliente criado', category: 'clients' },
+  { value: 'client.updated', label: 'Cliente atualizado', category: 'clients' },
+  // HR
+  { value: 'employee.document.expired', label: 'Documento vencido', category: 'hr' },
 ];
 
 export function useWebhooks() {

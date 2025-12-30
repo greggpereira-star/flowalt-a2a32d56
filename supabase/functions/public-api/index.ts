@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
           }
         }
       },
-      endpoints: ['cards', 'comments', 'time-entries', 'events', 'webhooks', 'status']
+      endpoints: ['cards', 'comments', 'time-entries', 'events', 'webhooks', 'transactions', 'clients', 'openapi', 'status']
     }
 
     logger.info('Status check', { dbStatus, dbLatency })
@@ -274,13 +274,22 @@ Deno.serve(async (req) => {
       case 'webhooks':
         response = await handleWebhooks(req, supabase, workspace_id, permissions, resourceId, logger)
         break
+      case 'transactions':
+        response = await handleTransactions(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
+        break
+      case 'clients':
+        response = await handleClients(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
+        break
+      case 'openapi':
+        response = handleOpenAPI()
+        break
       default:
         logger.warn('Resource not found', { resource })
         response = new Response(
           JSON.stringify({ 
             error: 'Resource not found', 
             code: 'NOT_FOUND',
-            available_resources: ['cards', 'comments', 'time-entries', 'events', 'webhooks']
+            available_resources: ['cards', 'comments', 'time-entries', 'events', 'webhooks', 'transactions', 'clients', 'openapi']
           }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
@@ -940,6 +949,448 @@ async function handleWebhooks(
   )
 }
 
+// Transactions/Financial handler
+async function handleTransactions(
+  req: Request, 
+  supabase: any, 
+  workspaceId: string, 
+  permissions: string[],
+  transactionId: string | undefined,
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
+) {
+  const hasRead = permissions.includes('read') || permissions.includes('finance:read')
+  const hasWrite = permissions.includes('write') || permissions.includes('finance:write')
+
+  if (req.method === 'GET') {
+    if (!hasRead) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions. Required: finance:read', code: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (transactionId) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, financial_categories(*), clients(*)')
+        .eq('id', transactionId)
+        .eq('workspace_id', workspaceId)
+        .single()
+
+      if (error || !data) {
+        return new Response(
+          JSON.stringify({ error: 'Transaction not found', code: 'NOT_FOUND' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(JSON.stringify({ data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    let query = supabase
+      .from('transactions')
+      .select('*, financial_categories(*), clients(*)', { count: 'exact' })
+      .eq('workspace_id', workspaceId)
+      .order('due_date', { ascending: false })
+      .range(pagination.offset, pagination.offset + pagination.limit - 1)
+
+    const type = pagination.url.searchParams.get('type')
+    const status = pagination.url.searchParams.get('status')
+    const clientId = pagination.url.searchParams.get('client_id')
+    const startDate = pagination.url.searchParams.get('start_date')
+    const endDate = pagination.url.searchParams.get('end_date')
+
+    if (type) query = query.eq('type', type)
+    if (status) query = query.eq('status', status)
+    if (clientId) query = query.eq('client_id', clientId)
+    if (startDate) query = query.gte('due_date', startDate)
+    if (endDate) query = query.lte('due_date', endDate)
+
+    const { data, error, count } = await query
+
+    if (error) {
+      logger.error('Transactions query error', { error: error.message })
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch transactions', code: 'QUERY_ERROR' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    return new Response(JSON.stringify({
+      data,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        total_pages: Math.ceil((count || 0) / pagination.limit)
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (req.method === 'POST') {
+    if (!hasWrite) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions. Required: finance:write', code: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const body = await req.json()
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        ...body,
+        workspace_id: workspaceId
+      })
+      .select()
+      .single()
+
+    if (error) {
+      logger.error('Transaction insert error', { error: error.message })
+      return new Response(
+        JSON.stringify({ error: 'Failed to create transaction', code: 'INSERT_ERROR', details: error.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    await triggerWebhook(supabase, workspaceId, 'transaction.created', data, logger)
+
+    return new Response(JSON.stringify({ data }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (req.method === 'PATCH' && transactionId) {
+    if (!hasWrite) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions. Required: finance:write', code: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const body = await req.json()
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(body)
+      .eq('id', transactionId)
+      .eq('workspace_id', workspaceId)
+      .select()
+      .single()
+
+    if (error) {
+      logger.error('Transaction update error', { error: error.message, transactionId })
+      return new Response(
+        JSON.stringify({ error: 'Failed to update transaction', code: 'UPDATE_ERROR', details: error.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    await triggerWebhook(supabase, workspaceId, 'transaction.updated', data, logger)
+
+    return new Response(JSON.stringify({ data }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  return new Response(
+    JSON.stringify({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' }),
+    { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+// Clients handler
+async function handleClients(
+  req: Request, 
+  supabase: any, 
+  workspaceId: string, 
+  permissions: string[],
+  clientId: string | undefined,
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
+) {
+  const hasRead = permissions.includes('read') || permissions.includes('clients:read')
+  const hasWrite = permissions.includes('write') || permissions.includes('clients:write')
+
+  if (req.method === 'GET') {
+    if (!hasRead) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions', code: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (clientId) {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .eq('workspace_id', workspaceId)
+        .single()
+
+      if (error || !data) {
+        return new Response(
+          JSON.stringify({ error: 'Client not found', code: 'NOT_FOUND' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(JSON.stringify({ data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    let query = supabase
+      .from('clients')
+      .select('*', { count: 'exact' })
+      .eq('workspace_id', workspaceId)
+      .order('name', { ascending: true })
+      .range(pagination.offset, pagination.offset + pagination.limit - 1)
+
+    const isActive = pagination.url.searchParams.get('is_active')
+    if (isActive !== null) {
+      query = query.eq('is_active', isActive === 'true')
+    }
+
+    const { data, error, count } = await query
+
+    if (error) {
+      logger.error('Clients query error', { error: error.message })
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch clients', code: 'QUERY_ERROR' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    return new Response(JSON.stringify({
+      data,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        total_pages: Math.ceil((count || 0) / pagination.limit)
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (req.method === 'POST') {
+    if (!hasWrite) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions', code: 'FORBIDDEN' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const body = await req.json()
+    const { data, error } = await supabase
+      .from('clients')
+      .insert({
+        ...body,
+        workspace_id: workspaceId
+      })
+      .select()
+      .single()
+
+    if (error) {
+      logger.error('Client insert error', { error: error.message })
+      return new Response(
+        JSON.stringify({ error: 'Failed to create client', code: 'INSERT_ERROR', details: error.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    await triggerWebhook(supabase, workspaceId, 'client.created', data, logger)
+
+    return new Response(JSON.stringify({ data }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  return new Response(
+    JSON.stringify({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' }),
+    { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+// OpenAPI documentation handler
+function handleOpenAPI() {
+  const spec = {
+    openapi: '3.0.3',
+    info: {
+      title: 'Flowalt Public API',
+      version: '1.0.0',
+      description: 'API pública para integração com o Flowalt - Gestão de projetos, cards, tempo e financeiro.',
+      contact: { name: 'Flowalt Support' }
+    },
+    servers: [{ url: '/functions/v1/public-api', description: 'Production' }],
+    security: [{ ApiKeyAuth: [] }],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-api-key',
+          description: 'API key gerada no painel de Configurações'
+        }
+      },
+      schemas: {
+        Card: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            status: { type: 'string', enum: ['backlog', 'todo', 'in_progress', 'review', 'done', 'cancelled'] },
+            urgency: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+            due_date: { type: 'string', format: 'date-time' },
+            estimated_hours: { type: 'number' },
+            actual_hours: { type: 'number' },
+            space_id: { type: 'string', format: 'uuid' },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' }
+          }
+        },
+        Transaction: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            type: { type: 'string', enum: ['income', 'expense'] },
+            status: { type: 'string', enum: ['pending', 'paid', 'overdue', 'cancelled'] },
+            amount: { type: 'number' },
+            description: { type: 'string' },
+            due_date: { type: 'string', format: 'date' },
+            paid_date: { type: 'string', format: 'date' },
+            client_id: { type: 'string', format: 'uuid' },
+            category_id: { type: 'string', format: 'uuid' }
+          }
+        },
+        Pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'integer' },
+            limit: { type: 'integer' },
+            total: { type: 'integer' },
+            total_pages: { type: 'integer' }
+          }
+        },
+        Error: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            code: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    },
+    paths: {
+      '/status': {
+        get: {
+          summary: 'Health check',
+          description: 'Verifica o status da API e seus serviços',
+          security: [],
+          responses: {
+            '200': { description: 'API healthy' },
+            '503': { description: 'API degraded' }
+          }
+        }
+      },
+      '/cards': {
+        get: {
+          summary: 'Listar cards',
+          tags: ['Cards'],
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50, maximum: 100 } },
+            { name: 'status', in: 'query', schema: { type: 'string' } },
+            { name: 'space_id', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: {
+            '200': { description: 'Lista de cards com paginação' },
+            '403': { description: 'Permissão insuficiente' }
+          }
+        },
+        post: {
+          summary: 'Criar card',
+          tags: ['Cards'],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Card' } } }
+          },
+          responses: {
+            '201': { description: 'Card criado' },
+            '400': { description: 'Dados inválidos' }
+          }
+        }
+      },
+      '/transactions': {
+        get: {
+          summary: 'Listar transações financeiras',
+          tags: ['Financial'],
+          parameters: [
+            { name: 'type', in: 'query', schema: { type: 'string', enum: ['income', 'expense'] } },
+            { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'paid', 'overdue', 'cancelled'] } },
+            { name: 'client_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+            { name: 'start_date', in: 'query', schema: { type: 'string', format: 'date' } },
+            { name: 'end_date', in: 'query', schema: { type: 'string', format: 'date' } }
+          ],
+          responses: {
+            '200': { description: 'Lista de transações' },
+            '403': { description: 'Requer permissão finance:read' }
+          }
+        },
+        post: {
+          summary: 'Criar transação',
+          tags: ['Financial'],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Transaction' } } }
+          },
+          responses: {
+            '201': { description: 'Transação criada' },
+            '403': { description: 'Requer permissão finance:write' }
+          }
+        }
+      },
+      '/clients': {
+        get: {
+          summary: 'Listar clientes',
+          tags: ['Clients'],
+          parameters: [
+            { name: 'is_active', in: 'query', schema: { type: 'boolean' } }
+          ],
+          responses: { '200': { description: 'Lista de clientes' } }
+        },
+        post: {
+          summary: 'Criar cliente',
+          tags: ['Clients'],
+          responses: { '201': { description: 'Cliente criado' } }
+        }
+      },
+      '/webhooks': {
+        get: {
+          summary: 'Listar webhooks',
+          tags: ['Webhooks'],
+          description: 'Requer permissão webhooks:admin',
+          responses: { '200': { description: 'Lista de webhooks' } }
+        }
+      }
+    }
+  }
+
+  return new Response(JSON.stringify(spec), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  })
+}
+
 // Trigger webhook helper
 async function triggerWebhook(supabase: any, workspaceId: string, eventType: string, payload: any, logger: Logger) {
   try {
@@ -966,10 +1417,14 @@ async function triggerWebhook(supabase: any, workspaceId: string, eventType: str
         ['sign']
       )
 
+      const eventId = crypto.randomUUID()
       const payloadString = JSON.stringify({
-        event: eventType,
-        data: payload,
-        timestamp: new Date().toISOString()
+        event_id: eventId,
+        event_type: eventType,
+        event_version: '1.0',
+        occurred_at: new Date().toISOString(),
+        workspace_id: workspaceId,
+        data: payload
       })
 
       const signature = await crypto.subtle.sign(
@@ -993,37 +1448,59 @@ async function triggerWebhook(supabase: any, workspaceId: string, eventType: str
         .select()
         .single()
 
-      // Send webhook (fire and forget)
-      fetch(sub.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': `sha256=${signatureHex}`,
-          'X-Webhook-Event': eventType
-        },
-        body: payloadString
-      }).then(async (response) => {
-        const responseBody = await response.text().catch(() => '')
-        await supabase
-          .from('webhook_deliveries')
-          .update({
-            response_status: response.status,
-            response_body: responseBody.substring(0, 1000),
-            delivered_at: new Date().toISOString()
+      // Send webhook with retry logic
+      const sendWithRetry = async (attempt = 1, maxAttempts = 3) => {
+        try {
+          const response = await fetch(sub.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Webhook-Signature': `sha256=${signatureHex}`,
+              'X-Webhook-Event': eventType,
+              'X-Webhook-Event-ID': eventId,
+              'X-Webhook-Timestamp': new Date().toISOString()
+            },
+            body: payloadString
           })
-          .eq('id', delivery.id)
-      }).catch(async (error) => {
-        logger.error('Webhook delivery failed', { subscriptionId: sub.id, error: error.message })
-        await supabase
-          .from('webhook_deliveries')
-          .update({
-            response_status: 0,
-            response_body: error.message,
-            retry_count: 1,
-            next_retry_at: new Date(Date.now() + 60000).toISOString()
-          })
-          .eq('id', delivery.id)
-      })
+
+          const responseBody = await response.text().catch(() => '')
+          await supabase
+            .from('webhook_deliveries')
+            .update({
+              response_status: response.status,
+              response_body: responseBody.substring(0, 1000),
+              delivered_at: new Date().toISOString(),
+              retry_count: attempt - 1
+            })
+            .eq('id', delivery.id)
+
+          if (!response.ok && attempt < maxAttempts) {
+            const delay = Math.pow(2, attempt) * 1000 // Exponential backoff
+            setTimeout(() => sendWithRetry(attempt + 1, maxAttempts), delay)
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          logger.error('Webhook delivery failed', { subscriptionId: sub.id, error: errorMessage, attempt })
+          
+          if (attempt < maxAttempts) {
+            const delay = Math.pow(2, attempt) * 1000
+            setTimeout(() => sendWithRetry(attempt + 1, maxAttempts), delay)
+          } else {
+            // Store in DLQ after all retries failed
+            await supabase
+              .from('webhook_deliveries')
+              .update({
+                response_status: 0,
+                response_body: errorMessage,
+                retry_count: attempt,
+                next_retry_at: null
+              })
+              .eq('id', delivery.id)
+          }
+        }
+      }
+
+      sendWithRetry()
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

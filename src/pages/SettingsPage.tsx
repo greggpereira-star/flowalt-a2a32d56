@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager';
@@ -22,16 +22,20 @@ import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
 import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
 import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
 import { ConfigBackupPanel } from '@/components/settings/ConfigBackupPanel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, Heart, RotateCcw, Search, Store } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { 
+  Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
+  PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
+  RotateCcw, Search, Store, Heart
+} from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
 export default function SettingsPage() {
   usePageTracking('settings');
   const { currentWorkspace } = useWorkspace();
-  const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-api`;
+  const [activeTab, setActiveTab] = useState('onboarding');
 
   return (
     <AppLayout>
@@ -39,81 +43,105 @@ export default function SettingsPage() {
         <title>Configurações - API & Webhooks</title>
       </Helmet>
       
-      <div className="container mx-auto p-6 max-w-5xl">
+      <IntegrationsCommandPalette />
+      
+      <div className="container mx-auto p-6 max-w-6xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
-            Gerencie suas preferências, API e integrações
+            Gerencie suas preferências, API, webhooks e integrações
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Pressione <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">⌘</kbd>+<kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">⇧</kbd>+<kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">I</kbd> para ações rápidas
           </p>
         </div>
 
-        <Tabs defaultValue="onboarding" className="space-y-6">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="onboarding" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Tour
-            </TabsTrigger>
-            <TabsTrigger value="automations" className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Automações
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2">
-              <FileStack className="h-4 w-4" />
-              Templates
-            </TabsTrigger>
-            <TabsTrigger value="feature-flags" className="flex items-center gap-2">
-              <Flag className="h-4 w-4" />
-              Feature Flags
-            </TabsTrigger>
-            <TabsTrigger value="usage" className="flex items-center gap-2">
-              <PieChart className="h-4 w-4" />
-              Uso
-            </TabsTrigger>
-            <TabsTrigger value="api-keys" className="flex items-center gap-2">
-              <Key className="h-4 w-4" />
-              API
-            </TabsTrigger>
-            <TabsTrigger value="webhooks" className="flex items-center gap-2">
-              <Webhook className="h-4 w-4" />
-              Webhooks
-            </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Monitor
-            </TabsTrigger>
-            <TabsTrigger value="api-logs" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Logs
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
-              Sistema
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Auditoria
-            </TabsTrigger>
-            <TabsTrigger value="docs" className="flex items-center gap-2">
-              <Code className="h-4 w-4" />
-              Docs
-            </TabsTrigger>
-            <TabsTrigger value="super-admin" className="flex items-center gap-2">
-              <Crown className="h-4 w-4" />
-              Admin
-            </TabsTrigger>
-            <TabsTrigger value="push" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Push
-            </TabsTrigger>
-            <TabsTrigger value="health" className="flex items-center gap-2">
-              <HeartPulse className="h-4 w-4" />
-              Health
-            </TabsTrigger>
-            <TabsTrigger value="backup" className="flex items-center gap-2">
-              <Archive className="h-4 w-4" />
-              Backup
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="inline-flex h-auto gap-1 p-1">
+              <TabsTrigger value="onboarding" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Tour
+              </TabsTrigger>
+              <TabsTrigger value="automations" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Automações
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex items-center gap-2">
+                <FileStack className="h-4 w-4" />
+                Templates
+              </TabsTrigger>
+              <TabsTrigger value="marketplace" className="flex items-center gap-2">
+                <Store className="h-4 w-4" />
+                Marketplace
+              </TabsTrigger>
+              <TabsTrigger value="api-keys" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                API
+              </TabsTrigger>
+              <TabsTrigger value="webhooks" className="flex items-center gap-2">
+                <Webhook className="h-4 w-4" />
+                Webhooks
+              </TabsTrigger>
+              <TabsTrigger value="webhook-health" className="flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                Saúde
+              </TabsTrigger>
+              <TabsTrigger value="webhook-dlq" className="flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Replay
+              </TabsTrigger>
+              <TabsTrigger value="events" className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Eventos
+              </TabsTrigger>
+              <TabsTrigger value="monitoring" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Monitor
+              </TabsTrigger>
+              <TabsTrigger value="api-logs" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Logs
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Sistema
+              </TabsTrigger>
+              <TabsTrigger value="feature-flags" className="flex items-center gap-2">
+                <Flag className="h-4 w-4" />
+                Flags
+              </TabsTrigger>
+              <TabsTrigger value="usage" className="flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                Uso
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Auditoria
+              </TabsTrigger>
+              <TabsTrigger value="docs" className="flex items-center gap-2">
+                <Code className="h-4 w-4" />
+                Docs
+              </TabsTrigger>
+              <TabsTrigger value="super-admin" className="flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                Admin
+              </TabsTrigger>
+              <TabsTrigger value="push" className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Push
+              </TabsTrigger>
+              <TabsTrigger value="health" className="flex items-center gap-2">
+                <HeartPulse className="h-4 w-4" />
+                Health
+              </TabsTrigger>
+              <TabsTrigger value="backup" className="flex items-center gap-2">
+                <Archive className="h-4 w-4" />
+                Backup
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           <TabsContent value="onboarding">
             <OnboardingSettings />
@@ -127,12 +155,8 @@ export default function SettingsPage() {
             <TemplateManager />
           </TabsContent>
 
-          <TabsContent value="feature-flags">
-            <FeatureFlagsManager />
-          </TabsContent>
-
-          <TabsContent value="usage">
-            <UsageAnalyticsDashboard />
+          <TabsContent value="marketplace">
+            <IntegrationMarketplace />
           </TabsContent>
 
           <TabsContent value="api-keys">
@@ -141,6 +165,18 @@ export default function SettingsPage() {
 
           <TabsContent value="webhooks">
             <WebhookManager />
+          </TabsContent>
+
+          <TabsContent value="webhook-health">
+            <WebhookHealthScore />
+          </TabsContent>
+
+          <TabsContent value="webhook-dlq">
+            <WebhookReplayPanel />
+          </TabsContent>
+
+          <TabsContent value="events">
+            <EventExplorer />
           </TabsContent>
 
           <TabsContent value="monitoring">
@@ -153,6 +189,14 @@ export default function SettingsPage() {
 
           <TabsContent value="system">
             <SystemMonitorPanel />
+          </TabsContent>
+
+          <TabsContent value="feature-flags">
+            <FeatureFlagsManager />
+          </TabsContent>
+
+          <TabsContent value="usage">
+            <UsageAnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="audit">
