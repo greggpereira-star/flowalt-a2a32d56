@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NewWorkspace from "./pages/NewWorkspace";
@@ -28,6 +29,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
+            <OnboardingTour />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
