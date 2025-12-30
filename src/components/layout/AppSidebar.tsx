@@ -22,8 +22,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -42,16 +44,18 @@ import {
   Share2,
   Target,
   Briefcase,
+  Folder,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const spaceIcons: Record<string, React.ElementType> = {
+const spaceIconMap: Record<string, React.ElementType> = {
   'palette': Palette,
   'video': Video,
   'share-2': Share2,
   'target': Target,
   'briefcase': Briefcase,
   'layout-dashboard': LayoutDashboard,
+  'folder': Folder,
 };
 
 const mainNavItems = [
@@ -71,6 +75,7 @@ export const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
+  const { data: spaces, isLoading: spacesLoading } = useSpaces();
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')
@@ -84,10 +89,13 @@ export const AppSidebar: React.FC = () => {
     navigate('/auth');
   };
 
+  const getSpaceIcon = (iconName: string) => {
+    return spaceIconMap[iconName] || Folder;
+  };
+
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        {/* Logo */}
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
@@ -95,13 +103,9 @@ export const AppSidebar: React.FC = () => {
           <span className="text-lg font-semibold tracking-tight">Flowalt</span>
         </div>
 
-        {/* Workspace Selector */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-between px-3 py-2 h-auto"
-            >
+            <Button variant="ghost" className="w-full justify-between px-3 py-2 h-auto">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
@@ -118,9 +122,7 @@ export const AppSidebar: React.FC = () => {
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => setCurrentWorkspace(workspace)}
-                className={cn(
-                  currentWorkspace?.id === workspace.id && 'bg-accent'
-                )}
+                className={cn(currentWorkspace?.id === workspace.id && 'bg-accent')}
               >
                 <Building2 className="mr-2 h-4 w-4" />
                 {workspace.name}
@@ -136,7 +138,6 @@ export const AppSidebar: React.FC = () => {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -145,7 +146,6 @@ export const AppSidebar: React.FC = () => {
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
                     isActive={location.pathname === item.path}
-                    className="transition-colors"
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
@@ -158,42 +158,42 @@ export const AppSidebar: React.FC = () => {
 
         <SidebarSeparator />
 
-        {/* Spaces (will be loaded from context) */}
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center justify-between">
-            <span>Espaços</span>
-            <Button variant="ghost" size="icon" className="h-5 w-5">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Espaços</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* Placeholder - will be populated from spaces context */}
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-muted-foreground">
-                  <Palette className="h-4 w-4" style={{ color: '#8b5cf6' }} />
-                  <span>Designer</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-muted-foreground">
-                  <Video className="h-4 w-4" style={{ color: '#ec4899' }} />
-                  <span>Audiovisual</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-muted-foreground">
-                  <Share2 className="h-4 w-4" style={{ color: '#0ea5e9' }} />
-                  <span>Social Media</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {spacesLoading ? (
+                <>
+                  <Skeleton className="h-8 w-full mb-1" />
+                  <Skeleton className="h-8 w-full mb-1" />
+                  <Skeleton className="h-8 w-full" />
+                </>
+              ) : spaces && spaces.length > 0 ? (
+                spaces.map((space) => {
+                  const Icon = getSpaceIcon(space.icon);
+                  return (
+                    <SidebarMenuItem key={space.id}>
+                      <SidebarMenuButton
+                        onClick={() => navigate(`/space/${space.id}`)}
+                        isActive={location.pathname === `/space/${space.id}`}
+                      >
+                        <Icon className="h-4 w-4" style={{ color: space.color }} />
+                        <span>{space.name}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })
+              ) : (
+                <p className="px-2 py-1 text-xs text-muted-foreground">
+                  Nenhum espaço
+                </p>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarSeparator />
 
-        {/* Management */}
         <SidebarGroup>
           <SidebarGroupLabel>Gestão</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -218,10 +218,7 @@ export const AppSidebar: React.FC = () => {
         <SidebarSeparator className="mb-4" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 px-2"
-            >
+            <Button variant="ghost" className="w-full justify-start gap-2 px-2">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">

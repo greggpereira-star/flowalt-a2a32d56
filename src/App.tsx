@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NewWorkspace from "./pages/NewWorkspace";
+import SpacePage from "./pages/SpacePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,23 +24,9 @@ const App = () => (
           <WorkspaceProvider>
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
-                  <AuthGuard>
-                    <Index />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/workspace/new"
-                element={
-                  <AuthGuard>
-                    <NewWorkspace />
-                  </AuthGuard>
-                }
-              />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+              <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
+              <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </WorkspaceProvider>
