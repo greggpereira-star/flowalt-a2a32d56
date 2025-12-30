@@ -262,13 +262,15 @@ const SpacePage: React.FC = () => {
               />
             </div>
           ) : view === 'kanban-advanced' ? (
-            <div className="h-full p-4">
-              <KanbanAdvanced
-                cards={filteredCards}
-                onCardClick={handleCardClick}
-                onAddCard={handleAddCard}
-                spaceId={spaceId}
-              />
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="flex-1 px-4 pt-4 pb-2 overflow-hidden">
+                <KanbanAdvanced
+                  cards={filteredCards}
+                  onCardClick={handleCardClick}
+                  onAddCard={handleAddCard}
+                  spaceId={spaceId}
+                />
+              </div>
             </div>
           ) : view === 'list' ? (
             <div className="h-full p-4 overflow-auto">
