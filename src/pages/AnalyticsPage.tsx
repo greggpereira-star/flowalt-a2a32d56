@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { 
   BarChart3, 
@@ -39,6 +40,7 @@ import { ptBR } from 'date-fns/locale';
 type DateRangeOption = '7d' | '30d' | '90d' | 'month' | 'week';
 
 export default function AnalyticsPage() {
+  usePageTracking('analytics');
   const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
 
   const getDateRange = (option: DateRangeOption) => {

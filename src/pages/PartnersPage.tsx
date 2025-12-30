@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet";
 import { useState } from "react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { usePageTracking } from "@/hooks/usePageTracking";
 import {
   TrendingUp,
   TrendingDown,
@@ -44,6 +45,7 @@ import { useCollaborators } from "@/hooks/useCollaborators";
 const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"];
 
 export default function PartnersPage() {
+  usePageTracking('partners');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
   const { data: summary } = useFinancialSummary(selectedMonth);

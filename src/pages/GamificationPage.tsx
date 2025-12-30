@@ -10,9 +10,11 @@ import { LevelLeaderboard } from '@/components/gamification/LevelLeaderboard';
 import { WeeklyGoalsAdmin } from '@/components/gamification/WeeklyGoalsAdmin';
 import { Trophy } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { usePageTracking } from '@/hooks/usePageTracking';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function GamificationPage() {
+  usePageTracking('gamification');
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === 'admin' || currentRole === 'owner';
 

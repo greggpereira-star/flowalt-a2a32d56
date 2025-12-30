@@ -38,7 +38,11 @@ import {
   BarChart3,
   Activity,
   Zap,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -220,6 +224,58 @@ export default function PeopleAnalyticsPage() {
     return { totalCompleted, totalHours, avgProductivity, topPerformer };
   }, [memberStats]);
 
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Nome', 'Departamento', 'Cards Concluídos', 'Cards em Progresso', 'Horas Trabalhadas', 'Tempo Médio Conclusão', 'Produtividade'];
+    const rows = memberStats.map(m => [
+      m.name,
+      m.email,
+      m.cards_completed,
+      m.cards_in_progress,
+      m.total_hours,
+      m.avg_completion_time,
+      `${m.productivity_score}%`
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `people-analytics-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+  };
+
+  // Export to JSON (for Excel import)
+  const exportToJSON = () => {
+    const data = {
+      generatedAt: new Date().toISOString(),
+      period: '30 days',
+      summary: {
+        totalMembers: memberStats.length,
+        totalCardsCompleted: overallStats.totalCompleted,
+        totalHoursWorked: overallStats.totalHours,
+        avgProductivity: overallStats.avgProductivity,
+      },
+      members: memberStats.map(m => ({
+        name: m.name,
+        department: m.email,
+        cardsCompleted: m.cards_completed,
+        cardsInProgress: m.cards_in_progress,
+        hoursWorked: m.total_hours,
+        avgCompletionTime: m.avg_completion_time,
+        productivityScore: m.productivity_score,
+      })),
+      weeklyTrend,
+      departmentDistribution,
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `people-analytics-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    link.click();
+  };
+
   const isLoading = membersLoading || cardsLoading || timeLoading;
 
   if (isLoading) {
@@ -243,14 +299,34 @@ export default function PeopleAnalyticsPage() {
 
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            People Analytics
-          </h1>
-          <p className="text-muted-foreground">
-            Métricas de produtividade e desempenho da equipe
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Users className="h-6 w-6" />
+              People Analytics
+            </h1>
+            <p className="text-muted-foreground">
+              Métricas de produtividade e desempenho da equipe
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV} className="gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToJSON} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Stats Cards */}
