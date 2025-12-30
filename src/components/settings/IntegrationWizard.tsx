@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -53,7 +53,7 @@ interface IntegrationConfig {
   id: IntegrationType;
   name: string;
   description: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   category: 'banking' | 'finance' | 'fiscal';
   fields: FieldConfig[];
   docsUrl: string;
@@ -225,6 +225,21 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, IntegrationStatus>>({});
 
+  const getInvokeErrorMessage = (err: unknown, fallback: string) => {
+    const anyErr = err as any;
+    const status: number | undefined = anyErr?.context?.status ?? anyErr?.status;
+
+    if (status === 403) {
+      return 'Sem permissão para configurar integrações (precisa ser Owner/Admin ou ter permissão financeira).';
+    }
+
+    if (status === 401) {
+      return 'Sua sessão expirou. Faça login novamente e tente de novo.';
+    }
+
+    return err instanceof Error ? err.message : fallback;
+  };
+
   // Fetch integration statuses on mount
   useEffect(() => {
     if (currentWorkspace && isOpen) {
@@ -248,7 +263,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
       const integrationsData = (data?.integrations || {}) as Record<string, IntegrationStatus>;
       setIntegrationStatuses(integrationsData);
     } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : 'Erro ao carregar integrações';
+      const errMsg = getInvokeErrorMessage(error, 'Erro ao carregar integrações');
       console.error('Error fetching integration statuses:', error);
       toast.error(errMsg);
     }
@@ -314,6 +329,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
           action: 'test',
           integration_type: selectedIntegration.id,
           workspace_id: currentWorkspace.id,
+          credentials: formData,
         },
       });
 
@@ -328,8 +344,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
       }
     } catch (error: unknown) {
       setTestResult('error');
-      const errMsg = error instanceof Error ? error.message : 'Erro ao testar conexão';
-      toast.error(errMsg);
+      toast.error(getInvokeErrorMessage(error, 'Erro ao testar conexão'));
     } finally {
       setIsTesting(false);
     }
@@ -360,8 +375,7 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
         throw new Error(data?.error || 'Falha ao salvar credenciais');
       }
     } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : 'Erro ao salvar integração';
-      toast.error(errMsg);
+      toast.error(getInvokeErrorMessage(error, 'Erro ao salvar integração'));
     } finally {
       setIsLoading(false);
     }

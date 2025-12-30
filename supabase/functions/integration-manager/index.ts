@@ -15,7 +15,9 @@ interface IntegrationCredentials {
 interface TestConnectionRequest {
   integration_type: string;
   workspace_id: string;
+  credentials?: Record<string, string>;
 }
+
 
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -79,13 +81,13 @@ serve(async (req: Request) => {
     switch (action) {
       case 'save': {
         const payload: IntegrationCredentials = body;
-        const allowed = await hasFinancialAccess(supabase, payload.workspace_id, user.id);
+        const allowed = await hasIntegrationAdminAccess(supabase, payload.workspace_id, user.id);
         if (!allowed) return forbidden();
         return await saveCredentials(supabase, payload, user.id);
       }
       case 'test': {
         const payload: TestConnectionRequest = body;
-        const allowed = await hasFinancialAccess(supabase, payload.workspace_id, user.id);
+        const allowed = await hasIntegrationAdminAccess(supabase, payload.workspace_id, user.id);
         if (!allowed) return forbidden();
         return await testConnection(payload);
       }
@@ -97,7 +99,7 @@ serve(async (req: Request) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const allowed = await hasFinancialAccess(supabase, workspaceId, user.id);
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
         if (!allowed) return forbidden();
         return await getIntegrationStatus(supabase, workspaceId);
       }
@@ -110,7 +112,7 @@ serve(async (req: Request) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const allowed = await hasFinancialAccess(supabase, workspaceId, user.id);
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
         if (!allowed) return forbidden();
         return await deleteIntegration(supabase, workspaceId, integrationType);
       }
@@ -137,20 +139,30 @@ function forbidden(): Response {
   );
 }
 
-async function hasFinancialAccess(supabase: any, workspaceId: string, userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('workspace_members')
-    .select('id, is_active, can_view_financials')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
-    .maybeSingle();
+async function hasIntegrationAdminAccess(supabase: any, workspaceId: string, userId: string): Promise<boolean> {
+  const [{ data: member, error: memberError }, { data: roleRow, error: roleError }] = await Promise.all([
+    supabase
+      .from('workspace_members')
+      .select('id, is_active, can_view_financials')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
 
-  if (error) {
-    console.error('Access check error:', error);
-    return false;
-  }
+  if (memberError) console.error('Access check (member) error:', memberError);
+  if (roleError) console.error('Access check (role) error:', roleError);
 
-  return !!data?.is_active && !!data?.can_view_financials;
+  const hasMemberAccess = !!member?.is_active && !!member?.can_view_financials;
+  const role = (roleRow?.role as string | undefined) || '';
+  const hasRoleAccess = ['owner', 'admin', 'super_admin'].includes(role);
+
+  return hasMemberAccess || hasRoleAccess;
 }
 
 async function saveCredentials(
@@ -225,49 +237,72 @@ async function testConnection(data: TestConnectionRequest): Promise<Response> {
   console.log(`Testing connection for ${data.integration_type}`);
 
   try {
-    // Test connection based on integration type
+    // Validate that required credentials were provided (without logging secrets)
+    const requiredFields = getRequiredFields(data.integration_type);
+    const creds = data.credentials || {};
+    const missingFields = requiredFields.filter((f) => !creds[f]);
+
+    if (missingFields.length > 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Credenciais incompletas para testar a conexão',
+          missing: missingFields,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Test connection based on integration type (reachability checks + basic validation)
     switch (data.integration_type) {
       case 'sicredi': {
-        // In production, we would make a real API call to Sicredi
-        // For now, validate that we can reach their endpoint
         const sicrediTestUrl = 'https://api.sicredi.com.br/sb/openbanking/v2/status';
         try {
           const response = await fetch(sicrediTestUrl, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' }
+            headers: { Accept: 'application/json' },
           });
-          // Even a 401 means the API is reachable
           console.log(`Sicredi API reachable, status: ${response.status}`);
         } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : 'Unknown error';
-          console.log('Sicredi API test (expected in sandbox):', errMsg);
+          console.log('Sicredi API test (reachability):', errMsg);
         }
         break;
       }
       case 'pluggy': {
-        // Pluggy API health check
         const pluggyTestUrl = 'https://api.pluggy.ai/health';
         try {
           const response = await fetch(pluggyTestUrl);
           console.log(`Pluggy API status: ${response.status}`);
         } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : 'Unknown error';
-          console.log('Pluggy API test:', errMsg);
+          console.log('Pluggy API test (reachability):', errMsg);
         }
         break;
       }
       case 'espiao_nfe': {
-        // Espião NFe doesn't have a public health endpoint
-        console.log('Espião NFe credentials format validated');
+        // Basic format sanity-check only
+        const cnpj = String(creds.cnpj || '').replace(/\D/g, '');
+        if (cnpj.length !== 14) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'CNPJ inválido (precisa ter 14 dígitos)',
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         break;
       }
+      default:
+        break;
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Connection test passed',
-        details: `${data.integration_type} configuration validated`
+      JSON.stringify({
+        success: true,
+        message: 'Validação inicial OK. As credenciais foram recebidas com segurança.',
+        details: `${data.integration_type} ready`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -275,10 +310,10 @@ async function testConnection(data: TestConnectionRequest): Promise<Response> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Connection test failed:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         message: 'Connection test failed',
-        error: errorMessage 
+        error: errorMessage,
       }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
