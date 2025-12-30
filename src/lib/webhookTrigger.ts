@@ -19,7 +19,29 @@ interface WebhookPayload {
   event_version: string;
   occurred_at: string;
   workspace_id: string;
+  signature?: string;
   data: Record<string, unknown>;
+}
+
+// Generate HMAC SHA-256 signature
+async function generateSignature(payload: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(payload);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const hashArray = Array.from(new Uint8Array(signature));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `sha256=${hashHex}`;
 }
 
 export async function triggerWebhook(
@@ -46,24 +68,32 @@ export async function triggerWebhook(
     }
 
     const eventId = crypto.randomUUID();
-    const payload: WebhookPayload = {
-      event_id: eventId,
-      event_type: event,
-      event_version: '1.0',
-      occurred_at: new Date().toISOString(),
-      workspace_id: workspaceId,
-      data,
-    };
+    const occurredAt = new Date().toISOString();
 
     // Deliver to each subscription
     for (const subscription of subscriptions) {
       try {
+        const payload: WebhookPayload = {
+          event_id: eventId,
+          event_type: event,
+          event_version: '1.0',
+          occurred_at: occurredAt,
+          workspace_id: workspaceId,
+          data,
+        };
+
+        // Generate HMAC signature
+        const payloadString = JSON.stringify(payload);
+        const signature = await generateSignature(payloadString, subscription.secret);
+        payload.signature = signature;
+
         // Create delivery record
         const { error: deliveryError } = await supabase
           .from('webhook_deliveries')
           .insert([{
             subscription_id: subscription.id,
             event_type: event,
+            event_version: '1.0',
             payload: JSON.parse(JSON.stringify(payload)),
           }]);
 
@@ -72,13 +102,15 @@ export async function triggerWebhook(
           continue;
         }
 
-        // Fire and forget the actual delivery (in production, this would be an edge function)
+        // Fire and forget the actual delivery
         fetch(subscription.url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Webhook-Secret': subscription.secret,
+            'X-Webhook-Signature': signature,
             'X-Webhook-Event': event,
+            'X-Webhook-Timestamp': occurredAt,
+            'X-Webhook-ID': eventId,
           },
           body: JSON.stringify(payload),
         }).catch((err) => {
@@ -103,4 +135,14 @@ export async function getCardWorkspaceId(cardId: string): Promise<string | null>
 
   if (error || !data) return null;
   return data.workspace_id;
+}
+
+// Helper to verify webhook signature (for receiving webhooks)
+export async function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): Promise<boolean> {
+  const expectedSignature = await generateSignature(payload, secret);
+  return signature === expectedSignature;
 }

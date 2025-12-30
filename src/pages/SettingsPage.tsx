@@ -19,6 +19,7 @@ import { TemplateManager } from '@/components/templates/TemplateManager';
 import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
 import { ApiDocsPanel } from '@/components/settings/ApiDocsPanel';
 import { ApiTesterPanel } from '@/components/settings/ApiTesterPanel';
+import { ApiMetricsDashboard } from '@/components/settings/ApiMetricsDashboard';
 import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
 import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
 import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
@@ -30,7 +31,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
-  RotateCcw, Search, Store, Heart, Link2, Brain, Play
+  RotateCcw, Search, Store, Heart, Link2, Brain, Play, TrendingUp
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -109,6 +110,10 @@ export default function SettingsPage() {
               <TabsTrigger value="monitoring" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Monitor
+              </TabsTrigger>
+              <TabsTrigger value="api-metrics" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Métricas
               </TabsTrigger>
               <TabsTrigger value="api-logs" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -204,6 +209,10 @@ export default function SettingsPage() {
 
           <TabsContent value="monitoring">
             <WebhookDashboard />
+          </TabsContent>
+
+          <TabsContent value="api-metrics">
+            <ApiMetricsDashboard />
           </TabsContent>
 
           <TabsContent value="api-logs">
