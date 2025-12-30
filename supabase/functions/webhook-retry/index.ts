@@ -10,11 +10,43 @@ const MAX_RETRIES = 5
 const RETRY_DELAYS = [60, 300, 900, 3600, 14400] // 1min, 5min, 15min, 1h, 4h
 const ALERT_THRESHOLD = 3 // Send email alert after 3 failed retries
 
+// Structured logging helper
+function createLogger(correlationId: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'webhook-retry',
+      correlationId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID()
+  const logger = createLogger(correlationId)
+  const startTime = Date.now()
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -22,7 +54,7 @@ Deno.serve(async (req) => {
   )
 
   try {
-    console.log('Starting webhook retry process...')
+    logger.info('Starting webhook retry process')
 
     // Find deliveries that need retry
     const now = new Date()
@@ -39,11 +71,11 @@ Deno.serve(async (req) => {
       .limit(50)
 
     if (fetchError) {
-      console.error('Error fetching pending deliveries:', fetchError)
+      logger.error('Error fetching pending deliveries', { error: fetchError.message })
       throw fetchError
     }
 
-    console.log(`Found ${pendingDeliveries?.length || 0} deliveries to retry`)
+    logger.info('Found deliveries to retry', { count: pendingDeliveries?.length || 0 })
 
     const results = {
       processed: 0,
@@ -53,12 +85,15 @@ Deno.serve(async (req) => {
     }
 
     if (!pendingDeliveries || pendingDeliveries.length === 0) {
+      const duration = Date.now() - startTime
+      logger.info('No pending deliveries to retry', { durationMs: duration })
       return new Response(JSON.stringify({ 
         message: 'No pending deliveries to retry',
-        results 
+        results,
+        correlation_id: correlationId
       }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId }
       })
     }
 
@@ -68,7 +103,7 @@ Deno.serve(async (req) => {
 
       // Skip if subscription is inactive
       if (!delivery.subscription?.is_active) {
-        console.log(`Skipping delivery ${delivery.id} - subscription inactive`)
+        logger.debug('Skipping delivery - subscription inactive', { deliveryId: delivery.id })
         results.skipped++
         continue
       }
@@ -76,7 +111,11 @@ Deno.serve(async (req) => {
       const subscriptionUrl = delivery.subscription.url
       const subscriptionSecret = delivery.subscription.secret
 
-      console.log(`Retrying delivery ${delivery.id} to ${subscriptionUrl}`)
+      logger.debug('Retrying delivery', { 
+        deliveryId: delivery.id, 
+        url: subscriptionUrl,
+        retryCount: delivery.retry_count + 1 
+      })
 
       try {
         // Attempt to deliver
@@ -87,6 +126,7 @@ Deno.serve(async (req) => {
             'X-Webhook-Secret': subscriptionSecret,
             'X-Webhook-Event': delivery.event_type,
             'X-Webhook-Retry-Count': String(delivery.retry_count + 1),
+            'X-Correlation-ID': correlationId,
           },
           body: JSON.stringify(delivery.payload),
           signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -125,25 +165,30 @@ Deno.serve(async (req) => {
           .eq('id', delivery.id)
 
         if (updateError) {
-          console.error(`Error updating delivery ${delivery.id}:`, updateError)
+          logger.error('Error updating delivery', { deliveryId: delivery.id, error: updateError.message })
         }
 
         if (isSuccess) {
-          console.log(`Delivery ${delivery.id} succeeded with status ${responseStatus}`)
+          logger.info('Delivery succeeded', { deliveryId: delivery.id, status: responseStatus })
           results.successful++
         } else {
-          console.log(`Delivery ${delivery.id} failed with status ${responseStatus}, next retry at ${nextRetryAt}`)
+          logger.warn('Delivery failed', { 
+            deliveryId: delivery.id, 
+            status: responseStatus, 
+            nextRetryAt,
+            retryCount: newRetryCount 
+          })
           results.failed++
 
           // Send email alert if threshold reached
           if (newRetryCount === ALERT_THRESHOLD) {
-            await sendFailureAlert(delivery, responseStatus, responseBody)
+            await sendFailureAlert(delivery, responseStatus, responseBody, logger)
           }
         }
 
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        console.error(`Error delivering webhook ${delivery.id}:`, err)
+        logger.error('Error delivering webhook', { deliveryId: delivery.id, error: errorMessage })
 
         // Update with error
         const newRetryCount = delivery.retry_count + 1
@@ -168,24 +213,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Webhook retry process complete:', results)
+    const duration = Date.now() - startTime
+    logger.info('Webhook retry process complete', { 
+      ...results, 
+      durationMs: duration 
+    })
 
     return new Response(JSON.stringify({
       message: 'Webhook retry process complete',
-      results
+      results,
+      correlation_id: correlationId,
+      duration_ms: duration
     }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId }
     })
 
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Webhook retry error:', err)
+    const duration = Date.now() - startTime
+    logger.error('Webhook retry fatal error', { error: errorMessage, durationMs: duration })
+    
     return new Response(JSON.stringify({ 
-      error: errorMessage 
+      error: errorMessage,
+      correlation_id: correlationId
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId }
     })
   }
 })
@@ -194,11 +248,12 @@ Deno.serve(async (req) => {
 async function sendFailureAlert(
   delivery: { id: string; event_type: string; subscription?: { name: string; url: string; workspace_id: string } },
   responseStatus: number,
-  responseBody: string
+  responseBody: string,
+  logger: ReturnType<typeof createLogger>
 ) {
   const resendKey = Deno.env.get('RESEND_API_KEY')
   if (!resendKey) {
-    console.log('RESEND_API_KEY not configured, skipping email alert')
+    logger.debug('RESEND_API_KEY not configured, skipping email alert')
     return
   }
 
@@ -221,7 +276,7 @@ async function sendFailureAlert(
       .limit(5)
 
     if (!admins?.length) {
-      console.log('No admins found for workspace')
+      logger.debug('No admins found for workspace')
       return
     }
 
@@ -230,7 +285,7 @@ async function sendFailureAlert(
       .filter(Boolean) as string[]
 
     if (adminEmails.length === 0) {
-      console.log('No admin emails found')
+      logger.debug('No admin emails found')
       return
     }
 
@@ -276,8 +331,9 @@ async function sendFailureAlert(
       `,
     })
 
-    console.log(`Alert email sent for delivery ${delivery.id}`)
+    logger.info('Alert email sent', { deliveryId: delivery.id, recipients: adminEmails.length })
   } catch (err) {
-    console.error('Failed to send alert email:', err)
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+    logger.error('Failed to send alert email', { deliveryId: delivery.id, error: errorMessage })
   }
 }
