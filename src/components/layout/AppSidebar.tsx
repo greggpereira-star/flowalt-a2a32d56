@@ -47,6 +47,7 @@ import {
   Folder,
   DollarSign,
   PieChart,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +72,7 @@ const managementItems = [
   { icon: Users, label: 'Coordenação', path: '/coordination' },
   { icon: DollarSign, label: 'Financeiro', path: '/financial' },
   { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
+  { icon: Trophy, label: 'Ranking', path: '/gamification' },
   { icon: Settings, label: 'API & Integrações', path: '/settings' },
 ];
 
