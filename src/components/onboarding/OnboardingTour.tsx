@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { driver, DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { useOnboarding, ONBOARDING_STEPS, OnboardingStep } from '@/hooks/useOnboarding';
+import { useBadges } from '@/hooks/useBadges';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { Sparkles, ArrowRight, X, Award } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { BadgeToast } from './BadgeToast';
 
 const tourSteps: DriveStep[] = [
   {
@@ -78,9 +81,11 @@ export const OnboardingTour: React.FC = () => {
     completeStep,
     skipOnboarding,
   } = useOnboarding();
+  const { earnBadge, hasBadge } = useBadges();
 
   const [showWelcome, setShowWelcome] = useState(false);
   const [tourStarted, setTourStarted] = useState(false);
+  const [newBadge, setNewBadge] = useState<string | null>(null);
 
   // Check if we should show the welcome modal
   useEffect(() => {
@@ -88,6 +93,17 @@ export const OnboardingTour: React.FC = () => {
       setShowWelcome(true);
     }
   }, [isLoading, shouldShowOnboarding, currentWorkspace]);
+
+  // Award first login badge
+  useEffect(() => {
+    if (currentWorkspace && !hasBadge('first_login')) {
+      earnBadge.mutate('first_login', {
+        onSuccess: (data) => {
+          if (data) setNewBadge('first_login');
+        },
+      });
+    }
+  }, [currentWorkspace, hasBadge]);
 
   // Start the tour
   const startTour = async () => {
@@ -117,10 +133,19 @@ export const OnboardingTour: React.FC = () => {
       stageRadius: 8,
       popoverClass: 'onboarding-popover',
       steps: tourSteps,
-      onDestroyStarted: () => {
+      onDestroyStarted: async () => {
         driverObj.destroy();
         setTourStarted(false);
         completeStep.mutate('complete' as OnboardingStep);
+        
+        // Award onboarding complete badge
+        if (!hasBadge('onboarding_complete')) {
+          earnBadge.mutate('onboarding_complete', {
+            onSuccess: (data) => {
+              if (data) setNewBadge('onboarding_complete');
+            },
+          });
+        }
       },
     });
 
@@ -132,56 +157,75 @@ export const OnboardingTour: React.FC = () => {
     await skipOnboarding.mutateAsync();
   };
 
-  // Don't render anything if loading or onboarding is complete
-  if (isLoading || isOnboardingComplete || tourStarted) {
-    return null;
-  }
+  // Calculate progress for the welcome modal
+  const progressSteps = [
+    { label: 'Navegação e estrutura', done: false },
+    { label: 'Espaços de trabalho', done: false },
+    { label: 'Gestão e tempo', done: false },
+  ];
 
   return (
-    <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
-          <DialogTitle className="text-2xl">Bem-vindo ao Flowalt! 🎉</DialogTitle>
-          <DialogDescription className="text-base">
-            Vamos fazer um tour rápido para você conhecer as principais funcionalidades do sistema.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {/* Badge Toast */}
+      {newBadge && (
+        <BadgeToast badgeType={newBadge} onClose={() => setNewBadge(null)} />
+      )}
 
-        <div className="my-6 space-y-3">
-          <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
-              1
-            </div>
-            <span className="text-sm">Navegação e estrutura do sistema</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300">
-              2
-            </div>
-            <span className="text-sm">Espaços de trabalho e cards</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-              3
-            </div>
-            <span className="text-sm">Controle de tempo e gestão</span>
-          </div>
-        </div>
+      {/* Welcome Dialog */}
+      {!isLoading && !isOnboardingComplete && !tourStarted && (
+        <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <DialogTitle className="text-2xl">Bem-vindo ao Flowalt! 🎉</DialogTitle>
+              <DialogDescription className="text-base">
+                Vamos fazer um tour rápido para você conhecer as principais funcionalidades do sistema.
+              </DialogDescription>
+            </DialogHeader>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="ghost" onClick={handleSkip} className="w-full sm:w-auto">
-            <X className="mr-2 h-4 w-4" />
-            Pular tour
-          </Button>
-          <Button onClick={startTour} className="w-full sm:w-auto">
-            Iniciar tour
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {/* Gamification preview */}
+            <div className="my-4 p-4 rounded-lg bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="h-5 w-5 text-yellow-500" />
+                <span className="font-medium text-sm">Conquiste badges!</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Complete o tour e ganhe seu primeiro badge. Explore o sistema para desbloquear mais conquistas!
+              </p>
+              <Progress value={0} className="h-1.5 mt-3" />
+              <p className="text-xs text-muted-foreground mt-1">0 de 10 badges conquistados</p>
+            </div>
+
+            <div className="space-y-3">
+              {progressSteps.map((step, index) => (
+                <div key={index} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    index === 0 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' :
+                    index === 1 ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300' :
+                    'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <span className="text-sm">{step.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter className="flex-col gap-2 sm:flex-row mt-4">
+              <Button variant="ghost" onClick={handleSkip} className="w-full sm:w-auto">
+                <X className="mr-2 h-4 w-4" />
+                Pular tour
+              </Button>
+              <Button onClick={startTour} className="w-full sm:w-auto">
+                Iniciar tour
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };

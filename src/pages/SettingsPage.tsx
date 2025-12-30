@@ -4,9 +4,10 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager';
 import { WebhookManager } from '@/components/settings/WebhookManager';
 import { WebhookDashboard } from '@/components/settings/WebhookDashboard';
+import { OnboardingSettings } from '@/components/settings/OnboardingSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3 } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function SettingsPage() {
@@ -21,14 +22,18 @@ export default function SettingsPage() {
       
       <div className="container mx-auto p-6 max-w-5xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">API & Integrações</h1>
+          <h1 className="text-2xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
-            Gerencie chaves de API e webhooks para integrar com sistemas externos
+            Gerencie suas preferências, API e integrações
           </p>
         </div>
 
-        <Tabs defaultValue="api-keys" className="space-y-6">
-          <TabsList>
+        <Tabs defaultValue="onboarding" className="space-y-6">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="onboarding" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Tour & Conquistas
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
               API Keys
@@ -46,6 +51,10 @@ export default function SettingsPage() {
               Documentação
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="onboarding">
+            <OnboardingSettings />
+          </TabsContent>
 
           <TabsContent value="api-keys">
             <ApiKeyManager />
