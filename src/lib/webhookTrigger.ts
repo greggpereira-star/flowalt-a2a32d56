@@ -7,12 +7,19 @@ type WebhookEventType =
   | 'time_entry.logged'
   | 'event.created'
   | 'attachment.uploaded' | 'attachment.deleted'
-  | 'sprint.created' | 'sprint.updated' | 'sprint.completed';
+  | 'sprint.created' | 'sprint.updated' | 'sprint.completed'
+  | 'transaction.created' | 'transaction.updated' | 'transaction.paid'
+  | 'invoice.linked'
+  | 'client.created' | 'client.updated'
+  | 'employee.document.expired';
 
 interface WebhookPayload {
-  event: WebhookEventType;
+  event_id: string;
+  event_type: WebhookEventType;
+  event_version: string;
+  occurred_at: string;
+  workspace_id: string;
   data: Record<string, unknown>;
-  timestamp: string;
 }
 
 export async function triggerWebhook(
@@ -38,10 +45,14 @@ export async function triggerWebhook(
       return; // No active subscriptions for this event
     }
 
+    const eventId = crypto.randomUUID();
     const payload: WebhookPayload = {
-      event,
+      event_id: eventId,
+      event_type: event,
+      event_version: '1.0',
+      occurred_at: new Date().toISOString(),
+      workspace_id: workspaceId,
       data,
-      timestamp: new Date().toISOString(),
     };
 
     // Deliver to each subscription
