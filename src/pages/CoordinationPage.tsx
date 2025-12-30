@@ -13,6 +13,8 @@ import {
   GitBranch,
   TrendingUp,
   Calendar,
+  Zap,
+  PieChart,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { BottleneckCard } from '@/components/coordination/BottleneckCard';
 import { CapacityChart } from '@/components/coordination/CapacityChart';
 import { GanttChart } from '@/components/coordination/GanttChart';
+import { SprintManager } from '@/components/coordination/SprintManager';
+import { MetricsPanel } from '@/components/coordination/MetricsPanel';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useMemberCapacity } from '@/hooks/useWorkspaceMembers';
 import { useDependencies } from '@/hooks/useDependencies';
@@ -223,12 +227,15 @@ const CoordinationPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="bottlenecks" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="bottlenecks" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Gargalos
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              Métricas
             </TabsTrigger>
             <TabsTrigger value="gantt" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -237,6 +244,10 @@ const CoordinationPage: React.FC = () => {
             <TabsTrigger value="capacity" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Capacidade
+            </TabsTrigger>
+            <TabsTrigger value="sprints" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Sprints
             </TabsTrigger>
           </TabsList>
 
@@ -281,6 +292,10 @@ const CoordinationPage: React.FC = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="metrics">
+            <MetricsPanel />
+          </TabsContent>
+
           <TabsContent value="gantt">
             <GanttChart
               cards={cards || []}
@@ -291,6 +306,10 @@ const CoordinationPage: React.FC = () => {
 
           <TabsContent value="capacity">
             <CapacityChart members={memberCapacity} />
+          </TabsContent>
+
+          <TabsContent value="sprints">
+            <SprintManager />
           </TabsContent>
         </Tabs>
       </div>
