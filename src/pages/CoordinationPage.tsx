@@ -22,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { BottleneckCard } from '@/components/coordination/BottleneckCard';
 import { CapacityChart } from '@/components/coordination/CapacityChart';
 import { GanttChart } from '@/components/coordination/GanttChart';
+import { GanttAdvanced } from '@/components/coordination/GanttAdvanced';
+import { DependencyManager } from '@/components/coordination/DependencyManager';
 import { SprintManager } from '@/components/coordination/SprintManager';
 import { MetricsPanel } from '@/components/coordination/MetricsPanel';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
@@ -243,9 +245,17 @@ const CoordinationPage: React.FC = () => {
               <Calendar className="h-4 w-4" />
               Gantt
             </TabsTrigger>
+            <TabsTrigger value="gantt-advanced" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Gantt+
+            </TabsTrigger>
             <TabsTrigger value="capacity" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Capacidade
+            </TabsTrigger>
+            <TabsTrigger value="dependencies" className="flex items-center gap-2">
+              <GitBranch className="h-4 w-4" />
+              Dependências
             </TabsTrigger>
             <TabsTrigger value="sprints" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
@@ -306,8 +316,24 @@ const CoordinationPage: React.FC = () => {
             />
           </TabsContent>
 
+          <TabsContent value="gantt-advanced">
+            <GanttAdvanced
+              cards={cards || []}
+              dependencies={dependencies}
+              onCardClick={setSelectedCardId}
+            />
+          </TabsContent>
+
           <TabsContent value="capacity">
             <CapacityChart members={memberCapacity} />
+          </TabsContent>
+
+          <TabsContent value="dependencies">
+            <DependencyManager 
+              cards={cards || []}
+              dependencies={dependencies}
+              onCardSelect={setSelectedCardId}
+            />
           </TabsContent>
 
           <TabsContent value="sprints">

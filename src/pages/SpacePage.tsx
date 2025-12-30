@@ -7,8 +7,10 @@ import { useCards } from '@/hooks/useCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
+import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
 import { ListView } from '@/components/cards/ListView';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
+import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +46,7 @@ import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 
-type ViewType = 'kanban' | 'list' | 'calendar';
+type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar';
 
 const SpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
@@ -67,6 +69,7 @@ const SpacePage: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('');
   const [defaultStatus, setDefaultStatus] = useState<CardStatus>('backlog');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Keyboard shortcut handlers
   useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
@@ -173,8 +176,12 @@ const SpacePage: React.FC = () => {
                 {/* View Switcher */}
                 <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
                   <TabsList>
-                    <TabsTrigger value="kanban" className="px-3">
+                    <TabsTrigger value="kanban" className="px-3" title="Kanban Simples">
                       <LayoutGrid className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="kanban-advanced" className="px-3" title="Kanban Avançado">
+                      <LayoutGrid className="h-4 w-4" />
+                      <span className="text-[10px] ml-0.5">+</span>
                     </TabsTrigger>
                     <TabsTrigger value="list" className="px-3">
                       <List className="h-4 w-4" />
@@ -194,9 +201,13 @@ const SpacePage: React.FC = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setQuickAddOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Card (Rápido)
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setCreateCardOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Novo Card
+                      Novo Card (Completo)
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
                       <FolderPlus className="h-4 w-4 mr-2" />
@@ -243,6 +254,12 @@ const SpacePage: React.FC = () => {
             </div>
           ) : view === 'kanban' ? (
             <KanbanBoard
+              cards={filteredCards}
+              onCardClick={handleCardClick}
+              onAddCard={handleAddCard}
+            />
+          ) : view === 'kanban-advanced' ? (
+            <KanbanAdvanced
               cards={filteredCards}
               onCardClick={handleCardClick}
               onAddCard={handleAddCard}
@@ -307,6 +324,15 @@ const SpacePage: React.FC = () => {
         cardId={selectedCardId}
         open={!!selectedCardId}
         onOpenChange={(open) => !open && setSelectedCardId(null)}
+      />
+
+      {/* Quick Add Card */}
+      <QuickAddCard
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        spaceId={spaceId!}
+        folderId={selectedFolder || undefined}
+        defaultStatus={defaultStatus}
       />
     </AppLayout>
   );

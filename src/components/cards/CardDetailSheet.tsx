@@ -33,6 +33,8 @@ import { ChecklistPanel } from './ChecklistPanel';
 import { TimeTrackingPanel } from './TimeTrackingPanel';
 import { CommentsPanel } from './CommentsPanel';
 import { AttachmentsPanel } from './AttachmentsPanel';
+import { CardExecutionAssistantWrapper } from './CardExecutionAssistantWrapper';
+import { TagManagerWrapper } from './TagManagerWrapper';
 import {
   CalendarIcon,
   FileText,
@@ -42,6 +44,8 @@ import {
   Loader2,
   MessageSquare,
   Paperclip,
+  Sparkles,
+  Tags,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -336,9 +340,16 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
             </div>
 
             {/* Tabs Content */}
-            <Tabs defaultValue="briefing" className="flex-1 flex flex-col min-h-0">
+            <Tabs defaultValue="assistant" className="flex-1 flex flex-col min-h-0">
               <div className="border-b flex-shrink-0">
-                <TabsList className="w-full justify-start h-auto p-0 bg-transparent rounded-none">
+                <TabsList className="w-full justify-start h-auto p-0 bg-transparent rounded-none overflow-x-auto">
+                  <TabsTrigger
+                    value="assistant"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Assistente
+                  </TabsTrigger>
                   <TabsTrigger
                     value="briefing"
                     className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
@@ -383,10 +394,21 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <Paperclip className="h-4 w-4 mr-2" />
                     Anexos
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="tags"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                  >
+                    <Tags className="h-4 w-4 mr-2" />
+                    Tags
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
               <ScrollArea className="flex-1">
+                <TabsContent value="assistant" className="m-0 p-6">
+                  <CardExecutionAssistantWrapper cardId={card.id} />
+                </TabsContent>
+
                 <TabsContent value="briefing" className="m-0 p-6">
                   {/* Description */}
                   <div className="mb-6">
@@ -436,6 +458,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                 <TabsContent value="attachments" className="m-0 p-6">
                   <AttachmentsPanel cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="tags" className="m-0 p-6">
+                  <TagManagerWrapper cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>
