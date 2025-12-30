@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { triggerWebhook } from '@/lib/webhookTrigger';
 
 export interface TimeEntry {
   id: string;
@@ -152,6 +153,18 @@ export const useStopTimer = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      triggerWebhook(data.workspace_id, 'time_entry.logged', {
+        id: data.id,
+        card_id: data.card_id,
+        user_id: data.user_id,
+        duration_seconds: durationSeconds,
+        started_at: data.started_at,
+        ended_at: data.ended_at,
+        notes: data.notes,
+      });
+
       return { ...data, card_id };
     },
     onSuccess: (data) => {
