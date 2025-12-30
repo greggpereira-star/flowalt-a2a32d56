@@ -7,6 +7,7 @@ import { useCards } from '@/hooks/useCards';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
 import { ListView } from '@/components/cards/ListView';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
+import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,7 +35,6 @@ import {
   Calendar,
   FolderPlus,
   Search,
-  MoreHorizontal,
   Folder,
   ChevronRight,
 } from 'lucide-react';
@@ -60,6 +60,7 @@ const SpacePage: React.FC = () => {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [defaultStatus, setDefaultStatus] = useState<CardStatus>('backlog');
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const handleAddCard = (status: CardStatus) => {
     setDefaultStatus(status);
@@ -67,8 +68,7 @@ const SpacePage: React.FC = () => {
   };
 
   const handleCardClick = (card: Card) => {
-    // Will navigate to card detail later
-    console.log('Card clicked:', card.id);
+    setSelectedCardId(card.id);
   };
 
   const handleCreateFolder = async () => {
@@ -284,6 +284,13 @@ const SpacePage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Card Detail Sheet */}
+      <CardDetailSheet
+        cardId={selectedCardId}
+        open={!!selectedCardId}
+        onOpenChange={(open) => !open && setSelectedCardId(null)}
+      />
     </AppLayout>
   );
 };
