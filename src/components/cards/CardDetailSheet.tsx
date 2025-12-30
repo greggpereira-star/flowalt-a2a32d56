@@ -39,6 +39,7 @@ import { CommentsPanel } from './CommentsPanel';
 import { AttachmentsPanel } from './AttachmentsPanel';
 import { CardExecutionAssistantWrapper } from './CardExecutionAssistantWrapper';
 import { TagManagerWrapper } from './TagManagerWrapper';
+import { NextBestAction } from './NextBestAction';
 import {
   CalendarIcon,
   FileText,
@@ -68,6 +69,7 @@ import { useChecklists } from '@/hooks/useChecklists';
 import { useComments } from '@/hooks/useComments';
 import { useAttachments } from '@/hooks/useAttachments';
 import { useRunningTimer, useStartTimer, useStopTimer } from '@/hooks/useTimeEntries';
+import { useCardDependencies } from '@/hooks/useDependencies';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -115,9 +117,20 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { data: comments } = useComments(cardId || undefined);
   const { data: attachments } = useAttachments(cardId || undefined);
   const { data: runningTimer } = useRunningTimer(cardId || undefined);
+  const { data: cardDependencies } = useCardDependencies(cardId || undefined);
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
   const updateCard = useUpdateCard();
+
+  // Calculate blocking cards
+  const blockingCards = cardDependencies?.blocking
+    ?.filter(dep => dep.blocking_card?.status !== 'delivered')
+    ?.map(dep => ({ 
+      id: dep.blocking_card?.id || '', 
+      title: dep.blocking_card?.title || '' 
+    }))
+    .filter(c => c.id) || [];
+  const isBlocked = blockingCards.length > 0;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -263,6 +276,32 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         card_id: card.id,
       });
       toast.success('Timer iniciado');
+    }
+  };
+
+  // Handler for NextBestAction
+  const handleNextAction = (actionId: string) => {
+    switch (actionId) {
+      case 'unblock':
+        toast.info(`Dependência bloqueante: "${blockingCards[0]?.title}"`);
+        break;
+      case 'complete-briefing':
+        setActiveTab('overview');
+        toast.info('Complete o briefing abaixo');
+        break;
+      case 'set-deadline':
+        setActiveTab('overview');
+        toast.info('Defina um prazo para o card');
+        break;
+      case 'start-checklist':
+        setActiveTab('checklist');
+        break;
+      case 'start-timer':
+        handleToggleTimer();
+        break;
+      case 'start-work':
+        handleStatusChange('in_progress');
+        break;
     }
   };
 
@@ -474,6 +513,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                   <span className="text-xs">{attachmentsCount}</span>
                 </button>
               </div>
+
+              {/* NextBestAction - positioned after Quick Stats */}
+              {card && (
+                <div className="px-4 pb-4">
+                  <NextBestAction
+                    card={card}
+                    checklistProgress={{ completed: checklistCompleted, total: checklistTotal }}
+                    isBlocked={isBlocked}
+                    blockingCards={blockingCards}
+                    onAction={handleNextAction}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Tabs Content */}
