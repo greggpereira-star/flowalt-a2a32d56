@@ -18,6 +18,7 @@ import { UsageAnalyticsDashboard } from '@/components/analytics/UsageAnalyticsDa
 import { TemplateManager } from '@/components/templates/TemplateManager';
 import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
 import { ApiDocsPanel } from '@/components/settings/ApiDocsPanel';
+import { ApiTesterPanel } from '@/components/settings/ApiTesterPanel';
 import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
 import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
 import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
@@ -29,7 +30,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
-  RotateCcw, Search, Store, Heart, Link2, Brain
+  RotateCcw, Search, Store, Heart, Link2, Brain, Play
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -133,6 +134,10 @@ export default function SettingsPage() {
                 <Code className="h-4 w-4" />
                 Docs
               </TabsTrigger>
+              <TabsTrigger value="api-tester" className="flex items-center gap-2">
+                <Play className="h-4 w-4" />
+                Tester
+              </TabsTrigger>
               <TabsTrigger value="super-admin" className="flex items-center gap-2">
                 <Crown className="h-4 w-4" />
                 Admin
@@ -223,6 +228,10 @@ export default function SettingsPage() {
 
           <TabsContent value="docs">
             <ApiDocsPanel />
+          </TabsContent>
+
+          <TabsContent value="api-tester">
+            <ApiTesterPanel />
           </TabsContent>
 
           <TabsContent value="super-admin">
