@@ -102,6 +102,61 @@ export function useCostCenterWithBudget(costCenterId?: string) {
   });
 }
 
+export interface CostCenterWithActual extends CostCenter {
+  actual_spent?: number;
+}
+
+export function useCostCentersWithBudget() {
+  const { currentWorkspace } = useWorkspace();
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+
+  return useQuery({
+    queryKey: ["cost-centers-with-budget", currentWorkspace?.id],
+    queryFn: async (): Promise<CostCenterWithActual[]> => {
+      if (!currentWorkspace?.id) return [];
+
+      // Get all cost centers
+      const { data: costCenters, error: ccError } = await supabase
+        .from("cost_centers")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("is_active", true)
+        .order("name");
+
+      if (ccError) throw ccError;
+      if (!costCenters) return [];
+
+      // Get monthly spent for each cost center
+      const monthStart = new Date(currentYear, currentMonth, 1).toISOString().split("T")[0];
+      const monthEnd = new Date(currentYear, currentMonth + 1, 0).toISOString().split("T")[0];
+
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select("cost_center_id, amount")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("type", "expense")
+        .eq("status", "paid")
+        .gte("due_date", monthStart)
+        .lte("due_date", monthEnd);
+
+      // Calculate spent per cost center
+      const spentByCostCenter: Record<string, number> = {};
+      transactions?.forEach((t) => {
+        if (t.cost_center_id) {
+          spentByCostCenter[t.cost_center_id] = (spentByCostCenter[t.cost_center_id] || 0) + Number(t.amount);
+        }
+      });
+
+      return costCenters.map((cc) => ({
+        ...cc,
+        actual_spent: spentByCostCenter[cc.id] || 0,
+      })) as CostCenterWithActual[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
+
 export function useCreateCostCenter() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
