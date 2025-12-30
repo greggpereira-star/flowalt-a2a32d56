@@ -97,14 +97,14 @@ export function useCollaborators() {
         const profile = profiles.find(p => p.id === member.user_id);
         const detail = details.find(d => d.member_id === member.id);
 
-        return ({
+        return {
           ...detail,
           member: {
             ...member,
             profile,
           },
-        };
-      }) as CollaboratorDetails[];
+        } as CollaboratorDetails;
+      });
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -308,7 +308,6 @@ export function useGenerateSalaryTransactions() {
           due_date: dueDate.toISOString().split("T")[0],
           recurrence: "monthly" as const,
           created_by: userData.user?.id,
-          metadata: { salary: true, month: month.toISOString() },
         }));
 
       if (newTransactions.length > 0) {

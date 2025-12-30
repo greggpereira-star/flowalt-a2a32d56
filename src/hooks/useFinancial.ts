@@ -35,7 +35,7 @@ export interface Transaction {
   invoice_number: string | null;
   invoice_url: string | null;
   notes: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: unknown;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -201,7 +201,7 @@ export function useUpdateTransaction() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
+    mutationFn: async ({ id, category, metadata, ...updates }: Partial<Transaction> & { id: string }) => {
       const { data, error } = await supabase
         .from("transactions")
         .update(updates)

@@ -31,13 +31,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCollaborators, useSalaryHistory, CollaboratorDetails } from "@/hooks/useCollaborators";
+import { useCollaborators, useSalaryHistory, useGenerateSalaryTransactions, CollaboratorDetails } from "@/hooks/useCollaborators";
 import { CollaboratorForm } from "./CollaboratorForm";
 
 export function CollaboratorManager() {
   const { data: collaborators = [], isLoading } = useCollaborators();
   const [selectedCollaborator, setSelectedCollaborator] = useState<CollaboratorDetails | null>(null);
   const [editingCollaborator, setEditingCollaborator] = useState<string | null>(null);
+  const generateSalaries = useGenerateSalaryTransactions();
 
   const formatCurrency = (value: number | null) => {
     if (!value) return "R$ 0,00";
@@ -59,13 +60,14 @@ export function CollaboratorManager() {
 
   // Check for expiring documents
   const getExpiringDocuments = (docs: CollaboratorDetails["documents"]) => {
-    if (!docs) return [];
+    if (!docs || !Array.isArray(docs)) return [];
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
     
     return docs.filter(doc => {
-      if (!doc.expiry_date) return false;
-      return new Date(doc.expiry_date) <= thirtyDaysFromNow;
+      const docTyped = doc as { name?: string; url?: string; expiry_date?: string };
+      if (!docTyped.expiry_date) return false;
+      return new Date(docTyped.expiry_date) <= thirtyDaysFromNow;
     });
   };
 
@@ -77,6 +79,13 @@ export function CollaboratorManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Controle de Colaboradores</h2>
+        <Button 
+          onClick={() => generateSalaries.mutate(new Date())}
+          disabled={generateSalaries.isPending}
+        >
+          <DollarSign className="w-4 h-4 mr-2" />
+          {generateSalaries.isPending ? "Gerando..." : "Gerar Salários do Mês"}
+        </Button>
       </div>
 
       {/* Summary Cards */}
