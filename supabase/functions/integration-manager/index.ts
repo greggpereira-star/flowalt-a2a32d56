@@ -52,33 +52,67 @@ serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const action = url.pathname.split('/').pop();
+    const actionFromPath = url.pathname.split('/').pop();
 
-    console.log(`Integration Manager: Action=${action}, User=${user.id}`);
+    // Prefer body.action (works with supabase-js invoke), but keep path-based actions for backwards compatibility.
+    let body: any = {};
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const text = await req.text();
+      body = text ? JSON.parse(text) : {};
+    }
+
+    const action = (body?.action as string | undefined) && body.action !== ''
+      ? body.action
+      : (actionFromPath && actionFromPath !== 'integration-manager' ? actionFromPath : undefined);
+
+    console.log(`Integration Manager: Action=${action || 'none'}, User=${user.id}`);
+
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: 'Missing action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Route based on action
     switch (action) {
       case 'save': {
-        const body: IntegrationCredentials = await req.json();
-        return await saveCredentials(supabase, body, user.id);
+        const payload: IntegrationCredentials = body;
+        const allowed = await hasFinancialAccess(supabase, payload.workspace_id, user.id);
+        if (!allowed) return forbidden();
+        return await saveCredentials(supabase, payload, user.id);
       }
       case 'test': {
-        const body: TestConnectionRequest = await req.json();
-        return await testConnection(body);
+        const payload: TestConnectionRequest = body;
+        const allowed = await hasFinancialAccess(supabase, payload.workspace_id, user.id);
+        if (!allowed) return forbidden();
+        return await testConnection(payload);
       }
       case 'status': {
-        const workspaceId = url.searchParams.get('workspace_id');
+        const workspaceId = (body?.workspace_id as string | undefined) || url.searchParams.get('workspace_id') || '';
         if (!workspaceId) {
           return new Response(
             JSON.stringify({ error: 'workspace_id required' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+        const allowed = await hasFinancialAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
         return await getIntegrationStatus(supabase, workspaceId);
       }
       case 'delete': {
-        const body = await req.json();
-        return await deleteIntegration(supabase, body.workspace_id, body.integration_type);
+        const workspaceId = body?.workspace_id as string;
+        const integrationType = body?.integration_type as string;
+        if (!workspaceId || !integrationType) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id and integration_type required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasFinancialAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await deleteIntegration(supabase, workspaceId, integrationType);
       }
       default:
         return new Response(
@@ -95,6 +129,29 @@ serve(async (req: Request) => {
     );
   }
 });
+
+function forbidden(): Response {
+  return new Response(
+    JSON.stringify({ error: 'Forbidden' }),
+    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function hasFinancialAccess(supabase: any, workspaceId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('workspace_members')
+    .select('id, is_active, can_view_financials')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Access check error:', error);
+    return false;
+  }
+
+  return !!data?.is_active && !!data?.can_view_financials;
+}
 
 async function saveCredentials(
   supabase: any,
