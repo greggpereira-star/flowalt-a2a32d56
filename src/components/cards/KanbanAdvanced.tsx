@@ -641,9 +641,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         key={status}
         id={status}
         className={cn(
-          'flex-shrink-0 w-72 bg-muted/30 rounded-xl flex flex-col border transition-all duration-200',
-          isDropTarget 
-            ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10' 
+          'flex-shrink-0 w-72 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
+          isDropTarget
+            ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
             : 'border-border/30'
         )}
       >
@@ -982,9 +982,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         </div>
 
         {/* Kanban Board - scrollable area */}
-        <div className="flex-1 overflow-auto min-h-0">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden min-h-0">
           {swimlane === 'none' ? (
-            <div className="flex gap-3 h-full min-h-full pb-4 pr-4">
+            <div className="flex gap-3 h-full min-w-max pb-4 pr-4">
               {visibleStatuses.map((status) => renderColumn(status, groupedByStatus[status] || []))}
             </div>
           ) : (
