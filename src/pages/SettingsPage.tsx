@@ -142,6 +142,35 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
+                  <h3 className="font-semibold mb-2">Rate Limiting</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Limite de 100 requisições por minuto por API Key. Headers de resposta:
+                  </p>
+                  <div className="space-y-1 text-xs font-mono bg-muted p-3 rounded-lg">
+                    <p><span className="text-muted-foreground">X-RateLimit-Limit:</span> 100</p>
+                    <p><span className="text-muted-foreground">X-RateLimit-Remaining:</span> 95</p>
+                    <p><span className="text-muted-foreground">X-RateLimit-Reset:</span> 1704067200000</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Ao exceder o limite, retorna HTTP 429 com header Retry-After.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Idempotency Key</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Para requisições POST/PUT/PATCH, envie um header para evitar duplicações:
+                  </p>
+                  <code className="block p-3 bg-muted rounded-lg text-sm">
+                    Idempotency-Key: seu-id-unico-123
+                  </code>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Requisições com a mesma chave retornam a resposta cacheada por 24h.
+                    O header X-Idempotent-Replayed: true indica resposta em cache.
+                  </p>
+                </div>
+
+                <div>
                   <h3 className="font-semibold mb-2">Paginação</h3>
                   <p className="text-sm text-muted-foreground mb-2">
                     Use os parâmetros page e limit:

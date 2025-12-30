@@ -10,6 +10,22 @@ interface ApiKeyValidation {
   permissions: string[]
 }
 
+interface RateLimitResult {
+  allowed: boolean
+  current_count: number
+  reset_at: string
+}
+
+interface IdempotencyResult {
+  found: boolean
+  response_status: number | null
+  response_body: any
+}
+
+// Rate limit configuration
+const RATE_LIMIT_MAX_REQUESTS = 100 // requests per window
+const RATE_LIMIT_WINDOW_MINUTES = 1 // window size in minutes
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -46,13 +62,114 @@ Deno.serve(async (req) => {
     const { workspace_id, permissions } = keyData[0] as ApiKeyValidation
     console.log(`API request for workspace ${workspace_id} with permissions:`, permissions)
 
-    // Update last_used_at for the API key
+    // Get API key ID for rate limiting
     const keyPrefix = apiKey.substring(0, 8)
-    await supabase
+    const { data: apiKeyRecord } = await supabase
       .from('api_keys')
-      .update({ last_used_at: new Date().toISOString() })
+      .select('id')
       .eq('key_prefix', keyPrefix)
       .eq('workspace_id', workspace_id)
+      .single()
+
+    if (apiKeyRecord) {
+      // Check rate limit
+      const { data: rateLimitData, error: rateLimitError } = await supabase
+        .rpc('check_rate_limit', {
+          p_api_key_id: apiKeyRecord.id,
+          p_max_requests: RATE_LIMIT_MAX_REQUESTS,
+          p_window_minutes: RATE_LIMIT_WINDOW_MINUTES
+        })
+
+      if (rateLimitError) {
+        console.error('Rate limit check failed:', rateLimitError)
+      } else if (rateLimitData && rateLimitData.length > 0) {
+        const rateLimit = rateLimitData[0] as RateLimitResult
+        
+        // Add rate limit headers to all responses
+        const rateLimitHeaders = {
+          'X-RateLimit-Limit': RATE_LIMIT_MAX_REQUESTS.toString(),
+          'X-RateLimit-Remaining': Math.max(0, RATE_LIMIT_MAX_REQUESTS - rateLimit.current_count).toString(),
+          'X-RateLimit-Reset': new Date(rateLimit.reset_at).getTime().toString(),
+        }
+
+        if (!rateLimit.allowed) {
+          console.log(`Rate limit exceeded for API key ${keyPrefix}`)
+          return new Response(
+            JSON.stringify({ 
+              error: 'Rate limit exceeded', 
+              code: 'RATE_LIMIT_EXCEEDED',
+              retry_after: Math.ceil((new Date(rateLimit.reset_at).getTime() - Date.now()) / 1000)
+            }),
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                ...rateLimitHeaders,
+                'Content-Type': 'application/json',
+                'Retry-After': Math.ceil((new Date(rateLimit.reset_at).getTime() - Date.now()) / 1000).toString()
+              } 
+            }
+          )
+        }
+
+        // Store rate limit headers for later use
+        ;(req as any).rateLimitHeaders = rateLimitHeaders
+      }
+
+      // Update last_used_at
+      await supabase
+        .from('api_keys')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', apiKeyRecord.id)
+    }
+
+    // Check idempotency key for mutating requests
+    const idempotencyKey = req.headers.get('idempotency-key')
+    const isMutatingRequest = ['POST', 'PUT', 'PATCH'].includes(req.method)
+
+    if (idempotencyKey && isMutatingRequest) {
+      // Validate idempotency key format (max 256 chars, alphanumeric + dashes)
+      if (idempotencyKey.length > 256 || !/^[\w-]+$/.test(idempotencyKey)) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid idempotency key format', 
+            code: 'INVALID_IDEMPOTENCY_KEY',
+            details: 'Idempotency key must be alphanumeric with dashes, max 256 characters'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Check for existing response
+      const { data: idempotentData, error: idempotentError } = await supabase
+        .rpc('get_idempotent_response', {
+          p_workspace_id: workspace_id,
+          p_idempotency_key: idempotencyKey
+        })
+
+      if (!idempotentError && idempotentData && idempotentData.length > 0) {
+        const cached = idempotentData[0] as IdempotencyResult
+        if (cached.found && cached.response_body !== null) {
+          console.log(`Returning cached response for idempotency key: ${idempotencyKey}`)
+          return new Response(
+            JSON.stringify(cached.response_body),
+            { 
+              status: cached.response_status || 200, 
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'X-Idempotent-Replayed': 'true'
+              } 
+            }
+          )
+        }
+      }
+
+      // Store context for later
+      ;(req as any).idempotencyKey = idempotencyKey
+      ;(req as any).workspaceId = workspace_id
+      ;(req as any).supabase = supabase
+    }
 
     // Parse URL and route
     const url = new URL(req.url)
@@ -67,20 +184,30 @@ Deno.serve(async (req) => {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
 
-    // Route to appropriate handler
+    // Get rate limit headers if available
+    const rateLimitHeaders = (req as any).rateLimitHeaders || {}
+
+    // Route to appropriate handler and wrap response with rate limit headers
+    let response: Response
+
     switch (resource) {
       case 'cards':
-        return handleCards(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleCards(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        break
       case 'comments':
-        return handleComments(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleComments(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        break
       case 'time-entries':
-        return handleTimeEntries(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleTimeEntries(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        break
       case 'events':
-        return handleEvents(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleEvents(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        break
       case 'webhooks':
-        return handleWebhooks(req, supabase, workspace_id, permissions, resourceId)
+        response = await handleWebhooks(req, supabase, workspace_id, permissions, resourceId)
+        break
       default:
-        return new Response(
+        response = new Response(
           JSON.stringify({ 
             error: 'Resource not found', 
             code: 'NOT_FOUND',
@@ -89,6 +216,30 @@ Deno.serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
+
+    // Add rate limit headers to response
+    const newHeaders = new Headers(response.headers)
+    Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+      newHeaders.set(key, value as string)
+    })
+
+    // Store idempotent response if applicable
+    if (idempotencyKey && isMutatingRequest && response.status < 500) {
+      const responseBody = await response.clone().text()
+      await supabase.rpc('store_idempotent_response', {
+        p_workspace_id: workspace_id,
+        p_idempotency_key: idempotencyKey,
+        p_request_path: url.pathname,
+        p_request_method: req.method,
+        p_response_status: response.status,
+        p_response_body: responseBody ? JSON.parse(responseBody) : null
+      })
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: newHeaders
+    })
   } catch (error) {
     console.error('API Error:', error)
     return new Response(

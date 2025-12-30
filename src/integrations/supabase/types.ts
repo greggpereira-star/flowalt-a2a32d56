@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_idempotency_keys: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          idempotency_key: string
+          request_method: string
+          request_path: string
+          response_body: Json | null
+          response_status: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          request_method: string
+          request_path: string
+          response_body?: Json | null
+          response_status: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          request_method?: string
+          request_path?: string
+          response_body?: Json | null
+          response_status?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_idempotency_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -63,6 +107,35 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_rate_limits: {
+        Row: {
+          api_key_id: string
+          id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          api_key_id: string
+          id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          api_key_id?: string
+          id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_rate_limits_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
             referencedColumns: ["id"]
           },
         ]
@@ -1454,7 +1527,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_api_key_id: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          reset_at: string
+        }[]
+      }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
+      get_idempotent_response: {
+        Args: { p_idempotency_key: string; p_workspace_id: string }
+        Returns: {
+          found: boolean
+          response_body: Json
+          response_status: number
+        }[]
+      }
       has_admin_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -1470,6 +1563,17 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      store_idempotent_response: {
+        Args: {
+          p_idempotency_key: string
+          p_request_method: string
+          p_request_path: string
+          p_response_body: Json
+          p_response_status: number
+          p_workspace_id: string
+        }
+        Returns: undefined
       }
       validate_api_key: {
         Args: { api_key: string }
