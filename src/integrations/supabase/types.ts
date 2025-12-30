@@ -102,6 +102,8 @@ export type Database = {
           last_used_at: string | null
           name: string
           permissions: string[]
+          rate_limit_per_hour: number | null
+          rate_limit_per_minute: number | null
           updated_at: string
           workspace_id: string
         }
@@ -116,6 +118,8 @@ export type Database = {
           last_used_at?: string | null
           name: string
           permissions?: string[]
+          rate_limit_per_hour?: number | null
+          rate_limit_per_minute?: number | null
           updated_at?: string
           workspace_id: string
         }
@@ -130,12 +134,80 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           permissions?: string[]
+          rate_limit_per_hour?: number | null
+          rate_limit_per_minute?: number | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "api_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_logs: {
+        Row: {
+          api_key_id: string | null
+          correlation_id: string | null
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          method: string
+          request_size: number | null
+          response_size: number | null
+          response_time_ms: number | null
+          status_code: number
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          method: string
+          request_size?: number | null
+          response_size?: number | null
+          response_time_ms?: number | null
+          status_code: number
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          method?: string
+          request_size?: number | null
+          response_size?: number | null
+          response_time_ms?: number | null
+          status_code?: number
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -880,6 +952,47 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_key: string
+          id: string
+          metadata: Json | null
+          rollout_percentage: number | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          flag_key: string
+          id?: string
+          metadata?: Json | null
+          rollout_percentage?: number | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          metadata?: Json | null
+          rollout_percentage?: number | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_categories: {
         Row: {
           color: string | null
@@ -1545,6 +1658,44 @@ export type Database = {
           },
         ]
       }
+      usage_metrics: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          module: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           badge_type: string
@@ -1738,6 +1889,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           event_type: string
+          event_version: string | null
           id: string
           next_retry_at: string | null
           payload: Json
@@ -1750,6 +1902,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           event_type: string
+          event_version?: string | null
           id?: string
           next_retry_at?: string | null
           payload: Json
@@ -1762,6 +1915,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           event_type?: string
+          event_version?: string | null
           id?: string
           next_retry_at?: string | null
           payload?: Json
@@ -2009,6 +2163,16 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      log_module_usage: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_module: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: undefined
       }
       store_idempotent_response: {
         Args: {
