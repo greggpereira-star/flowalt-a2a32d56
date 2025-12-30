@@ -16,6 +16,35 @@ interface EmailRequest {
   data: Record<string, any>;
 }
 
+// Structured logging helper
+function createLogger(correlationId: string, workspaceId?: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'send-email-notification',
+      correlationId,
+      workspaceId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+  }
+}
+
 const EMAIL_TEMPLATES = {
   overdue_card: (data: any) => ({
     subject: `⚠️ Card atrasado: ${data.card_title}`,
@@ -80,7 +109,9 @@ const EMAIL_TEMPLATES = {
   }),
 };
 
-async function sendEmail(to: string, subject: string, html: string) {
+async function sendEmail(to: string, subject: string, html: string, logger: ReturnType<typeof createLogger>) {
+  logger.debug('Sending email via Resend', { to, subject });
+  
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -97,6 +128,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 
   if (!response.ok) {
     const error = await response.text();
+    logger.error('Resend API error', { status: response.status, error });
     throw new Error(`Resend API error: ${error}`);
   }
 
@@ -108,12 +140,20 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  const startTime = Date.now();
+  let logger = createLogger(correlationId);
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { type, workspace_id, user_id, email, subject, data }: EmailRequest = await req.json();
+    
+    // Update logger with workspace context
+    logger = createLogger(correlationId, workspace_id);
+    logger.info('Processing email notification request', { type, userId: user_id, hasEmail: !!email });
 
     // Get recipient email
     let recipientEmail = email;
@@ -124,21 +164,24 @@ Deno.serve(async (req) => {
         .eq("id", user_id)
         .single();
       recipientEmail = profile?.email;
+      logger.debug('Fetched email from profile', { userId: user_id, found: !!recipientEmail });
     }
 
     if (!recipientEmail) {
+      logger.warn('No recipient email provided');
       return new Response(
         JSON.stringify({ error: "No recipient email provided" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json", "X-Correlation-ID": correlationId } }
       );
     }
 
     // Get email content from template
     const template = EMAIL_TEMPLATES[type];
     if (!template) {
+      logger.warn('Invalid email type', { type });
       return new Response(
         JSON.stringify({ error: "Invalid email type" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json", "X-Correlation-ID": correlationId } }
       );
     }
 
@@ -146,7 +189,7 @@ Deno.serve(async (req) => {
     const finalSubject = subject || emailContent.subject;
 
     // Send email via Resend
-    const emailResponse = await sendEmail(recipientEmail, finalSubject, emailContent.html);
+    const emailResponse = await sendEmail(recipientEmail, finalSubject, emailContent.html, logger);
 
     // Log the notification
     await supabase.from("email_notifications").insert({
@@ -157,21 +200,28 @@ Deno.serve(async (req) => {
       type,
       status: "sent",
       sent_at: new Date().toISOString(),
-      metadata: { data, resend_id: emailResponse.id },
+      metadata: { data, resend_id: emailResponse.id, correlation_id: correlationId },
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    const duration = Date.now() - startTime;
+    logger.info('Email sent successfully', { 
+      resendId: emailResponse.id, 
+      recipient: recipientEmail,
+      type,
+      durationMs: duration 
+    });
 
     return new Response(
-      JSON.stringify({ success: true, id: emailResponse.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: true, id: emailResponse.id, correlation_id: correlationId }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json", "X-Correlation-ID": correlationId } }
     );
   } catch (error: any) {
-    console.error("Error sending email:", error);
+    const duration = Date.now() - startTime;
+    logger.error('Error sending email', { error: error.message, durationMs: duration });
 
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message, correlation_id: correlationId }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json", "X-Correlation-ID": correlationId } }
     );
   }
 });
