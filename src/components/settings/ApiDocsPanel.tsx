@@ -49,6 +49,17 @@ const endpoints: EndpointDoc[] = [
   },
   {
     method: 'GET',
+    path: '/openapi',
+    description: 'Retorna especificação OpenAPI/Swagger JSON',
+    permission: 'none',
+    response: `{
+  "openapi": "3.0.0",
+  "info": { "title": "Flowalt API", "version": "1.0.0" },
+  "paths": { ... }
+}`
+  },
+  {
+    method: 'GET',
     path: '/cards',
     description: 'Lista todos os cards do workspace',
     permission: 'read',
@@ -140,6 +151,94 @@ const endpoints: EndpointDoc[] = [
       { name: 'user_id', type: 'uuid', required: false, description: 'Filtrar por usuário' },
       { name: 'start_date', type: 'date', required: false, description: 'Data inicial' },
       { name: 'end_date', type: 'date', required: false, description: 'Data final' }
+    ]
+  },
+  // Financial Endpoints
+  {
+    method: 'GET',
+    path: '/transactions',
+    description: 'Lista transações financeiras (requer finance:read)',
+    permission: 'finance:read',
+    parameters: [
+      { name: 'type', type: 'string', required: false, description: 'income ou expense' },
+      { name: 'status', type: 'string', required: false, description: 'pending, paid, overdue, cancelled' },
+      { name: 'start_date', type: 'date', required: false, description: 'Data inicial' },
+      { name: 'end_date', type: 'date', required: false, description: 'Data final' },
+      { name: 'client_id', type: 'uuid', required: false, description: 'Filtrar por cliente' }
+    ],
+    response: `{
+  "data": [{
+    "id": "uuid",
+    "description": "Pagamento cliente",
+    "amount": 5000.00,
+    "type": "income",
+    "status": "paid",
+    "due_date": "2024-01-15",
+    "paid_date": "2024-01-14",
+    "client_id": "uuid"
+  }],
+  "pagination": { "page": 1, "limit": 50, "total": 45 }
+}`
+  },
+  {
+    method: 'POST',
+    path: '/transactions',
+    description: 'Cria uma nova transação (requer finance:write)',
+    permission: 'finance:write',
+    requestBody: [
+      { field: 'description', type: 'string', required: true, description: 'Descrição da transação' },
+      { field: 'amount', type: 'number', required: true, description: 'Valor em reais' },
+      { field: 'type', type: 'string', required: true, description: 'income ou expense' },
+      { field: 'due_date', type: 'date', required: true, description: 'Data de vencimento' },
+      { field: 'client_id', type: 'uuid', required: false, description: 'ID do cliente' },
+      { field: 'card_id', type: 'uuid', required: false, description: 'Vincular a um card' },
+      { field: 'category_id', type: 'uuid', required: false, description: 'Categoria financeira' }
+    ],
+    response: `{
+  "data": { "id": "uuid", "description": "Nova transação", ... },
+  "message": "Transaction created successfully"
+}`
+  },
+  {
+    method: 'PATCH',
+    path: '/transactions/:id',
+    description: 'Atualiza uma transação (requer finance:write)',
+    permission: 'finance:write',
+    parameters: [
+      { name: 'id', type: 'uuid', required: true, description: 'ID da transação' }
+    ],
+    requestBody: [
+      { field: 'status', type: 'string', required: false, description: 'Novo status (paid, cancelled)' },
+      { field: 'paid_date', type: 'date', required: false, description: 'Data do pagamento' },
+      { field: 'amount', type: 'number', required: false, description: 'Valor atualizado' }
+    ]
+  },
+  {
+    method: 'GET',
+    path: '/clients',
+    description: 'Lista clientes do workspace (requer clients:read)',
+    permission: 'clients:read',
+    parameters: [
+      { name: 'is_active', type: 'boolean', required: false, description: 'Filtrar por ativos' }
+    ],
+    response: `{
+  "data": [{
+    "id": "uuid",
+    "name": "Cliente ABC",
+    "color": "#3B82F6",
+    "is_active": true
+  }]
+}`
+  },
+  {
+    method: 'POST',
+    path: '/clients',
+    description: 'Cria um novo cliente (requer clients:write)',
+    permission: 'clients:write',
+    requestBody: [
+      { field: 'name', type: 'string', required: true, description: 'Nome do cliente' },
+      { field: 'color', type: 'string', required: false, description: 'Cor hex (ex: #3B82F6)' },
+      { field: 'description', type: 'string', required: false, description: 'Descrição' }
     ]
   },
   {
