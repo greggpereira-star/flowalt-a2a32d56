@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -49,12 +49,15 @@ import {
 } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
+type QuickAddMode = 'quick' | 'full';
+
 interface QuickAddCardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spaceId: string;
   folderId?: string;
   defaultStatus?: CardStatus;
+  initialMode?: QuickAddMode;
 }
 
 const STATUS_OPTIONS: { value: CardStatus; label: string }[] = [
@@ -82,6 +85,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   spaceId,
   folderId,
   defaultStatus = 'backlog',
+  initialMode = 'quick',
 }) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -90,7 +94,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   const { data: clients } = useClients();
 
   // Form state
-  const [mode, setMode] = useState<'quick' | 'full'>('quick');
+  const [mode, setMode] = useState<QuickAddMode>(initialMode);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<CardStatus>(defaultStatus);
@@ -100,6 +104,10 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   const [clientId, setClientId] = useState<string>('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+
+  useEffect(() => {
+    if (open) setMode(initialMode);
+  }, [open, initialMode]);
 
   // Reset form
   const resetForm = () => {
@@ -112,7 +120,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     setClientId('');
     setChecklist([]);
     setNewChecklistItem('');
-    setMode('quick');
+    setMode(initialMode);
   };
 
   // Add checklist item

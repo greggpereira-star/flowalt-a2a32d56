@@ -70,6 +70,7 @@ const SpacePage: React.FC = () => {
   const [defaultStatus, setDefaultStatus] = useState<CardStatus>('backlog');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddInitialMode, setQuickAddInitialMode] = useState<'quick' | 'full'>('quick');
 
   // Keyboard shortcut handlers
   useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
@@ -201,11 +202,11 @@ const SpacePage: React.FC = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setQuickAddOpen(true)}>
+                    <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
                       <Plus className="h-4 w-4 mr-2" />
                       Novo Card (Rápido)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCreateCardOpen(true)}>
+                    <DropdownMenuItem onClick={() => { setQuickAddInitialMode('full'); setQuickAddOpen(true); }}>
                       <Plus className="h-4 w-4 mr-2" />
                       Novo Card (Completo)
                     </DropdownMenuItem>
@@ -333,6 +334,7 @@ const SpacePage: React.FC = () => {
         spaceId={spaceId!}
         folderId={selectedFolder || undefined}
         defaultStatus={defaultStatus}
+        initialMode={quickAddInitialMode}
       />
     </AppLayout>
   );
