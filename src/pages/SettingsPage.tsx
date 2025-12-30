@@ -7,9 +7,10 @@ import { WebhookDashboard } from '@/components/settings/WebhookDashboard';
 import { ApiLogsPanel } from '@/components/settings/ApiLogsPanel';
 import { OnboardingSettings } from '@/components/settings/OnboardingSettings';
 import { AutomationsManager } from '@/components/settings/AutomationsManager';
+import { SystemMonitorPanel } from '@/components/settings/SystemMonitorPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function SettingsPage() {
@@ -56,6 +57,10 @@ export default function SettingsPage() {
               <Activity className="h-4 w-4" />
               API Logs
             </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Monitor className="h-4 w-4" />
+              Sistema
+            </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
               Documentação
@@ -84,6 +89,10 @@ export default function SettingsPage() {
 
           <TabsContent value="api-logs">
             <ApiLogsPanel />
+          </TabsContent>
+
+          <TabsContent value="system">
+            <SystemMonitorPanel />
           </TabsContent>
 
           <TabsContent value="docs">

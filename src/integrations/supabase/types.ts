@@ -820,6 +820,41 @@ export type Database = {
           },
         ]
       }
+      dashboard_snapshots: {
+        Row: {
+          computed_at: string
+          id: string
+          metrics: Json
+          snapshot_date: string
+          snapshot_type: string
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          metrics?: Json
+          snapshot_date: string
+          snapshot_type: string
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          metrics?: Json
+          snapshot_date?: string
+          snapshot_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dependencies: {
         Row: {
           blocking_card_id: string | null
@@ -1571,6 +1606,47 @@ export type Database = {
           },
         ]
       }
+      system_metrics: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          dimensions: Json | null
+          id: string
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          workspace_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          workspace_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          metric_value?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           card_id: string
@@ -2134,6 +2210,8 @@ export type Database = {
       }
       workspace_members: {
         Row: {
+          can_view_financials: boolean | null
+          can_view_salaries: boolean | null
           department: string | null
           function_title: string | null
           id: string
@@ -2143,6 +2221,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          can_view_financials?: boolean | null
+          can_view_salaries?: boolean | null
           department?: string | null
           function_title?: string | null
           id?: string
@@ -2152,6 +2232,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          can_view_financials?: boolean | null
+          can_view_salaries?: boolean | null
           department?: string | null
           function_title?: string | null
           id?: string
@@ -2240,6 +2322,10 @@ export type Database = {
           reset_at: string
         }[]
       }
+      compute_dashboard_snapshot: {
+        Args: { p_snapshot_type: string; p_workspace_id: string }
+        Returns: undefined
+      }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
       get_idempotent_response: {
         Args: { p_idempotency_key: string; p_workspace_id: string }
@@ -2272,6 +2358,17 @@ export type Database = {
           p_module: string
           p_user_id: string
           p_workspace_id: string
+        }
+        Returns: undefined
+      }
+      record_metric: {
+        Args: {
+          p_correlation_id?: string
+          p_dimensions?: Json
+          p_metric_name: string
+          p_metric_type: string
+          p_metric_value: number
+          p_workspace_id?: string
         }
         Returns: undefined
       }
