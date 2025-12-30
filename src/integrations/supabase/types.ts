@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_estimates: {
+        Row: {
+          card_id: string | null
+          confidence_score: number | null
+          created_at: string
+          estimated_hours: number
+          id: string
+          input_features: Json | null
+          model_version: string
+          workspace_id: string
+        }
+        Insert: {
+          card_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          estimated_hours: number
+          id?: string
+          input_features?: Json | null
+          model_version?: string
+          workspace_id: string
+        }
+        Update: {
+          card_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          estimated_hours?: number
+          id?: string
+          input_features?: Json | null
+          model_version?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_estimates_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_estimates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_snapshots: {
         Row: {
           created_at: string
@@ -1236,6 +1284,91 @@ export type Database = {
           },
         ]
       }
+      internal_feedback: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          page_url: string | null
+          rating: number | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          page_url?: string | null
+          rating?: number | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          page_url?: string | null
+          rating?: number | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_usage: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          module_name: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_name: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_name?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1273,6 +1406,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          default_assignments: Json | null
+          description: string | null
+          estimated_duration_hours: number | null
+          id: string
+          is_active: boolean
+          name: string
+          steps: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          default_assignments?: Json | null
+          description?: string | null
+          estimated_duration_hours?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          steps?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          default_assignments?: Json | null
+          description?: string | null
+          estimated_duration_hours?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          steps?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

@@ -40,12 +40,17 @@ export function useUsageTracking() {
     if (!currentWorkspace?.id || !user?.id) return;
 
     try {
-      await supabase.from('usage_metrics').insert({
+      // Insert into module_usage table
+      await supabase.from('module_usage').insert({
         workspace_id: currentWorkspace.id,
         user_id: user.id,
-        module,
+        module_name: module,
         action,
-        metadata,
+        metadata: {
+          ...metadata,
+          page_url: window.location.pathname,
+          timestamp: new Date().toISOString(),
+        },
       });
     } catch (error) {
       // Silent fail - don't interrupt user flow for analytics
