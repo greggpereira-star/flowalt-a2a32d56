@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
 import { useFolders, useCreateFolder } from '@/hooks/useFolders';
 import { useCards } from '@/hooks/useCards';
+import { useRealtimeCards } from '@/hooks/useRealtimeCards';
+import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
 import { ListView } from '@/components/cards/ListView';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
@@ -47,11 +49,15 @@ type ViewType = 'kanban' | 'list' | 'calendar';
 const SpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: space, isLoading: spaceLoading } = useSpace(spaceId);
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
   const { data: cards, isLoading: cardsLoading } = useCards(spaceId);
   const createFolder = useCreateFolder();
+
+  // Enable realtime updates for cards
+  useRealtimeCards(spaceId);
 
   const [view, setView] = useState<ViewType>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,6 +67,16 @@ const SpacePage: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('');
   const [defaultStatus, setDefaultStatus] = useState<CardStatus>('backlog');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
+  // Keyboard shortcut handlers
+  useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
+  useShortcutEvent('flowalt:focusSearch', useCallback(() => searchInputRef.current?.focus(), []));
+  useShortcutEvent('flowalt:viewChange', useCallback((e?: Event) => {
+    const detail = (e as CustomEvent)?.detail;
+    if (detail?.view && ['kanban', 'list', 'calendar'].includes(detail.view)) {
+      setView(detail.view);
+    }
+  }, []));
 
   const handleAddCard = (status: CardStatus) => {
     setDefaultStatus(status);
@@ -117,7 +133,7 @@ const SpacePage: React.FC = () => {
   }
 
   return (
-    <AppLayout>
+    <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
       <div className="flex flex-col h-[calc(100vh-56px)]">
         {/* Header */}
         <div className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -146,7 +162,8 @@ const SpacePage: React.FC = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar cards..."
+                    ref={searchInputRef}
+                    placeholder="Buscar cards... (pressione /)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 w-48 lg:w-64"

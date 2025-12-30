@@ -2,33 +2,33 @@ import React from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
+import { DynamicBreadcrumb } from './DynamicBreadcrumb';
+import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  spaceId?: string;
+  folderId?: string;
+  cardId?: string;
 }
 
-const routeNames: Record<string, string> = {
-  '/': 'Início',
-  '/dashboard': 'Dashboard',
-  '/tasks': 'Minhas Tarefas',
-  '/time': 'Tempo',
-  '/calendar': 'Agenda',
-  '/coordination': 'Coordenação',
-  '/financial': 'Financeiro',
-  '/partners': 'Painel dos Sócios',
-  '/gamification': 'Gamificação',
-  '/analytics': 'Análises',
-  '/settings': 'Configurações',
-};
-
-export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderId, cardId }) => {
   const location = useLocation();
-  const currentRouteName = routeNames[location.pathname] || 'Página';
+  const params = useParams();
+  
+  // Use params if props not provided
+  const effectiveSpaceId = spaceId || params.spaceId;
+  
+  // Enable global keyboard shortcuts
+  useGlobalShortcuts();
+  
+  // Enable realtime notifications
+  useRealtimeNotifications();
 
   return (
     <SidebarProvider>
@@ -39,17 +39,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Flowalt</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{currentRouteName}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <DynamicBreadcrumb 
+              spaceId={effectiveSpaceId} 
+              folderId={folderId} 
+              cardId={cardId} 
+            />
           </div>
           <div className="flex items-center gap-3 px-4">
             <BadgeProgress compact />
