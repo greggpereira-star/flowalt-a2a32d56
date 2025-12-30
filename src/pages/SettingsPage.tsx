@@ -11,9 +11,10 @@ import { SystemMonitorPanel } from '@/components/settings/SystemMonitorPanel';
 import { FeatureFlagsManager } from '@/components/settings/FeatureFlagsManager';
 import { UsageAnalyticsDashboard } from '@/components/analytics/UsageAnalyticsDashboard';
 import { TemplateManager } from '@/components/templates/TemplateManager';
+import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack } from 'lucide-react';
+import { Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, PieChart, FileStack, Shield } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
@@ -78,6 +79,10 @@ export default function SettingsPage() {
               <Monitor className="h-4 w-4" />
               Sistema
             </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Auditoria
+            </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
               Docs
@@ -122,6 +127,10 @@ export default function SettingsPage() {
 
           <TabsContent value="system">
             <SystemMonitorPanel />
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <AuditLogsPanel />
           </TabsContent>
 
           <TabsContent value="docs">

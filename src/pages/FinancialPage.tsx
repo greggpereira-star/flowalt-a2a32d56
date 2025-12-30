@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,9 +13,16 @@ import {
   DollarSign,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { useAccessLogging } from '@/hooks/useAccessLogging';
 
 export default function FinancialPage() {
   usePageTracking('financial');
+  const { logFinancialAccess } = useAccessLogging();
+
+  // Log access to financial dashboard
+  useEffect(() => {
+    logFinancialAccess('dashboard_view');
+  }, [logFinancialAccess]);
   
   return (
     <>
