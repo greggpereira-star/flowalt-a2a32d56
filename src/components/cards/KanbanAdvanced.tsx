@@ -1,5 +1,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { TaskCard } from './TaskCard';
+import { DraggableCard } from './DraggableCard';
+import { DragOverlayCard } from './DragOverlayCard';
 import { CardContextMenu } from './CardContextMenu';
 import { statusConfig } from './CardBadges';
 import { KanbanQuickFilters, applyQuickFilter } from './KanbanQuickFilters';
@@ -12,20 +30,19 @@ import {
   CheckSquare,
   AlertTriangle,
   Lock,
-  Clock,
   Layers,
   User,
   Tag,
   Save,
   X,
   Sparkles,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,6 +147,10 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const { data: dependencies } = useDependencies();
   const { userSummaries } = useCapacity(cards);
 
+  // Drag state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
   // View state
   const [swimlane, setSwimlane] = useState<SwimlaneOption>('none');
   const [collapsedSwimlanes, setCollapsedSwimlanes] = useState<Set<string>>(new Set());
@@ -159,6 +180,16 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   // Quick add state per column
   const [quickAddColumn, setQuickAddColumn] = useState<CardStatus | null>(null);
 
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
   // Calculate blocked cards
   const blockedCardIds = useMemo(() => {
     if (!dependencies) return new Set<string>();
@@ -166,7 +197,6 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     const blocked = new Set<string>();
     dependencies.forEach(dep => {
       if (dep.dependent_card_id) {
-        // Check if blocking card is not completed
         const blockingCard = cards.find(c => c.id === dep.blocking_card_id);
         if (blockingCard && blockingCard.status !== 'delivered') {
           blocked.add(dep.dependent_card_id);
@@ -179,37 +209,30 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   // Filter cards
   const filteredCards = useMemo(() => {
     let result = cards.filter(card => {
-      // Search query
       if (filters.searchQuery && !card.title.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
         return false;
       }
-      // Urgency filter
       if (filters.urgency.length > 0 && !filters.urgency.includes(card.urgency)) {
         return false;
       }
-      // Owner filter
       if (filters.owners.length > 0 && !filters.owners.includes(card.owner_id || '')) {
         return false;
       }
-      // Client filter
       if (filters.clients.length > 0 && !filters.clients.includes(card.client_id || '')) {
         return false;
       }
-      // Has deadline
       if (filters.hasDeadline === true && !card.due_date) {
         return false;
       }
       if (filters.hasDeadline === false && card.due_date) {
         return false;
       }
-      // Is overdue
       if (filters.isOverdue === true) {
         const dueDate = card.due_date ? new Date(card.due_date) : null;
         if (!dueDate || !isPast(dueDate) || isToday(dueDate) || card.status === 'delivered') {
           return false;
         }
       }
-      // Has briefing
       if (filters.hasBriefing === true && !card.briefing_completed) {
         return false;
       }
@@ -219,9 +242,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       return true;
     });
 
-    // Apply quick filter
     result = applyQuickFilter(result, quickFilter, blockedCardIds);
-
     return result;
   }, [cards, filters, quickFilter, blockedCardIds]);
 
@@ -233,51 +254,88 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     }, {} as Record<CardStatus, Card[]>);
   }, [filteredCards, visibleStatuses]);
 
-  // Group cards by swimlane
-  const swimlaneGroups = useMemo(() => {
-    if (swimlane === 'none') return null;
+  // Get active card for drag overlay
+  const activeCard = useMemo(() => {
+    if (!activeId) return null;
+    return cards.find(c => c.id === activeId) || null;
+  }, [activeId, cards]);
 
-    const groups: Record<string, Card[]> = {};
-    filteredCards.forEach(card => {
-      let key = '';
-      switch (swimlane) {
-        case 'owner':
-          key = card.owner_id || 'unassigned';
-          break;
-        case 'urgency':
-          key = card.urgency;
-          break;
-        case 'client':
-          key = card.client_id || 'no-client';
-          break;
+  // DnD handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setOverId(over?.id as string || null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setOverId(null);
+
+    if (!over) return;
+
+    const cardId = active.id as string;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+
+    // Determine target status from over id
+    const overId = over.id as string;
+    let targetStatus: CardStatus | null = null;
+
+    // Check if dropped on a column
+    if (visibleStatuses.includes(overId as CardStatus)) {
+      targetStatus = overId as CardStatus;
+    } else {
+      // Check if dropped on another card - get that card's status
+      const targetCard = cards.find(c => c.id === overId);
+      if (targetCard) {
+        targetStatus = targetCard.status;
       }
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(card);
-    });
-    return groups;
-  }, [filteredCards, swimlane]);
+    }
 
-  // Get swimlane label
-  const getSwimlaneLabel = (key: string): string => {
-    switch (swimlane) {
-      case 'owner':
-        if (key === 'unassigned') return 'Sem Responsável';
-        const member = members?.find(m => m.user_id === key);
-        return member?.profile?.full_name || member?.profile?.email || key;
-      case 'urgency':
-        return URGENCY_OPTIONS.find(u => u.value === key)?.label || key;
-      case 'client':
-        if (key === 'no-client') return 'Sem Cliente';
-        const client = clients?.find(c => c.id === key);
-        return client?.name || key;
-      default:
-        return key;
+    if (!targetStatus || targetStatus === card.status) return;
+
+    // Validate status change
+    if (!card.briefing_completed && 
+        ['todo', 'in_progress', 'review', 'approved', 'delivered'].includes(targetStatus) &&
+        ['backlog', 'briefing'].includes(card.status)) {
+      toast({
+        title: 'Briefing Pendente',
+        description: 'Complete o briefing antes de avançar o card.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (blockedCardIds.has(card.id) && ['in_progress', 'review', 'approved', 'delivered'].includes(targetStatus)) {
+      toast({
+        title: 'Card Bloqueado',
+        description: 'Resolva as dependências antes de avançar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await updateCard.mutateAsync({ id: card.id, status: targetStatus });
+      toast({
+        title: 'Card movido',
+        description: `Movido para ${statusConfig[targetStatus].label}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao mover',
+        description: 'Não foi possível alterar o status.',
+        variant: 'destructive',
+      });
     }
   };
 
   // Card actions
   const handleStatusChange = async (card: Card, newStatus: CardStatus) => {
-    // Check briefing requirement
     if (!card.briefing_completed && 
         ['todo', 'in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
         ['backlog', 'briefing'].includes(card.status)) {
@@ -289,7 +347,6 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       return;
     }
 
-    // Check if blocked
     if (blockedCardIds.has(card.id) && ['in_progress', 'review', 'approved', 'delivered'].includes(newStatus)) {
       toast({
         title: 'Card Bloqueado',
@@ -319,10 +376,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       await updateCard.mutateAsync({ id: card.id, urgency: newUrgency });
       toast({ title: 'Prioridade atualizada' });
     } catch (error) {
-      toast({
-        title: 'Erro ao atualizar',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
     }
   };
 
@@ -339,10 +393,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       });
       toast({ title: 'Card duplicado' });
     } catch (error) {
-      toast({
-        title: 'Erro ao duplicar',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro ao duplicar', variant: 'destructive' });
     }
   };
 
@@ -351,14 +402,10 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       await deleteCard.mutateAsync(card.id);
       toast({ title: 'Card arquivado' });
     } catch (error) {
-      toast({
-        title: 'Erro ao arquivar',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro ao arquivar', variant: 'destructive' });
     }
   };
 
-  // Inline quick add handler
   const handleInlineQuickAdd = async (data: QuickAddData) => {
     try {
       if (onQuickAdd) {
@@ -375,7 +422,6 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       setQuickAddColumn(null);
       toast({ title: 'Card criado' });
     } catch (error) {
-      console.error('KanbanAdvanced: quick add failed', error);
       toast({
         title: 'Erro ao criar card',
         description: getErrorMessage(error, 'Não foi possível criar o card.'),
@@ -410,11 +456,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   // Mass actions
   const handleMassStatusChange = async (newStatus: CardStatus) => {
     const cardsToUpdate = cards.filter(c => selectedCards.has(c.id));
-    
     try {
-      await Promise.all(
-        cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, status: newStatus }))
-      );
+      await Promise.all(cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, status: newStatus })));
       toast({ title: `${cardsToUpdate.length} cards atualizados` });
       clearSelection();
     } catch (error) {
@@ -424,11 +467,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
   const handleMassUrgencyChange = async (newUrgency: CardUrgency) => {
     const cardsToUpdate = cards.filter(c => selectedCards.has(c.id));
-    
     try {
-      await Promise.all(
-        cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, urgency: newUrgency }))
-      );
+      await Promise.all(cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, urgency: newUrgency })));
       toast({ title: `${cardsToUpdate.length} cards atualizados` });
       clearSelection();
     } catch (error) {
@@ -438,11 +478,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
   const handleMassOwnerChange = async (ownerId: string) => {
     const cardsToUpdate = cards.filter(c => selectedCards.has(c.id));
-    
     try {
-      await Promise.all(
-        cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, owner_id: ownerId }))
-      );
+      await Promise.all(cardsToUpdate.map(card => updateCard.mutateAsync({ id: card.id, owner_id: ownerId })));
       toast({ title: `${cardsToUpdate.length} cards atualizados` });
       clearSelection();
     } catch (error) {
@@ -450,7 +487,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     }
   };
 
-  // Save filter
+  // Filter functions
   const saveCurrentFilter = () => {
     if (!newFilterName.trim()) return;
     const newFilter: SavedFilter = {
@@ -468,53 +505,6 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     setFilters(filter.filters);
   };
 
-  // Check if card has alerts
-  const getCardAlerts = (card: Card) => {
-    const alerts: { type: 'overdue' | 'blocked' | 'briefing'; message: string }[] = [];
-    
-    // Overdue
-    const dueDate = card.due_date ? new Date(card.due_date) : null;
-    if (dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered') {
-      alerts.push({ type: 'overdue', message: 'Prazo vencido' });
-    }
-    
-    // Blocked
-    if (blockedCardIds.has(card.id)) {
-      alerts.push({ type: 'blocked', message: 'Bloqueado por dependência' });
-    }
-    
-    // Briefing pending
-    if (!card.briefing_completed && ['backlog', 'briefing'].includes(card.status)) {
-      alerts.push({ type: 'briefing', message: 'Briefing pendente' });
-    }
-    
-    return alerts;
-  };
-
-  // Toggle swimlane collapse
-  const toggleSwimlane = (key: string) => {
-    const newCollapsed = new Set(collapsedSwimlanes);
-    if (newCollapsed.has(key)) {
-      newCollapsed.delete(key);
-    } else {
-      newCollapsed.add(key);
-    }
-    setCollapsedSwimlanes(newCollapsed);
-  };
-
-  // Active filters count
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.urgency.length > 0) count++;
-    if (filters.owners.length > 0) count++;
-    if (filters.clients.length > 0) count++;
-    if (filters.hasDeadline !== null) count++;
-    if (filters.isOverdue !== null) count++;
-    if (filters.hasBriefing !== null) count++;
-    if (filters.searchQuery) count++;
-    return count;
-  }, [filters]);
-
   const clearFilters = () => {
     setFilters({
       urgency: [],
@@ -529,70 +519,106 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     setQuickFilter(null);
   };
 
-  // Render card with selection
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.urgency.length > 0) count++;
+    if (filters.owners.length > 0) count++;
+    if (filters.clients.length > 0) count++;
+    if (filters.hasDeadline !== null) count++;
+    if (filters.isOverdue !== null) count++;
+    if (filters.hasBriefing !== null) count++;
+    if (filters.searchQuery) count++;
+    return count;
+  }, [filters]);
+
+  // Get swimlane label
+  const getSwimlaneLabel = (key: string): string => {
+    switch (swimlane) {
+      case 'owner':
+        if (key === 'unassigned') return 'Sem Responsável';
+        const member = members?.find(m => m.user_id === key);
+        return member?.profile?.full_name || member?.profile?.email || key;
+      case 'urgency':
+        return URGENCY_OPTIONS.find(u => u.value === key)?.label || key;
+      case 'client':
+        if (key === 'no-client') return 'Sem Cliente';
+        const client = clients?.find(c => c.id === key);
+        return client?.name || key;
+      default:
+        return key;
+    }
+  };
+
+  const toggleSwimlane = (key: string) => {
+    const newCollapsed = new Set(collapsedSwimlanes);
+    if (newCollapsed.has(key)) {
+      newCollapsed.delete(key);
+    } else {
+      newCollapsed.add(key);
+    }
+    setCollapsedSwimlanes(newCollapsed);
+  };
+
+  // Get swimlane groups
+  const swimlaneGroups = useMemo(() => {
+    if (swimlane === 'none') return null;
+    const groups: Record<string, Card[]> = {};
+    filteredCards.forEach(card => {
+      let key = '';
+      switch (swimlane) {
+        case 'owner': key = card.owner_id || 'unassigned'; break;
+        case 'urgency': key = card.urgency; break;
+        case 'client': key = card.client_id || 'no-client'; break;
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(card);
+    });
+    return groups;
+  }, [filteredCards, swimlane]);
+
+  // Render card
   const renderCard = (card: Card) => {
-    const alerts = getCardAlerts(card);
     const isBlocked = blockedCardIds.has(card.id);
-    
-    // Get owner utilization for Risk Radar
     const ownerUtilization = card.owner_id 
       ? userSummaries.find(u => u.userId === card.owner_id)?.utilizationPercent || 0
       : 0;
     
     return (
-      <div key={card.id} className="relative group">
-        {isSelectionMode && (
-          <div className="absolute top-2 left-2 z-10">
-            <Checkbox
-              checked={selectedCards.has(card.id)}
-              onCheckedChange={() => toggleCardSelection(card.id)}
-              className="bg-background shadow-sm"
-            />
-          </div>
-        )}
-        
-        {/* Alert badges - only show if no RiskRadar (to avoid duplication) */}
-        {alerts.length > 0 && alerts.some(a => a.type !== 'overdue') && (
-          <div className="absolute top-2 right-8 z-10 flex gap-1">
-            {alerts.filter(a => a.type !== 'overdue').map((alert, idx) => (
-              <Tooltip key={idx}>
-                <TooltipTrigger asChild>
-                  <div className={cn(
-                    'p-1.5 rounded-full shadow-sm',
-                    alert.type === 'blocked' && 'bg-purple-500 text-white',
-                    alert.type === 'briefing' && 'bg-amber-500 text-black'
-                  )}>
-                    {alert.type === 'blocked' && <Lock className="h-3 w-3" />}
-                    {alert.type === 'briefing' && <AlertTriangle className="h-3 w-3" />}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">{alert.message}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-        
-        <CardContextMenu
-          card={card}
-          onStatusChange={(status) => handleStatusChange(card, status)}
-          onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-          onDuplicate={() => handleDuplicate(card)}
-          onDelete={() => handleDelete(card)}
-        >
-          <div className={cn(
-            'transition-all',
-            isSelectionMode && selectedCards.has(card.id) && 'ring-2 ring-primary rounded-lg',
-            isBlocked && 'opacity-75'
-          )}>
-            <TaskCard
-              card={card}
-              onClick={() => isSelectionMode ? toggleCardSelection(card.id) : onCardClick(card)}
-              isBlocked={isBlocked}
-              ownerUtilization={ownerUtilization}
-            />
-          </div>
-        </CardContextMenu>
-      </div>
+      <DraggableCard key={card.id} id={card.id} disabled={isSelectionMode}>
+        <div className="relative group">
+          {isSelectionMode && (
+            <div className="absolute top-2 left-2 z-10">
+              <Checkbox
+                checked={selectedCards.has(card.id)}
+                onCheckedChange={() => toggleCardSelection(card.id)}
+                className="bg-background shadow-sm"
+              />
+            </div>
+          )}
+          
+          <CardContextMenu
+            card={card}
+            onStatusChange={(status) => handleStatusChange(card, status)}
+            onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+            onDuplicate={() => handleDuplicate(card)}
+            onDelete={() => handleDelete(card)}
+          >
+            <div className={cn(
+              'transition-all',
+              isSelectionMode && selectedCards.has(card.id) && 'ring-2 ring-primary rounded-lg',
+              isBlocked && 'opacity-75',
+              activeId === card.id && 'opacity-50 scale-95'
+            )}>
+              <TaskCard
+                card={card}
+                onClick={() => isSelectionMode ? toggleCardSelection(card.id) : onCardClick(card)}
+                isBlocked={isBlocked}
+                ownerUtilization={ownerUtilization}
+              />
+            </div>
+          </CardContextMenu>
+        </div>
+      </DraggableCard>
     );
   };
 
@@ -600,14 +626,21 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const renderColumn = (status: CardStatus, columnCards: Card[]) => {
     const config = statusConfig[status];
     const isQuickAddOpen = quickAddColumn === status;
+    const isDropTarget = overId === status;
     
     return (
       <div
         key={status}
-        className="flex-shrink-0 w-80 bg-muted/20 rounded-xl flex flex-col border border-border/30"
+        id={status}
+        className={cn(
+          'flex-shrink-0 w-72 bg-muted/30 rounded-xl flex flex-col border transition-all duration-200',
+          isDropTarget 
+            ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10' 
+            : 'border-border/30'
+        )}
       >
         {/* Column Header */}
-        <div className="p-3 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md rounded-t-xl border-b border-border/30">
+        <div className="p-3 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10">
           <div className="flex items-center gap-2">
             <div
               className={cn(
@@ -622,15 +655,26 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
               )}
             />
             <span className="text-sm font-semibold">{config.label}</span>
-            <Badge 
-              variant="secondary" 
-              className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
-            >
+            <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
               {columnCards.length}
             </Badge>
           </div>
           
           <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setQuickAddColumn(status)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Adicionar card</TooltipContent>
+            </Tooltip>
+            
             {isSelectionMode && columnCards.length > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -675,8 +719,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         )}
 
         {/* Column Cards */}
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-2 min-h-[150px]">
+        <SortableContext items={columnCards.map(c => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]">
             {/* Inline Quick Add */}
             <KanbanInlineQuickAdd
               status={status}
@@ -689,59 +733,69 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
             {/* Cards */}
             {columnCards.length === 0 && !isQuickAddOpen ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                  <Sparkles className="h-5 w-5 text-muted-foreground/50" />
+              <div 
+                className={cn(
+                  'flex flex-col items-center justify-center py-8 text-center transition-colors rounded-lg',
+                  isDropTarget && 'bg-primary/10 border-2 border-dashed border-primary/30'
+                )}
+              >
+                <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground/50" />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Nenhum card
+                  {isDropTarget ? 'Solte aqui' : 'Nenhum card'}
                 </p>
               </div>
             ) : (
               columnCards.map(renderCard)
             )}
           </div>
-        </ScrollArea>
+        </SortableContext>
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3">
-        {/* Top row: Search, Filters, Swimlanes */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex flex-col h-full">
+        {/* Compact Toolbar */}
+        <div className="flex-shrink-0 pb-3 space-y-2">
+          {/* Controls Row */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Search */}
             <Input
-              placeholder="Buscar cards..."
+              placeholder="Buscar..."
               value={filters.searchQuery}
               onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-              className="w-56 h-9"
+              className="w-40 h-8 text-sm"
             />
 
-            {/* Advanced Filters */}
+            {/* Filters */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                  <Filter className="h-3.5 w-3.5" />
                   Filtros
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="h-5 px-1.5">
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px]">
                       {activeFiltersCount}
                     </Badge>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Filtrar por</DropdownMenuLabel>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuLabel className="text-xs">Filtrar por</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 
-                {/* Urgency */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <AlertTriangle className="h-4 w-4 mr-2" />
+                  <DropdownMenuSubTrigger className="text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-2" />
                     Urgência
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
@@ -757,20 +811,18 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                               : filters.urgency.filter(u => u !== opt.value)
                           });
                         }}
+                        className="text-xs"
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={cn('w-2 h-2 rounded-full', opt.color)} />
-                          {opt.label}
-                        </div>
+                        <div className={cn('w-2 h-2 rounded-full mr-2', opt.color)} />
+                        {opt.label}
                       </DropdownMenuCheckboxItem>
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
 
-                {/* Owner */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <User className="h-4 w-4 mr-2" />
+                  <DropdownMenuSubTrigger className="text-xs">
+                    <User className="h-3.5 w-3.5 mr-2" />
                     Responsável
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
@@ -786,6 +838,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                               : filters.owners.filter(o => o !== member.user_id)
                           });
                         }}
+                        className="text-xs"
                       >
                         {member.profile?.full_name || member.profile?.email}
                       </DropdownMenuCheckboxItem>
@@ -793,10 +846,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
 
-                {/* Client */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Tag className="h-4 w-4 mr-2" />
+                  <DropdownMenuSubTrigger className="text-xs">
+                    <Tag className="h-3.5 w-3.5 mr-2" />
                     Cliente
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
@@ -812,6 +864,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                               : filters.clients.filter(c => c !== client.id)
                           });
                         }}
+                        className="text-xs"
                       >
                         {client.name}
                       </DropdownMenuCheckboxItem>
@@ -821,12 +874,11 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
                 <DropdownMenuSeparator />
 
-                {/* Saved filters */}
                 {savedFilters.length > 0 && (
                   <>
-                    <DropdownMenuLabel>Filtros Salvos</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-xs">Filtros Salvos</DropdownMenuLabel>
                     {savedFilters.map(f => (
-                      <DropdownMenuItem key={f.id} onClick={() => loadFilter(f)}>
+                      <DropdownMenuItem key={f.id} onClick={() => loadFilter(f)} className="text-xs">
                         {f.name}
                       </DropdownMenuItem>
                     ))}
@@ -834,15 +886,15 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                   </>
                 )}
 
-                <DropdownMenuItem onClick={() => setFilterDialogOpen(true)}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Filtro Atual
+                <DropdownMenuItem onClick={() => setFilterDialogOpen(true)} className="text-xs">
+                  <Save className="h-3.5 w-3.5 mr-2" />
+                  Salvar Filtro
                 </DropdownMenuItem>
                 
                 {(activeFiltersCount > 0 || quickFilter) && (
-                  <DropdownMenuItem onClick={clearFilters} className="text-destructive">
-                    <X className="h-4 w-4 mr-2" />
-                    Limpar Filtros
+                  <DropdownMenuItem onClick={clearFilters} className="text-xs text-destructive">
+                    <X className="h-3.5 w-3.5 mr-2" />
+                    Limpar
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -850,61 +902,62 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
             {/* Swimlanes */}
             <Select value={swimlane} onValueChange={(v: SwimlaneOption) => setSwimlane(v)}>
-              <SelectTrigger className="w-44 h-9">
-                <Layers className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Agrupar" />
+              <SelectTrigger className="w-36 h-8 text-xs">
+                <Layers className="h-3.5 w-3.5 mr-1.5" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sem agrupamento</SelectItem>
-                <SelectItem value="owner">Por Responsável</SelectItem>
-                <SelectItem value="urgency">Por Urgência</SelectItem>
-                <SelectItem value="client">Por Cliente</SelectItem>
+                <SelectItem value="none" className="text-xs">Sem agrupar</SelectItem>
+                <SelectItem value="owner" className="text-xs">Responsável</SelectItem>
+                <SelectItem value="urgency" className="text-xs">Urgência</SelectItem>
+                <SelectItem value="client" className="text-xs">Cliente</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          {/* Selection & Mass Actions */}
-          <div className="flex items-center gap-2">
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Selection Mode */}
             <Button
               variant={isSelectionMode ? "default" : "outline"}
               size="sm"
-              className="h-9 gap-2"
+              className="h-8 gap-1.5 text-xs"
               onClick={() => {
                 setIsSelectionMode(!isSelectionMode);
                 if (isSelectionMode) clearSelection();
               }}
             >
-              <CheckSquare className="h-4 w-4" />
-              {isSelectionMode ? `${selectedCards.size} selecionados` : 'Selecionar'}
+              <CheckSquare className="h-3.5 w-3.5" />
+              {isSelectionMode ? `${selectedCards.size}` : 'Selecionar'}
             </Button>
 
             {selectedCards.size > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="h-9 gap-2">
-                    Ações em Massa
-                    <ChevronDown className="h-4 w-4" />
+                  <Button size="sm" className="h-8 gap-1.5 text-xs">
+                    Ações
+                    <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs">Status</DropdownMenuLabel>
                   {visibleStatuses.map(status => (
-                    <DropdownMenuItem key={status} onClick={() => handleMassStatusChange(status)}>
+                    <DropdownMenuItem key={status} onClick={() => handleMassStatusChange(status)} className="text-xs">
                       {statusConfig[status].label}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Alterar Urgência</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs">Urgência</DropdownMenuLabel>
                   {URGENCY_OPTIONS.map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => handleMassUrgencyChange(opt.value)}>
+                    <DropdownMenuItem key={opt.value} onClick={() => handleMassUrgencyChange(opt.value)} className="text-xs">
                       <div className={cn('w-2 h-2 rounded-full mr-2', opt.color)} />
                       {opt.label}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Atribuir Responsável</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs">Responsável</DropdownMenuLabel>
                   {members?.slice(0, 5).map(member => (
-                    <DropdownMenuItem key={member.user_id} onClick={() => handleMassOwnerChange(member.user_id)}>
+                    <DropdownMenuItem key={member.user_id} onClick={() => handleMassOwnerChange(member.user_id)} className="text-xs">
                       {member.profile?.full_name || member.profile?.email}
                     </DropdownMenuItem>
                   ))}
@@ -912,83 +965,87 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
               </DropdownMenu>
             )}
           </div>
+
+          {/* Quick Filters */}
+          <KanbanQuickFilters
+            cards={cards}
+            activeFilter={quickFilter}
+            onFilterChange={setQuickFilter}
+            blockedCardIds={blockedCardIds}
+          />
         </div>
 
-        {/* Quick Filters Row */}
-        <KanbanQuickFilters
-          cards={cards}
-          activeFilter={quickFilter}
-          onFilterChange={setQuickFilter}
-          blockedCardIds={blockedCardIds}
-        />
-      </div>
-
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto">
-        {swimlane === 'none' ? (
-          // Standard Kanban
-          <div className="flex gap-4 pb-4 h-full">
-            {visibleStatuses.map((status) => renderColumn(status, groupedByStatus[status] || []))}
-          </div>
-        ) : (
-          // Swimlane Kanban
-          <div className="space-y-4">
-            {Object.entries(swimlaneGroups || {}).map(([key, swimlaneCards]) => (
-              <div key={key} className="border rounded-xl bg-card/50">
-                {/* Swimlane Header */}
-                <div
-                  className="p-3 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl"
-                  onClick={() => toggleSwimlane(key)}
-                >
-                  {collapsedSwimlanes.has(key) ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                  <span className="font-semibold">{getSwimlaneLabel(key)}</span>
-                  <Badge variant="secondary">{swimlaneCards.length}</Badge>
-                </div>
-
-                {/* Swimlane Content */}
-                {!collapsedSwimlanes.has(key) && (
-                  <div className="p-4 overflow-x-auto border-t border-border/30">
-                    <div className="flex gap-4">
-                      {visibleStatuses.map((status) => {
-                        const columnCards = swimlaneCards.filter(c => c.status === status);
-                        return renderColumn(status, columnCards);
-                      })}
-                    </div>
+        {/* Kanban Board - scrollable area */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+          {swimlane === 'none' ? (
+            <div className="flex gap-3 h-full pb-2">
+              {visibleStatuses.map((status) => renderColumn(status, groupedByStatus[status] || []))}
+            </div>
+          ) : (
+            <div className="space-y-3 min-w-max">
+              {Object.entries(swimlaneGroups || {}).map(([key, swimlaneCards]) => (
+                <div key={key} className="border rounded-xl bg-card/50">
+                  <div
+                    className="p-2.5 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl"
+                    onClick={() => toggleSwimlane(key)}
+                  >
+                    {collapsedSwimlanes.has(key) ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    <span className="font-semibold text-sm">{getSwimlaneLabel(key)}</span>
+                    <Badge variant="secondary" className="text-xs">{swimlaneCards.length}</Badge>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Save Filter Dialog */}
-      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Salvar Filtro</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder="Nome do filtro..."
-              value={newFilterName}
-              onChange={(e) => setNewFilterName(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={saveCurrentFilter}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+                  {!collapsedSwimlanes.has(key) && (
+                    <div className="p-3 overflow-x-auto border-t border-border/30">
+                      <div className="flex gap-3">
+                        {visibleStatuses.map((status) => {
+                          const columnCards = swimlaneCards.filter(c => c.status === status);
+                          return renderColumn(status, columnCards);
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}>
+          {activeCard && <DragOverlayCard card={activeCard} />}
+        </DragOverlay>
+
+        {/* Save Filter Dialog */}
+        <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Salvar Filtro</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                placeholder="Nome do filtro..."
+                value={newFilterName}
+                onChange={(e) => setNewFilterName(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveCurrentFilter}>
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DndContext>
   );
 };
