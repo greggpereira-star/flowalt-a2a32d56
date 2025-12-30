@@ -5,10 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Structured logging helper
+function createLogger(correlationId: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'ranking-snapshot',
+      correlationId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  const logger = createLogger(correlationId);
+  const startTime = Date.now();
+
+  logger.info('Starting ranking snapshot job');
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -16,17 +50,21 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Starting ranking snapshot...');
-
     // Get all workspaces
     const { data: workspaces, error: wsError } = await supabase
       .from('workspaces')
       .select('id')
       .eq('status', 'active');
 
-    if (wsError) throw wsError;
+    if (wsError) {
+      logger.error('Error fetching workspaces', { error: wsError.message });
+      throw wsError;
+    }
+
+    logger.info('Fetched workspaces', { count: workspaces?.length || 0 });
 
     let totalSnapshots = 0;
+    let totalErrors = 0;
 
     for (const workspace of workspaces || []) {
       // Get all members of this workspace
@@ -120,33 +158,58 @@ Deno.serve(async (req) => {
           });
 
         if (insertError) {
-          console.error('Error inserting ranking:', insertError);
+          logger.error('Error inserting ranking', { 
+            workspaceId: workspace.id,
+            userId: stat.user_id,
+            error: insertError.message 
+          });
+          totalErrors++;
         } else {
           totalSnapshots++;
         }
       }
+
+      logger.debug('Processed workspace rankings', { 
+        workspaceId: workspace.id, 
+        usersProcessed: userStats.length 
+      });
     }
 
-    console.log(`Created ${totalSnapshots} ranking snapshots`);
+    const duration = Date.now() - startTime;
+    logger.info('Ranking snapshot job completed', { 
+      workspaces: workspaces?.length || 0,
+      snapshots: totalSnapshots,
+      errors: totalErrors,
+      durationMs: duration 
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         workspaces: workspaces?.length || 0,
         snapshots: totalSnapshots,
+        errors: totalErrors,
+        correlation_id: correlationId,
+        duration_ms: duration
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId },
         status: 200,
       }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in ranking-snapshot:', errorMessage);
+    const duration = Date.now() - startTime;
+    
+    logger.error('Fatal error in ranking-snapshot', { 
+      error: errorMessage,
+      durationMs: duration 
+    });
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, correlation_id: correlationId }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId },
         status: 500,
       }
     );

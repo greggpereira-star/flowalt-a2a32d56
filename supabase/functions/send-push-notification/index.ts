@@ -13,10 +13,42 @@ interface PushPayload {
   tag?: string;
 }
 
+// Structured logging helper
+function createLogger(correlationId: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'send-push-notification',
+      correlationId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  const logger = createLogger(correlationId);
+  const startTime = Date.now();
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -30,7 +62,11 @@ Deno.serve(async (req) => {
       payload: PushPayload;
     };
 
-    console.log('Sending push notification:', { user_id, workspace_id, payload });
+    logger.info('Processing push notification request', { 
+      userId: user_id, 
+      workspaceId: workspace_id,
+      payloadTitle: payload.title 
+    });
 
     // Get push subscriptions
     let query = supabase
@@ -47,18 +83,20 @@ Deno.serve(async (req) => {
 
     const { data: subscriptions, error: subError } = await query;
 
-    if (subError) throw subError;
+    if (subError) {
+      logger.error('Error fetching subscriptions', { error: subError.message });
+      throw subError;
+    }
 
     if (!subscriptions || subscriptions.length === 0) {
+      logger.info('No subscriptions found', { userId: user_id, workspaceId: workspace_id });
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: 'No subscriptions found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
       );
     }
 
-    // Note: For production, you would need to set up VAPID keys and use web-push library
-    // This is a simplified implementation that stores the notification intent
-    // In production, you would use a service like Firebase Cloud Messaging or web-push
+    logger.info('Found subscriptions', { count: subscriptions.length });
 
     let sentCount = 0;
     const failedSubscriptions: string[] = [];
@@ -76,42 +114,62 @@ Deno.serve(async (req) => {
             url: payload.url,
             tag: payload.tag,
             push_endpoint: subscription.endpoint,
+            correlation_id: correlationId
           },
         });
 
         sentCount++;
       } catch (pushError) {
-        console.error('Failed to send push:', pushError);
+        const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
+        logger.error('Failed to send push notification', { 
+          subscriptionId: subscription.id,
+          error: errorMessage 
+        });
         failedSubscriptions.push(subscription.id);
       }
     }
 
     // Deactivate failed subscriptions
     if (failedSubscriptions.length > 0) {
+      logger.warn('Deactivating failed subscriptions', { count: failedSubscriptions.length });
       await supabase
         .from('push_subscriptions')
         .update({ is_active: false })
         .in('id', failedSubscriptions);
     }
 
+    const duration = Date.now() - startTime;
+    logger.info('Push notification job completed', { 
+      sent: sentCount, 
+      failed: failedSubscriptions.length,
+      durationMs: duration 
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         sent: sentCount,
         failed: failedSubscriptions.length,
+        correlation_id: correlationId
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId },
         status: 200,
       }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in send-push-notification:', errorMessage);
+    const duration = Date.now() - startTime;
+    
+    logger.error('Fatal error in send-push-notification', { 
+      error: errorMessage,
+      durationMs: duration 
+    });
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, correlation_id: correlationId }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId },
         status: 500,
       }
     );

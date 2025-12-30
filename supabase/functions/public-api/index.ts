@@ -26,11 +26,45 @@ interface IdempotencyResult {
 const RATE_LIMIT_MAX_REQUESTS = 100 // requests per window
 const RATE_LIMIT_WINDOW_MINUTES = 1 // window size in minutes
 
+// Structured logging helper
+function createLogger(correlationId: string, workspaceId?: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'public-api',
+      correlationId,
+      workspaceId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+    setWorkspaceId: (wsId: string) => { workspaceId = wsId }
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID()
+  const logger = createLogger(correlationId)
+  const startTime = Date.now()
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,17 +78,18 @@ Deno.serve(async (req) => {
 
   // Handle status endpoint (no auth required)
   if (resource === 'status') {
-    const startTime = Date.now()
+    const dbStartTime = Date.now()
     
     // Check database connectivity
     const { error: dbError } = await supabase.from('workspaces').select('id').limit(1)
-    const dbLatency = Date.now() - startTime
+    const dbLatency = Date.now() - dbStartTime
     const dbStatus = dbError ? 'unhealthy' : 'healthy'
 
     const status = {
       status: dbError ? 'degraded' : 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
+      correlation_id: correlationId,
       services: {
         database: {
           status: dbStatus,
@@ -71,9 +106,11 @@ Deno.serve(async (req) => {
       endpoints: ['cards', 'comments', 'time-entries', 'events', 'webhooks', 'status']
     }
 
+    logger.info('Status check', { dbStatus, dbLatency })
+
     return new Response(JSON.stringify(status), {
       status: dbError ? 503 : 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId }
     })
   }
 
@@ -81,9 +118,10 @@ Deno.serve(async (req) => {
     // Extract API key from header
     const apiKey = req.headers.get('x-api-key')
     if (!apiKey) {
+      logger.warn('Missing API key')
       return new Response(
         JSON.stringify({ error: 'API key required', code: 'MISSING_API_KEY' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
       )
     }
 
@@ -92,15 +130,16 @@ Deno.serve(async (req) => {
       .rpc('validate_api_key', { api_key: apiKey })
 
     if (keyError || !keyData || keyData.length === 0) {
-      console.error('API key validation failed:', keyError)
+      logger.warn('Invalid API key', { keyPrefix: apiKey.substring(0, 8) })
       return new Response(
         JSON.stringify({ error: 'Invalid API key', code: 'INVALID_API_KEY' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
       )
     }
 
     const { workspace_id, permissions } = keyData[0] as ApiKeyValidation
-    console.log(`API request for workspace ${workspace_id} with permissions:`, permissions)
+    logger.setWorkspaceId(workspace_id)
+    logger.info('API request authenticated', { resource, method: req.method, permissions })
 
     // Get API key ID for rate limiting
     const keyPrefix = apiKey.substring(0, 8)
@@ -110,6 +149,8 @@ Deno.serve(async (req) => {
       .eq('key_prefix', keyPrefix)
       .eq('workspace_id', workspace_id)
       .single()
+
+    let rateLimitHeaders: Record<string, string> = {}
 
     if (apiKeyRecord) {
       // Check rate limit
@@ -121,19 +162,19 @@ Deno.serve(async (req) => {
         })
 
       if (rateLimitError) {
-        console.error('Rate limit check failed:', rateLimitError)
+        logger.error('Rate limit check failed', { error: rateLimitError.message })
       } else if (rateLimitData && rateLimitData.length > 0) {
         const rateLimit = rateLimitData[0] as RateLimitResult
         
         // Add rate limit headers to all responses
-        const rateLimitHeaders = {
+        rateLimitHeaders = {
           'X-RateLimit-Limit': RATE_LIMIT_MAX_REQUESTS.toString(),
           'X-RateLimit-Remaining': Math.max(0, RATE_LIMIT_MAX_REQUESTS - rateLimit.current_count).toString(),
           'X-RateLimit-Reset': new Date(rateLimit.reset_at).getTime().toString(),
         }
 
         if (!rateLimit.allowed) {
-          console.log(`Rate limit exceeded for API key ${keyPrefix}`)
+          logger.warn('Rate limit exceeded', { keyPrefix, currentCount: rateLimit.current_count })
           return new Response(
             JSON.stringify({ 
               error: 'Rate limit exceeded', 
@@ -146,14 +187,12 @@ Deno.serve(async (req) => {
                 ...corsHeaders, 
                 ...rateLimitHeaders,
                 'Content-Type': 'application/json',
+                'X-Correlation-ID': correlationId,
                 'Retry-After': Math.ceil((new Date(rateLimit.reset_at).getTime() - Date.now()) / 1000).toString()
               } 
             }
           )
         }
-
-        // Store rate limit headers for later use
-        ;(req as any).rateLimitHeaders = rateLimitHeaders
       }
 
       // Update last_used_at
@@ -170,13 +209,14 @@ Deno.serve(async (req) => {
     if (idempotencyKey && isMutatingRequest) {
       // Validate idempotency key format (max 256 chars, alphanumeric + dashes)
       if (idempotencyKey.length > 256 || !/^[\w-]+$/.test(idempotencyKey)) {
+        logger.warn('Invalid idempotency key format', { idempotencyKey: idempotencyKey.substring(0, 20) })
         return new Response(
           JSON.stringify({ 
             error: 'Invalid idempotency key format', 
             code: 'INVALID_IDEMPOTENCY_KEY',
             details: 'Idempotency key must be alphanumeric with dashes, max 256 characters'
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
         )
       }
 
@@ -190,7 +230,7 @@ Deno.serve(async (req) => {
       if (!idempotentError && idempotentData && idempotentData.length > 0) {
         const cached = idempotentData[0] as IdempotencyResult
         if (cached.found && cached.response_body !== null) {
-          console.log(`Returning cached response for idempotency key: ${idempotencyKey}`)
+          logger.info('Returning cached idempotent response', { idempotencyKey: idempotencyKey.substring(0, 20) })
           return new Response(
             JSON.stringify(cached.response_body),
             { 
@@ -198,17 +238,13 @@ Deno.serve(async (req) => {
               headers: { 
                 ...corsHeaders, 
                 'Content-Type': 'application/json',
-                'X-Idempotent-Replayed': 'true'
+                'X-Idempotent-Replayed': 'true',
+                'X-Correlation-ID': correlationId
               } 
             }
           )
         }
       }
-
-      // Store context for later
-      ;(req as any).idempotencyKey = idempotencyKey
-      ;(req as any).workspaceId = workspace_id
-      ;(req as any).supabase = supabase
     }
 
     // resourceId from URL path
@@ -219,29 +255,27 @@ Deno.serve(async (req) => {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
 
-    // Get rate limit headers if available
-    const rateLimitHeaders = (req as any).rateLimitHeaders || {}
-
     // Route to appropriate handler and wrap response with rate limit headers
     let response: Response
 
     switch (resource) {
       case 'cards':
-        response = await handleCards(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleCards(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
         break
       case 'comments':
-        response = await handleComments(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleComments(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
         break
       case 'time-entries':
-        response = await handleTimeEntries(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleTimeEntries(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
         break
       case 'events':
-        response = await handleEvents(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url })
+        response = await handleEvents(req, supabase, workspace_id, permissions, resourceId, { page, limit, offset, url }, logger)
         break
       case 'webhooks':
-        response = await handleWebhooks(req, supabase, workspace_id, permissions, resourceId)
+        response = await handleWebhooks(req, supabase, workspace_id, permissions, resourceId, logger)
         break
       default:
+        logger.warn('Resource not found', { resource })
         response = new Response(
           JSON.stringify({ 
             error: 'Resource not found', 
@@ -252,11 +286,12 @@ Deno.serve(async (req) => {
         )
     }
 
-    // Add rate limit headers to response
+    // Add rate limit headers and correlation ID to response
     const newHeaders = new Headers(response.headers)
     Object.entries(rateLimitHeaders).forEach(([key, value]) => {
-      newHeaders.set(key, value as string)
+      newHeaders.set(key, value)
     })
+    newHeaders.set('X-Correlation-ID', correlationId)
 
     // Store idempotent response if applicable
     if (idempotencyKey && isMutatingRequest && response.status < 500) {
@@ -271,18 +306,32 @@ Deno.serve(async (req) => {
       })
     }
 
+    const duration = Date.now() - startTime
+    logger.info('Request completed', { 
+      status: response.status, 
+      durationMs: duration,
+      resource,
+      method: req.method 
+    })
+
     return new Response(response.body, {
       status: response.status,
       headers: newHeaders
     })
   } catch (error) {
-    console.error('API Error:', error)
+    const duration = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('API Error', { error: errorMessage, durationMs: duration })
+    
     return new Response(
       JSON.stringify({ error: 'Internal server error', code: 'INTERNAL_ERROR' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
     )
   }
 })
+
+// Logger type for handlers
+type Logger = ReturnType<typeof createLogger>
 
 // Cards handler
 async function handleCards(
@@ -291,7 +340,8 @@ async function handleCards(
   workspaceId: string, 
   permissions: string[],
   cardId: string | undefined,
-  pagination: { page: number; limit: number; offset: number; url: URL }
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
 ) {
   const hasRead = permissions.includes('read') || permissions.includes('cards:read')
   const hasWrite = permissions.includes('write') || permissions.includes('cards:write')
@@ -347,7 +397,7 @@ async function handleCards(
     const { data, error, count } = await query
 
     if (error) {
-      console.error('Cards query error:', error)
+      logger.error('Cards query error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to fetch cards', code: 'QUERY_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -386,7 +436,7 @@ async function handleCards(
       .single()
 
     if (error) {
-      console.error('Card insert error:', error)
+      logger.error('Card insert error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to create card', code: 'INSERT_ERROR', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -394,7 +444,7 @@ async function handleCards(
     }
 
     // Trigger webhook
-    await triggerWebhook(supabase, workspaceId, 'card.created', data)
+    await triggerWebhook(supabase, workspaceId, 'card.created', data, logger)
 
     return new Response(JSON.stringify({ data }), {
       status: 201,
@@ -420,7 +470,7 @@ async function handleCards(
       .single()
 
     if (error) {
-      console.error('Card update error:', error)
+      logger.error('Card update error', { error: error.message, cardId })
       return new Response(
         JSON.stringify({ error: 'Failed to update card', code: 'UPDATE_ERROR', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -428,7 +478,7 @@ async function handleCards(
     }
 
     // Trigger webhook
-    await triggerWebhook(supabase, workspaceId, 'card.updated', data)
+    await triggerWebhook(supabase, workspaceId, 'card.updated', data, logger)
 
     return new Response(JSON.stringify({ data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -450,7 +500,7 @@ async function handleCards(
       .eq('workspace_id', workspaceId)
 
     if (error) {
-      console.error('Card delete error:', error)
+      logger.error('Card delete error', { error: error.message, cardId })
       return new Response(
         JSON.stringify({ error: 'Failed to delete card', code: 'DELETE_ERROR' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -458,7 +508,7 @@ async function handleCards(
     }
 
     // Trigger webhook
-    await triggerWebhook(supabase, workspaceId, 'card.deleted', { id: cardId })
+    await triggerWebhook(supabase, workspaceId, 'card.deleted', { id: cardId }, logger)
 
     return new Response(null, { status: 204, headers: corsHeaders })
   }
@@ -476,7 +526,8 @@ async function handleComments(
   workspaceId: string, 
   permissions: string[],
   commentId: string | undefined,
-  pagination: { page: number; limit: number; offset: number; url: URL }
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
 ) {
   const hasRead = permissions.includes('read') || permissions.includes('comments:read')
   const hasWrite = permissions.includes('write') || permissions.includes('comments:write')
@@ -571,13 +622,14 @@ async function handleComments(
       .single()
 
     if (error) {
+      logger.error('Comment insert error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to create comment', code: 'INSERT_ERROR', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    await triggerWebhook(supabase, workspaceId, 'comment.created', data)
+    await triggerWebhook(supabase, workspaceId, 'comment.created', data, logger)
 
     return new Response(JSON.stringify({ data }), {
       status: 201,
@@ -598,7 +650,8 @@ async function handleTimeEntries(
   workspaceId: string, 
   permissions: string[],
   entryId: string | undefined,
-  pagination: { page: number; limit: number; offset: number; url: URL }
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
 ) {
   const hasRead = permissions.includes('read') || permissions.includes('time:read')
   const hasWrite = permissions.includes('write') || permissions.includes('time:write')
@@ -631,6 +684,7 @@ async function handleTimeEntries(
     const { data, error, count } = await query
 
     if (error) {
+      logger.error('Time entries query error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to fetch time entries', code: 'QUERY_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -682,13 +736,14 @@ async function handleTimeEntries(
       .single()
 
     if (error) {
+      logger.error('Time entry insert error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to create time entry', code: 'INSERT_ERROR', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    await triggerWebhook(supabase, workspaceId, 'time_entry.logged', data)
+    await triggerWebhook(supabase, workspaceId, 'time_entry.logged', data, logger)
 
     return new Response(JSON.stringify({ data }), {
       status: 201,
@@ -709,7 +764,8 @@ async function handleEvents(
   workspaceId: string, 
   permissions: string[],
   eventId: string | undefined,
-  pagination: { page: number; limit: number; offset: number; url: URL }
+  pagination: { page: number; limit: number; offset: number; url: URL },
+  logger: Logger
 ) {
   const hasRead = permissions.includes('read') || permissions.includes('events:read')
   const hasWrite = permissions.includes('write') || permissions.includes('events:write')
@@ -760,6 +816,7 @@ async function handleEvents(
     const { data, error, count } = await query
 
     if (error) {
+      logger.error('Events query error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to fetch events', code: 'QUERY_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -798,13 +855,14 @@ async function handleEvents(
       .single()
 
     if (error) {
+      logger.error('Event insert error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to create event', code: 'INSERT_ERROR', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    await triggerWebhook(supabase, workspaceId, 'event.created', data)
+    await triggerWebhook(supabase, workspaceId, 'event.created', data, logger)
 
     return new Response(JSON.stringify({ data }), {
       status: 201,
@@ -824,7 +882,8 @@ async function handleWebhooks(
   supabase: any, 
   workspaceId: string, 
   permissions: string[],
-  webhookId: string | undefined
+  webhookId: string | undefined,
+  logger: Logger
 ) {
   const hasAdmin = permissions.includes('admin') || permissions.includes('webhooks:admin')
 
@@ -863,6 +922,7 @@ async function handleWebhooks(
       .order('created_at', { ascending: false })
 
     if (error) {
+      logger.error('Webhooks query error', { error: error.message })
       return new Response(
         JSON.stringify({ error: 'Failed to fetch webhooks', code: 'QUERY_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -881,7 +941,7 @@ async function handleWebhooks(
 }
 
 // Trigger webhook helper
-async function triggerWebhook(supabase: any, workspaceId: string, eventType: string, payload: any) {
+async function triggerWebhook(supabase: any, workspaceId: string, eventType: string, payload: any, logger: Logger) {
   try {
     // Get active subscriptions for this event
     const { data: subscriptions } = await supabase
@@ -892,6 +952,8 @@ async function triggerWebhook(supabase: any, workspaceId: string, eventType: str
       .contains('events', [eventType])
 
     if (!subscriptions || subscriptions.length === 0) return
+
+    logger.debug('Triggering webhooks', { eventType, subscriptionCount: subscriptions.length })
 
     for (const sub of subscriptions) {
       // Create HMAC signature
@@ -951,6 +1013,7 @@ async function triggerWebhook(supabase: any, workspaceId: string, eventType: str
           })
           .eq('id', delivery.id)
       }).catch(async (error) => {
+        logger.error('Webhook delivery failed', { subscriptionId: sub.id, error: error.message })
         await supabase
           .from('webhook_deliveries')
           .update({
@@ -963,6 +1026,7 @@ async function triggerWebhook(supabase: any, workspaceId: string, eventType: str
       })
     }
   } catch (error) {
-    console.error('Webhook trigger error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('Webhook trigger error', { error: errorMessage })
   }
 }

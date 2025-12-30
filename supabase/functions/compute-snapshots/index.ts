@@ -5,15 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Structured logging helper
+function createLogger(correlationId: string) {
+  const log = (level: string, message: string, context: Record<string, unknown> = {}) => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'compute-snapshots',
+      correlationId,
+      message,
+      ...context
+    }
+    if (level === 'error') {
+      console.error(JSON.stringify(entry))
+    } else if (level === 'warn') {
+      console.warn(JSON.stringify(entry))
+    } else {
+      console.log(JSON.stringify(entry))
+    }
+  }
+
+  return {
+    info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
+    warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
+    error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
+    debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const correlationId = crypto.randomUUID()
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID()
+  const logger = createLogger(correlationId)
   const startTime = Date.now()
 
-  console.log(`[${correlationId}] Starting snapshot computation`)
+  logger.info('Starting snapshot computation')
 
   try {
     const supabase = createClient(
@@ -28,11 +57,11 @@ Deno.serve(async (req) => {
       .eq('status', 'active')
 
     if (wsError) {
-      console.error(`[${correlationId}] Error fetching workspaces:`, wsError)
+      logger.error('Error fetching workspaces', { error: wsError.message })
       throw wsError
     }
 
-    console.log(`[${correlationId}] Found ${workspaces?.length || 0} active workspaces`)
+    logger.info('Fetched active workspaces', { count: workspaces?.length || 0 })
 
     const snapshotTypes = ['coordination', 'financial', 'team']
     const results: { workspace_id: string; snapshots: string[]; errors: string[] }[] = []
@@ -48,15 +77,23 @@ Deno.serve(async (req) => {
           })
 
           if (error) {
-            console.error(`[${correlationId}] Error computing ${snapshotType} for ${workspace.id}:`, error)
+            logger.error('Error computing snapshot', { 
+              workspaceId: workspace.id, 
+              snapshotType, 
+              error: error.message 
+            })
             wsResult.errors.push(`${snapshotType}: ${error.message}`)
           } else {
             wsResult.snapshots.push(snapshotType)
           }
         } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-          console.error(`[${correlationId}] Exception computing ${snapshotType} for ${workspace.id}:`, e);
-          wsResult.errors.push(`${snapshotType}: ${errorMessage}`);
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+          logger.error('Exception computing snapshot', { 
+            workspaceId: workspace.id, 
+            snapshotType, 
+            error: errorMessage 
+          })
+          wsResult.errors.push(`${snapshotType}: ${errorMessage}`)
         }
       }
 
@@ -65,15 +102,27 @@ Deno.serve(async (req) => {
 
     // Record metric for monitoring
     const duration = Date.now() - startTime
-    await supabase.rpc('record_metric', {
-      p_metric_type: 'job',
-      p_metric_name: 'compute_snapshots_duration_ms',
-      p_metric_value: duration,
-      p_dimensions: { workspaces_processed: workspaces?.length || 0 },
-      p_correlation_id: correlationId
-    })
+    try {
+      await supabase.rpc('record_metric', {
+        p_metric_type: 'job',
+        p_metric_name: 'compute_snapshots_duration_ms',
+        p_metric_value: duration,
+        p_dimensions: { workspaces_processed: workspaces?.length || 0 },
+        p_correlation_id: correlationId
+      })
+    } catch (metricError) {
+      logger.warn('Failed to record metric', { error: String(metricError) })
+    }
 
-    console.log(`[${correlationId}] Completed in ${duration}ms`)
+    const successCount = results.reduce((acc, r) => acc + r.snapshots.length, 0)
+    const errorCount = results.reduce((acc, r) => acc + r.errors.length, 0)
+
+    logger.info('Snapshot computation completed', { 
+      durationMs: duration,
+      workspacesProcessed: workspaces?.length || 0,
+      successCount,
+      errorCount
+    })
 
     return new Response(
       JSON.stringify({
@@ -83,11 +132,16 @@ Deno.serve(async (req) => {
         workspaces_processed: workspaces?.length || 0,
         results
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
     )
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[${correlationId}] Fatal error:`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const duration = Date.now() - startTime
+    
+    logger.error('Fatal error in snapshot computation', { 
+      error: errorMessage,
+      durationMs: duration
+    })
     
     return new Response(
       JSON.stringify({
@@ -95,7 +149,7 @@ Deno.serve(async (req) => {
         correlation_id: correlationId,
         error: errorMessage
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId } }
     )
   }
 })
