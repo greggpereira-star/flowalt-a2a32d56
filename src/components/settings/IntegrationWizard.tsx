@@ -236,26 +236,21 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
     if (!currentWorkspace) return;
 
     try {
-      const { data, error } = await supabase
-        .from('integration_credentials')
-        .select('integration_type, is_active, configured_at, updated_at, last_sync_at, sync_status')
-        .eq('workspace_id', currentWorkspace.id);
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
+        body: {
+          action: 'status',
+          workspace_id: currentWorkspace.id,
+        },
+      });
 
       if (error) throw error;
 
-      const statusMap: Record<string, IntegrationStatus> = {};
-      for (const item of data || []) {
-        statusMap[item.integration_type] = {
-          is_active: item.is_active || false,
-          configured_at: item.configured_at,
-          updated_at: item.updated_at,
-          last_sync_at: item.last_sync_at || undefined,
-          sync_status: item.sync_status || undefined,
-        };
-      }
-      setIntegrationStatuses(statusMap);
-    } catch (error) {
+      const integrationsData = (data?.integrations || {}) as Record<string, IntegrationStatus>;
+      setIntegrationStatuses(integrationsData);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Erro ao carregar integrações';
       console.error('Error fetching integration statuses:', error);
+      toast.error(errMsg);
     }
   };
 
@@ -309,16 +304,17 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
 
   const handleTestConnection = async () => {
     if (!validateForm() || !currentWorkspace || !selectedIntegration) return;
-    
+
     setIsTesting(true);
     setTestResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('integration-manager/test', {
-        body: { 
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
+        body: {
+          action: 'test',
           integration_type: selectedIntegration.id,
-          workspace_id: currentWorkspace.id
-        }
+          workspace_id: currentWorkspace.id,
+        },
       });
 
       if (error) throw error;
@@ -345,12 +341,13 @@ export function IntegrationWizard({ open, onOpenChange, initialIntegration }: In
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('integration-manager/save', {
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
         body: {
+          action: 'save',
           integration_type: selectedIntegration.id,
           workspace_id: currentWorkspace.id,
-          credentials: formData
-        }
+          credentials: formData,
+        },
       });
 
       if (error) throw error;
