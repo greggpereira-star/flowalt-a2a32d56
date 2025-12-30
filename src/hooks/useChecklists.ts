@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
 
 export interface Checklist {
   id: string;
@@ -61,6 +61,19 @@ export const useCreateChecklist = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      const workspaceId = await getCardWorkspaceId(card_id);
+      if (workspaceId) {
+        triggerWebhook(workspaceId, 'checklist.item.created', {
+          id: data.id,
+          card_id: data.card_id,
+          title: data.title,
+          assignee_id: data.assignee_id,
+          function_title: data.function_title,
+        });
+      }
+
       return data;
     },
     onSuccess: (data) => {
@@ -99,6 +112,21 @@ export const useUpdateChecklist = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook if item was completed
+      if (updates.is_completed === true) {
+        const workspaceId = await getCardWorkspaceId(card_id);
+        if (workspaceId) {
+          triggerWebhook(workspaceId, 'checklist.item.completed', {
+            id: data.id,
+            card_id,
+            title: data.title,
+            completed_at: data.completed_at,
+            assignee_id: data.assignee_id,
+          });
+        }
+      }
+
       return { ...data, card_id };
     },
     onSuccess: (data) => {

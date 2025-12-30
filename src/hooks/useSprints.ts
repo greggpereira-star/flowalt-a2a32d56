@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerWebhook } from '@/lib/webhookTrigger';
 
 export interface Sprint {
   id: string;
@@ -120,6 +121,17 @@ export const useCreateSprint = () => {
         .single();
 
       if (error) throw error;
+
+      // Trigger webhook
+      triggerWebhook(currentWorkspace.id, 'sprint.created', {
+        id: data.id,
+        name: data.name,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        goal: data.goal,
+        created_by: user.id,
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -154,6 +166,22 @@ export const useUpdateSprint = () => {
         .single();
 
       if (error) throw error;
+
+      // Determine webhook event type
+      const isCompleted = updates.status === 'completed';
+      const eventType = isCompleted ? 'sprint.completed' : 'sprint.updated';
+
+      // Trigger webhook
+      triggerWebhook(data.workspace_id, eventType, {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        goal: data.goal,
+        ...(isCompleted && { completed_at: new Date().toISOString() }),
+      });
+
       return data;
     },
     onSuccess: (data) => {
