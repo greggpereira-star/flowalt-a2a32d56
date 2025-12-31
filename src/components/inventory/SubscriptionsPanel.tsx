@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard, Plus, RefreshCw, XCircle, AlertTriangle } from "lucide-react";
 import { useSubscriptions, useExpiringSubscriptions, useUnderutilizedSubscriptions, useSubscriptionCostSummary, useRenewSubscription, useCancelSubscription } from "@/hooks/useSubscriptions";
 import { SubscriptionForm } from "./SubscriptionForm";
+import { LicenseDowngradeSuggestions } from "./LicenseDowngradeSuggestions";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -232,6 +233,9 @@ export function SubscriptionsPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* Downgrade Suggestions */}
+      <LicenseDowngradeSuggestions />
     </div>
   );
 }

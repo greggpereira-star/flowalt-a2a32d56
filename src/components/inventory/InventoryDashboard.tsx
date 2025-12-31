@@ -14,6 +14,7 @@ import { MaintenancePanel } from "./MaintenancePanel";
 import { DepreciationPanel } from "./DepreciationPanel";
 import { SubscriptionsPanel } from "./SubscriptionsPanel";
 import { InventoryAlertsPanel } from "./InventoryAlertsPanel";
+import { KitTemplatesManager } from "./KitTemplatesManager";
 
 export function InventoryDashboard() {
   const [activeTab, setActiveTab] = useState("catalog");
@@ -137,12 +138,13 @@ export function InventoryDashboard() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="catalog">Catálogo</TabsTrigger>
           <TabsTrigger value="movements">Movimentações</TabsTrigger>
           <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
           <TabsTrigger value="depreciation">Depreciação</TabsTrigger>
           <TabsTrigger value="subscriptions">Licenças</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
         </TabsList>
 
@@ -164,6 +166,10 @@ export function InventoryDashboard() {
 
         <TabsContent value="subscriptions" className="mt-6">
           <SubscriptionsPanel />
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <KitTemplatesManager />
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-6">

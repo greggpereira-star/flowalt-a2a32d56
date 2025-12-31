@@ -32,6 +32,7 @@ import { useCardKitTimeline } from '@/hooks/useCardKitTimeline';
 import { useInventoryItems, useInventoryUnits } from '@/hooks/useInventory';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ApplyKitTemplateButton } from './ApplyKitTemplateButton';
 
 interface CardKitTabProps {
   cardId: string;
@@ -201,14 +202,16 @@ export const CardKitTab: React.FC<CardKitTabProps> = ({ cardId }) => {
         </Card>
       </div>
 
-      {/* Add Item Button */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-full gap-2">
-            <Plus className="h-4 w-4" />
-            Adicionar Item ao Kit
-          </Button>
-        </DialogTrigger>
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex-1 gap-2">
+              <Plus className="h-4 w-4" />
+              Adicionar Item
+            </Button>
+          </DialogTrigger>
+        <ApplyKitTemplateButton cardId={cardId} />
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Item ao Kit</DialogTitle>
@@ -294,6 +297,7 @@ export const CardKitTab: React.FC<CardKitTabProps> = ({ cardId }) => {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
 
       {/* Kit Items List */}
       {(!kitItems || kitItems.length === 0) ? (
