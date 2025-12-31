@@ -36,6 +36,8 @@ import { useToast } from '@/hooks/use-toast';
 import {
   ChevronRight,
   ChevronDown,
+  ChevronsDown,
+  ChevronsUp,
   Folder,
   FolderOpen,
   Plus,
@@ -274,6 +276,17 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
     [expandedFolders, setExpandedFolders, spaceId, trackFolderExpanded, trackFolderCollapsed]
   );
 
+  const handleExpandAll = useCallback(() => {
+    if (folders && folders.length > 0) {
+      const allFolderIds = folders.map((f) => f.id);
+      setExpandedFolders(allFolderIds);
+    }
+  }, [folders, setExpandedFolders]);
+
+  const handleCollapseAll = useCallback(() => {
+    setExpandedFolders([]);
+  }, [setExpandedFolders]);
+
   const handleViewSelect = useCallback(
     (viewId: string, viewType: string) => {
       navigate(`/space/${spaceId}?view=${viewId}`);
@@ -339,18 +352,43 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
           />
           <span className="text-sm font-medium truncate">{spaceName}</span>
         </div>
-        {/* Only admins can create folders for other users */}
-        {isAdmin && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-            onClick={() => setCreateFolderOpen(true)}
-            title="Adicionar Pasta"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        )}
+        <div className="flex items-center gap-0.5">
+          {/* Expand/Collapse All - só mostra se tem mais de 1 pasta */}
+          {folders && folders.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={handleExpandAll}
+                title="Expandir todas as pastas"
+              >
+                <ChevronsDown className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={handleCollapseAll}
+                title="Minimizar todas as pastas"
+              >
+                <ChevronsUp className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+          {/* Only admins can create folders for other users */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+              onClick={() => setCreateFolderOpen(true)}
+              title="Adicionar Pasta"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Folders Tree - RLS already filters by ownership */}
