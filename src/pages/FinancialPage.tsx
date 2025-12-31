@@ -46,11 +46,12 @@ export default function FinancialPage() {
         <div className="flex flex-col h-full bg-muted/20">
           {/* Header Section */}
           <div className="bg-background border-b border-border/30">
-            <div className="px-6 lg:px-8 pt-6 pb-5">
+            <div className="px-6 lg:px-8 pt-8 pb-8">
+              {/* Title Row */}
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-1.5">
                     Gestão financeira e inteligência contábil
                   </p>
                 </div>
@@ -59,12 +60,12 @@ export default function FinancialPage() {
                   <TransactionForm />
                 </div>
               </div>
-            </div>
 
-            {/* Navigation Section */}
-            <div className="px-6 lg:px-8 pb-5">
-              <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList variant="wrap" className="pb-1">
+              {/* Breathing Space */}
+              <div className="mt-8">
+                {/* Navigation Pills */}
+                <Tabs defaultValue="dashboard" className="w-full">
+                  <TabsList variant="wrap" className="gap-2.5">
                   <TabsTrigger value="dashboard" variant="wrap" className="gap-2">
                     <LayoutDashboard className="w-4 h-4" />
                     <span>Dashboard</span>
@@ -101,22 +102,22 @@ export default function FinancialPage() {
                     <Users className="w-4 h-4" />
                     <span>Colaboradores</span>
                   </TabsTrigger>
-                </TabsList>
+                  </TabsList>
 
-                {/* Minimalist Divider */}
-                <div className="relative mt-6">
-                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div className="w-full border-t border-border/40" />
+                  {/* Minimalist Divider */}
+                  <div className="relative mt-8 mb-2">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-border/30" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-background px-4">
+                        <div className="w-1 h-1 rounded-full bg-border" />
+                      </span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-background px-4">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                    </span>
-                  </div>
-                </div>
 
-                {/* Content Area */}
-                <div className="pt-6 pb-8 px-0">
+                  {/* Content Area */}
+                  <div className="pt-8 pb-8 px-0">
                   <TabsContent value="dashboard" className="mt-0 animate-in fade-in-50 duration-300">
                     <FinancialDashboard />
                   </TabsContent>
@@ -169,8 +170,9 @@ export default function FinancialPage() {
                   <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
                     <CollaboratorManager />
                   </TabsContent>
-                </div>
-              </Tabs>
+                  </div>
+                </Tabs>
+              </div>
             </div>
           </div>
         </div>
