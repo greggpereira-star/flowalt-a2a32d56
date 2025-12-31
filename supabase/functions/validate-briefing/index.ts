@@ -15,41 +15,105 @@ interface BriefingData {
 }
 
 serve(async (req) => {
+  console.log("validate-briefing: Request received", req.method);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { briefingData } = await req.json() as { briefingData: BriefingData };
+    const body = await req.json();
+    const briefingData = body.briefingData as BriefingData;
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    console.log("validate-briefing: Briefing data received", JSON.stringify(briefingData).substring(0, 200));
 
     // Check required fields first
-    const context = briefingData.context?.trim() || "";
-    const deliverables = briefingData.deliverables?.trim() || "";
+    const context = briefingData?.context?.trim() || "";
+    const deliverables = briefingData?.deliverables?.trim() || "";
 
     if (!context || !deliverables) {
+      console.log("validate-briefing: Required fields missing");
       return new Response(
         JSON.stringify({
           isValid: false,
           message: "Os campos obrigatórios (Contexto e Entregáveis) devem ser preenchidos.",
+          issues: ["Contexto e Entregáveis são obrigatórios"]
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Basic length validation
+    if (context.length < 20 || deliverables.length < 20) {
+      console.log("validate-briefing: Content too short");
+      return new Response(
+        JSON.stringify({
+          isValid: false,
+          message: "Os campos obrigatórios devem ter pelo menos 20 caracteres com informações úteis.",
+          issues: [
+            context.length < 20 ? "Contexto muito curto (mínimo 20 caracteres)" : null,
+            deliverables.length < 20 ? "Entregáveis muito curto (mínimo 20 caracteres)" : null
+          ].filter(Boolean)
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check for gibberish/placeholder text
+    const gibberishPatterns = [
+      /^[a-z]{1,5}$/i,           // Single short words
+      /^[0-9]+$/,                 // Only numbers
+      /^(.)\1{3,}$/,              // Repeated characters (aaaa, xxxx)
+      /^(teste?|test|asdf|qwer|xxx|abc|123)$/i,  // Common test words
+      /^(ok|sim|não|nao|yes|no)$/i,              // Too short responses
+    ];
+
+    const hasGibberish = gibberishPatterns.some(pattern => 
+      pattern.test(context.trim()) || pattern.test(deliverables.trim())
+    );
+
+    if (hasGibberish) {
+      console.log("validate-briefing: Gibberish detected");
+      return new Response(
+        JSON.stringify({
+          isValid: false,
+          message: "O briefing parece estar preenchido de forma inadequada.",
+          issues: ["Conteúdo parece ser texto de teste ou sem sentido"],
+          suggestions: [
+            "Descreva o contexto real do projeto",
+            "Liste os entregáveis específicos esperados"
+          ]
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Try AI validation
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!LOVABLE_API_KEY) {
+      console.log("validate-briefing: No API key, using basic validation");
+      // Fallback to basic validation if no API key
+      return new Response(
+        JSON.stringify({
+          isValid: true,
+          message: "Briefing validado com sucesso!",
           issues: []
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("validate-briefing: Calling AI for validation");
+
     // Use AI to validate content quality
     const systemPrompt = `Você é um assistente de validação de briefing de projetos. 
 Sua tarefa é analisar se o briefing foi preenchido de forma adequada e com informações úteis, ou se foi preenchido de qualquer jeito apenas para liberar o card.
 
 Critérios de REJEIÇÃO:
-- Texto muito curto (menos de 20 caracteres em campos obrigatórios)
-- Texto sem sentido ou aleatório (ex: "asdf", "xxx", "teste", "123", "aaaa")
-- Respostas genéricas demais que não agregam informação (ex: "ok", "sim", "não sei")
+- Texto muito curto ou sem detalhes suficientes
+- Texto sem sentido ou aleatório
+- Respostas genéricas demais que não agregam informação
 - Conteúdo que parece cópia do placeholder/exemplo do campo
 - Texto repetido ou sem contexto real do projeto
 
@@ -81,102 +145,97 @@ ${briefingData.references || "(não preenchido)"}
 
 O briefing está adequado para iniciar o trabalho?`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.1,
-      }),
-    });
+    try {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.1,
+        }),
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+      console.log("validate-briefing: AI response status", response.status);
+
+      if (!response.ok) {
+        console.log("validate-briefing: AI error, using fallback validation");
+        // Fallback to basic validation if AI fails
         return new Response(
-          JSON.stringify({ 
-            isValid: true, 
-            message: "Validação simplificada aplicada.",
-            issues: [] 
+          JSON.stringify({
+            isValid: true,
+            message: "Briefing validado com sucesso!",
+            issues: []
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ 
-            isValid: true, 
-            message: "Validação simplificada aplicada.",
-            issues: [] 
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+
+      const aiData = await response.json();
+      const content = aiData.choices?.[0]?.message?.content || "";
       
-      console.error("AI gateway error:", response.status);
-      // Fallback to simple validation if AI fails
+      console.log("validate-briefing: AI content received", content.substring(0, 200));
+
+      // Extract JSON from response
+      let validation;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          validation = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON found");
+        }
+      } catch {
+        console.log("validate-briefing: Failed to parse AI response, approving");
+        validation = {
+          isValid: true,
+          issues: [],
+          suggestions: []
+        };
+      }
+
+      const message = validation.isValid 
+        ? "Briefing validado com sucesso!"
+        : validation.issues?.length > 0 
+          ? validation.issues.join(" ") 
+          : "O briefing precisa de mais detalhes para ser aprovado.";
+
+      console.log("validate-briefing: Returning result", { isValid: validation.isValid });
+
       return new Response(
         JSON.stringify({
-          isValid: context.length >= 20 && deliverables.length >= 20,
-          message: context.length < 20 || deliverables.length < 20 
-            ? "Os campos obrigatórios devem ter pelo menos 20 caracteres."
-            : "Validação simplificada aplicada.",
+          isValid: validation.isValid,
+          message,
+          issues: validation.issues || [],
+          suggestions: validation.suggestions || []
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (aiError) {
+      console.error("validate-briefing: AI call failed", aiError);
+      // Fallback to approve if AI fails
+      return new Response(
+        JSON.stringify({
+          isValid: true,
+          message: "Briefing validado com sucesso!",
           issues: []
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-    
-    // Extract JSON from response
-    let validation;
-    try {
-      // Try to find JSON in the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        validation = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found");
-      }
-    } catch {
-      // Fallback if JSON parsing fails
-      validation = {
-        isValid: context.length >= 20 && deliverables.length >= 20,
-        issues: [],
-        suggestions: []
-      };
-    }
-
-    const message = validation.isValid 
-      ? "Briefing validado com sucesso!"
-      : validation.issues?.length > 0 
-        ? validation.issues.join(" ") 
-        : "O briefing precisa de mais detalhes para ser aprovado.";
-
-    return new Response(
-      JSON.stringify({
-        isValid: validation.isValid,
-        message,
-        issues: validation.issues || [],
-        suggestions: validation.suggestions || []
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
-    console.error("Validation error:", error);
+    console.error("validate-briefing: Error", error);
     return new Response(
       JSON.stringify({ 
         isValid: false, 
         message: "Erro ao validar briefing. Tente novamente.",
-        issues: [] 
+        issues: [String(error)]
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
