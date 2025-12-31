@@ -14,6 +14,7 @@ import { DemandFormDialog } from '@/components/cards/DemandFormDialog';
 import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
+import { CreateFolderWithTemplateDialog } from '@/components/social-media/CreateFolderWithTemplateDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -303,38 +304,48 @@ const SpacePage: React.FC = () => {
         defaultStatus={defaultStatus}
       />
 
-      <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Pasta</DialogTitle>
-            <DialogDescription>
-              Crie uma pasta para organizar seus cards neste espaço.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="folderName">Nome da pasta</Label>
-            <Input
-              id="folderName"
-              placeholder="Ex: Cliente X, Campanha Y..."
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              className="mt-2"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateFolderOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCreateFolder}
-              disabled={!newFolderName.trim() || createFolder.isPending}
-            >
-              {createFolder.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Criar Pasta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Folder Dialog - Use template dialog for social_media spaces */}
+      {space?.type === 'social_media' ? (
+        <CreateFolderWithTemplateDialog
+          open={createFolderOpen}
+          onOpenChange={setCreateFolderOpen}
+          spaceId={spaceId!}
+          spaceType="social_media"
+        />
+      ) : (
+        <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova Pasta</DialogTitle>
+              <DialogDescription>
+                Crie uma pasta para organizar seus cards neste espaço.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="folderName">Nome da pasta</Label>
+              <Input
+                id="folderName"
+                placeholder="Ex: Cliente X, Campanha Y..."
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                className="mt-2"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateFolderOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim() || createFolder.isPending}
+              >
+                {createFolder.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Criar Pasta
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Card Detail Sheet */}
       <CardDetailSheet

@@ -80,12 +80,10 @@ export function useCreateFolderView() {
       folderId,
       name,
       viewType,
-      config = {},
     }: {
       folderId: string;
       name: string;
       viewType: string;
-      config?: Record<string, unknown>;
     }) => {
       if (!currentWorkspace) throw new Error('No workspace');
 
@@ -96,7 +94,7 @@ export function useCreateFolderView() {
           workspace_id: currentWorkspace.id,
           name,
           view_type: viewType,
-          view_config: config,
+          view_config: {},
         }])
         .select()
         .single();

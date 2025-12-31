@@ -44,6 +44,7 @@ import { NextBestAction } from './NextBestAction';
 import { CardFinancialTab } from './CardFinancialTab';
 import { CardKitTab } from './CardKitTab';
 import { CardInvitePanel } from './CardInvitePanel';
+import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
 import {
   CalendarIcon,
   FileText,
@@ -329,6 +330,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const dueDateStatus = getDueDateStatus();
   const isTrafficSpace = space?.type === 'traffic';
+  const isSocialMediaSpace = space?.type === 'social_media';
 
   if (!cardId) return null;
 
@@ -796,6 +798,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       className="min-h-[120px] resize-none text-sm leading-relaxed"
                     />
                   </div>
+
+                  {/* Social Media Custom Fields */}
+                  {isSocialMediaSpace && cardId && (
+                    <>
+                      <Separator />
+                      <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
+                    </>
+                  )}
 
                   <Separator />
 
