@@ -537,90 +537,142 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="flex-shrink-0 px-4 py-3 border-b bg-muted/30">
-                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-5 gap-1">
+              <div className="flex-shrink-0 px-3 py-2 border-b bg-gradient-to-b from-muted/40 to-muted/20">
+                {/* Primary Actions Row */}
+                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-5 gap-1.5">
                   <TabsTrigger
                     value="overview"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <Target className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Geral</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <Target className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Geral</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="assistant"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <Sparkles className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">IA</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <Sparkles className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">IA</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="checklist"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <CheckSquare className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Tarefas</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <CheckSquare className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Tarefas</span>
                     {checklistTotal > 0 && (
-                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                      <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 h-5 min-w-5 text-[10px] px-1.5 shadow-sm border border-border/50">
                         {checklistCompleted}/{checklistTotal}
                       </Badge>
                     )}
                   </TabsTrigger>
                   <TabsTrigger
                     value="time"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <Clock className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Tempo</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <Clock className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Tempo</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="comments"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Chat</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <MessageSquare className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Chat</span>
                     {commentsCount > 0 && (
-                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                      <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 h-5 min-w-5 text-[10px] px-1.5 shadow-sm border border-border/50">
                         {commentsCount}
                       </Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
                 
-                <Separator className="my-2" />
+                {/* Divider */}
+                <div className="flex items-center gap-2 my-2">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-medium">Recursos</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                </div>
                 
-                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-4 gap-1">
+                {/* Secondary Actions Row */}
+                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-4 gap-1.5">
                   <TabsTrigger
                     value="attachments"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <Paperclip className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Arquivos</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <Paperclip className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Arquivos</span>
                     {attachmentsCount > 0 && (
-                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                      <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 h-5 min-w-5 text-[10px] px-1.5 shadow-sm border border-border/50">
                         {attachmentsCount}
                       </Badge>
                     )}
                   </TabsTrigger>
                   <TabsTrigger
                     value="financial"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Financeiro</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <DollarSign className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Financeiro</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="kit"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <Package className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Kit</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <Package className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Kit</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="invites"
-                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                      data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                      hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                      transition-all duration-200 ease-out"
                   >
-                    <UserPlus className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">Convidar</span>
+                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                      <UserPlus className="h-4 w-4 group-data-[state=active]:text-primary" />
+                    </div>
+                    <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Convidar</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
