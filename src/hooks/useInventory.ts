@@ -4,7 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
 export type InventoryCategory = 'consumable' | 'equipment' | 'asset';
-export type StatusCondition = 'good' | 'precarious' | 'defective' | 'maintenance';
+export type StatusCondition = 'good' | 'fair' | 'defective' | 'maintenance';
 export type UnitStatus = 'in_stock' | 'checked_out' | 'maintenance' | 'retired';
 export type MovementType = 'IN' | 'OUT' | 'RETURN' | 'TRANSFER' | 'ADJUST';
 
@@ -161,7 +161,7 @@ export function useCreateInventoryItem() {
         category: item.category as 'consumable' | 'equipment' | 'asset',
         manufacturer_model: item.manufacturer_model,
         department_id: item.department_id,
-        status_condition: item.status_condition as 'good' | 'precarious' | 'defective' | 'maintenance',
+        status_condition: item.status_condition as 'good' | 'fair' | 'defective' | 'maintenance',
         min_stock: item.min_stock,
         is_serialized: item.is_serialized,
         purchase_date: item.purchase_date,

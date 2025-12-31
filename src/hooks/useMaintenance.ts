@@ -96,7 +96,7 @@ export function useCreateMaintenanceRecord() {
           description: `Manutenção: ${record.problem_description}`,
           due_date: record.service_date || today,
           date: record.service_date || today,
-          status: 'completed' as const,
+          status: 'paid' as const,
         };
         await supabase.from('transactions').insert([txData]);
       }
