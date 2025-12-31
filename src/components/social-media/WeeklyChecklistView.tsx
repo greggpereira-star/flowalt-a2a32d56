@@ -19,9 +19,6 @@ import {
   MoreHorizontal,
   Trash2,
   Edit,
-  User,
-  Calendar,
-  CheckCircle2,
   Circle,
   Loader2,
 } from 'lucide-react';
@@ -30,7 +27,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
-import { format, startOfWeek, endOfWeek, isWithinInterval, addDays } from 'date-fns';
+import { useFolderPermissions } from '@/hooks/useFolderPermissions';
+import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
+import { useToast } from '@/hooks/use-toast';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface WeeklyChecklistViewProps {
