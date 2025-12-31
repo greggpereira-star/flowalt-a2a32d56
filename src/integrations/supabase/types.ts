@@ -5228,6 +5228,72 @@ export type Database = {
       }
     }
     Views: {
+      depreciation_by_department_view: {
+        Row: {
+          department_id: string | null
+          items_count: number | null
+          month_ref: string | null
+          total_accumulated: number | null
+          total_book_value: number | null
+          total_depreciation: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciation_summary_view: {
+        Row: {
+          last_calculation: string | null
+          monthly_depreciation: number | null
+          total_accumulated: number | null
+          total_book_value: number | null
+          total_items: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dre_summary_view: {
+        Row: {
+          cash_amount: number | null
+          month: number | null
+          non_cash_amount: number | null
+          total_amount: number | null
+          type: Database["public"]["Enums"]["transaction_type"] | null
+          workspace_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_alerts_summary: {
         Row: {
           acknowledged_alerts: number | null
@@ -5530,6 +5596,14 @@ export type Database = {
         Returns: {
           irrf_base: number
           irrf_value: number
+        }[]
+      }
+      calculate_monthly_depreciation: {
+        Args: { p_month_ref: string; p_workspace_id: string }
+        Returns: {
+          dre_entry_id: string
+          items_processed: number
+          total_depreciation: number
         }[]
       }
       calculate_taxes: {
