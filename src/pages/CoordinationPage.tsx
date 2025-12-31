@@ -261,9 +261,9 @@ const CoordinationPage: React.FC = () => {
         </div>
 
         <Tabs defaultValue="bottlenecks" className="space-y-4">
-          <TabsList className="flex-col h-auto p-3 bg-gradient-to-b from-muted/50 to-muted/30 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
-            {/* Primary Row - 6 columns */}
-            <div className="grid grid-cols-6 gap-2 w-full">
+          <TabsList className="flex-col h-auto p-3 bg-gradient-to-b from-muted/50 to-muted/30 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm max-w-4xl mx-auto">
+            {/* Primary Row - 8 columns */}
+            <div className="grid grid-cols-8 gap-2 w-full">
               <TabsTrigger 
                 value="bottlenecks" 
                 className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
@@ -289,7 +289,7 @@ const CoordinationPage: React.FC = () => {
                 <div className="p-1 rounded-lg bg-muted/50">
                   <Target className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-medium">Caminho Crítico</span>
+                <span className="text-[10px] font-medium text-center leading-tight">Caminho Crítico</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="metrics" 
@@ -318,17 +318,6 @@ const CoordinationPage: React.FC = () => {
                 </div>
                 <span className="text-[10px] font-medium">Gantt+</span>
               </TabsTrigger>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center w-full my-2">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-              <span className="px-3 text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Recursos</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-            </div>
-
-            {/* Secondary Row - 3 columns centered */}
-            <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
               <TabsTrigger 
                 value="capacity" 
                 className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
@@ -347,9 +336,20 @@ const CoordinationPage: React.FC = () => {
                 </div>
                 <span className="text-[10px] font-medium">Dependências</span>
               </TabsTrigger>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center w-full my-2">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+              <span className="px-3 text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Recursos</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+            </div>
+
+            {/* Secondary Row - 1 item centered */}
+            <div className="flex justify-center w-full">
               <TabsTrigger 
                 value="sprints" 
-                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5 min-w-[70px]"
               >
                 <div className="p-1 rounded-lg bg-muted/50">
                   <Zap className="h-4 w-4" />
