@@ -537,124 +537,91 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="border-b flex-shrink-0 px-4 py-1">
-                <TabsList className="w-full h-11 bg-transparent p-0 justify-start gap-1">
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="overview"
-                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <Target className="h-4 w-4" />
-                          <span className="hidden sm:inline">Geral</span>
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Visão Geral</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="assistant"
-                          className="flex-1 max-w-[70px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          <span className="hidden sm:inline">IA</span>
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Assistente IA</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="checklist"
-                          className="flex-1 max-w-[110px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <CheckSquare className="h-4 w-4" />
-                          <span className="hidden sm:inline">Tarefas</span>
-                          {checklistTotal > 0 && (
-                            <span className="text-xs text-muted-foreground">{checklistCompleted}/{checklistTotal}</span>
-                          )}
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Checklist de Tarefas</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="time"
-                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <Clock className="h-4 w-4" />
-                          <span className="hidden sm:inline">Tempo</span>
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Controle de Tempo</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="comments"
-                          className="flex-1 max-w-[90px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          <span className="hidden sm:inline">Chat</span>
-                          {commentsCount > 0 && (
-                            <span className="text-xs text-muted-foreground">{commentsCount}</span>
-                          )}
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Comentários</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="attachments"
-                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                          <span className="hidden sm:inline">Arquivos</span>
-                          {attachmentsCount > 0 && (
-                            <span className="text-xs text-muted-foreground">{attachmentsCount}</span>
-                          )}
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Anexos</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="financial"
-                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Financeiro</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="kit"
-                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <Package className="h-4 w-4" />
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Kit de Materiais</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <TabsTrigger
-                          value="invites"
-                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                        </TabsTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">Convidar</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+              <div className="flex-shrink-0 px-4 py-3 border-b bg-muted/30">
+                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-5 gap-1">
+                  <TabsTrigger
+                    value="overview"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <Target className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Geral</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="assistant"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">IA</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="checklist"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Tarefas</span>
+                    {checklistTotal > 0 && (
+                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                        {checklistCompleted}/{checklistTotal}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="time"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Tempo</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="comments"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Chat</span>
+                    {commentsCount > 0 && (
+                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                        {commentsCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <Separator className="my-2" />
+                
+                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-4 gap-1">
+                  <TabsTrigger
+                    value="attachments"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors relative"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Arquivos</span>
+                    {attachmentsCount > 0 && (
+                      <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1">
+                        {attachmentsCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="financial"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Financeiro</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="kit"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <Package className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Kit</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="invites"
+                    className="flex flex-col items-center justify-center gap-1 h-12 rounded-lg border border-transparent data-[state=active]:border-primary/30 data-[state=active]:bg-primary/5 hover:bg-muted/50 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Convidar</span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
