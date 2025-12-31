@@ -640,7 +640,86 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="m-0 p-5 space-y-6">
                   
-                  {/* Tags - Moved to top */}
+                  {/* Briefing Section - Priority placement with enhanced visual */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "p-1.5 rounded-lg",
+                          card.briefing_completed 
+                            ? "bg-success/10 text-success" 
+                            : "bg-warning/10 text-warning"
+                        )}>
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-semibold flex items-center gap-1.5">
+                            Briefing do Projeto
+                            {card.briefing_completed && (
+                              <Badge variant="secondary" className="text-[10px] h-5 bg-success/10 text-success border-success/20">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completo
+                              </Badge>
+                            )}
+                          </label>
+                          <p className="text-[11px] text-muted-foreground">
+                            Informações essenciais do card
+                          </p>
+                        </div>
+                      </div>
+                      {!card.briefing_completed && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 text-xs gap-1.5 bg-success hover:bg-success/90"
+                          onClick={handleMarkBriefingComplete}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Concluir
+                        </Button>
+                      )}
+                    </div>
+                    <div className={cn(
+                      "rounded-xl border-2 p-4 transition-colors",
+                      card.briefing_completed 
+                        ? "border-success/20 bg-success/5" 
+                        : "border-warning/30 bg-warning/5"
+                    )}>
+                      <BriefingForm
+                        data={briefingData}
+                        onChange={setBriefingData}
+                        isCompleted={card.briefing_completed}
+                        onMarkComplete={handleMarkBriefingComplete}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Traffic Briefing (conditional) */}
+                  {isTrafficSpace && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                          <Truck className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-semibold">Briefing de Tráfego</label>
+                          <p className="text-[11px] text-muted-foreground">
+                            Configurações específicas de mídia paga
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4">
+                        <TrafficBriefingForm
+                          data={trafficBriefingData}
+                          onChange={setTrafficBriefingData}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  {/* Tags */}
                   <div className="space-y-3">
                     <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <Tags className="h-3.5 w-3.5" />
@@ -766,59 +845,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       className="min-h-[120px] resize-none text-sm leading-relaxed"
                     />
                   </div>
-
-                  <Separator />
-
-                  {/* Briefing Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        <FileText className="h-3.5 w-3.5" />
-                        Briefing
-                        {card.briefing_completed && (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                        )}
-                      </label>
-                      {!card.briefing_completed && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={handleMarkBriefingComplete}
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Marcar Completo
-                        </Button>
-                      )}
-                    </div>
-                    <div className="rounded-xl border bg-muted/20 p-4">
-                      <BriefingForm
-                        data={briefingData}
-                        onChange={setBriefingData}
-                        isCompleted={card.briefing_completed}
-                        onMarkComplete={handleMarkBriefingComplete}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Traffic Briefing (conditional) */}
-                  {isTrafficSpace && (
-                    <>
-                      <Separator />
-                      <div className="space-y-3">
-                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                          <Truck className="h-3.5 w-3.5" />
-                          Briefing de Tráfego
-                        </label>
-                        <div className="rounded-xl border bg-muted/20 p-4">
-                          <TrafficBriefingForm
-                            data={trafficBriefingData}
-                            onChange={setTrafficBriefingData}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </TabsContent>
 
                 <TabsContent value="assistant" className="m-0 p-5">
