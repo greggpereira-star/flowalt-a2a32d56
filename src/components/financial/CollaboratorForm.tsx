@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,27 +68,54 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
   const form = useForm<FormData>({
     resolver: zodResolver(collaboratorSchema),
     defaultValues: {
-      full_name: existingDetails?.full_name || "",
-      cpf: existingDetails?.cpf || "",
-      rg: existingDetails?.rg || "",
-      birth_date: existingDetails?.birth_date ? new Date(existingDetails.birth_date) : undefined,
-      hire_date: existingDetails?.hire_date ? new Date(existingDetails.hire_date) : undefined,
-      contract_type: existingDetails?.contract_type || "clt",
-      bank_name: existingDetails?.bank_name || "",
-      bank_agency: existingDetails?.bank_agency || "",
-      bank_account: existingDetails?.bank_account || "",
-      pix_key: existingDetails?.pix_key || "",
-      base_salary: existingDetails?.base_salary?.toString() || "",
-      weekly_hours: existingDetails?.weekly_hours?.toString() || "40",
-      street: (existingDetails?.address as any)?.street || "",
-      number: (existingDetails?.address as any)?.number || "",
-      neighborhood: (existingDetails?.address as any)?.neighborhood || "",
-      city: (existingDetails?.address as any)?.city || "",
-      state: (existingDetails?.address as any)?.state || "",
-      zip: (existingDetails?.address as any)?.zip || "",
-      notes: existingDetails?.notes || "",
+      full_name: "",
+      cpf: "",
+      rg: "",
+      birth_date: undefined,
+      hire_date: undefined,
+      contract_type: "clt",
+      bank_name: "",
+      bank_agency: "",
+      bank_account: "",
+      pix_key: "",
+      base_salary: "",
+      weekly_hours: "40",
+      street: "",
+      number: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      zip: "",
+      notes: "",
     },
   });
+
+  // Populate form when data loads
+  useEffect(() => {
+    if (existingDetails) {
+      form.reset({
+        full_name: existingDetails.full_name || "",
+        cpf: existingDetails.cpf || "",
+        rg: existingDetails.rg || "",
+        birth_date: existingDetails.birth_date ? new Date(existingDetails.birth_date) : undefined,
+        hire_date: existingDetails.hire_date ? new Date(existingDetails.hire_date) : undefined,
+        contract_type: existingDetails.contract_type || "clt",
+        bank_name: existingDetails.bank_name || "",
+        bank_agency: existingDetails.bank_agency || "",
+        bank_account: existingDetails.bank_account || "",
+        pix_key: existingDetails.pix_key || "",
+        base_salary: existingDetails.base_salary?.toString() || "",
+        weekly_hours: existingDetails.weekly_hours?.toString() || "40",
+        street: (existingDetails.address as any)?.street || "",
+        number: (existingDetails.address as any)?.number || "",
+        neighborhood: (existingDetails.address as any)?.neighborhood || "",
+        city: (existingDetails.address as any)?.city || "",
+        state: (existingDetails.address as any)?.state || "",
+        zip: (existingDetails.address as any)?.zip || "",
+        notes: existingDetails.notes || "",
+      });
+    }
+  }, [existingDetails, form]);
 
   const onSubmit = async (data: FormData) => {
     const salary = data.base_salary ? parseFloat(data.base_salary.replace(/[^\d,.-]/g, "").replace(",", ".")) : undefined;
@@ -129,7 +158,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
         {/* Personal Info */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm text-muted-foreground">Dados Pessoais</h4>
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Dados Pessoais
+          </h4>
           
           <FormField
             control={form.control}
@@ -138,7 +169,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               <FormItem>
                 <FormLabel>Nome Completo</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="Digite o nome completo" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -167,7 +198,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>RG</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="00.000.000-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -180,7 +211,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               control={form.control}
               name="birth_date"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Data de Nascimento</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -188,23 +219,32 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal justify-start",
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione"}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value 
+                            ? format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) 
+                            : "Selecione uma data"}
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent 
+                      className="w-auto p-0 bg-popover border shadow-lg z-50" 
+                      align="start"
+                      sideOffset={4}
+                    >
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
+                        locale={ptBR}
                         captionLayout="dropdown-buttons"
                         fromYear={1950}
                         toYear={2010}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -217,7 +257,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               control={form.control}
               name="hire_date"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Data de Admissão</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -225,20 +265,29 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal justify-start",
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione"}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value 
+                            ? format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) 
+                            : "Selecione uma data"}
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent 
+                      className="w-auto p-0 bg-popover border shadow-lg z-50" 
+                      align="start"
+                      sideOffset={4}
+                    >
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
+                        locale={ptBR}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -251,7 +300,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
 
         {/* Contract Info */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm text-muted-foreground">Contrato</h4>
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Dados do Contrato
+          </h4>
 
           <div className="grid grid-cols-3 gap-4">
             <FormField
@@ -259,14 +310,14 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               name="contract_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo</FormLabel>
+                  <FormLabel>Tipo de Contrato</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       <SelectItem value="clt">CLT</SelectItem>
                       <SelectItem value="pj">PJ</SelectItem>
                       <SelectItem value="estagio">Estágio</SelectItem>
@@ -283,7 +334,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               name="base_salary"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Salário</FormLabel>
+                  <FormLabel>Salário Base</FormLabel>
                   <FormControl>
                     <Input placeholder="R$ 0,00" {...field} />
                   </FormControl>
@@ -299,7 +350,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Horas/Semana</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" placeholder="40" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -310,7 +361,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
 
         {/* Bank Info */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm text-muted-foreground">Dados Bancários</h4>
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Dados Bancários
+          </h4>
 
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -320,7 +373,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Banco</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Nome do banco" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -334,7 +387,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Chave PIX</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="CPF, e-mail, telefone ou chave aleatória" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -350,7 +403,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Agência</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -364,7 +417,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Conta</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="00000-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -375,7 +428,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
 
         {/* Address */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm text-muted-foreground">Endereço</h4>
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Endereço
+          </h4>
 
           <div className="grid grid-cols-3 gap-4">
             <FormField
@@ -383,9 +438,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               name="street"
               render={({ field }) => (
                 <FormItem className="col-span-2">
-                  <FormLabel>Rua</FormLabel>
+                  <FormLabel>Rua / Logradouro</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Nome da rua" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -399,7 +454,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Número</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -415,7 +470,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Bairro</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Nome do bairro" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -429,7 +484,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Cidade</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Nome da cidade" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -441,9 +496,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               name="state"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Estado</FormLabel>
+                  <FormLabel>Estado (UF)</FormLabel>
                   <FormControl>
-                    <Input maxLength={2} {...field} />
+                    <Input maxLength={2} placeholder="SP" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -467,23 +522,32 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
         </div>
 
         {/* Notes */}
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4">
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Observações
+          </h4>
+          
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Informações adicionais sobre o colaborador..." 
+                    className="min-h-[100px]"
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3 pt-4 border-t">
           <Button type="submit" disabled={updateCollaborator.isPending}>
-            {updateCollaborator.isPending ? "Salvando..." : "Salvar"}
+            {updateCollaborator.isPending ? "Salvando..." : "Salvar Alterações"}
           </Button>
         </div>
       </form>
