@@ -43,16 +43,22 @@ serve(async (req) => {
       );
     }
 
+    // Helper to truncate message to 200 chars
+    const truncateMessage = (msg: string): string => {
+      if (msg.length <= 200) return msg;
+      return msg.substring(0, 197) + "...";
+    };
+
     // Basic length validation
     if (context.length < 20 || deliverables.length < 20) {
       console.log("validate-briefing: Content too short");
       return new Response(
         JSON.stringify({
           isValid: false,
-          message: "Os campos obrigatórios devem ter pelo menos 20 caracteres com informações úteis.",
+          message: truncateMessage("Campos obrigatórios devem ter pelo menos 20 caracteres."),
           issues: [
-            context.length < 20 ? "Contexto muito curto (mínimo 20 caracteres)" : null,
-            deliverables.length < 20 ? "Entregáveis muito curto (mínimo 20 caracteres)" : null
+            context.length < 20 ? "Contexto muito curto" : null,
+            deliverables.length < 20 ? "Entregáveis muito curto" : null
           ].filter(Boolean)
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -201,17 +207,17 @@ O briefing está adequado para iniciar o trabalho?`;
       }
 
       const message = validation.isValid 
-        ? "Briefing validado com sucesso!"
+        ? "Briefing validado!"
         : validation.issues?.length > 0 
-          ? validation.issues.join(" ") 
-          : "O briefing precisa de mais detalhes para ser aprovado.";
+          ? truncateMessage(validation.issues.slice(0, 2).join(". "))
+          : "Preencha com mais detalhes.";
 
       console.log("validate-briefing: Returning result", { isValid: validation.isValid });
 
       return new Response(
         JSON.stringify({
           isValid: validation.isValid,
-          message,
+          message: truncateMessage(message),
           issues: validation.issues || [],
           suggestions: validation.suggestions || []
         }),
