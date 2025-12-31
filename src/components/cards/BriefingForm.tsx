@@ -86,33 +86,25 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Validation Error Alert */}
+      {/* Validation Error Alert - Compact */}
       {validationError && !validationError.isValid && (
-        <div className="flex gap-3 p-4 rounded-xl border-2 border-destructive/50 bg-destructive/10 animate-in fade-in slide-in-from-top-2">
-          <ShieldAlert className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="font-semibold text-destructive text-sm">
-              Briefing precisa de mais detalhes
+        <div className="flex gap-3 p-3 rounded-xl border-2 border-destructive/50 bg-destructive/10 animate-in fade-in slide-in-from-top-2">
+          <ShieldAlert className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+          <div className="space-y-1.5">
+            <p className="font-semibold text-destructive text-xs">
+              Preencha o briefing corretamente
             </p>
-            <p className="text-sm text-muted-foreground">
-              {validationError.message}
-            </p>
+            {/* Only show issues if they exist and are different from the message */}
             {validationError.issues?.length > 0 && (
-              <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
-                {validationError.issues.map((issue, i) => (
-                  <li key={i}>{issue}</li>
-                ))}
-              </ul>
+              <p className="text-xs text-muted-foreground">
+                {validationError.issues.slice(0, 2).join(" • ")}
+              </p>
             )}
+            {/* Show suggestions inline */}
             {validationError.suggestions?.length > 0 && (
-              <div className="pt-2 border-t border-destructive/20">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Sugestões:</p>
-                <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
-                  {validationError.suggestions.map((suggestion, i) => (
-                    <li key={i}>{suggestion}</li>
-                  ))}
-                </ul>
-              </div>
+              <p className="text-xs text-muted-foreground/80">
+                <span className="font-medium">Dica:</span> {validationError.suggestions.slice(0, 2).join(" • ")}
+              </p>
             )}
           </div>
         </div>
