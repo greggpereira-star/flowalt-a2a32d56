@@ -786,6 +786,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "card_kits_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "card_kits_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
@@ -1925,6 +1932,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "depreciation_schedules_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "depreciation_schedules_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
@@ -2652,6 +2666,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "insurance_item_links_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "insurance_item_links_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
@@ -2966,6 +2987,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "inventory_movements_to_location_id_fkey"
             columns: ["to_location_id"]
             isOneToOne: false
@@ -3060,6 +3088,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "inventory_units_workspace_id_fkey"
@@ -3232,6 +3267,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kit_template_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "kit_template_items_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -3378,6 +3420,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "maintenance_records_linked_card_id_fkey"
@@ -5080,7 +5129,106 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      financial_alerts_summary: {
+        Row: {
+          acknowledged_alerts: number | null
+          active_alerts: number | null
+          critical_alerts: number | null
+          high_alerts: number | null
+          low_alerts: number | null
+          medium_alerts: number | null
+          resolved_alerts: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_stock_summary: {
+        Row: {
+          category: Database["public"]["Enums"]["inventory_category"] | null
+          code: string | null
+          current_stock: number | null
+          department_id: string | null
+          is_serialized: boolean | null
+          item_id: string | null
+          min_stock: number | null
+          name: string | null
+          purchase_value: number | null
+          residual_value: number | null
+          status_condition: Database["public"]["Enums"]["item_condition"] | null
+          stock_status: string | null
+          units_checked_out: number | null
+          units_in_maintenance: number | null
+          units_in_stock: number | null
+          useful_life_months: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["inventory_category"] | null
+          code?: string | null
+          current_stock?: number | null
+          department_id?: string | null
+          is_serialized?: boolean | null
+          item_id?: string | null
+          min_stock?: number | null
+          name?: string | null
+          purchase_value?: number | null
+          residual_value?: number | null
+          status_condition?:
+            | Database["public"]["Enums"]["item_condition"]
+            | null
+          stock_status?: never
+          units_checked_out?: never
+          units_in_maintenance?: never
+          units_in_stock?: never
+          useful_life_months?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["inventory_category"] | null
+          code?: string | null
+          current_stock?: number | null
+          department_id?: string | null
+          is_serialized?: boolean | null
+          item_id?: string | null
+          min_stock?: number | null
+          name?: string | null
+          purchase_value?: number | null
+          residual_value?: number | null
+          status_condition?:
+            | Database["public"]["Enums"]["item_condition"]
+            | null
+          stock_status?: never
+          units_checked_out?: never
+          units_in_maintenance?: never
+          units_in_stock?: never
+          useful_life_months?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_user_score: {
@@ -5153,6 +5301,19 @@ export type Database = {
         Args: { p_created_by: string; p_workspace_id: string }
         Returns: string
       }
+      emit_domain_event: {
+        Args: {
+          p_aggregate_id: string
+          p_aggregate_type: string
+          p_causation_id?: string
+          p_correlation_id?: string
+          p_event_type: string
+          p_metadata?: Json
+          p_payload: Json
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       generate_payroll: {
         Args: {
           p_collaborator_id?: string
@@ -5168,6 +5329,20 @@ export type Database = {
           found: boolean
           response_body: Json
           response_status: number
+        }[]
+      }
+      get_unprocessed_events: {
+        Args: { p_limit?: number; p_workspace_id: string }
+        Returns: {
+          aggregate_id: string
+          aggregate_type: string
+          correlation_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          payload: Json
+          version: number
         }[]
       }
       has_admin_access: {
@@ -5207,6 +5382,10 @@ export type Database = {
           p_workspace_id?: string
         }
         Returns: undefined
+      }
+      mark_events_processed: {
+        Args: { p_event_ids: string[] }
+        Returns: number
       }
       record_metric: {
         Args: {
