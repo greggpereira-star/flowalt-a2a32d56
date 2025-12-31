@@ -260,9 +260,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                       'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap flex-shrink-0',
                       isActive
                         ? 'bg-primary text-primary-foreground'
-                        : isComplete
-                          ? 'bg-success/10 text-success hover:bg-success/20'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     )}
                   >
                     {isComplete && !isActive ? (
@@ -271,9 +269,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                       <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     )}
                     <span className="hidden xs:inline sm:inline">{step.title}</span>
-                    {step.required && !isComplete && (
-                      <span className="text-destructive">*</span>
-                    )}
                   </button>
                 );
               })}
