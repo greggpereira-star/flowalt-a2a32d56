@@ -4,14 +4,17 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionList } from "@/components/financial/TransactionList";
 import { TransactionForm } from "@/components/financial/TransactionForm";
-import { FinancialDashboard } from "@/components/financial/FinancialDashboard";
+import { AdvancedFinancialDashboard } from "@/components/financial/AdvancedFinancialDashboard";
 import { CollaboratorManager } from "@/components/financial/CollaboratorManager";
 import { InvoiceList } from "@/components/financial/InvoiceList";
 import { InvoiceForm } from "@/components/financial/InvoiceForm";
+import { InvoiceXMLImporter } from "@/components/financial/InvoiceXMLImporter";
 import { CostCenterManager } from "@/components/financial/CostCenterManager";
 import { DREReport } from "@/components/financial/DREReport";
 import { FinancialAlertsPanel } from "@/components/financial/FinancialAlertsPanel";
 import { BankReconciliationPanel } from "@/components/financial/BankReconciliationPanel";
+import { CashFlowForecastChart } from "@/components/financial/CashFlowForecastChart";
+import { FinancialAuditPanel } from "@/components/financial/FinancialAuditPanel";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
@@ -23,6 +26,7 @@ import {
   TrendingUp,
   Bell,
   GitCompare,
+  Shield,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -56,6 +60,7 @@ export default function FinancialPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
+                  <InvoiceXMLImporter />
                   <InvoiceForm />
                   <TransactionForm />
                 </div>
@@ -98,6 +103,10 @@ export default function FinancialPage() {
                     <Bell className="w-4 h-4" />
                     <span>Alertas</span>
                   </TabsTrigger>
+                  <TabsTrigger value="audit" variant="wrap" className="gap-2">
+                    <Shield className="w-4 h-4" />
+                    <span>Auditoria</span>
+                  </TabsTrigger>
                   <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
                     <Users className="w-4 h-4" />
                     <span>Colaboradores</span>
@@ -119,7 +128,7 @@ export default function FinancialPage() {
                   {/* Content Area */}
                   <div className="pt-8 pb-8 px-0">
                   <TabsContent value="dashboard" className="mt-0 animate-in fade-in-50 duration-300">
-                    <FinancialDashboard />
+                    <AdvancedFinancialDashboard />
                   </TabsContent>
 
                   <TabsContent value="transactions" className="mt-0 animate-in fade-in-50 duration-300">
@@ -144,20 +153,21 @@ export default function FinancialPage() {
 
                   <TabsContent value="cashflow" className="mt-0 animate-in fade-in-50 duration-300">
                     <div className="space-y-6">
+                      <CashFlowForecastChart />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <h3 className="text-base font-medium">Receitas</h3>
+                            <h3 className="text-base font-medium">Receitas Previstas</h3>
                           </div>
-                          <TransactionList filters={{ type: "income" }} />
+                          <TransactionList filters={{ type: "income", status: "pending" }} />
                         </div>
                         <div className="space-y-4">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-rose-500" />
-                            <h3 className="text-base font-medium">Despesas</h3>
+                            <h3 className="text-base font-medium">Despesas Previstas</h3>
                           </div>
-                          <TransactionList filters={{ type: "expense" }} />
+                          <TransactionList filters={{ type: "expense", status: "pending" }} />
                         </div>
                       </div>
                     </div>
@@ -165,6 +175,10 @@ export default function FinancialPage() {
 
                   <TabsContent value="alerts" className="mt-0 animate-in fade-in-50 duration-300">
                     <FinancialAlertsPanel />
+                  </TabsContent>
+
+                  <TabsContent value="audit" className="mt-0 animate-in fade-in-50 duration-300">
+                    <FinancialAuditPanel />
                   </TabsContent>
 
                   <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
