@@ -13,7 +13,8 @@ import {
   Layers,
   Eye,
   RefreshCw,
-  Loader2
+  Loader2,
+  History
 } from 'lucide-react';
 import {
   useWorkflows,
@@ -26,6 +27,7 @@ import { WorkflowStagesTab } from './WorkflowStagesTab';
 import { WorkflowRulesTab } from './WorkflowRulesTab';
 import { WorkflowAutomationsTab } from './WorkflowAutomationsTab';
 import { WorkflowPreview } from './WorkflowPreview';
+import { AutomationLogsPanel } from './AutomationLogsPanel';
 import { toast } from 'sonner';
 
 export function WorkflowBuilder() {
@@ -154,7 +156,7 @@ export function WorkflowBuilder() {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="stages" className="flex items-center gap-2">
                 <Layers className="h-4 w-4" />
                 Etapas
@@ -168,6 +170,10 @@ export function WorkflowBuilder() {
               <TabsTrigger value="automations" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
                 Automações
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                Logs
               </TabsTrigger>
             </TabsList>
 
@@ -191,6 +197,10 @@ export function WorkflowBuilder() {
                 workflowId={defaultWorkflow.id}
                 stages={stages || []}
               />
+            </TabsContent>
+
+            <TabsContent value="logs" className="mt-6">
+              <AutomationLogsPanel showHeader={false} />
             </TabsContent>
           </Tabs>
         </CardContent>
