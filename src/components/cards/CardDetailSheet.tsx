@@ -42,6 +42,7 @@ import { CardExecutionAssistantWrapper } from './CardExecutionAssistantWrapper';
 import { TagManagerWrapper } from './TagManagerWrapper';
 import { NextBestAction } from './NextBestAction';
 import { CardFinancialTab } from './CardFinancialTab';
+import { CardKitTab } from './CardKitTab';
 import { CardInvitePanel } from './CardInvitePanel';
 import {
   CalendarIcon,
@@ -64,6 +65,7 @@ import {
   Pause,
   DollarSign,
   UserPlus,
+  Package,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -633,6 +635,17 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <TabsTrigger
+                          value="kit"
+                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
+                        >
+                          <Package className="h-4 w-4" />
+                        </TabsTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">Kit de Materiais</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <TabsTrigger
                           value="invites"
                           className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
@@ -930,6 +943,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                 <TabsContent value="invites" className="m-0 p-5">
                   <CardInvitePanel cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="kit" className="m-0">
+                  <CardKitTab cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>
