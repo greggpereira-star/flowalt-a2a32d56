@@ -718,6 +718,89 @@ export type Database = {
           },
         ]
       }
+      card_kits: {
+        Row: {
+          actual_return_date: string | null
+          card_id: string
+          checkout_date: string | null
+          created_at: string
+          expected_return_date: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          quantity_checked_out: number | null
+          quantity_required: number | null
+          responsible_user_id: string | null
+          status: string | null
+          unit_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actual_return_date?: string | null
+          card_id: string
+          checkout_date?: string | null
+          created_at?: string
+          expected_return_date?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          quantity_checked_out?: number | null
+          quantity_required?: number | null
+          responsible_user_id?: string | null
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actual_return_date?: string | null
+          card_id?: string
+          checkout_date?: string | null
+          created_at?: string
+          expected_return_date?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity_checked_out?: number | null
+          quantity_required?: number | null
+          responsible_user_id?: string | null
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_kits_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_kits_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_kits_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_kits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_members: {
         Row: {
           card_id: string
@@ -1793,6 +1876,126 @@ export type Database = {
           },
         ]
       }
+      depreciation_schedules: {
+        Row: {
+          accumulated_depreciation: number
+          book_value: number
+          created_at: string
+          depreciation_amount: number
+          financial_entry_id: string | null
+          id: string
+          is_posted_to_dre: boolean | null
+          item_id: string | null
+          month_ref: string
+          unit_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accumulated_depreciation?: number
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          financial_entry_id?: string | null
+          id?: string
+          is_posted_to_dre?: boolean | null
+          item_id?: string | null
+          month_ref: string
+          unit_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accumulated_depreciation?: number
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          financial_entry_id?: string | null
+          id?: string
+          is_posted_to_dre?: boolean | null
+          item_id?: string | null
+          month_ref?: string
+          unit_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_schedules_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_schedules_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      domain_events: {
+        Row: {
+          aggregate_id: string
+          aggregate_type: string
+          causation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          is_processed: boolean | null
+          metadata: Json | null
+          payload: Json
+          processed_at: string | null
+          version: number | null
+          workspace_id: string
+        }
+        Insert: {
+          aggregate_id: string
+          aggregate_type: string
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          payload: Json
+          processed_at?: string | null
+          version?: number | null
+          workspace_id: string
+        }
+        Update: {
+          aggregate_id?: string
+          aggregate_type?: string
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          payload?: Json
+          processed_at?: string | null
+          version?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_notifications: {
         Row: {
           created_at: string
@@ -2005,17 +2208,23 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          alert_category: string | null
           alert_type: string
+          assigned_to_role: string | null
+          assigned_to_user_id: string | null
           created_at: string
           data: Json | null
+          due_date: string | null
           entity_id: string | null
           entity_type: string | null
           expires_at: string | null
           id: string
           message: string
+          metadata: Json | null
           resolved_at: string | null
           resolved_by: string | null
           severity: string
+          snoozed_until: string | null
           status: string | null
           suggested_actions: Json | null
           title: string
@@ -2024,17 +2233,23 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          alert_category?: string | null
           alert_type: string
+          assigned_to_role?: string | null
+          assigned_to_user_id?: string | null
           created_at?: string
           data?: Json | null
+          due_date?: string | null
           entity_id?: string | null
           entity_type?: string | null
           expires_at?: string | null
           id?: string
           message: string
+          metadata?: Json | null
           resolved_at?: string | null
           resolved_by?: string | null
           severity?: string
+          snoozed_until?: string | null
           status?: string | null
           suggested_actions?: Json | null
           title: string
@@ -2043,17 +2258,23 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          alert_category?: string | null
           alert_type?: string
+          assigned_to_role?: string | null
+          assigned_to_user_id?: string | null
           created_at?: string
           data?: Json | null
+          due_date?: string | null
           entity_id?: string | null
           entity_type?: string | null
           expires_at?: string | null
           id?: string
           message?: string
+          metadata?: Json | null
           resolved_at?: string | null
           resolved_by?: string | null
           severity?: string
+          snoozed_until?: string | null
           status?: string | null
           suggested_actions?: Json | null
           title?: string
@@ -2315,6 +2536,137 @@ export type Database = {
           },
         ]
       }
+      insurance_contracts: {
+        Row: {
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle: number | null
+          coverage_summary: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          id: string
+          insurer: string
+          is_active: boolean | null
+          notes: string | null
+          owner_user_id: string | null
+          policy_number: string | null
+          renewal_date: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle?: number | null
+          coverage_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          insurer: string
+          is_active?: boolean | null
+          notes?: string | null
+          owner_user_id?: string | null
+          policy_number?: string | null
+          renewal_date?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle?: number | null
+          coverage_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          insurer?: string
+          is_active?: boolean | null
+          notes?: string | null
+          owner_user_id?: string | null
+          policy_number?: string | null
+          renewal_date?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_contracts_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_item_links: {
+        Row: {
+          created_at: string
+          id: string
+          insurance_id: string
+          item_id: string | null
+          unit_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insurance_id: string
+          item_id?: string | null
+          unit_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insurance_id?: string
+          item_id?: string | null
+          unit_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_item_links_insurance_id_fkey"
+            columns: ["insurance_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_item_links_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_item_links_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_item_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_credentials: {
         Row: {
           configured_at: string
@@ -2405,6 +2757,312 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "internal_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          capitalization_threshold: number | null
+          category: Database["public"]["Enums"]["inventory_category"]
+          code: string
+          created_at: string
+          created_by: string | null
+          current_stock: number | null
+          department_id: string | null
+          depreciation_method:
+            | Database["public"]["Enums"]["depreciation_method"]
+            | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_serialized: boolean | null
+          manufacturer: string | null
+          min_stock: number | null
+          model: string | null
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_value: number | null
+          residual_value: number | null
+          status_condition: Database["public"]["Enums"]["item_condition"]
+          updated_at: string
+          useful_life_months: number | null
+          workspace_id: string
+        }
+        Insert: {
+          capitalization_threshold?: number | null
+          category?: Database["public"]["Enums"]["inventory_category"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number | null
+          department_id?: string | null
+          depreciation_method?:
+            | Database["public"]["Enums"]["depreciation_method"]
+            | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_serialized?: boolean | null
+          manufacturer?: string | null
+          min_stock?: number | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_value?: number | null
+          residual_value?: number | null
+          status_condition?: Database["public"]["Enums"]["item_condition"]
+          updated_at?: string
+          useful_life_months?: number | null
+          workspace_id: string
+        }
+        Update: {
+          capitalization_threshold?: number | null
+          category?: Database["public"]["Enums"]["inventory_category"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number | null
+          department_id?: string | null
+          depreciation_method?:
+            | Database["public"]["Enums"]["depreciation_method"]
+            | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_serialized?: boolean | null
+          manufacturer?: string | null
+          min_stock?: number | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_value?: number | null
+          residual_value?: number | null
+          status_condition?: Database["public"]["Enums"]["item_condition"]
+          updated_at?: string
+          useful_life_months?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          card_id: string | null
+          checkin_condition:
+            | Database["public"]["Enums"]["item_condition"]
+            | null
+          checkin_notes: string | null
+          checkout_term_accepted: boolean | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          from_location_id: string | null
+          id: string
+          item_id: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes: string | null
+          occurred_at: string
+          quantity: number
+          requested_by_user_id: string | null
+          responsible_user_id: string | null
+          to_location_id: string | null
+          unit_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          card_id?: string | null
+          checkin_condition?:
+            | Database["public"]["Enums"]["item_condition"]
+            | null
+          checkin_notes?: string | null
+          checkout_term_accepted?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          from_location_id?: string | null
+          id?: string
+          item_id: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          occurred_at?: string
+          quantity?: number
+          requested_by_user_id?: string | null
+          responsible_user_id?: string | null
+          to_location_id?: string | null
+          unit_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          card_id?: string | null
+          checkin_condition?:
+            | Database["public"]["Enums"]["item_condition"]
+            | null
+          checkin_notes?: string | null
+          checkout_term_accepted?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          from_location_id?: string | null
+          id?: string
+          item_id?: string
+          movement_type?: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          occurred_at?: string
+          quantity?: number
+          requested_by_user_id?: string | null
+          responsible_user_id?: string | null
+          to_location_id?: string | null
+          unit_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_units: {
+        Row: {
+          created_at: string
+          current_holder_id: string | null
+          current_location_id: string | null
+          current_status: Database["public"]["Enums"]["unit_status"]
+          id: string
+          invoice_ref: string | null
+          is_active: boolean | null
+          item_id: string
+          notes: string | null
+          serial_number: string | null
+          tag_qr_code: string | null
+          updated_at: string
+          warranty_end_date: string | null
+          warranty_provider: string | null
+          warranty_start_date: string | null
+          warranty_terms_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_holder_id?: string | null
+          current_location_id?: string | null
+          current_status?: Database["public"]["Enums"]["unit_status"]
+          id?: string
+          invoice_ref?: string | null
+          is_active?: boolean | null
+          item_id: string
+          notes?: string | null
+          serial_number?: string | null
+          tag_qr_code?: string | null
+          updated_at?: string
+          warranty_end_date?: string | null
+          warranty_provider?: string | null
+          warranty_start_date?: string | null
+          warranty_terms_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_holder_id?: string | null
+          current_location_id?: string | null
+          current_status?: Database["public"]["Enums"]["unit_status"]
+          id?: string
+          invoice_ref?: string | null
+          is_active?: boolean | null
+          item_id?: string
+          notes?: string | null
+          serial_number?: string | null
+          tag_qr_code?: string | null
+          updated_at?: string
+          warranty_end_date?: string | null
+          warranty_provider?: string | null
+          warranty_start_date?: string | null
+          warranty_terms_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_units_current_location_id_fkey"
+            columns: ["current_location_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_units_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2530,6 +3188,213 @@ export type Database = {
           },
           {
             foreignKeyName: "invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kit_template_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean | null
+          item_id: string
+          quantity: number | null
+          template_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean | null
+          item_id: string
+          quantity?: number | null
+          template_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean | null
+          item_id?: string
+          quantity?: number | null
+          template_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kit_template_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kit_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "kit_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kit_template_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kit_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          space_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          space_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          space_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kit_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kit_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_records: {
+        Row: {
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_resolved: boolean | null
+          is_warranty_claim: boolean | null
+          item_id: string | null
+          linked_card_id: string | null
+          linked_financial_entry_id: string | null
+          maintenance_type: string | null
+          next_maintenance_date: string | null
+          notes: string | null
+          problem_description: string
+          service_date: string
+          solution_description: string | null
+          unit_id: string | null
+          updated_at: string
+          vendor: string | null
+          vendor_contact: string | null
+          warranty_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          is_warranty_claim?: boolean | null
+          item_id?: string | null
+          linked_card_id?: string | null
+          linked_financial_entry_id?: string | null
+          maintenance_type?: string | null
+          next_maintenance_date?: string | null
+          notes?: string | null
+          problem_description: string
+          service_date: string
+          solution_description?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          vendor?: string | null
+          vendor_contact?: string | null
+          warranty_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          is_warranty_claim?: boolean | null
+          item_id?: string | null
+          linked_card_id?: string | null
+          linked_financial_entry_id?: string | null
+          maintenance_type?: string | null
+          next_maintenance_date?: string | null
+          notes?: string | null
+          problem_description?: string
+          service_date?: string
+          solution_description?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          vendor?: string | null
+          vendor_contact?: string | null
+          warranty_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_linked_card_id_fkey"
+            columns: ["linked_card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3079,6 +3944,99 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "structured_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_licenses: {
+        Row: {
+          auto_renew: boolean | null
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          cancellation_terms_url: string | null
+          cost_per_cycle: number
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          linked_financial_entry_id: string | null
+          notes: string | null
+          owner_user_id: string | null
+          payment_method: string | null
+          plan_name: string | null
+          product_name: string
+          renewal_date: string | null
+          seats_total: number | null
+          seats_used: number | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+          vendor: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancellation_terms_url?: string | null
+          cost_per_cycle?: number
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_financial_entry_id?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          payment_method?: string | null
+          plan_name?: string | null
+          product_name: string
+          renewal_date?: string | null
+          seats_total?: number | null
+          seats_used?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          vendor: string
+          workspace_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancellation_terms_url?: string | null
+          cost_per_cycle?: number
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_financial_entry_id?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          payment_method?: string | null
+          plan_name?: string | null
+          product_name?: string
+          renewal_date?: string | null
+          seats_total?: number | null
+          seats_used?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          vendor?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_licenses_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_licenses_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -4137,6 +5095,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      calculate_depreciation: {
+        Args: { p_month: string; p_workspace_id: string }
+        Returns: number
+      }
       calculate_inss: {
         Args: { p_salary: number }
         Returns: {
@@ -4286,6 +5248,16 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity_level: "low" | "medium" | "high" | "critical"
+      alert_status_type: "open" | "acknowledged" | "resolved" | "snoozed"
+      alert_type_inventory:
+        | "warranty_expiring"
+        | "subscription_expiring"
+        | "low_stock"
+        | "preventive_maintenance_due"
+        | "insurance_expiring"
+        | "license_underutilized"
+        | "item_eol"
       app_role:
         | "super_admin"
         | "owner"
@@ -4293,6 +5265,7 @@ export type Database = {
         | "coordinator"
         | "member"
         | "viewer"
+      billing_cycle: "monthly" | "quarterly" | "yearly" | "custom"
       card_status:
         | "backlog"
         | "briefing"
@@ -4303,7 +5276,14 @@ export type Database = {
         | "delivered"
         | "archived"
       card_urgency: "low" | "medium" | "high" | "critical"
+      depreciation_method:
+        | "straight_line"
+        | "declining_balance"
+        | "units_of_production"
       event_type: "meeting" | "recording" | "milestone" | "deadline" | "other"
+      inventory_category: "consumable" | "equipment" | "asset"
+      item_condition: "good" | "fair" | "defective" | "maintenance"
+      movement_type: "IN" | "OUT" | "RETURN" | "TRANSFER" | "ADJUST"
       recurrence_type: "none" | "monthly" | "yearly"
       space_type:
         | "designer"
@@ -4313,8 +5293,10 @@ export type Database = {
         | "administrative"
         | "coordination"
         | "custom"
+      subscription_status: "active" | "expiring" | "expired" | "cancelled"
       transaction_status: "pending" | "paid" | "cancelled" | "overdue"
       transaction_type: "income" | "expense" | "transfer"
+      unit_status: "in_stock" | "checked_out" | "maintenance" | "retired"
       workspace_status: "active" | "trial" | "suspended" | "inactive"
     }
     CompositeTypes: {
@@ -4443,6 +5425,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity_level: ["low", "medium", "high", "critical"],
+      alert_status_type: ["open", "acknowledged", "resolved", "snoozed"],
+      alert_type_inventory: [
+        "warranty_expiring",
+        "subscription_expiring",
+        "low_stock",
+        "preventive_maintenance_due",
+        "insurance_expiring",
+        "license_underutilized",
+        "item_eol",
+      ],
       app_role: [
         "super_admin",
         "owner",
@@ -4451,6 +5444,7 @@ export const Constants = {
         "member",
         "viewer",
       ],
+      billing_cycle: ["monthly", "quarterly", "yearly", "custom"],
       card_status: [
         "backlog",
         "briefing",
@@ -4462,7 +5456,15 @@ export const Constants = {
         "archived",
       ],
       card_urgency: ["low", "medium", "high", "critical"],
+      depreciation_method: [
+        "straight_line",
+        "declining_balance",
+        "units_of_production",
+      ],
       event_type: ["meeting", "recording", "milestone", "deadline", "other"],
+      inventory_category: ["consumable", "equipment", "asset"],
+      item_condition: ["good", "fair", "defective", "maintenance"],
+      movement_type: ["IN", "OUT", "RETURN", "TRANSFER", "ADJUST"],
       recurrence_type: ["none", "monthly", "yearly"],
       space_type: [
         "designer",
@@ -4473,8 +5475,10 @@ export const Constants = {
         "coordination",
         "custom",
       ],
+      subscription_status: ["active", "expiring", "expired", "cancelled"],
       transaction_status: ["pending", "paid", "cancelled", "overdue"],
       transaction_type: ["income", "expense", "transfer"],
+      unit_status: ["in_stock", "checked_out", "maintenance", "retired"],
       workspace_status: ["active", "trial", "suspended", "inactive"],
     },
   },
