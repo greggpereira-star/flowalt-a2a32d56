@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Collapsible,
@@ -276,7 +276,19 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
     [expandedFolders, setExpandedFolders, spaceId, trackFolderExpanded, trackFolderCollapsed]
   );
 
+  // State for collapsing entire space
+  const [isSpaceCollapsed, setIsSpaceCollapsed] = useState(() => {
+    const saved = localStorage.getItem(`space-collapsed-${spaceId}`);
+    return saved === 'true';
+  });
+
+  // Persist collapse state
+  useEffect(() => {
+    localStorage.setItem(`space-collapsed-${spaceId}`, String(isSpaceCollapsed));
+  }, [isSpaceCollapsed, spaceId]);
+
   const handleExpandAll = useCallback(() => {
+    setIsSpaceCollapsed(false);
     if (folders && folders.length > 0) {
       const allFolderIds = folders.map((f) => f.id);
       setExpandedFolders(allFolderIds);
@@ -284,8 +296,13 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
   }, [folders, setExpandedFolders]);
 
   const handleCollapseAll = useCallback(() => {
+    setIsSpaceCollapsed(true);
     setExpandedFolders([]);
   }, [setExpandedFolders]);
+
+  const handleToggleSpace = useCallback(() => {
+    setIsSpaceCollapsed((prev) => !prev);
+  }, []);
 
   const handleViewSelect = useCallback(
     (viewId: string, viewType: string) => {
@@ -345,7 +362,15 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
     <div className="space-y-1">
       {/* Space Header */}
       <div className="flex items-center justify-between px-2 py-1 group">
-        <div className="flex items-center gap-2 min-w-0">
+        <div 
+          className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
+          onClick={handleToggleSpace}
+        >
+          {isSpaceCollapsed ? (
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          )}
           <div
             className="w-2 h-2 rounded-full flex-shrink-0"
             style={{ backgroundColor: spaceColor }}
@@ -353,8 +378,8 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
           <span className="text-sm font-medium truncate">{spaceName}</span>
         </div>
         <div className="flex items-center gap-0.5">
-          {/* Expand/Collapse All - só mostra se tem mais de 1 pasta */}
-          {folders && folders.length > 1 && (
+          {/* Expand/Collapse All - mostra se tem pelo menos 1 pasta */}
+          {folders && folders.length > 0 && (
             <>
               <Button
                 variant="ghost"
@@ -391,44 +416,46 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
         </div>
       </div>
 
-      {/* Folders Tree - RLS already filters by ownership */}
-      <div className="space-y-0.5">
-        {foldersLoading ? (
-          <>
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </>
-        ) : folders && folders.length > 0 ? (
-          folders.map((folder) => (
-            <FolderItem
-              key={folder.id}
-              folder={folder}
-              spaceId={spaceId}
-              isExpanded={expandedFolders.includes(folder.id)}
-              onToggle={() =>
-                handleToggleFolder(folder.id, expandedFolders.includes(folder.id))
-              }
-              selectedViewId={currentViewId}
-              onViewSelect={handleViewSelect}
-              onCreateView={() => handleCreateViewForFolder(folder.id)}
-              onDeleteFolder={() => setDeleteFolderDialog({ 
-                open: true, 
-                folderId: folder.id, 
-                folderName: folder.name 
-              })}
-              onDeleteView={(viewId) => setDeleteViewDialog({ 
-                open: true, 
-                viewId, 
-                folderId: folder.id 
-              })}
-            />
-          ))
-        ) : (
-          <p className="text-xs text-muted-foreground px-2 py-2">
-            {isAdmin ? 'Nenhuma pasta. Clique em + para criar.' : 'Nenhuma pasta atribuída a você.'}
-          </p>
-        )}
-      </div>
+      {/* Folders Tree - only show when space is not collapsed */}
+      {!isSpaceCollapsed && (
+        <div className="space-y-0.5">
+          {foldersLoading ? (
+            <>
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </>
+          ) : folders && folders.length > 0 ? (
+            folders.map((folder) => (
+              <FolderItem
+                key={folder.id}
+                folder={folder}
+                spaceId={spaceId}
+                isExpanded={expandedFolders.includes(folder.id)}
+                onToggle={() =>
+                  handleToggleFolder(folder.id, expandedFolders.includes(folder.id))
+                }
+                selectedViewId={currentViewId}
+                onViewSelect={handleViewSelect}
+                onCreateView={() => handleCreateViewForFolder(folder.id)}
+                onDeleteFolder={() => setDeleteFolderDialog({ 
+                  open: true, 
+                  folderId: folder.id, 
+                  folderName: folder.name 
+                })}
+                onDeleteView={(viewId) => setDeleteViewDialog({ 
+                  open: true, 
+                  viewId, 
+                  folderId: folder.id 
+                })}
+              />
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground px-2 py-2">
+              {isAdmin ? 'Nenhuma pasta. Clique em + para criar.' : 'Nenhuma pasta atribuída a você.'}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Create Folder Dialog */}
       <CreateFolderWithTemplateDialog
