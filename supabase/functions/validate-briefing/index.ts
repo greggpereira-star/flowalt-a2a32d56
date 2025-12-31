@@ -44,9 +44,14 @@ serve(async (req) => {
     }
 
     // Helper to truncate message to 200 chars
-    const truncateMessage = (msg: string): string => {
-      if (msg.length <= 200) return msg;
-      return msg.substring(0, 197) + "...";
+    const truncateMessage = (msg: string, maxLen = 200): string => {
+      if (msg.length <= maxLen) return msg;
+      return msg.substring(0, maxLen - 3) + "...";
+    };
+
+    // Helper to truncate array items
+    const truncateArray = (arr: string[], maxItems = 2, maxLen = 80): string[] => {
+      return arr.slice(0, maxItems).map(item => truncateMessage(item, maxLen));
     };
 
     // Basic length validation
@@ -55,11 +60,11 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           isValid: false,
-          message: truncateMessage("Campos obrigatórios devem ter pelo menos 20 caracteres."),
-          issues: [
-            context.length < 20 ? "Contexto muito curto" : null,
-            deliverables.length < 20 ? "Entregáveis muito curto" : null
-          ].filter(Boolean)
+          message: "Mínimo 20 caracteres nos campos obrigatórios.",
+          issues: truncateArray([
+            context.length < 20 ? "Contexto curto" : "",
+            deliverables.length < 20 ? "Entregáveis curto" : ""
+          ].filter(Boolean))
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -67,11 +72,11 @@ serve(async (req) => {
 
     // Check for gibberish/placeholder text
     const gibberishPatterns = [
-      /^[a-z]{1,5}$/i,           // Single short words
-      /^[0-9]+$/,                 // Only numbers
-      /^(.)\1{3,}$/,              // Repeated characters (aaaa, xxxx)
-      /^(teste?|test|asdf|qwer|xxx|abc|123)$/i,  // Common test words
-      /^(ok|sim|não|nao|yes|no)$/i,              // Too short responses
+      /^[a-z]{1,5}$/i,
+      /^[0-9]+$/,
+      /^(.)\1{3,}$/,
+      /^(teste?|test|asdf|qwer|xxx|abc|123)$/i,
+      /^(ok|sim|não|nao|yes|no)$/i,
     ];
 
     const hasGibberish = gibberishPatterns.some(pattern => 
@@ -83,12 +88,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           isValid: false,
-          message: "O briefing parece estar preenchido de forma inadequada.",
-          issues: ["Conteúdo parece ser texto de teste ou sem sentido"],
-          suggestions: [
-            "Descreva o contexto real do projeto",
-            "Liste os entregáveis específicos esperados"
-          ]
+          message: "Texto parece inadequado ou de teste.",
+          issues: ["Use descrições reais do projeto"],
+          suggestions: truncateArray(["Descreva o contexto real", "Liste entregáveis específicos"])
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -209,7 +211,7 @@ O briefing está adequado para iniciar o trabalho?`;
       const message = validation.isValid 
         ? "Briefing validado!"
         : validation.issues?.length > 0 
-          ? truncateMessage(validation.issues.slice(0, 2).join(". "))
+          ? truncateMessage(validation.issues[0], 150)
           : "Preencha com mais detalhes.";
 
       console.log("validate-briefing: Returning result", { isValid: validation.isValid });
@@ -217,9 +219,9 @@ O briefing está adequado para iniciar o trabalho?`;
       return new Response(
         JSON.stringify({
           isValid: validation.isValid,
-          message: truncateMessage(message),
-          issues: validation.issues || [],
-          suggestions: validation.suggestions || []
+          message: truncateMessage(message, 200),
+          issues: truncateArray(validation.issues || [], 2, 80),
+          suggestions: truncateArray(validation.suggestions || [], 2, 80)
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
