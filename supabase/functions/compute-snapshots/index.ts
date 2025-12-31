@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     logger.info('Fetched active workspaces', { count: workspaces?.length || 0 })
 
-    const snapshotTypes = ['coordination', 'financial', 'team']
+    const snapshotTypes = ['daily', 'coordination', 'financial', 'team']
     const results: { workspace_id: string; snapshots: string[]; errors: string[] }[] = []
 
     for (const workspace of workspaces || []) {
@@ -71,10 +71,22 @@ Deno.serve(async (req) => {
 
       for (const snapshotType of snapshotTypes) {
         try {
-          const { error } = await supabase.rpc('compute_dashboard_snapshot', {
-            p_workspace_id: workspace.id,
-            p_snapshot_type: snapshotType
-          })
+          let error = null
+
+          if (snapshotType === 'daily') {
+            // Use the new compute_daily_snapshot function
+            const result = await supabase.rpc('compute_daily_snapshot', {
+              p_workspace_id: workspace.id
+            })
+            error = result.error
+          } else {
+            // Fallback to existing compute_dashboard_snapshot for other types
+            const result = await supabase.rpc('compute_dashboard_snapshot', {
+              p_workspace_id: workspace.id,
+              p_snapshot_type: snapshotType
+            })
+            error = result.error
+          }
 
           if (error) {
             logger.error('Error computing snapshot', { 
