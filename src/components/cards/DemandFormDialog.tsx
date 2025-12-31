@@ -158,7 +158,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         title: title.trim(),
         description: description.trim() || undefined,
         space_id: spaceId,
-        status: 'briefing', // Start in briefing stage
+        status: 'backlog', // Start in backlog, briefing is a gate to advance
         urgency: 'medium',
         due_date: dueDate || undefined,
         client_id: clientId || undefined,

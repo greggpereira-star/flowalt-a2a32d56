@@ -85,7 +85,6 @@ interface CardDetailSheetProps {
 
 const STATUS_OPTIONS: { value: CardStatus; label: string; icon: React.ReactNode }[] = [
   { value: 'backlog', label: 'Backlog', icon: <div className="w-2 h-2 rounded-full bg-status-backlog" /> },
-  { value: 'briefing', label: 'Briefing', icon: <div className="w-2 h-2 rounded-full bg-status-briefing" /> },
   { value: 'todo', label: 'A Fazer', icon: <div className="w-2 h-2 rounded-full bg-status-todo" /> },
   { value: 'in_progress', label: 'Em Progresso', icon: <div className="w-2 h-2 rounded-full bg-status-inProgress" /> },
   { value: 'review', label: 'Revisão', icon: <div className="w-2 h-2 rounded-full bg-status-review" /> },
@@ -248,8 +247,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
     const briefingRequired = !card.briefing_completed;
     const advancingPastBriefing =
-      ['todo', 'in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
-      ['backlog', 'briefing'].includes(status);
+      ['in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
+      ['backlog', 'todo'].includes(status);
 
     if (briefingRequired && advancingPastBriefing) {
       toast.error('Complete o briefing antes de avançar o card');

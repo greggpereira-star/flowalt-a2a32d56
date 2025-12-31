@@ -67,7 +67,7 @@ const DroppableColumn: React.FC<{
   );
 };
 
-const defaultStatuses: CardStatus[] = ['backlog', 'briefing', 'todo', 'in_progress', 'review', 'approved', 'delivered'];
+const defaultStatuses: CardStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'approved', 'delivered'];
 
 // Card status indicators component
 const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
@@ -484,7 +484,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       className={cn(
                         'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
                         status === 'backlog' && 'bg-status-backlog ring-status-backlog/30',
-                        status === 'briefing' && 'bg-status-briefing ring-status-briefing/30',
+                        
                         status === 'todo' && 'bg-status-todo ring-status-todo/30',
                         status === 'in_progress' && 'bg-status-in-progress ring-status-in-progress/30',
                         status === 'review' && 'bg-status-review ring-status-review/30',
