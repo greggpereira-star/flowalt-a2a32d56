@@ -261,43 +261,102 @@ const CoordinationPage: React.FC = () => {
         </div>
 
         <Tabs defaultValue="bottlenecks" className="space-y-4">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="bottlenecks" className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Gargalos
-            </TabsTrigger>
-            <TabsTrigger value="bottleneck-detector" className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              Detector
-            </TabsTrigger>
-            <TabsTrigger value="critical-path" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Caminho Crítico
-            </TabsTrigger>
-            <TabsTrigger value="metrics" className="flex items-center gap-2">
-              <PieChart className="h-4 w-4" />
-              Métricas
-            </TabsTrigger>
-            <TabsTrigger value="gantt" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Gantt
-            </TabsTrigger>
-            <TabsTrigger value="gantt-advanced" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Gantt+
-            </TabsTrigger>
-            <TabsTrigger value="capacity" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Capacidade
-            </TabsTrigger>
-            <TabsTrigger value="dependencies" className="flex items-center gap-2">
-              <GitBranch className="h-4 w-4" />
-              Dependências
-            </TabsTrigger>
-            <TabsTrigger value="sprints" className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Sprints
-            </TabsTrigger>
+          <TabsList className="flex-col h-auto p-3 bg-gradient-to-b from-muted/50 to-muted/30 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
+            {/* Primary Row - 6 columns */}
+            <div className="grid grid-cols-6 gap-2 w-full">
+              <TabsTrigger 
+                value="bottlenecks" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Gargalos</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="bottleneck-detector" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Brain className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Detector</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="critical-path" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Target className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Caminho Crítico</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="metrics" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <PieChart className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Métricas</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gantt" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Gantt</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gantt-advanced" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Gantt+</span>
+              </TabsTrigger>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center w-full my-2">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+              <span className="px-3 text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Recursos</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+            </div>
+
+            {/* Secondary Row - 3 columns centered */}
+            <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
+              <TabsTrigger 
+                value="capacity" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Users className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Capacidade</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="dependencies" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <GitBranch className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Dependências</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sprints" 
+                className="flex flex-col items-center gap-0.5 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1 rounded-lg bg-muted/50">
+                  <Zap className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-medium">Sprints</span>
+              </TabsTrigger>
+            </div>
           </TabsList>
 
           <TabsContent value="bottlenecks" className="space-y-4">
