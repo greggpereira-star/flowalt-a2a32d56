@@ -12,6 +12,7 @@ import { ListView } from '@/components/cards/ListView';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
 import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
+import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -248,39 +249,41 @@ const SpacePage: React.FC = () => {
 
         {/* Content - Kanban area with internal scroll */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          {cardsLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : view === 'kanban' ? (
-            <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
-              <KanbanBoard
-                cards={filteredCards}
-                onCardClick={handleCardClick}
-                onAddCard={handleAddCard}
-              />
-            </div>
-          ) : view === 'kanban-advanced' ? (
-            <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
-              <KanbanAdvanced
-                cards={filteredCards}
-                onCardClick={handleCardClick}
-                onAddCard={handleAddCard}
-                spaceId={spaceId}
-              />
-            </div>
-          ) : view === 'list' ? (
-            <div className="h-full p-4 overflow-auto">
-              <ListView cards={filteredCards} onCardClick={handleCardClick} />
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Visualização de calendário em breve
-              </p>
-            </div>
-          )}
+          <WorkflowInitializer>
+            {cardsLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : view === 'kanban' ? (
+              <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
+                <KanbanBoard
+                  cards={filteredCards}
+                  onCardClick={handleCardClick}
+                  onAddCard={handleAddCard}
+                />
+              </div>
+            ) : view === 'kanban-advanced' ? (
+              <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
+                <KanbanAdvanced
+                  cards={filteredCards}
+                  onCardClick={handleCardClick}
+                  onAddCard={handleAddCard}
+                  spaceId={spaceId}
+                />
+              </div>
+            ) : view === 'list' ? (
+              <div className="h-full p-4 overflow-auto">
+                <ListView cards={filteredCards} onCardClick={handleCardClick} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Visualização de calendário em breve
+                </p>
+              </div>
+            )}
+          </WorkflowInitializer>
         </div>
       </div>
 
