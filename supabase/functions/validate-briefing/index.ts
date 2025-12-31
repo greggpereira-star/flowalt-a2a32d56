@@ -114,44 +114,24 @@ serve(async (req) => {
 
     console.log("validate-briefing: Calling AI for validation");
 
-    // Use AI to validate content quality
-    const systemPrompt = `Você é um assistente de validação de briefing de projetos. 
-Sua tarefa é analisar se o briefing foi preenchido de forma adequada e com informações úteis, ou se foi preenchido de qualquer jeito apenas para liberar o card.
+    // Use AI to validate content quality - CONCISE responses
+    const systemPrompt = `Valide se o briefing tem informações úteis ou é texto aleatório.
 
-Critérios de REJEIÇÃO:
-- Texto muito curto ou sem detalhes suficientes
-- Texto sem sentido ou aleatório
-- Respostas genéricas demais que não agregam informação
-- Conteúdo que parece cópia do placeholder/exemplo do campo
-- Texto repetido ou sem contexto real do projeto
+REJEITE se: texto sem sentido, muito curto, genérico ou de teste.
+APROVE se: tem contexto claro e entregáveis específicos.
 
-Critérios de APROVAÇÃO:
-- Contexto claro sobre o que é o projeto
-- Entregáveis específicos e mensuráveis
-- Informações que permitam a execução do trabalho
-
-Responda APENAS em JSON válido com esta estrutura:
+RESPONDA APENAS em JSON. MÁXIMO 50 caracteres por item:
 {
   "isValid": boolean,
-  "issues": ["lista de problemas encontrados, se houver"],
-  "suggestions": ["sugestões de melhoria, se aplicável"]
-}`;
+  "issues": ["problema curto max 50 chars"],
+  "suggestions": ["sugestão curta max 50 chars"]
+}
 
-    const userPrompt = `Analise este briefing de projeto:
+IMPORTANTE: Seja MUITO conciso. Máximo 2 issues e 2 suggestions.`;
 
-CONTEXTO (obrigatório):
-${context}
-
-PÚBLICO-ALVO:
-${briefingData.target_audience || "(não preenchido)"}
-
-ENTREGÁVEIS (obrigatório):
-${deliverables}
-
-REFERÊNCIAS:
-${briefingData.references || "(não preenchido)"}
-
-O briefing está adequado para iniciar o trabalho?`;
+    const userPrompt = `CONTEXTO: ${context.substring(0, 200)}
+ENTREGÁVEIS: ${deliverables.substring(0, 200)}
+Válido?`;
 
     try {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
