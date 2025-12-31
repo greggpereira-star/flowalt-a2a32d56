@@ -231,34 +231,96 @@ export function useSubscriptionCostSummary() {
   return useQuery({
     queryKey: ['subscription-cost-summary', currentWorkspace?.id],
     queryFn: async () => {
-      if (!currentWorkspace?.id) return { monthly: 0, yearly: 0, total: 0 };
+      if (!currentWorkspace?.id) return { monthly: 0, yearly: 0, total: 0, totalSeats: 0, usedSeats: 0, expiringSoon: 0 };
 
       const { data, error } = await supabase
-        .from('subscription_licenses')
-        .select('cost_per_cycle, billing_cycle')
+        .from('subscription_costs_summary_view')
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active');
+        .single();
 
-      if (error) throw error;
-
-      let monthlyTotal = 0;
-      let yearlyTotal = 0;
-
-      (data as SubscriptionLicense[]).forEach(sub => {
-        if (sub.billing_cycle === 'monthly') {
-          monthlyTotal += sub.cost_per_cycle;
-          yearlyTotal += sub.cost_per_cycle * 12;
-        } else if (sub.billing_cycle === 'yearly') {
-          monthlyTotal += sub.cost_per_cycle / 12;
-          yearlyTotal += sub.cost_per_cycle;
-        }
-      });
+      if (error && error.code !== 'PGRST116') throw error;
 
       return {
-        monthly: monthlyTotal,
-        yearly: yearlyTotal,
-        total: yearlyTotal,
+        monthly: data?.total_monthly_cost || 0,
+        yearly: data?.total_yearly_cost || 0,
+        total: data?.total_yearly_cost || 0,
+        totalSeats: data?.total_seats || 0,
+        usedSeats: data?.total_seats_used || 0,
+        expiringSoon: data?.expiring_soon_count || 0,
+        count: data?.total_subscriptions || 0,
       };
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
+
+/**
+ * Hook para status detalhado via view
+ */
+export function useSubscriptionStatus() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['subscription-status', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from('subscription_status_view')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .order('days_until_renewal', { ascending: true });
+
+      if (error) throw error;
+      return data as Array<{
+        id: string;
+        workspace_id: string;
+        vendor: string;
+        product_name: string;
+        plan_name: string | null;
+        billing_cycle: BillingCycle;
+        renewal_date: string;
+        auto_renew: boolean;
+        seats_total: number | null;
+        seats_used: number | null;
+        cost_per_cycle: number;
+        status: SubscriptionStatus;
+        is_active: boolean;
+        days_until_renewal: number;
+        utilization_percent: number | null;
+        monthly_cost: number;
+        renewal_status: 'expired' | 'critical' | 'warning' | 'attention' | 'ok';
+      }>;
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
+
+/**
+ * Hook para sugestões de downgrade
+ */
+export function useDowngradeSuggestions() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['downgrade-suggestions', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from('subscription_status_view')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .not('utilization_percent', 'is', null)
+        .lt('utilization_percent', 50);
+
+      if (error) throw error;
+      
+      return (data || []).map(sub => ({
+        ...sub,
+        potentialSavings: sub.monthly_cost * (1 - (sub.utilization_percent || 0) / 100),
+      }));
     },
     enabled: !!currentWorkspace?.id,
   });
