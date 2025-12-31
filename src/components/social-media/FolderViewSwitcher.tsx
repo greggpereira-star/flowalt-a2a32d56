@@ -93,7 +93,6 @@ export const FolderViewSwitcher: React.FC<FolderViewSwitcherProps> = ({
         folderId,
         name: newViewName.trim(),
         viewType: newViewType,
-        config: {},
       });
 
       toast({
