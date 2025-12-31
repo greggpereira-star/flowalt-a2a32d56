@@ -5541,6 +5541,94 @@ export type Database = {
           },
         ]
       }
+      subscription_costs_summary_view: {
+        Row: {
+          expiring_soon_count: number | null
+          total_monthly_cost: number | null
+          total_seats: number | null
+          total_seats_used: number | null
+          total_subscriptions: number | null
+          total_yearly_cost: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_licenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_status_view: {
+        Row: {
+          auto_renew: boolean | null
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle: number | null
+          days_until_renewal: number | null
+          id: string | null
+          is_active: boolean | null
+          monthly_cost: number | null
+          plan_name: string | null
+          product_name: string | null
+          renewal_date: string | null
+          renewal_status: string | null
+          seats_total: number | null
+          seats_used: number | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          utilization_percent: number | null
+          vendor: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle?: number | null
+          days_until_renewal?: never
+          id?: string | null
+          is_active?: boolean | null
+          monthly_cost?: never
+          plan_name?: string | null
+          product_name?: string | null
+          renewal_date?: string | null
+          renewal_status?: never
+          seats_total?: number | null
+          seats_used?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          utilization_percent?: never
+          vendor?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          auto_renew?: boolean | null
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          cost_per_cycle?: number | null
+          days_until_renewal?: never
+          id?: string | null
+          is_active?: boolean | null
+          monthly_cost?: never
+          plan_name?: string | null
+          product_name?: string | null
+          renewal_date?: string | null
+          renewal_status?: never
+          seats_total?: number | null
+          seats_used?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          utilization_percent?: never
+          vendor?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_licenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warranty_status_view: {
         Row: {
           current_status: Database["public"]["Enums"]["unit_status"] | null
@@ -5758,6 +5846,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      run_subscription_check_job: { Args: never; Returns: undefined }
       run_warranty_check_job: { Args: never; Returns: undefined }
       store_idempotent_response: {
         Args: {
