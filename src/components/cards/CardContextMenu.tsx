@@ -47,7 +47,8 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
   onDuplicate,
   onDelete,
 }) => {
-  const statuses = Object.entries(statusConfig) as [CardStatus, typeof statusConfig[CardStatus]][];
+  const statuses = (Object.entries(statusConfig) as [CardStatus, typeof statusConfig[CardStatus]][])
+    .filter(([status]) => status !== 'briefing');
 
   return (
     <ContextMenu>
