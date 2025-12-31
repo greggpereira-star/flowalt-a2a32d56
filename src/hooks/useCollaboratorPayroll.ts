@@ -332,7 +332,9 @@ export function useApprovePayroll() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payrolls"] });
-      toast({ title: "Folha aprovada com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      toast({ title: "Folha aprovada com sucesso", description: "Transação financeira criada automaticamente" });
     },
     onError: (error) => {
       toast({ title: "Erro ao aprovar folha", description: error.message, variant: "destructive" });
