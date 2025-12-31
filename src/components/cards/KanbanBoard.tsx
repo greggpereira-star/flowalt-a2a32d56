@@ -211,8 +211,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-    const fromStage = card.current_stage || mapStatusToStage(card.status);
+    const fromStage = mapStatusToStage(card.status);
     const toStage = mapStatusToStage(targetStatus);
+
+    // No-op: avoid validating/recording a transition to the same stage
+    if (fromStage === toStage) return;
 
     // Get card checklist progress
     const { data: checklists } = await (await import('@/integrations/supabase/client')).supabase
