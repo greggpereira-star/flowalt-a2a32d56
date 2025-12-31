@@ -15,6 +15,7 @@ import { FinancialAlertsPanel } from "@/components/financial/FinancialAlertsPane
 import { BankReconciliationPanel } from "@/components/financial/BankReconciliationPanel";
 import { CashFlowForecastChart } from "@/components/financial/CashFlowForecastChart";
 import { FinancialAuditPanel } from "@/components/financial/FinancialAuditPanel";
+import { ProjectProfitabilityPanel } from "@/components/financial/ProjectProfitabilityPanel";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   Bell,
   GitCompare,
   Shield,
+  PieChart,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -107,6 +109,10 @@ export default function FinancialPage() {
                     <Shield className="w-4 h-4" />
                     <span>Auditoria</span>
                   </TabsTrigger>
+                  <TabsTrigger value="profitability" variant="wrap" className="gap-2">
+                    <PieChart className="w-4 h-4" />
+                    <span>Rentabilidade</span>
+                  </TabsTrigger>
                   <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
                     <Users className="w-4 h-4" />
                     <span>Colaboradores</span>
@@ -179,6 +185,10 @@ export default function FinancialPage() {
 
                   <TabsContent value="audit" className="mt-0 animate-in fade-in-50 duration-300">
                     <FinancialAuditPanel />
+                  </TabsContent>
+
+                  <TabsContent value="profitability" className="mt-0 animate-in fade-in-50 duration-300">
+                    <ProjectProfitabilityPanel />
                   </TabsContent>
 
                   <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">

@@ -40,6 +40,7 @@ import { AttachmentsPanel } from './AttachmentsPanel';
 import { CardExecutionAssistantWrapper } from './CardExecutionAssistantWrapper';
 import { TagManagerWrapper } from './TagManagerWrapper';
 import { NextBestAction } from './NextBestAction';
+import { CardFinancialTab } from './CardFinancialTab';
 import {
   CalendarIcon,
   FileText,
@@ -59,6 +60,7 @@ import {
   X,
   Play,
   Pause,
+  DollarSign,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -589,6 +591,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       </Badge>
                     )}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="financial"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
+                  >
+                    <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                    Financeiro
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -780,6 +789,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                 <TabsContent value="attachments" className="m-0 p-4">
                   <AttachmentsPanel cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="financial" className="m-0">
+                  <CardFinancialTab cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>
