@@ -524,80 +524,84 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="border-b flex-shrink-0 bg-muted/30">
-                <TabsList className="w-full justify-start h-auto p-1 bg-transparent rounded-none gap-1 overflow-x-auto">
-                  <TabsTrigger
-                    value="overview"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <Target className="h-3.5 w-3.5 mr-1.5" />
-                    Visão Geral
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="assistant"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    IA
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="checklist"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Tarefas
-                    {checklistTotal > 0 && (
-                      <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                        {checklistCompleted}/{checklistTotal}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="time"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <Clock className="h-3.5 w-3.5 mr-1.5" />
-                    Tempo
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="comments"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Chat
-                    {commentsCount > 0 && (
-                      <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                        {commentsCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="attachments"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-                    Arquivos
-                    {attachmentsCount > 0 && (
-                      <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                        {attachmentsCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="financial"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <DollarSign className="h-3.5 w-3.5 mr-1.5" />
-                    Financeiro
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="invites"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
-                  >
-                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                    Convidar
-                  </TabsTrigger>
-                </TabsList>
+              <div className="border-b flex-shrink-0">
+                <ScrollArea className="w-full">
+                  <div className="px-4 py-2">
+                    <TabsList className="inline-flex h-10 items-center justify-start gap-1 bg-muted/50 p-1 rounded-lg">
+                      <TabsTrigger
+                        value="overview"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        Visão Geral
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="assistant"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        IA
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="checklist"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Tarefas
+                        {checklistTotal > 0 && (
+                          <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs font-semibold">
+                            {checklistCompleted}/{checklistTotal}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="time"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Tempo
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="comments"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Chat
+                        {commentsCount > 0 && (
+                          <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs font-semibold">
+                            {commentsCount}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="attachments"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Arquivos
+                        {attachmentsCount > 0 && (
+                          <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs font-semibold">
+                            {attachmentsCount}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="financial"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Financeiro
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="invites"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Convidar
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                </ScrollArea>
               </div>
 
               <ScrollArea className="flex-1">
