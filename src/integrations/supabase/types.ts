@@ -740,6 +740,41 @@ export type Database = {
           },
         ]
       }
+      card_custom_fields: {
+        Row: {
+          card_id: string
+          created_at: string
+          field_key: string
+          field_value: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          field_key: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          field_key?: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_custom_fields_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_folders: {
         Row: {
           card_id: string
@@ -2800,6 +2835,124 @@ export type Database = {
           },
         ]
       }
+      folder_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_default: boolean | null
+          is_system: boolean | null
+          name: string
+          space_type: string
+          template_config: Json
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_system?: boolean | null
+          name: string
+          space_type: string
+          template_config?: Json
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          space_type?: string
+          template_config?: Json
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "folder_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folder_views: {
+        Row: {
+          created_at: string
+          folder_id: string
+          id: string
+          is_default: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string
+          view_config: Json
+          view_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+          view_config?: Json
+          view_type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+          view_config?: Json
+          view_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_views_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folder_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "folder_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folders: {
         Row: {
           color: string | null
@@ -4281,6 +4434,69 @@ export type Database = {
           },
         ]
       }
+      space_custom_field_definitions: {
+        Row: {
+          created_at: string
+          field_key: string
+          field_label: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_filterable: boolean | null
+          is_required: boolean | null
+          is_visible_on_card: boolean | null
+          sort_order: number | null
+          space_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          field_label: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_filterable?: boolean | null
+          is_required?: boolean | null
+          is_visible_on_card?: boolean | null
+          sort_order?: number | null
+          space_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          field_label?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_filterable?: boolean | null
+          is_required?: boolean | null
+          is_visible_on_card?: boolean | null
+          sort_order?: number | null
+          space_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_custom_field_definitions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "space_custom_field_definitions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           color: string | null
@@ -4292,6 +4508,7 @@ export type Database = {
           name: string
           settings: Json | null
           sort_order: number | null
+          space_type: string | null
           type: Database["public"]["Enums"]["space_type"]
           updated_at: string
           workspace_id: string
@@ -4306,6 +4523,7 @@ export type Database = {
           name: string
           settings?: Json | null
           sort_order?: number | null
+          space_type?: string | null
           type?: Database["public"]["Enums"]["space_type"]
           updated_at?: string
           workspace_id: string
@@ -4320,6 +4538,7 @@ export type Database = {
           name?: string
           settings?: Json | null
           sort_order?: number | null
+          space_type?: string | null
           type?: Database["public"]["Enums"]["space_type"]
           updated_at?: string
           workspace_id?: string
@@ -6445,6 +6664,10 @@ export type Database = {
         Args: { p_points: number; p_user_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      apply_folder_template: {
+        Args: { p_folder_id: string; p_template_id: string }
+        Returns: Json
+      }
       award_badge: {
         Args: {
           p_badge_type: string
@@ -6627,6 +6850,10 @@ export type Database = {
           _workspace_id: string
         }
         Returns: boolean
+      }
+      initialize_space_custom_fields: {
+        Args: { p_space_type: string; p_workspace_id: string }
+        Returns: number
       }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
