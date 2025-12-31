@@ -2,13 +2,10 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Form,
   FormControl,
@@ -24,12 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { useCollaboratorDetails, useCreateOrUpdateCollaborator } from "@/hooks/useCollaborators";
 
 const collaboratorSchema = z.object({
@@ -213,37 +204,13 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Nascimento</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal justify-start",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value 
-                            ? format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) 
-                            : "Selecione uma data"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-auto p-0 bg-popover border shadow-lg z-50" 
-                      align="start"
-                      sideOffset={4}
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        locale={ptBR}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <DateInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -255,38 +222,13 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Admissão</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal justify-start",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value 
-                            ? format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) 
-                            : "Selecione uma data"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-auto p-0 bg-popover border shadow-lg z-50" 
-                      align="start"
-                      sideOffset={4}
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        locale={ptBR}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <DateInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
