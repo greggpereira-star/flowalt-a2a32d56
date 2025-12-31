@@ -63,116 +63,115 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="inline-flex h-auto gap-1 p-1">
-              <TabsTrigger value="qa-checklist" className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                QA
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <div className="flex justify-center px-4 md:px-8 lg:px-12">
+            <TabsList className="grid grid-cols-5 sm:grid-cols-10 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-5xl w-full">
+              <TabsTrigger value="qa-checklist" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <ClipboardCheck className="h-5 w-5" />
+                <span className="text-xs font-medium">QA</span>
               </TabsTrigger>
-              <TabsTrigger value="workflow" className="flex items-center gap-2">
-                <GitBranch className="h-4 w-4" />
-                Workflow
+              <TabsTrigger value="workflow" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <GitBranch className="h-5 w-5" />
+                <span className="text-xs font-medium">Workflow</span>
               </TabsTrigger>
-              <TabsTrigger value="onboarding" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Tour
+              <TabsTrigger value="onboarding" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Sparkles className="h-5 w-5" />
+                <span className="text-xs font-medium">Tour</span>
               </TabsTrigger>
-              <TabsTrigger value="automations" className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Automações
+              <TabsTrigger value="automations" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Zap className="h-5 w-5" />
+                <span className="text-xs font-medium">Automações</span>
               </TabsTrigger>
-              <TabsTrigger value="templates" className="flex items-center gap-2">
-                <FileStack className="h-4 w-4" />
-                Templates
+              <TabsTrigger value="templates" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <FileStack className="h-5 w-5" />
+                <span className="text-xs font-medium">Templates</span>
               </TabsTrigger>
-              <TabsTrigger value="marketplace" className="flex items-center gap-2">
-                <Store className="h-4 w-4" />
-                Marketplace
+              <TabsTrigger value="marketplace" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Store className="h-5 w-5" />
+                <span className="text-xs font-medium">Marketplace</span>
               </TabsTrigger>
-              <TabsTrigger value="connectors" className="flex items-center gap-2">
-                <Link2 className="h-4 w-4" />
-                Conectores
+              <TabsTrigger value="connectors" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Link2 className="h-5 w-5" />
+                <span className="text-xs font-medium">Conectores</span>
               </TabsTrigger>
-              <TabsTrigger value="predictive" className="flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                Preditivo
+              <TabsTrigger value="predictive" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Brain className="h-5 w-5" />
+                <span className="text-xs font-medium">Preditivo</span>
               </TabsTrigger>
-              <TabsTrigger value="api-keys" className="flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                API
+              <TabsTrigger value="api-keys" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Key className="h-5 w-5" />
+                <span className="text-xs font-medium">API</span>
               </TabsTrigger>
-              <TabsTrigger value="webhooks" className="flex items-center gap-2">
-                <Webhook className="h-4 w-4" />
-                Webhooks
+              <TabsTrigger value="webhooks" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Webhook className="h-5 w-5" />
+                <span className="text-xs font-medium">Webhooks</span>
               </TabsTrigger>
-              <TabsTrigger value="webhook-health" className="flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                Saúde
+              <TabsTrigger value="webhook-health" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Heart className="h-5 w-5" />
+                <span className="text-xs font-medium">Saúde</span>
               </TabsTrigger>
-              <TabsTrigger value="webhook-dlq" className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Replay
+              <TabsTrigger value="webhook-dlq" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <RotateCcw className="h-5 w-5" />
+                <span className="text-xs font-medium">Replay</span>
               </TabsTrigger>
-              <TabsTrigger value="events" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                Eventos
+              <TabsTrigger value="events" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Search className="h-5 w-5" />
+                <span className="text-xs font-medium">Eventos</span>
               </TabsTrigger>
-              <TabsTrigger value="monitoring" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Monitor
+              <TabsTrigger value="monitoring" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <BarChart3 className="h-5 w-5" />
+                <span className="text-xs font-medium">Monitor</span>
               </TabsTrigger>
-              <TabsTrigger value="api-metrics" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Métricas
+              <TabsTrigger value="api-metrics" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <TrendingUp className="h-5 w-5" />
+                <span className="text-xs font-medium">Métricas</span>
               </TabsTrigger>
-              <TabsTrigger value="api-logs" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Logs
+              <TabsTrigger value="api-logs" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Activity className="h-5 w-5" />
+                <span className="text-xs font-medium">Logs</span>
               </TabsTrigger>
-              <TabsTrigger value="system" className="flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
-                Sistema
+              <TabsTrigger value="system" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Monitor className="h-5 w-5" />
+                <span className="text-xs font-medium">Sistema</span>
               </TabsTrigger>
-              <TabsTrigger value="feature-flags" className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                Flags
+              <TabsTrigger value="feature-flags" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Flag className="h-5 w-5" />
+                <span className="text-xs font-medium">Flags</span>
               </TabsTrigger>
-              <TabsTrigger value="usage" className="flex items-center gap-2">
-                <PieChart className="h-4 w-4" />
-                Uso
+              <TabsTrigger value="usage" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <PieChart className="h-5 w-5" />
+                <span className="text-xs font-medium">Uso</span>
               </TabsTrigger>
-              <TabsTrigger value="audit" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Auditoria
+              <TabsTrigger value="audit" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Shield className="h-5 w-5" />
+                <span className="text-xs font-medium">Auditoria</span>
               </TabsTrigger>
-              <TabsTrigger value="docs" className="flex items-center gap-2">
-                <Code className="h-4 w-4" />
-                Docs
+              <TabsTrigger value="docs" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Code className="h-5 w-5" />
+                <span className="text-xs font-medium">Docs</span>
               </TabsTrigger>
-              <TabsTrigger value="api-tester" className="flex items-center gap-2">
-                <Play className="h-4 w-4" />
-                Tester
+              <TabsTrigger value="api-tester" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Play className="h-5 w-5" />
+                <span className="text-xs font-medium">Tester</span>
               </TabsTrigger>
-              <TabsTrigger value="super-admin" className="flex items-center gap-2">
-                <Crown className="h-4 w-4" />
-                Admin
+              <TabsTrigger value="super-admin" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Crown className="h-5 w-5" />
+                <span className="text-xs font-medium">Admin</span>
               </TabsTrigger>
-              <TabsTrigger value="push" className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                Push
+              <TabsTrigger value="push" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Bell className="h-5 w-5" />
+                <span className="text-xs font-medium">Push</span>
               </TabsTrigger>
-              <TabsTrigger value="health" className="flex items-center gap-2">
-                <HeartPulse className="h-4 w-4" />
-                Health
+              <TabsTrigger value="health" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <HeartPulse className="h-5 w-5" />
+                <span className="text-xs font-medium">Health</span>
               </TabsTrigger>
-              <TabsTrigger value="backup" className="flex items-center gap-2">
-                <Archive className="h-4 w-4" />
-                Backup
+              <TabsTrigger value="backup" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Archive className="h-5 w-5" />
+                <span className="text-xs font-medium">Backup</span>
               </TabsTrigger>
             </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </div>
 
           <TabsContent value="qa-checklist">
             <QAChecklist />
