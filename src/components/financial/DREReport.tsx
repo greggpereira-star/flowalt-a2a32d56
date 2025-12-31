@@ -19,14 +19,23 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGenerateDRE } from "@/hooks/useFinancialReports";
 import { useTransactions } from "@/hooks/useFinancial";
+import { useTaxSettings, useLocalTaxCalculation } from "@/hooks/useTaxSettings";
 import { generatePDFReport, downloadPDF, type ReportData } from "@/lib/pdfGenerator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const regimeLabels: Record<string, string> = {
+  simples_nacional: "Simples Nacional",
+  lucro_presumido: "Lucro Presumido",
+  lucro_real: "Lucro Real",
+};
 
 export function DREReport() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [isExporting, setIsExporting] = useState(false);
   const generateDRE = useGenerateDRE();
+  const { data: taxSettings } = useTaxSettings();
+  const { calculateTaxes } = useLocalTaxCalculation();
 
   // Current period
   const currentPeriodStart = startOfMonth(selectedMonth);
@@ -111,6 +120,21 @@ export function DREReport() {
     [previousTransactions]
   );
 
+  // Calculate taxes based on regime
+  const currentTaxes = useMemo(
+    () => calculateTaxes(currentData.totalIncome),
+    [currentData.totalIncome, calculateTaxes]
+  );
+
+  const previousTaxes = useMemo(
+    () => calculateTaxes(previousData.totalIncome),
+    [previousData.totalIncome, calculateTaxes]
+  );
+
+  // Net profit after taxes
+  const netProfitAfterTaxes = currentData.operationalResult - currentTaxes.total_taxes;
+  const prevNetProfitAfterTaxes = previousData.operationalResult - previousTaxes.total_taxes;
+
   // Calculate variations
   const calculateVariation = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
@@ -121,6 +145,8 @@ export function DREReport() {
     income: calculateVariation(currentData.totalIncome, previousData.totalIncome),
     expenses: calculateVariation(currentData.totalExpenses, previousData.totalExpenses),
     result: calculateVariation(currentData.operationalResult, previousData.operationalResult),
+    taxes: calculateVariation(currentTaxes.total_taxes, previousTaxes.total_taxes),
+    netResult: calculateVariation(netProfitAfterTaxes, prevNetProfitAfterTaxes),
   };
 
   const handleGenerateDRE = async () => {
@@ -356,57 +382,136 @@ export function DREReport() {
 
             <Separator />
 
-            {/* Resultado */}
+            {/* Resultado Operacional */}
             <div className="p-4 bg-muted/30">
               <div className="flex justify-between items-center font-bold text-lg">
-                <span>RESULTADO OPERACIONAL</span>
+                <span>RESULTADO OPERACIONAL (EBITDA)</span>
+                <span
+                  className={
+                    currentData.operationalResult >= 0
+                      ? "text-emerald-600"
+                      : "text-rose-600"
+                  }
+                >
+                  {formatCurrency(currentData.operationalResult)}
+                </span>
+              </div>
+            </div>
+
+            {/* Impostos */}
+            <div className="p-4">
+              <div className="flex justify-between items-center font-semibold text-amber-600 mb-2">
                 <div className="flex items-center gap-2">
-                  {currentData.operationalResult > 0 ? (
+                  <span>IMPOSTOS SOBRE RECEITA</span>
+                  <Badge variant="outline" className="text-xs">
+                    {regimeLabels[currentTaxes.regime] || "Simples Nacional"}
+                  </Badge>
+                </div>
+                <span>({formatCurrency(currentTaxes.total_taxes)})</span>
+              </div>
+              <div className="space-y-1 pl-4">
+                {currentTaxes.das > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">DAS (Simples Nacional)</span>
+                    <span>({formatCurrency(currentTaxes.das)})</span>
+                  </div>
+                )}
+                {currentTaxes.irpj > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">IRPJ</span>
+                    <span>({formatCurrency(currentTaxes.irpj)})</span>
+                  </div>
+                )}
+                {currentTaxes.csll > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">CSLL</span>
+                    <span>({formatCurrency(currentTaxes.csll)})</span>
+                  </div>
+                )}
+                {currentTaxes.pis > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">PIS</span>
+                    <span>({formatCurrency(currentTaxes.pis)})</span>
+                  </div>
+                )}
+                {currentTaxes.cofins > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">COFINS</span>
+                    <span>({formatCurrency(currentTaxes.cofins)})</span>
+                  </div>
+                )}
+                {currentTaxes.iss > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">ISS</span>
+                    <span>({formatCurrency(currentTaxes.iss)})</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground">Carga Tributária Efetiva</span>
+                  <span className="font-medium">{currentTaxes.effective_rate.toFixed(2)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Resultado Líquido */}
+            <div className="p-4 bg-primary/5">
+              <div className="flex justify-between items-center font-bold text-lg">
+                <span>RESULTADO LÍQUIDO (após impostos)</span>
+                <div className="flex items-center gap-2">
+                  {netProfitAfterTaxes > 0 ? (
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
-                  ) : currentData.operationalResult < 0 ? (
+                  ) : netProfitAfterTaxes < 0 ? (
                     <TrendingDown className="w-5 h-5 text-rose-600" />
                   ) : (
                     <Minus className="w-5 h-5 text-muted-foreground" />
                   )}
                   <span
                     className={
-                      currentData.operationalResult >= 0
+                      netProfitAfterTaxes >= 0
                         ? "text-emerald-600"
                         : "text-rose-600"
                     }
                   >
-                    {formatCurrency(currentData.operationalResult)}
+                    {formatCurrency(netProfitAfterTaxes)}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Indicadores */}
-            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <div className="text-xl font-bold text-emerald-600">
                   {formatCurrency(currentData.totalIncome)}
                 </div>
-                <div className="text-sm text-muted-foreground">Receita Total</div>
+                <div className="text-sm text-muted-foreground">Receita Bruta</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-rose-600">
                   {formatCurrency(currentData.totalExpenses)}
                 </div>
-                <div className="text-sm text-muted-foreground">Despesa Total</div>
+                <div className="text-sm text-muted-foreground">Despesas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-amber-600">
+                  {formatCurrency(currentTaxes.total_taxes)}
+                </div>
+                <div className="text-sm text-muted-foreground">Impostos</div>
               </div>
               <div className="text-center">
                 <div
                   className={cn(
                     "text-xl font-bold",
-                    currentData.operationalResult >= 0
+                    netProfitAfterTaxes >= 0
                       ? "text-emerald-600"
                       : "text-rose-600"
                   )}
                 >
-                  {formatCurrency(currentData.operationalResult)}
+                  {formatCurrency(netProfitAfterTaxes)}
                 </div>
-                <div className="text-sm text-muted-foreground">Resultado Líquido</div>
+                <div className="text-sm text-muted-foreground">Lucro Líquido</div>
               </div>
               <div className="text-center">
                 <div
@@ -415,9 +520,11 @@ export function DREReport() {
                     currentData.profitMargin >= 0 ? "text-emerald-600" : "text-rose-600"
                   )}
                 >
-                  {currentData.profitMargin.toFixed(1)}%
+                  {currentData.totalIncome > 0 
+                    ? ((netProfitAfterTaxes / currentData.totalIncome) * 100).toFixed(1)
+                    : "0.0"}%
                 </div>
-                <div className="text-sm text-muted-foreground">Margem de Lucro</div>
+                <div className="text-sm text-muted-foreground">Margem Líquida</div>
               </div>
             </div>
           </div>

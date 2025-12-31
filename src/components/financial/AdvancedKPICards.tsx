@@ -8,7 +8,9 @@ import {
   Activity,
   Target,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Receipt,
+  Users
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -147,7 +149,7 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
       {/* Primary KPIs Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KPICard
-          title="Receita"
+          title="Receita Bruta"
           value={formatCurrency(kpis.revenue)}
           trend={kpis.revenueGrowth}
           subtitle="vs mês anterior"
@@ -167,12 +169,21 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
         />
         
         <KPICard
+          title="Impostos"
+          value={formatCurrency(kpis.taxes.total)}
+          subtitle={`${kpis.taxes.effectiveRate.toFixed(1)}% s/ receita`}
+          icon={<Receipt className="w-4 h-4" />}
+          variant="warning"
+          size="md"
+        />
+        
+        <KPICard
           title="Lucro Líquido"
-          value={formatCurrency(kpis.netProfit)}
+          value={formatCurrency(kpis.netProfitAfterTaxes)}
           trend={kpis.profitGrowth}
-          subtitle={`Margem: ${kpis.profitMargin.toFixed(1)}%`}
+          subtitle={`Margem: ${kpis.revenue > 0 ? ((kpis.netProfitAfterTaxes / kpis.revenue) * 100).toFixed(1) : 0}%`}
           icon={<DollarSign className="w-4 h-4" />}
-          variant={kpis.netProfit >= 0 ? "success" : "danger"}
+          variant={kpis.netProfitAfterTaxes >= 0 ? "success" : "danger"}
           size="md"
         />
         
@@ -184,18 +195,27 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
           variant="info"
           size="md"
         />
-        
+      </div>
+
+      {/* Secondary KPIs Row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KPICard
           title="Ticket Médio"
           value={formatCurrency(kpis.avgTicket)}
           icon={<Target className="w-4 h-4" />}
           variant="default"
-          size="md"
+          size="sm"
         />
-      </div>
-
-      {/* Secondary KPIs Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <KPICard
+          title="Folha de Pagamento"
+          value={formatCurrency(kpis.payrollTotal)}
+          subtitle={`${kpis.payrollCount} colaboradores`}
+          icon={<Users className="w-4 h-4" />}
+          variant="info"
+          size="sm"
+        />
+        
         <KPICard
           title="Orçamento"
           value={`${Math.abs(kpis.budgetVariance).toFixed(0)}%`}
@@ -206,16 +226,9 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
         />
         
         <KPICard
-          title="Prazo Médio Pgto"
-          value={`${Math.abs(kpis.avgPaymentTime).toFixed(0)} dias`}
-          icon={<Clock className="w-4 h-4" />}
-          variant="default"
-          size="sm"
-        />
-        
-        <KPICard
-          title="Prazo Médio Receb"
-          value={`${Math.abs(kpis.avgReceivableTime).toFixed(0)} dias`}
+          title="PMR / PMP"
+          value={`${Math.abs(kpis.avgReceivableTime).toFixed(0)} / ${Math.abs(kpis.avgPaymentTime).toFixed(0)}`}
+          subtitle="dias receb / pgto"
           icon={<Clock className="w-4 h-4" />}
           variant="default"
           size="sm"
