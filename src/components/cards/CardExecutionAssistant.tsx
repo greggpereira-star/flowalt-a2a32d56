@@ -96,7 +96,7 @@ export const CardExecutionAssistant: React.FC<CardExecutionAssistantProps> = ({
     }
 
     // Check briefing status
-    if (!card.briefing_completed && ['backlog', 'briefing'].includes(card.status)) {
+    if (!card.briefing_completed && ['backlog', 'todo'].includes(card.status)) {
       newAlerts.push({
         type: 'briefing',
         severity: 'warning',

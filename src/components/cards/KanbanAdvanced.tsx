@@ -130,7 +130,7 @@ interface FilterState {
   searchQuery: string;
 }
 
-const defaultStatuses: CardStatus[] = ['backlog', 'briefing', 'todo', 'in_progress', 'review', 'approved', 'delivered'];
+const defaultStatuses: CardStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'approved', 'delivered'];
 
 const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = [
   { value: 'low', label: 'Baixa', color: 'bg-slate-500' },
@@ -308,8 +308,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
     // Validate status change
     if (!card.briefing_completed && 
-        ['todo', 'in_progress', 'review', 'approved', 'delivered'].includes(targetStatus) &&
-        ['backlog', 'briefing'].includes(card.status)) {
+        ['in_progress', 'review', 'approved', 'delivered'].includes(targetStatus) &&
+        ['backlog', 'todo'].includes(card.status)) {
       toast({
         title: 'Briefing Pendente',
         description: 'Complete o briefing antes de avançar o card.',
@@ -345,8 +345,8 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   // Card actions
   const handleStatusChange = async (card: Card, newStatus: CardStatus) => {
     if (!card.briefing_completed && 
-        ['todo', 'in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
-        ['backlog', 'briefing'].includes(card.status)) {
+        ['in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
+        ['backlog', 'todo'].includes(card.status)) {
       toast({
         title: 'Briefing Pendente',
         description: 'Complete o briefing antes de avançar o card.',
@@ -654,7 +654,6 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
               className={cn(
                 'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
                 status === 'backlog' && 'bg-status-backlog ring-status-backlog/30',
-                status === 'briefing' && 'bg-status-briefing ring-status-briefing/30',
                 status === 'todo' && 'bg-status-todo ring-status-todo/30',
                 status === 'in_progress' && 'bg-status-in-progress ring-status-in-progress/30',
                 status === 'review' && 'bg-status-review ring-status-review/30',
