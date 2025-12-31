@@ -18,6 +18,9 @@ import { FinancialAuditPanel } from "@/components/financial/FinancialAuditPanel"
 import { ProjectProfitabilityPanel } from "@/components/financial/ProjectProfitabilityPanel";
 import { TaxSettingsPanel } from "@/components/financial/TaxSettingsPanel";
 import { TaxCalculatorWidget } from "@/components/financial/TaxCalculatorWidget";
+import { TaxGuidesPanel } from "@/components/financial/TaxGuidesPanel";
+import { RetentionsPanel } from "@/components/financial/RetentionsPanel";
+import { OFXImporter } from "@/components/financial/OFXImporter";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
@@ -32,6 +35,8 @@ import {
   Shield,
   PieChart,
   Calculator,
+  Receipt,
+  FileCheck,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -65,6 +70,7 @@ export default function FinancialPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
+                  <OFXImporter />
                   <InvoiceXMLImporter />
                   <InvoiceForm />
                   <TransactionForm />
@@ -119,6 +125,14 @@ export default function FinancialPage() {
                   <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
                     <Users className="w-4 h-4" />
                     <span>Colaboradores</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tax-guides" variant="wrap" className="gap-2">
+                    <FileCheck className="w-4 h-4" />
+                    <span>Guias Fiscais</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="retentions" variant="wrap" className="gap-2">
+                    <Receipt className="w-4 h-4" />
+                    <span>Retenções</span>
                   </TabsTrigger>
                   <TabsTrigger value="tax-settings" variant="wrap" className="gap-2">
                     <Calculator className="w-4 h-4" />
@@ -200,6 +214,14 @@ export default function FinancialPage() {
 
                   <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
                     <CollaboratorManager />
+                  </TabsContent>
+
+                  <TabsContent value="tax-guides" className="mt-0 animate-in fade-in-50 duration-300">
+                    <TaxGuidesPanel />
+                  </TabsContent>
+
+                  <TabsContent value="retentions" className="mt-0 animate-in fade-in-50 duration-300">
+                    <RetentionsPanel />
                   </TabsContent>
 
                   <TabsContent value="tax-settings" className="mt-0 animate-in fade-in-50 duration-300">
