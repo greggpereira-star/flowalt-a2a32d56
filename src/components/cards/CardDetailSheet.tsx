@@ -41,6 +41,7 @@ import { CardExecutionAssistantWrapper } from './CardExecutionAssistantWrapper';
 import { TagManagerWrapper } from './TagManagerWrapper';
 import { NextBestAction } from './NextBestAction';
 import { CardFinancialTab } from './CardFinancialTab';
+import { CardInvitePanel } from './CardInvitePanel';
 import {
   CalendarIcon,
   FileText,
@@ -61,6 +62,7 @@ import {
   Play,
   Pause,
   DollarSign,
+  UserPlus,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -598,6 +600,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <DollarSign className="h-3.5 w-3.5 mr-1.5" />
                     Financeiro
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="invites"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs"
+                  >
+                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Convidar
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -793,6 +802,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                 <TabsContent value="financial" className="m-0">
                   <CardFinancialTab cardId={card.id} />
+                </TabsContent>
+
+                <TabsContent value="invites" className="m-0 p-4">
+                  <CardInvitePanel cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
             </Tabs>

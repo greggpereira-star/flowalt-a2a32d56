@@ -31,6 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { PendingInvitesNotification } from '@/components/cards/PendingInvitesNotification';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'hsl(var(--muted-foreground))',
@@ -157,11 +158,16 @@ const Dashboard: React.FC = () => {
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Visão geral do workspace {currentWorkspace?.name}
-          </p>
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Visão geral do workspace {currentWorkspace?.name}
+            </p>
+          </div>
+          <div className="lg:w-80">
+            <PendingInvitesNotification />
+          </div>
         </div>
 
         {/* Stats Cards */}
