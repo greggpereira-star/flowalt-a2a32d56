@@ -542,36 +542,36 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-5 gap-1.5">
                   <TabsTrigger
                     value="overview"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <Target className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Geral</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="assistant"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <Sparkles className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">IA</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="checklist"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <CheckSquare className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Tarefas</span>
@@ -583,24 +583,24 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                   </TabsTrigger>
                   <TabsTrigger
                     value="time"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <Clock className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Tempo</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="comments"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <MessageSquare className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Chat</span>
@@ -623,12 +623,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-4 gap-1.5">
                   <TabsTrigger
                     value="attachments"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <Paperclip className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Arquivos</span>
@@ -640,36 +640,36 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                   </TabsTrigger>
                   <TabsTrigger
                     value="financial"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <DollarSign className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Financeiro</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="kit"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <Package className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Kit</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="invites"
-                    className="group flex flex-col items-center justify-center gap-1.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
+                    className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
                       data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
                       hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
                       transition-all duration-200 ease-out"
                   >
-                    <div className="p-1.5 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                    <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
                       <UserPlus className="h-4 w-4 group-data-[state=active]:text-primary" />
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Convidar</span>
