@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
+import { CurrencyInput, parseCurrencyToNumber, formatCurrencyFromNumber } from "@/components/ui/currency-input";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       description: transaction?.description || "",
-      amount: transaction?.amount?.toString() || "",
+      amount: transaction?.amount ? formatCurrencyFromNumber(Number(transaction.amount)) : "",
       type: transaction?.type || "expense",
       due_date: transaction?.due_date ? new Date(transaction.due_date) : new Date(),
       category_id: transaction?.category_id || "",
@@ -87,7 +88,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const watchRecurrence = form.watch("recurrence");
 
   const onSubmit = async (data: FormData) => {
-    const amount = parseFloat(data.amount.replace(/[^\d,.-]/g, "").replace(",", "."));
+    const amount = parseCurrencyToNumber(data.amount);
 
     await createTransaction.mutateAsync({
       description: data.description,
@@ -169,13 +170,10 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
                   <FormItem>
                     <FormLabel>Valor</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="R$ 0,00"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^\d,.-]/g, "");
-                          field.onChange(value);
-                        }}
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="0,00"
                       />
                     </FormControl>
                     <FormMessage />

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DateInput } from "@/components/ui/date-input";
+import { CurrencyInput, parseCurrencyToNumber, formatCurrencyFromNumber } from "@/components/ui/currency-input";
 import {
   Form,
   FormControl,
@@ -95,7 +96,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
         bank_agency: existingDetails.bank_agency || "",
         bank_account: existingDetails.bank_account || "",
         pix_key: existingDetails.pix_key || "",
-        base_salary: existingDetails.base_salary?.toString() || "",
+        base_salary: formatCurrencyFromNumber(existingDetails.base_salary || 0),
         weekly_hours: existingDetails.weekly_hours?.toString() || "40",
         street: (existingDetails.address as any)?.street || "",
         number: (existingDetails.address as any)?.number || "",
@@ -109,7 +110,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
   }, [existingDetails, form]);
 
   const onSubmit = async (data: FormData) => {
-    const salary = data.base_salary ? parseFloat(data.base_salary.replace(/[^\d,.-]/g, "").replace(",", ".")) : undefined;
+    const salary = data.base_salary ? parseCurrencyToNumber(data.base_salary) : undefined;
     const hours = data.weekly_hours ? parseInt(data.weekly_hours) : undefined;
 
     await updateCollaborator.mutateAsync({
@@ -274,7 +275,11 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                 <FormItem>
                   <FormLabel>Salário Base</FormLabel>
                   <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="0,00"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

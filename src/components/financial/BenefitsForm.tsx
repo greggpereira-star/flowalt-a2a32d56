@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Bus, Utensils, Heart, Smile, Dumbbell, Car, Gift, User } from "lucide-react";
 import { useCollaboratorBenefits, useUpdateBenefits } from "@/hooks/useCollaboratorPayroll";
 import { useCollaborators } from "@/hooks/useCollaborators";
+import { CurrencyInput, parseCurrencyToNumber, formatCurrencyFromNumber } from "@/components/ui/currency-input";
 
 const benefitsSchema = z.object({
   vt_enabled: z.boolean(),
@@ -75,22 +76,22 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
     if (benefits) {
       form.reset({
         vt_enabled: benefits.vt_enabled,
-        vt_value: benefits.vt_value?.toString() || "0",
+        vt_value: formatCurrencyFromNumber(benefits.vt_value || 0),
         va_enabled: benefits.va_enabled,
-        va_value: benefits.va_value?.toString() || "0",
+        va_value: formatCurrencyFromNumber(benefits.va_value || 0),
         vr_enabled: benefits.vr_enabled,
-        vr_value: benefits.vr_value?.toString() || "0",
+        vr_value: formatCurrencyFromNumber(benefits.vr_value || 0),
         health_plan_enabled: benefits.health_plan_enabled,
-        health_plan_value: benefits.health_plan_value?.toString() || "0",
+        health_plan_value: formatCurrencyFromNumber(benefits.health_plan_value || 0),
         health_plan_employee_percentage: benefits.health_plan_employee_percentage?.toString() || "0",
         dental_plan_enabled: benefits.dental_plan_enabled,
-        dental_plan_value: benefits.dental_plan_value?.toString() || "0",
+        dental_plan_value: formatCurrencyFromNumber(benefits.dental_plan_value || 0),
         gym_enabled: benefits.gym_enabled,
-        gym_value: benefits.gym_value?.toString() || "0",
+        gym_value: formatCurrencyFromNumber(benefits.gym_value || 0),
         parking_enabled: benefits.parking_enabled,
-        parking_value: benefits.parking_value?.toString() || "0",
+        parking_value: formatCurrencyFromNumber(benefits.parking_value || 0),
         bonus_enabled: benefits.bonus_enabled,
-        bonus_value: benefits.bonus_value?.toString() || "0",
+        bonus_value: formatCurrencyFromNumber(benefits.bonus_value || 0),
       });
     }
   }, [benefits, form]);
@@ -99,22 +100,22 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
     await updateBenefits.mutateAsync({
       collaboratorId,
       vt_enabled: data.vt_enabled,
-      vt_value: parseFloat(data.vt_value) || 0,
+      vt_value: parseCurrencyToNumber(data.vt_value),
       va_enabled: data.va_enabled,
-      va_value: parseFloat(data.va_value) || 0,
+      va_value: parseCurrencyToNumber(data.va_value),
       vr_enabled: data.vr_enabled,
-      vr_value: parseFloat(data.vr_value) || 0,
+      vr_value: parseCurrencyToNumber(data.vr_value),
       health_plan_enabled: data.health_plan_enabled,
-      health_plan_value: parseFloat(data.health_plan_value) || 0,
+      health_plan_value: parseCurrencyToNumber(data.health_plan_value),
       health_plan_employee_percentage: parseFloat(data.health_plan_employee_percentage) || 0,
       dental_plan_enabled: data.dental_plan_enabled,
-      dental_plan_value: parseFloat(data.dental_plan_value) || 0,
+      dental_plan_value: parseCurrencyToNumber(data.dental_plan_value),
       gym_enabled: data.gym_enabled,
-      gym_value: parseFloat(data.gym_value) || 0,
+      gym_value: parseCurrencyToNumber(data.gym_value),
       parking_enabled: data.parking_enabled,
-      parking_value: parseFloat(data.parking_value) || 0,
+      parking_value: parseCurrencyToNumber(data.parking_value),
       bonus_enabled: data.bonus_enabled,
-      bonus_value: parseFloat(data.bonus_value) || 0,
+      bonus_value: parseCurrencyToNumber(data.bonus_value),
     });
     onSuccess?.();
   };
@@ -205,9 +206,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                     name="vt_value"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor mensal (R$)</FormLabel>
+                        <FormLabel>Valor mensal</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormDescription>Desconto de 6% será aplicado no salário</FormDescription>
                       </FormItem>
@@ -259,9 +260,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                   name="va_value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>VA (R$/mês)</FormLabel>
+                      <FormLabel>VA (mês)</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <CurrencyInput value={field.value} onChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -273,9 +274,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                   name="vr_value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>VR (R$/mês)</FormLabel>
+                      <FormLabel>VR (mês)</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <CurrencyInput value={field.value} onChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -313,9 +314,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                   name="health_plan_value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor total (R$)</FormLabel>
+                      <FormLabel>Valor total</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <CurrencyInput value={field.value} onChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -364,9 +365,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                 name="dental_plan_value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormLabel>Valor</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -407,7 +408,7 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="R$" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} placeholder="0,00" />
                         </FormControl>
                       </FormItem>
                     )}
@@ -436,7 +437,7 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="R$" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} placeholder="0,00" />
                         </FormControl>
                       </FormItem>
                     )}
@@ -465,9 +466,9 @@ export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: 
                 name="bonus_value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor do Bônus (R$)</FormLabel>
+                    <FormLabel>Valor do Bônus</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}

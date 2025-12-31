@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import {
   Dialog,
   DialogContent,
@@ -93,8 +94,8 @@ export function CostCenterManager() {
       code: data.code || null,
       description: data.description || null,
       color: data.color || null,
-      budget_monthly: data.budget_monthly ? parseFloat(data.budget_monthly.replace(/[^\d,.-]/g, "").replace(",", ".")) : null,
-      budget_yearly: data.budget_yearly ? parseFloat(data.budget_yearly.replace(/[^\d,.-]/g, "").replace(",", ".")) : null,
+      budget_monthly: data.budget_monthly ? parseCurrencyToNumber(data.budget_monthly) : null,
+      budget_yearly: data.budget_yearly ? parseCurrencyToNumber(data.budget_yearly) : null,
       parent_id: data.parent_id || null,
     });
 
@@ -192,7 +193,7 @@ export function CostCenterManager() {
                       <FormItem>
                         <FormLabel>Orçamento Mensal</FormLabel>
                         <FormControl>
-                          <Input placeholder="R$ 0,00" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} placeholder="0,00" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -206,7 +207,7 @@ export function CostCenterManager() {
                       <FormItem>
                         <FormLabel>Orçamento Anual</FormLabel>
                         <FormControl>
-                          <Input placeholder="R$ 0,00" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} placeholder="0,00" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
