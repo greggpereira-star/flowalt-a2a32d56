@@ -13,17 +13,16 @@ import { DREReport } from "@/components/financial/DREReport";
 import { FinancialAlertsPanel } from "@/components/financial/FinancialAlertsPanel";
 import { BankReconciliationPanel } from "@/components/financial/BankReconciliationPanel";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   LayoutDashboard,
-  List,
+  ArrowLeftRight,
   Users,
-  DollarSign,
+  Wallet,
   FileText,
   FolderTree,
-  FileSpreadsheet,
+  TrendingUp,
   Bell,
-  Link2,
+  GitCompare,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -47,7 +46,7 @@ export default function FinancialPage() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="px-6 pt-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -60,49 +59,46 @@ export default function FinancialPage() {
               </div>
             </div>
 
-            {/* Premium Navigation */}
+            {/* Wrap Navigation - All items visible */}
             <Tabs defaultValue="dashboard" className="w-full">
-              <ScrollArea className="w-full whitespace-nowrap">
-                <TabsList variant="premium" className="min-w-max">
-                  <TabsTrigger value="dashboard" variant="premium" className="gap-2.5">
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="transactions" variant="premium" className="gap-2.5">
-                    <List className="w-4 h-4" />
-                    <span>Lançamentos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="invoices" variant="premium" className="gap-2.5">
-                    <FileText className="w-4 h-4" />
-                    <span>Notas Fiscais</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="reconciliation" variant="premium" className="gap-2.5">
-                    <Link2 className="w-4 h-4" />
-                    <span>Conciliação</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="dre" variant="premium" className="gap-2.5">
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>DRE</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="cost-centers" variant="premium" className="gap-2.5">
-                    <FolderTree className="w-4 h-4" />
-                    <span>Centros de Custo</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="cashflow" variant="premium" className="gap-2.5">
-                    <DollarSign className="w-4 h-4" />
-                    <span>Fluxo de Caixa</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="alerts" variant="premium" className="gap-2.5">
-                    <Bell className="w-4 h-4" />
-                    <span>Alertas</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="collaborators" variant="premium" className="gap-2.5">
-                    <Users className="w-4 h-4" />
-                    <span>Colaboradores</span>
-                  </TabsTrigger>
-                </TabsList>
-                <ScrollBar orientation="horizontal" className="invisible" />
-              </ScrollArea>
+              <TabsList variant="wrap">
+                <TabsTrigger value="dashboard" variant="wrap" className="gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </TabsTrigger>
+                <TabsTrigger value="transactions" variant="wrap" className="gap-2">
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span>Lançamentos</span>
+                </TabsTrigger>
+                <TabsTrigger value="invoices" variant="wrap" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  <span>Notas Fiscais</span>
+                </TabsTrigger>
+                <TabsTrigger value="reconciliation" variant="wrap" className="gap-2">
+                  <GitCompare className="w-4 h-4" />
+                  <span>Conciliação</span>
+                </TabsTrigger>
+                <TabsTrigger value="dre" variant="wrap" className="gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>DRE</span>
+                </TabsTrigger>
+                <TabsTrigger value="cost-centers" variant="wrap" className="gap-2">
+                  <FolderTree className="w-4 h-4" />
+                  <span>Centros de Custo</span>
+                </TabsTrigger>
+                <TabsTrigger value="cashflow" variant="wrap" className="gap-2">
+                  <Wallet className="w-4 h-4" />
+                  <span>Fluxo de Caixa</span>
+                </TabsTrigger>
+                <TabsTrigger value="alerts" variant="wrap" className="gap-2">
+                  <Bell className="w-4 h-4" />
+                  <span>Alertas</span>
+                </TabsTrigger>
+                <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>Colaboradores</span>
+                </TabsTrigger>
+              </TabsList>
 
               {/* Content */}
               <div className="p-6">

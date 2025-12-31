@@ -15,6 +15,7 @@ const tabsListVariants = cva(
         premium: "w-full justify-start gap-1 border-b border-border/50 bg-transparent p-0 pb-0",
         pills: "gap-2 bg-transparent p-0",
         underline: "gap-6 border-b border-border bg-transparent p-0",
+        wrap: "flex-wrap gap-2 bg-transparent p-0",
       },
     },
     defaultVariants: {
@@ -60,6 +61,12 @@ const tabsTriggerVariants = cva(
           "data-[state=active]:text-foreground data-[state=active]:font-semibold",
           "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent after:transition-all",
           "data-[state=active]:after:bg-foreground",
+        ].join(" "),
+        wrap: [
+          "rounded-lg px-3 py-2 text-muted-foreground border border-border/40 bg-card/50",
+          "hover:bg-accent hover:text-accent-foreground hover:border-accent",
+          "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm",
+          "transition-colors duration-200",
         ].join(" "),
       },
     },
