@@ -240,11 +240,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                         selected={field.value}
                         onSelect={field.onChange}
                         locale={ptBR}
-                        captionLayout="dropdown-buttons"
-                        fromYear={1950}
-                        toYear={2010}
                         initialFocus
-                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
