@@ -43,119 +43,135 @@ export default function FinancialPage() {
       </Helmet>
 
       <AppLayout>
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="px-6 pt-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Gestão financeira e inteligência contábil
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <InvoiceForm />
-                <TransactionForm />
+        <div className="flex flex-col h-full bg-muted/20">
+          {/* Header Section */}
+          <div className="bg-background border-b border-border/30">
+            <div className="px-6 lg:px-8 pt-6 pb-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Gestão financeira e inteligência contábil
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <InvoiceForm />
+                  <TransactionForm />
+                </div>
               </div>
             </div>
 
-            {/* Wrap Navigation - All items visible */}
-            <Tabs defaultValue="dashboard" className="w-full">
-              <TabsList variant="wrap">
-                <TabsTrigger value="dashboard" variant="wrap" className="gap-2">
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span>Dashboard</span>
-                </TabsTrigger>
-                <TabsTrigger value="transactions" variant="wrap" className="gap-2">
-                  <ArrowLeftRight className="w-4 h-4" />
-                  <span>Lançamentos</span>
-                </TabsTrigger>
-                <TabsTrigger value="invoices" variant="wrap" className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  <span>Notas Fiscais</span>
-                </TabsTrigger>
-                <TabsTrigger value="reconciliation" variant="wrap" className="gap-2">
-                  <GitCompare className="w-4 h-4" />
-                  <span>Conciliação</span>
-                </TabsTrigger>
-                <TabsTrigger value="dre" variant="wrap" className="gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>DRE</span>
-                </TabsTrigger>
-                <TabsTrigger value="cost-centers" variant="wrap" className="gap-2">
-                  <FolderTree className="w-4 h-4" />
-                  <span>Centros de Custo</span>
-                </TabsTrigger>
-                <TabsTrigger value="cashflow" variant="wrap" className="gap-2">
-                  <Wallet className="w-4 h-4" />
-                  <span>Fluxo de Caixa</span>
-                </TabsTrigger>
-                <TabsTrigger value="alerts" variant="wrap" className="gap-2">
-                  <Bell className="w-4 h-4" />
-                  <span>Alertas</span>
-                </TabsTrigger>
-                <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Colaboradores</span>
-                </TabsTrigger>
-              </TabsList>
+            {/* Navigation Section */}
+            <div className="px-6 lg:px-8 pb-5">
+              <Tabs defaultValue="dashboard" className="w-full">
+                <TabsList variant="wrap" className="pb-1">
+                  <TabsTrigger value="dashboard" variant="wrap" className="gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="transactions" variant="wrap" className="gap-2">
+                    <ArrowLeftRight className="w-4 h-4" />
+                    <span>Lançamentos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="invoices" variant="wrap" className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    <span>Notas Fiscais</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="reconciliation" variant="wrap" className="gap-2">
+                    <GitCompare className="w-4 h-4" />
+                    <span>Conciliação</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dre" variant="wrap" className="gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>DRE</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="cost-centers" variant="wrap" className="gap-2">
+                    <FolderTree className="w-4 h-4" />
+                    <span>Centros de Custo</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="cashflow" variant="wrap" className="gap-2">
+                    <Wallet className="w-4 h-4" />
+                    <span>Fluxo de Caixa</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="alerts" variant="wrap" className="gap-2">
+                    <Bell className="w-4 h-4" />
+                    <span>Alertas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
+                    <Users className="w-4 h-4" />
+                    <span>Colaboradores</span>
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Content */}
-              <div className="p-6">
-                <TabsContent value="dashboard" className="mt-0">
-                  <FinancialDashboard />
-                </TabsContent>
+                {/* Minimalist Divider */}
+                <div className="relative mt-6">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-border/40" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-background px-4">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                    </span>
+                  </div>
+                </div>
 
-                <TabsContent value="transactions" className="mt-0">
-                  <TransactionList />
-                </TabsContent>
+                {/* Content Area */}
+                <div className="pt-6 pb-8 px-0">
+                  <TabsContent value="dashboard" className="mt-0 animate-in fade-in-50 duration-300">
+                    <FinancialDashboard />
+                  </TabsContent>
 
-                <TabsContent value="invoices" className="mt-0">
-                  <InvoiceList />
-                </TabsContent>
+                  <TabsContent value="transactions" className="mt-0 animate-in fade-in-50 duration-300">
+                    <TransactionList />
+                  </TabsContent>
 
-                <TabsContent value="reconciliation" className="mt-0">
-                  <BankReconciliationPanel />
-                </TabsContent>
+                  <TabsContent value="invoices" className="mt-0 animate-in fade-in-50 duration-300">
+                    <InvoiceList />
+                  </TabsContent>
 
-                <TabsContent value="dre" className="mt-0">
-                  <DREReport />
-                </TabsContent>
+                  <TabsContent value="reconciliation" className="mt-0 animate-in fade-in-50 duration-300">
+                    <BankReconciliationPanel />
+                  </TabsContent>
 
-                <TabsContent value="cost-centers" className="mt-0">
-                  <CostCenterManager />
-                </TabsContent>
+                  <TabsContent value="dre" className="mt-0 animate-in fade-in-50 duration-300">
+                    <DREReport />
+                  </TabsContent>
 
-                <TabsContent value="cashflow" className="mt-0">
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <h3 className="text-base font-medium">Receitas</h3>
+                  <TabsContent value="cost-centers" className="mt-0 animate-in fade-in-50 duration-300">
+                    <CostCenterManager />
+                  </TabsContent>
+
+                  <TabsContent value="cashflow" className="mt-0 animate-in fade-in-50 duration-300">
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <h3 className="text-base font-medium">Receitas</h3>
+                          </div>
+                          <TransactionList filters={{ type: "income" }} />
                         </div>
-                        <TransactionList filters={{ type: "income" }} />
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-red-500" />
-                          <h3 className="text-base font-medium">Despesas</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-rose-500" />
+                            <h3 className="text-base font-medium">Despesas</h3>
+                          </div>
+                          <TransactionList filters={{ type: "expense" }} />
                         </div>
-                        <TransactionList filters={{ type: "expense" }} />
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent value="alerts" className="mt-0">
-                  <FinancialAlertsPanel />
-                </TabsContent>
+                  <TabsContent value="alerts" className="mt-0 animate-in fade-in-50 duration-300">
+                    <FinancialAlertsPanel />
+                  </TabsContent>
 
-                <TabsContent value="collaborators" className="mt-0">
-                  <CollaboratorManager />
-                </TabsContent>
-              </div>
-            </Tabs>
+                  <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
+                    <CollaboratorManager />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
           </div>
         </div>
       </AppLayout>
