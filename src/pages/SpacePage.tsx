@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
 import { useFolders, useCreateFolder } from '@/hooks/useFolders';
@@ -15,9 +15,12 @@ import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
 import { CreateFolderWithTemplateDialog } from '@/components/social-media/CreateFolderWithTemplateDialog';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +46,8 @@ import {
   FolderPlus,
   Search,
   Folder,
-  ChevronRight,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
@@ -52,14 +55,39 @@ import type { CardStatus } from '@/lib/supabase';
 
 type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar';
 
+// Hook to fetch a specific folder view
+function useFolderView(viewId: string | null) {
+  return useQuery({
+    queryKey: ['folder-view', viewId],
+    queryFn: async () => {
+      if (!viewId) return null;
+      
+      const { data, error } = await supabase
+        .from('folder_views')
+        .select('*, folders!inner(id, name, space_id)')
+        .eq('id', viewId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewId,
+  });
+}
+
 const SpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Get view ID from URL
+  const activeViewId = searchParams.get('view');
 
   const { data: space, isLoading: spaceLoading } = useSpace(spaceId);
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
   const { data: cards, isLoading: cardsLoading } = useCards(spaceId);
+  const { data: activeView, isLoading: viewLoading } = useFolderView(activeViewId);
   const createFolder = useCreateFolder();
 
   // Enable realtime updates for cards
@@ -74,6 +102,14 @@ const SpacePage: React.FC = () => {
     };
   }, []);
 
+  // Determine view type from active view or default
+  const getViewTypeFromConfig = useCallback((viewType: string | undefined): ViewType => {
+    if (viewType === 'kanban') return 'kanban';
+    if (viewType === 'calendar') return 'calendar';
+    if (viewType === 'list') return 'list';
+    return 'kanban';
+  }, []);
+
   const [view, setView] = useState<ViewType>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -85,6 +121,17 @@ const SpacePage: React.FC = () => {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddInitialMode, setQuickAddInitialMode] = useState<'quick' | 'full'>('quick');
   const [demandFormOpen, setDemandFormOpen] = useState(false);
+
+  // Update view type and folder when active view changes
+  useEffect(() => {
+    if (activeView) {
+      setView(getViewTypeFromConfig(activeView.view_type));
+      // Set the folder from the view
+      if (activeView.folder_id) {
+        setSelectedFolder(activeView.folder_id);
+      }
+    }
+  }, [activeView, getViewTypeFromConfig]);
 
   // Keyboard shortcut handlers
   useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
@@ -117,14 +164,47 @@ const SpacePage: React.FC = () => {
     setCreateFolderOpen(false);
   };
 
-  // Filter cards by search and folder
-  const filteredCards = cards?.filter((card) => {
-    const matchesSearch = !searchQuery || 
-      card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSearch;
-  }) || [];
+  const handleClearView = () => {
+    setSearchParams({});
+    setSelectedFolder(null);
+  };
+
+  // Apply view config filters
+  const viewConfig = activeView?.view_config as Record<string, any> | undefined;
+
+  // Filter cards by search, folder, and view config
+  const filteredCards = useMemo(() => {
+    let result = cards || [];
+
+    // Filter by folder if set
+    if (selectedFolder) {
+      // TODO: Filter by folder when card_folders relation is implemented
+    }
+
+    // Apply view config filters
+    if (viewConfig?.filters && Array.isArray(viewConfig.filters)) {
+      viewConfig.filters.forEach((filter: any) => {
+        if (filter.field === 'status' && filter.operator === 'eq') {
+          result = result.filter(card => card.status === filter.value);
+        }
+        // Add more filter logic as needed
+      });
+    }
+
+    // Filter by search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(card =>
+        card.title.toLowerCase().includes(query) ||
+        card.description?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [cards, selectedFolder, viewConfig, searchQuery]);
+
+  // Get view title
+  const viewTitle = activeView?.name || space?.name || 'Espaço';
 
   if (spaceLoading) {
     return (
@@ -150,19 +230,45 @@ const SpacePage: React.FC = () => {
     );
   }
 
+  const isSocialMedia = space.type === 'social_media';
+
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
       <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* Fixed Header - Always visible */}
         <div className="flex-shrink-0 border-b border-border bg-background">
           <div className="px-4 py-2.5 flex items-center justify-between gap-3">
-            {/* Left: Space name (minimal) */}
+            {/* Left: View name with breadcrumb */}
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: space.color }}
               />
-              <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-none">{space.name}</h1>
+              {activeView ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                    {space.name}
+                  </span>
+                  <span className="text-muted-foreground">/</span>
+                  <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
+                    {activeView.name}
+                  </h1>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1"
+                    onClick={handleClearView}
+                    title="Ver todos os cards"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-none">
+                  {space.name}
+                </h1>
+              )}
+              {viewLoading && <Loader2 className="h-3 w-3 animate-spin" />}
             </div>
 
             {/* Center: Search */}
@@ -179,24 +285,36 @@ const SpacePage: React.FC = () => {
 
             {/* Right: View Switcher + Add Button */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* View Switcher */}
-              <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
-                <TabsList className="h-9 bg-muted/50">
-                  <TabsTrigger value="kanban" className="px-3 h-8" title="Kanban Simples">
-                    <LayoutGrid className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="kanban-advanced" className="px-3 h-8" title="Kanban Avançado">
-                    <LayoutGrid className="h-4 w-4" />
-                    <span className="text-[9px] ml-0.5 font-bold">+</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="list" className="px-3 h-8" title="Lista">
-                    <List className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="px-3 h-8" title="Calendário">
-                    <Calendar className="h-4 w-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {/* View Switcher - only show if no active view or view allows switching */}
+              {!activeView && (
+                <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
+                  <TabsList className="h-9 bg-muted/50">
+                    <TabsTrigger value="kanban" className="px-3 h-8" title="Kanban Simples">
+                      <LayoutGrid className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="kanban-advanced" className="px-3 h-8" title="Kanban Avançado">
+                      <LayoutGrid className="h-4 w-4" />
+                      <span className="text-[9px] ml-0.5 font-bold">+</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="list" className="px-3 h-8" title="Lista">
+                      <List className="h-4 w-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="calendar" className="px-3 h-8" title="Calendário">
+                      <Calendar className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+
+              {/* Show view type badge when a view is active */}
+              {activeView && (
+                <Badge variant="secondary" className="gap-1 capitalize">
+                  {activeView.view_type === 'kanban' && <LayoutGrid className="h-3 w-3" />}
+                  {activeView.view_type === 'list' && <List className="h-3 w-3" />}
+                  {activeView.view_type === 'calendar' && <Calendar className="h-3 w-3" />}
+                  {activeView.view_type}
+                </Badge>
+              )}
 
               {/* Add Button */}
               <DropdownMenu>
@@ -228,8 +346,8 @@ const SpacePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Folders Bar */}
-          {folders && folders.length > 0 && (
+          {/* Folders Bar - Only show when no active view and not social_media (tree nav handles it) */}
+          {!activeView && !isSocialMedia && folders && folders.length > 0 && (
             <div className="px-4 pb-2 flex items-center gap-1.5 overflow-x-auto">
               <Button
                 variant={selectedFolder === null ? 'secondary' : 'ghost'}
@@ -305,7 +423,7 @@ const SpacePage: React.FC = () => {
       />
 
       {/* Folder Dialog - Use template dialog for social_media spaces */}
-      {space?.type === 'social_media' ? (
+      {isSocialMedia ? (
         <CreateFolderWithTemplateDialog
           open={createFolderOpen}
           onOpenChange={setCreateFolderOpen}
