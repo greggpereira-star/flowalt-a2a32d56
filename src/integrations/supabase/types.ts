@@ -2900,6 +2900,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           sort_order: number | null
+          source_template_id: string | null
           updated_at: string
           view_config: Json
           view_type: string
@@ -2912,6 +2913,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           sort_order?: number | null
+          source_template_id?: string | null
           updated_at?: string
           view_config?: Json
           view_type: string
@@ -2924,6 +2926,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           sort_order?: number | null
+          source_template_id?: string | null
           updated_at?: string
           view_config?: Json
           view_type?: string
@@ -2935,6 +2938,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folder_views_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "view_templates"
             referencedColumns: ["id"]
           },
           {
@@ -5450,6 +5460,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          preference_key: string
+          preference_value: Json
+          updated_at: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          preference_key: string
+          preference_value?: Json
+          updated_at?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          preference_key?: string
+          preference_value?: Json
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -5482,6 +5537,66 @@ export type Database = {
           },
           {
             foreignKeyName: "user_roles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_templates: {
+        Row: {
+          created_at: string | null
+          default_config: Json
+          description: string | null
+          icon: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          sort_order: number | null
+          space_type: string
+          updated_at: string | null
+          view_type: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_config?: Json
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          sort_order?: number | null
+          space_type: string
+          updated_at?: string | null
+          view_type: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_config?: Json
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          sort_order?: number | null
+          space_type?: string
+          updated_at?: string | null
+          view_type?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "view_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "view_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

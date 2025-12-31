@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
+import { SocialMediaTreeNav } from '@/components/social-media/SocialMediaTreeNav';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -181,11 +182,28 @@ export const AppSidebar: React.FC = () => {
               ) : spaces && spaces.length > 0 ? (
                 spaces.map((space) => {
                   const Icon = getSpaceIcon(space.icon);
+                  const isSocialMedia = space.type === 'social_media';
+                  const isActive = location.pathname === `/space/${space.id}`;
+
+                  // Render tree navigation for social_media spaces
+                  if (isSocialMedia) {
+                    return (
+                      <SidebarMenuItem key={space.id}>
+                        <SocialMediaTreeNav
+                          spaceId={space.id}
+                          spaceName={space.name}
+                          spaceColor={space.color}
+                        />
+                      </SidebarMenuItem>
+                    );
+                  }
+
+                  // Regular space link
                   return (
                     <SidebarMenuItem key={space.id}>
                       <SidebarMenuButton
                         onClick={() => navigate(`/space/${space.id}`)}
-                        isActive={location.pathname === `/space/${space.id}`}
+                        isActive={isActive}
                       >
                         <Icon className="h-4 w-4" style={{ color: space.color }} />
                         <span>{space.name}</span>
