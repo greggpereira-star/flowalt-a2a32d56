@@ -27,12 +27,14 @@ import { ConfigBackupPanel } from '@/components/settings/ConfigBackupPanel';
 import { ConnectorsPanel } from '@/components/settings/ConnectorsPanel';
 import { PredictiveSyncPanel } from '@/components/settings/PredictiveSyncPanel';
 import { WorkflowBuilder } from '@/components/workflow/WorkflowBuilder';
+import { QAChecklist } from '@/components/settings/QAChecklist';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
-  RotateCcw, Search, Store, Heart, Link2, Brain, Play, TrendingUp, GitBranch
+  RotateCcw, Search, Store, Heart, Link2, Brain, Play, TrendingUp, GitBranch,
+  ClipboardCheck
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -64,6 +66,10 @@ export default function SettingsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className="inline-flex h-auto gap-1 p-1">
+              <TabsTrigger value="qa-checklist" className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                QA
+              </TabsTrigger>
               <TabsTrigger value="workflow" className="flex items-center gap-2">
                 <GitBranch className="h-4 w-4" />
                 Workflow
@@ -167,6 +173,10 @@ export default function SettingsPage() {
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
+
+          <TabsContent value="qa-checklist">
+            <QAChecklist />
+          </TabsContent>
 
           <TabsContent value="workflow">
             <WorkflowBuilder />
