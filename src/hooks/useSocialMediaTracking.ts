@@ -12,6 +12,8 @@ export type SocialMediaEventType =
   | 'social.view.opened'
   | 'social.card.created'
   | 'social.card.moved_status'
+  | 'social.card.linked_to_folder'
+  | 'social.cards.scope_resolved'
   | 'social.approval.action'
   | 'social.calendar.scheduled'
   | 'social.post.published';
@@ -61,6 +63,15 @@ interface PostPublishedPayload extends BaseEventPayload {
   has_link: boolean;
 }
 
+interface CardLinkedToFolderPayload extends BaseEventPayload {
+  success: boolean;
+}
+
+interface ScopeResolvedPayload extends BaseEventPayload {
+  scope: 'folder' | 'space';
+  count_cards: number;
+}
+
 type EventPayload =
   | FolderCreatedPayload
   | ViewCreatedPayload
@@ -70,6 +81,8 @@ type EventPayload =
   | ApprovalActionPayload
   | CalendarScheduledPayload
   | PostPublishedPayload
+  | CardLinkedToFolderPayload
+  | ScopeResolvedPayload
   | BaseEventPayload;
 
 export function useSocialMediaTracking() {
@@ -172,6 +185,20 @@ export function useSocialMediaTracking() {
     [trackEvent]
   );
 
+  const trackCardLinkedToFolder = useCallback(
+    (payload: CardLinkedToFolderPayload) => {
+      trackEvent('social.card.linked_to_folder', payload);
+    },
+    [trackEvent]
+  );
+
+  const trackScopeResolved = useCallback(
+    (payload: ScopeResolvedPayload) => {
+      trackEvent('social.cards.scope_resolved', payload);
+    },
+    [trackEvent]
+  );
+
   return {
     trackEvent,
     trackFolderCreated,
@@ -184,5 +211,7 @@ export function useSocialMediaTracking() {
     trackApprovalAction,
     trackCalendarScheduled,
     trackPostPublished,
+    trackCardLinkedToFolder,
+    trackScopeResolved,
   };
 }

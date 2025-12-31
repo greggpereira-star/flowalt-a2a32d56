@@ -261,9 +261,13 @@ export const useCreateCard = () => {
         created_by: user.id,
       } as unknown as Card;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.space_id] });
+      // Invalidate folder cache if card was linked to a folder
+      if (variables.folder_id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'folder', variables.folder_id] });
+      }
     },
   });
 };

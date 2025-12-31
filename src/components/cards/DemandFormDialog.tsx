@@ -49,6 +49,7 @@ interface DemandFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spaceId?: string;
+  folderId?: string;
   onSuccess?: (cardId: string) => void;
 }
 
@@ -64,6 +65,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
   open,
   onOpenChange,
   spaceId: defaultSpaceId,
+  folderId,
   onSuccess,
 }) => {
   const { toast: toastHook } = useToast();
@@ -158,6 +160,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         title: title.trim(),
         description: description.trim() || undefined,
         space_id: spaceId,
+        folder_id: folderId, // Link to folder if present
         status: 'backlog', // Start in backlog, briefing is a gate to advance
         urgency: 'medium',
         due_date: dueDate || undefined,
