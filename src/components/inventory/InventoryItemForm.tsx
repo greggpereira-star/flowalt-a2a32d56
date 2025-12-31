@@ -25,6 +25,11 @@ const formSchema = z.object({
   residual_value: z.number().optional(),
   useful_life_months: z.number().optional(),
   notes: z.string().optional(),
+  // Campos de garantia (para itens serializados ou únicos)
+  warranty_start_date: z.string().optional(),
+  warranty_end_date: z.string().optional(),
+  warranty_provider: z.string().optional(),
+  warranty_terms_url: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -55,12 +60,18 @@ export function InventoryItemForm({ item, onSuccess }: Props) {
       residual_value: item?.residual_value || undefined,
       useful_life_months: item?.useful_life_months || undefined,
       notes: item?.notes || "",
+      warranty_start_date: "",
+      warranty_end_date: "",
+      warranty_provider: "",
+      warranty_terms_url: "",
     },
   });
 
   const watchCategory = form.watch("category");
+  const watchIsSerialized = form.watch("is_serialized");
   const isAsset = watchCategory === "asset";
   const isConsumable = watchCategory === "consumable";
+  const showWarrantyFields = watchIsSerialized || watchCategory === "equipment" || watchCategory === "asset";
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -300,6 +311,69 @@ export function InventoryItemForm({ item, onSuccess }: Props) {
                       onChange={e => field.onChange(e.target.valueAsNumber || undefined)}
                       placeholder="60" 
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+
+        {showWarrantyFields && (
+          <div className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium text-sm">Garantia</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="warranty_start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Início da Garantia</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="warranty_end_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fim da Garantia</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="warranty_provider"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fornecedor da Garantia</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Nome do fornecedor ou fabricante" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="warranty_terms_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link dos Termos</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="https://..." />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
