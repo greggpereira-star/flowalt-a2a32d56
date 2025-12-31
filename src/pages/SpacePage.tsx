@@ -10,6 +10,7 @@ import { KanbanBoard } from '@/components/cards/KanbanBoard';
 import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
 import { ListView } from '@/components/cards/ListView';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
+import { DemandFormDialog } from '@/components/cards/DemandFormDialog';
 import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
@@ -42,6 +43,7 @@ import {
   Search,
   Folder,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
@@ -81,6 +83,7 @@ const SpacePage: React.FC = () => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddInitialMode, setQuickAddInitialMode] = useState<'quick' | 'full'>('quick');
+  const [demandFormOpen, setDemandFormOpen] = useState(false);
 
   // Keyboard shortcut handlers
   useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
@@ -203,6 +206,10 @@ const SpacePage: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setDemandFormOpen(true)}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Nova Demanda (com Briefing)
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Novo Card (Rápido)
@@ -344,6 +351,14 @@ const SpacePage: React.FC = () => {
         folderId={selectedFolder || undefined}
         defaultStatus={defaultStatus}
         initialMode={quickAddInitialMode}
+      />
+
+      {/* Demand Form Dialog (with Briefing) */}
+      <DemandFormDialog
+        open={demandFormOpen}
+        onOpenChange={setDemandFormOpen}
+        spaceId={spaceId}
+        onSuccess={(cardId) => setSelectedCardId(cardId)}
       />
     </AppLayout>
   );
