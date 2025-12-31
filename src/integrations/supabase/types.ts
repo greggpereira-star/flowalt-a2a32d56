@@ -5430,6 +5430,33 @@ export type Database = {
           },
         ]
       }
+      inventory_exec_kpis: {
+        Row: {
+          expiring_subscriptions_count: number | null
+          low_stock_count: number | null
+          monthly_license_cost: number | null
+          overdue_returns_count: number | null
+          pending_maintenance_count: number | null
+          total_accumulated_depreciation: number | null
+          total_asset_value: number | null
+          total_book_value: number | null
+          total_items: number | null
+          total_units: number | null
+          underutilized_licenses_count: number | null
+          workspace_id: string | null
+          yearly_license_cost: number | null
+          yearly_maintenance_cost: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movement_history: {
         Row: {
           card_id: string | null
