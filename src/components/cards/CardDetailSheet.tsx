@@ -333,8 +333,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
             {/* Compact Header */}
             <div className="flex-shrink-0 border-b bg-card">
               {/* Top bar with close & quick actions */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between pl-4 pr-12 py-3 border-b border-border/50">
+                <div className="flex items-center gap-3 flex-wrap">
                   <StatusBadge status={status} />
                   <UrgencyBadge urgency={urgency} />
                   {!card.briefing_completed && (
@@ -344,7 +344,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Timer Quick Action */}
                   <TooltipProvider>
                     <Tooltip>
