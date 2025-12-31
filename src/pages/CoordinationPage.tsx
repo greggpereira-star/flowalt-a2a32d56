@@ -15,12 +15,16 @@ import {
   Calendar,
   Zap,
   PieChart,
+  Target,
+  Brain,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BottleneckCard } from '@/components/coordination/BottleneckCard';
+import { BottleneckDetector } from '@/components/coordination/BottleneckDetector';
 import { CapacityChart } from '@/components/coordination/CapacityChart';
+import { CriticalPathAnalyzer } from '@/components/coordination/CriticalPathAnalyzer';
 import { GanttChart } from '@/components/coordination/GanttChart';
 import { GanttAdvanced } from '@/components/coordination/GanttAdvanced';
 import { DependencyManager } from '@/components/coordination/DependencyManager';
@@ -237,6 +241,14 @@ const CoordinationPage: React.FC = () => {
               <AlertTriangle className="h-4 w-4" />
               Gargalos
             </TabsTrigger>
+            <TabsTrigger value="bottleneck-detector" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Detector
+            </TabsTrigger>
+            <TabsTrigger value="critical-path" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Caminho Crítico
+            </TabsTrigger>
             <TabsTrigger value="metrics" className="flex items-center gap-2">
               <PieChart className="h-4 w-4" />
               Métricas
@@ -302,6 +314,23 @@ const CoordinationPage: React.FC = () => {
                 />
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="bottleneck-detector">
+            <BottleneckDetector
+              cards={cards || []}
+              dependencies={dependencies}
+              memberCapacity={memberCapacity}
+              onCardClick={setSelectedCardId}
+            />
+          </TabsContent>
+
+          <TabsContent value="critical-path">
+            <CriticalPathAnalyzer
+              cards={cards || []}
+              dependencies={dependencies}
+              onCardClick={setSelectedCardId}
+            />
           </TabsContent>
 
           <TabsContent value="metrics">
