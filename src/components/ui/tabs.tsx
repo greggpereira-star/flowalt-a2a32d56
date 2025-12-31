@@ -15,7 +15,7 @@ const tabsListVariants = cva(
         premium: "w-full justify-start gap-1 border-b border-border/50 bg-transparent p-0 pb-0",
         pills: "gap-2 bg-transparent p-0",
         underline: "gap-6 border-b border-border bg-transparent p-0",
-        wrap: "flex-wrap gap-2 bg-transparent p-0",
+        wrap: "flex-wrap justify-center gap-2 bg-transparent p-0 max-w-4xl mx-auto",
       },
     },
     defaultVariants: {
