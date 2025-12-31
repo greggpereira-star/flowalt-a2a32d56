@@ -14,9 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -25,10 +22,9 @@ import {
   Link2,
   Clock,
   Lightbulb,
-  ShieldAlert,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { BriefingData } from './BriefingForm';
 
@@ -127,7 +123,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   cardTitle,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
 
   const currentStepData = STEPS[currentStep];
@@ -174,36 +169,20 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   };
 
-  const handleValidateAndComplete = async () => {
-    setIsValidating(true);
-    setValidationError(null);
-
-    try {
-      const { data: result, error } = await supabase.functions.invoke('validate-briefing', {
-        body: { briefingData: data }
+  const handleComplete = () => {
+    if (!requiredStepsComplete) {
+      setValidationError({
+        isValid: false,
+        message: 'Preencha os campos obrigatórios',
+        issues: ['Contexto e Entregáveis são obrigatórios']
       });
-
-      if (error) {
-        console.error('Validation error:', error);
-        toast.error('Erro ao validar briefing');
-        setIsValidating(false);
-        return;
-      }
-
-      if (result.isValid) {
-        onMarkComplete();
-        toast.success('Briefing validado e completo!');
-        onOpenChange(false);
-      } else {
-        setValidationError(result);
-        toast.error('Ajustes necessários');
-      }
-    } catch (err) {
-      console.error('Validation error:', err);
-      toast.error('Erro ao validar briefing');
-    } finally {
-      setIsValidating(false);
+      toast.error('Preencha os campos obrigatórios');
+      return;
     }
+    
+    onMarkComplete();
+    toast.success('Briefing completo!');
+    onOpenChange(false);
   };
 
   return (
@@ -282,9 +261,9 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
         {/* Validation Error - Fixed when visible */}
         {validationError && !validationError.isValid && (
           <div className="flex-shrink-0 mx-4 sm:mx-6 mt-3 flex gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border border-destructive/50 bg-destructive/5">
-            <ShieldAlert className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
             <div className="space-y-0.5 text-xs sm:text-sm min-w-0">
-              <p className="font-medium text-destructive">Ajustes necessários</p>
+              <p className="font-medium text-destructive">Campos obrigatórios</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                 {validationError.issues?.slice(0, 2).join(" • ")}
               </p>
@@ -388,27 +367,21 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               </Button>
             ) : (
               <Button
-                onClick={handleValidateAndComplete}
-                disabled={!requiredStepsComplete || disabled || isValidating || isCompleted}
+                onClick={handleComplete}
+                disabled={!requiredStepsComplete || disabled || isCompleted}
                 size="sm"
                 className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
               >
-                {isValidating ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                    <span className="hidden sm:inline">Validando...</span>
-                    <span className="sm:hidden">...</span>
-                  </>
-                ) : isCompleted ? (
+                {isCompleted ? (
                   <>
                     <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Completo</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Validar e Concluir</span>
-                    <span className="sm:hidden">Validar</span>
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Concluir Briefing</span>
+                    <span className="sm:hidden">Concluir</span>
                   </>
                 )}
               </Button>
