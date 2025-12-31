@@ -30,6 +30,7 @@ import { GanttAdvanced } from '@/components/coordination/GanttAdvanced';
 import { DependencyManager } from '@/components/coordination/DependencyManager';
 import { SprintManager } from '@/components/coordination/SprintManager';
 import { MetricsPanel } from '@/components/coordination/MetricsPanel';
+import { CapacityPlanner } from '@/components/coordination/CapacityPlanner';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useMemberCapacity } from '@/hooks/useWorkspaceMembers';
 import { useDependencies } from '@/hooks/useDependencies';
@@ -354,7 +355,14 @@ const CoordinationPage: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="capacity">
-            <CapacityChart members={memberCapacity} />
+            <div className="space-y-6">
+              <CapacityPlanner
+                cards={cards || []}
+                members={memberCapacity}
+                onCardClick={setSelectedCardId}
+              />
+              <CapacityChart members={memberCapacity} />
+            </div>
           </TabsContent>
 
           <TabsContent value="dependencies">
