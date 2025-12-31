@@ -2947,6 +2947,110 @@ export type Database = {
           },
         ]
       }
+      tax_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          iss_aliquota: number | null
+          iss_retido_na_fonte: boolean | null
+          lp_cofins_aliquota: number | null
+          lp_csll_aliquota: number | null
+          lp_irpj_adicional: number | null
+          lp_irpj_aliquota: number | null
+          lp_pis_aliquota: number | null
+          lp_presuncao_servicos: number | null
+          lr_cofins_aliquota: number | null
+          lr_csll_aliquota: number | null
+          lr_irpj_adicional: number | null
+          lr_irpj_aliquota: number | null
+          lr_pis_aliquota: number | null
+          notes: string | null
+          retencao_cofins_aliquota: number | null
+          retencao_csll_aliquota: number | null
+          retencao_inss_aliquota: number | null
+          retencao_irrf_aliquota: number | null
+          retencao_pis_aliquota: number | null
+          simples_aliquota_efetiva: number | null
+          simples_anexo: string | null
+          simples_faixa: number | null
+          tax_regime: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          iss_aliquota?: number | null
+          iss_retido_na_fonte?: boolean | null
+          lp_cofins_aliquota?: number | null
+          lp_csll_aliquota?: number | null
+          lp_irpj_adicional?: number | null
+          lp_irpj_aliquota?: number | null
+          lp_pis_aliquota?: number | null
+          lp_presuncao_servicos?: number | null
+          lr_cofins_aliquota?: number | null
+          lr_csll_aliquota?: number | null
+          lr_irpj_adicional?: number | null
+          lr_irpj_aliquota?: number | null
+          lr_pis_aliquota?: number | null
+          notes?: string | null
+          retencao_cofins_aliquota?: number | null
+          retencao_csll_aliquota?: number | null
+          retencao_inss_aliquota?: number | null
+          retencao_irrf_aliquota?: number | null
+          retencao_pis_aliquota?: number | null
+          simples_aliquota_efetiva?: number | null
+          simples_anexo?: string | null
+          simples_faixa?: number | null
+          tax_regime?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          iss_aliquota?: number | null
+          iss_retido_na_fonte?: boolean | null
+          lp_cofins_aliquota?: number | null
+          lp_csll_aliquota?: number | null
+          lp_irpj_adicional?: number | null
+          lp_irpj_aliquota?: number | null
+          lp_pis_aliquota?: number | null
+          lp_presuncao_servicos?: number | null
+          lr_cofins_aliquota?: number | null
+          lr_csll_aliquota?: number | null
+          lr_irpj_adicional?: number | null
+          lr_irpj_aliquota?: number | null
+          lr_pis_aliquota?: number | null
+          notes?: string | null
+          retencao_cofins_aliquota?: number | null
+          retencao_csll_aliquota?: number | null
+          retencao_inss_aliquota?: number | null
+          retencao_irrf_aliquota?: number | null
+          retencao_pis_aliquota?: number | null
+          simples_aliquota_efetiva?: number | null
+          simples_anexo?: string | null
+          simples_faixa?: number | null
+          tax_regime?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           card_id: string
@@ -3625,6 +3729,14 @@ export type Database = {
           irrf_base: number
           irrf_value: number
         }[]
+      }
+      calculate_taxes: {
+        Args: {
+          p_gross_revenue: number
+          p_reference_date?: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       calculate_user_level: {
         Args: { score: number }
