@@ -26,3 +26,9 @@ verify_jwt = true
 
 [functions.integration-manager]
 verify_jwt = false
+
+[functions.validate-briefing]
+verify_jwt = false
+
+[functions.card-ai-assistant]
+verify_jwt = false
