@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GateValidationResult, TransitionValidationResult } from '@/hooks/useWorkflow';
+import { getStageDisplayName } from '@/hooks/useWorkflow';
 
 interface TransitionBlockedModalProps {
   open: boolean;
@@ -86,7 +87,7 @@ export const TransitionBlockedModal: React.FC<TransitionBlockedModalProps> = ({
             Transição Bloqueada
           </DialogTitle>
           <DialogDescription>
-            Não foi possível mover de <strong>{fromStage}</strong> para <strong>{toStage}</strong>
+            Não foi possível mover de <strong>{getStageDisplayName(fromStage)}</strong> para <strong>{getStageDisplayName(toStage)}</strong>
           </DialogDescription>
         </DialogHeader>
 

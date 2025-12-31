@@ -631,6 +631,7 @@ export const mapStatusToStage = (status: string): string => {
     backlog: 'backlog',
     briefing: 'planejamento',
     todo: 'planejamento',
+    a_fazer: 'planejamento', // alias for new slug
     in_progress: 'em_producao',
     review: 'revisao',
     approved: 'aprovacao',
@@ -644,7 +645,8 @@ export const mapStatusToStage = (status: string): string => {
 export const mapStageToStatus = (stage: string): string => {
   const stageToStatusMap: Record<string, string> = {
     backlog: 'backlog',
-    planejamento: 'briefing',
+    planejamento: 'todo',
+    a_fazer: 'todo', // alias for new slug
     em_producao: 'in_progress',
     revisao: 'review',
     aprovacao: 'approved',
@@ -652,4 +654,19 @@ export const mapStageToStatus = (stage: string): string => {
   };
 
   return stageToStatusMap[stage] || 'backlog';
+};
+
+// Get human-readable stage name
+export const getStageDisplayName = (stageSlug: string): string => {
+  const displayNames: Record<string, string> = {
+    backlog: 'Backlog',
+    planejamento: 'A Fazer',
+    a_fazer: 'A Fazer',
+    em_producao: 'Em Produção',
+    revisao: 'Revisão',
+    aprovacao: 'Aprovação',
+    concluido: 'Concluído',
+  };
+
+  return displayNames[stageSlug] || stageSlug;
 };
