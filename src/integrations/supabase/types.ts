@@ -793,11 +793,25 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "card_kits_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "card_kits_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_kits_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "card_kits_workspace_id_fkey"
@@ -1939,11 +1953,25 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "depreciation_schedules_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "depreciation_schedules_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_schedules_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "depreciation_schedules_workspace_id_fkey"
@@ -2673,11 +2701,25 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "insurance_item_links_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "insurance_item_links_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_item_links_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "insurance_item_links_workspace_id_fkey"
@@ -2994,6 +3036,13 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "inventory_movements_to_location_id_fkey"
             columns: ["to_location_id"]
             isOneToOne: false
@@ -3006,6 +3055,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "inventory_movements_workspace_id_fkey"
@@ -3025,6 +3081,7 @@ export type Database = {
           id: string
           invoice_ref: string | null
           is_active: boolean | null
+          item_condition: string | null
           item_id: string
           notes: string | null
           serial_number: string | null
@@ -3044,6 +3101,7 @@ export type Database = {
           id?: string
           invoice_ref?: string | null
           is_active?: boolean | null
+          item_condition?: string | null
           item_id: string
           notes?: string | null
           serial_number?: string | null
@@ -3063,6 +3121,7 @@ export type Database = {
           id?: string
           invoice_ref?: string | null
           is_active?: boolean | null
+          item_condition?: string | null
           item_id?: string
           notes?: string | null
           serial_number?: string | null
@@ -3094,6 +3153,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "inventory_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
             referencedColumns: ["item_id"]
           },
           {
@@ -3274,6 +3340,13 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "kit_template_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "kit_template_items_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -3345,6 +3418,7 @@ export type Database = {
       }
       maintenance_records: {
         Row: {
+          completed_date: string | null
           cost: number | null
           created_at: string
           created_by: string | null
@@ -3357,9 +3431,12 @@ export type Database = {
           maintenance_type: string | null
           next_maintenance_date: string | null
           notes: string | null
+          performed_by: string | null
           problem_description: string
+          scheduled_date: string | null
           service_date: string
           solution_description: string | null
+          status: string | null
           unit_id: string | null
           updated_at: string
           vendor: string | null
@@ -3368,6 +3445,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          completed_date?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -3380,9 +3458,12 @@ export type Database = {
           maintenance_type?: string | null
           next_maintenance_date?: string | null
           notes?: string | null
+          performed_by?: string | null
           problem_description: string
+          scheduled_date?: string | null
           service_date: string
           solution_description?: string | null
+          status?: string | null
           unit_id?: string | null
           updated_at?: string
           vendor?: string | null
@@ -3391,6 +3472,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          completed_date?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -3403,9 +3485,12 @@ export type Database = {
           maintenance_type?: string | null
           next_maintenance_date?: string | null
           notes?: string | null
+          performed_by?: string | null
           problem_description?: string
+          scheduled_date?: string | null
           service_date?: string
           solution_description?: string | null
+          status?: string | null
           unit_id?: string | null
           updated_at?: string
           vendor?: string | null
@@ -3429,6 +3514,13 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "maintenance_records_linked_card_id_fkey"
             columns: ["linked_card_id"]
             isOneToOne: false
@@ -3441,6 +3533,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "maintenance_records_workspace_id_fkey"
@@ -5200,11 +5299,25 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "inventory_movements_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "inventory_units"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
           },
           {
             foreignKeyName: "inventory_movements_workspace_id_fkey"
@@ -5287,6 +5400,99 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_costs_view: {
+        Row: {
+          completed_date: string | null
+          cost: number | null
+          created_at: string | null
+          id: string | null
+          is_resolved: boolean | null
+          is_warranty_claim: boolean | null
+          item_id: string | null
+          item_name: string | null
+          maintenance_type: string | null
+          month: number | null
+          performed_by: string | null
+          problem_description: string | null
+          scheduled_date: string | null
+          serial_number: string | null
+          solution_description: string | null
+          status: string | null
+          unit_id: string | null
+          vendor: string | null
+          workspace_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_status_view"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warranty_status_view: {
+        Row: {
+          current_status: Database["public"]["Enums"]["unit_status"] | null
+          days_until_expiry: number | null
+          item_condition: string | null
+          item_id: string | null
+          item_name: string | null
+          serial_number: string | null
+          unit_id: string | null
+          warranty_end_date: string | null
+          warranty_provider: string | null
+          warranty_start_date: string | null
+          warranty_status: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_units_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -5478,6 +5684,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      run_warranty_check_job: { Args: never; Returns: undefined }
       store_idempotent_response: {
         Args: {
           p_idempotency_key: string
