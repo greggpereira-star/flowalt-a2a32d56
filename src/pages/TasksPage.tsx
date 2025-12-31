@@ -95,8 +95,8 @@ const TasksPage: React.FC = () => {
       // Combine and deduplicate
       const memberCardsList = memberCards
         ?.map((m) => m.card)
-        .filter((c): c is CardType & { space: { name: string }; client: { name: string } | null } => 
-          c !== null && c.status !== 'archived' && c.status !== 'delivered'
+        .filter((c): c is (CardType & { space: { name: string }; client: { name: string } | null }) => 
+          c !== null && (c as any).status !== 'archived' && (c as any).status !== 'delivered'
         );
 
       const allCards = [...(ownedCards || [])];
