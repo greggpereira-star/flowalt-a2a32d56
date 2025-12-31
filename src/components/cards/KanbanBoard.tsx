@@ -252,6 +252,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (forceReason && !validation.allowed) {
       await transitionCard.mutateAsync({
         cardId: card.id,
+        cardTitle: card.title,
         fromStage,
         toStage,
         workflowId: defaultWorkflow.id,
@@ -288,6 +289,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     // Transition allowed - proceed
     await transitionCard.mutateAsync({
       cardId: card.id,
+      cardTitle: card.title,
       fromStage,
       toStage,
       workflowId: defaultWorkflow.id,

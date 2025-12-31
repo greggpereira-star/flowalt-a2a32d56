@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { executeStageAutomations } from '@/lib/automationEngine';
 import type { Json } from '@/integrations/supabase/types';
 
 // =====================================================
@@ -448,6 +449,7 @@ export const useTransitionCard = () => {
   return useMutation({
     mutationFn: async ({
       cardId,
+      cardTitle,
       fromStage,
       toStage,
       workflowId,
@@ -457,6 +459,7 @@ export const useTransitionCard = () => {
       gatesFailed = [],
     }: {
       cardId: string;
+      cardTitle?: string;
       fromStage: string | null;
       toStage: string;
       workflowId: string;
@@ -516,6 +519,23 @@ export const useTransitionCard = () => {
 
       if (eventError) console.error('Failed to emit workflow event:', eventError);
 
+      // Execute automations (EDA)
+      try {
+        const automationResults = await executeStageAutomations({
+          cardId,
+          cardTitle: cardTitle || 'Card',
+          previousStage: fromStage,
+          currentStage: toStage,
+          triggeredBy: user.id,
+          workspaceId: currentWorkspace.id,
+        });
+
+        console.log('[WorkflowTransition] Automation results:', automationResults);
+      } catch (automationError) {
+        // Don't fail the transition if automations fail
+        console.error('[WorkflowTransition] Automation execution failed:', automationError);
+      }
+
       return { cardId, toStage };
     },
     onSuccess: (data) => {
@@ -523,6 +543,7 @@ export const useTransitionCard = () => {
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
       queryClient.invalidateQueries({ queryKey: ['card-stage-history', data.cardId] });
       queryClient.invalidateQueries({ queryKey: ['workflow-events'] });
+      queryClient.invalidateQueries({ queryKey: ['automation-logs'] });
     },
   });
 };
