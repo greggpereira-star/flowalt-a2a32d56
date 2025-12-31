@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -124,32 +124,53 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
+  
+  // Use local state for editing to prevent re-renders from parent
+  const [localData, setLocalData] = useState<BriefingData>(data);
+  const hasUnsavedChanges = useRef(false);
+
+  // Sync local data when dialog opens or external data changes significantly
+  useEffect(() => {
+    if (open) {
+      setLocalData(data);
+      hasUnsavedChanges.current = false;
+    }
+  }, [open, data]);
+
+  // Save changes when dialog closes
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen && hasUnsavedChanges.current) {
+      onChange(localData);
+    }
+    onOpenChange(newOpen);
+  }, [localData, onChange, onOpenChange]);
 
   const currentStepData = STEPS[currentStep];
   const isLastStep = currentStep === STEPS.length - 1;
   const isFirstStep = currentStep === 0;
 
-  const updateField = (field: keyof BriefingData, value: string) => {
-    onChange({ ...data, [field]: value });
+  const updateField = useCallback((field: keyof BriefingData, value: string) => {
+    setLocalData(prev => ({ ...prev, [field]: value }));
+    hasUnsavedChanges.current = true;
     if (validationError) {
       setValidationError(null);
     }
-  };
+  }, [validationError]);
 
-  const getFieldValue = (field: keyof BriefingData): string => {
-    return data[field] || '';
-  };
+  const getFieldValue = useCallback((field: keyof BriefingData): string => {
+    return localData[field] || '';
+  }, [localData]);
 
-  const isStepComplete = (stepIndex: number): boolean => {
+  const isStepComplete = useCallback((stepIndex: number): boolean => {
     const step = STEPS[stepIndex];
     const value = getFieldValue(step.field);
     if (step.required) {
       return value.trim().length >= (step.minLength || 1);
     }
     return value.trim().length > 0;
-  };
+  }, [getFieldValue]);
 
-  const requiredStepsComplete = STEPS.filter(s => s.required).every((step, idx) => {
+  const requiredStepsComplete = STEPS.filter(s => s.required).every((step) => {
     const value = getFieldValue(step.field);
     return value.trim().length >= (step.minLength || 1);
   });
@@ -169,7 +190,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     if (!requiredStepsComplete) {
       setValidationError({
         isValid: false,
@@ -180,13 +201,15 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       return;
     }
     
+    // Save all changes before completing
+    onChange(localData);
     onMarkComplete();
     toast.success('Briefing completo!');
     onOpenChange(false);
-  };
+  }, [requiredStepsComplete, localData, onChange, onMarkComplete, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[700px] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header - Fixed */}
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-muted/30">
