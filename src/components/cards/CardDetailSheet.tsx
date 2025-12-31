@@ -526,16 +526,16 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="border-b flex-shrink-0 px-2">
-                <TabsList className="w-full h-9 bg-transparent p-0 justify-start">
+              <div className="border-b flex-shrink-0 px-4 py-1">
+                <TabsList className="w-full h-11 bg-transparent p-0 justify-start gap-1">
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="overview"
-                          className="flex-1 max-w-[100px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <Target className="h-3.5 w-3.5" />
+                          <Target className="h-4 w-4" />
                           <span className="hidden sm:inline">Geral</span>
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -545,9 +545,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="assistant"
-                          className="flex-1 max-w-[60px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[70px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <Sparkles className="h-3.5 w-3.5" />
+                          <Sparkles className="h-4 w-4" />
                           <span className="hidden sm:inline">IA</span>
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -557,12 +557,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="checklist"
-                          className="flex-1 max-w-[90px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[110px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <CheckSquare className="h-3.5 w-3.5" />
+                          <CheckSquare className="h-4 w-4" />
                           <span className="hidden sm:inline">Tarefas</span>
                           {checklistTotal > 0 && (
-                            <span className="text-[10px] text-muted-foreground">{checklistCompleted}/{checklistTotal}</span>
+                            <span className="text-xs text-muted-foreground">{checklistCompleted}/{checklistTotal}</span>
                           )}
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -572,9 +572,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="time"
-                          className="flex-1 max-w-[80px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <Clock className="h-3.5 w-3.5" />
+                          <Clock className="h-4 w-4" />
                           <span className="hidden sm:inline">Tempo</span>
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -584,12 +584,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="comments"
-                          className="flex-1 max-w-[70px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[90px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <MessageSquare className="h-3.5 w-3.5" />
+                          <MessageSquare className="h-4 w-4" />
                           <span className="hidden sm:inline">Chat</span>
                           {commentsCount > 0 && (
-                            <span className="text-[10px] text-muted-foreground">{commentsCount}</span>
+                            <span className="text-xs text-muted-foreground">{commentsCount}</span>
                           )}
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -599,12 +599,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="attachments"
-                          className="flex-1 max-w-[80px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[100px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <Paperclip className="h-3.5 w-3.5" />
+                          <Paperclip className="h-4 w-4" />
                           <span className="hidden sm:inline">Arquivos</span>
                           {attachmentsCount > 0 && (
-                            <span className="text-[10px] text-muted-foreground">{attachmentsCount}</span>
+                            <span className="text-xs text-muted-foreground">{attachmentsCount}</span>
                           )}
                         </TabsTrigger>
                       </TooltipTrigger>
@@ -614,9 +614,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="financial"
-                          className="flex-1 max-w-[40px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <DollarSign className="h-3.5 w-3.5" />
+                          <DollarSign className="h-4 w-4" />
                         </TabsTrigger>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="text-xs">Financeiro</TooltipContent>
@@ -625,9 +625,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <TooltipTrigger asChild>
                         <TabsTrigger
                           value="invites"
-                          className="flex-1 max-w-[40px] h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-xs gap-1.5"
+                          className="flex-1 max-w-[50px] h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent shadow-none text-sm gap-2"
                         >
-                          <UserPlus className="h-3.5 w-3.5" />
+                          <UserPlus className="h-4 w-4" />
                         </TabsTrigger>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="text-xs">Convidar</TooltipContent>
