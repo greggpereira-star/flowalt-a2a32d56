@@ -170,7 +170,7 @@ export function DREReport() {
             summary: [
               { label: "Receita Total", value: formatCurrency(currentData.totalIncome) },
               { label: "Despesa Total", value: formatCurrency(currentData.totalExpenses) },
-              { label: "Resultado", value: formatCurrency(currentData.operationalResult) },
+              { label: "Resultado Op.", value: formatCurrency(currentData.operationalResult) },
               { label: "Margem", value: `${currentData.profitMargin.toFixed(1)}%` },
             ],
           },
@@ -199,6 +199,32 @@ export function DREReport() {
             },
           },
           {
+            title: `Impostos (${regimeLabels[currentTaxes.regime] || "Simples Nacional"})`,
+            type: "table",
+            data: {
+              headers: ["Tributo", "Valor"],
+              rows: [
+                ...(currentTaxes.das > 0 ? [["DAS (Simples Nacional)", formatCurrency(currentTaxes.das)]] : []),
+                ...(currentTaxes.irpj > 0 ? [["IRPJ", formatCurrency(currentTaxes.irpj)]] : []),
+                ...(currentTaxes.csll > 0 ? [["CSLL", formatCurrency(currentTaxes.csll)]] : []),
+                ...(currentTaxes.pis > 0 ? [["PIS", formatCurrency(currentTaxes.pis)]] : []),
+                ...(currentTaxes.cofins > 0 ? [["COFINS", formatCurrency(currentTaxes.cofins)]] : []),
+                ...(currentTaxes.iss > 0 ? [["ISS", formatCurrency(currentTaxes.iss)]] : []),
+                ["Total de Impostos", formatCurrency(currentTaxes.total_taxes)],
+                ["Carga Tributária Efetiva", `${currentTaxes.effective_rate.toFixed(2)}%`],
+              ],
+            },
+          },
+          {
+            title: "Resultado Final",
+            type: "summary",
+            summary: [
+              { label: "Resultado Operacional", value: formatCurrency(currentData.operationalResult) },
+              { label: "(-) Impostos", value: formatCurrency(currentTaxes.total_taxes) },
+              { label: "Resultado Líquido", value: formatCurrency(netProfitAfterTaxes) },
+            ],
+          },
+          {
             title: "Comparativo com Mês Anterior",
             type: "table",
             data: {
@@ -217,10 +243,16 @@ export function DREReport() {
                   `${variations.expenses >= 0 ? "+" : ""}${variations.expenses.toFixed(1)}%`,
                 ],
                 [
-                  "Resultado",
-                  formatCurrency(currentData.operationalResult),
-                  formatCurrency(previousData.operationalResult),
-                  `${variations.result >= 0 ? "+" : ""}${variations.result.toFixed(1)}%`,
+                  "Impostos",
+                  formatCurrency(currentTaxes.total_taxes),
+                  formatCurrency(previousTaxes.total_taxes),
+                  `${variations.taxes >= 0 ? "+" : ""}${variations.taxes.toFixed(1)}%`,
+                ],
+                [
+                  "Resultado Líquido",
+                  formatCurrency(netProfitAfterTaxes),
+                  formatCurrency(prevNetProfitAfterTaxes),
+                  `${variations.netResult >= 0 ? "+" : ""}${variations.netResult.toFixed(1)}%`,
                 ],
               ],
             },
