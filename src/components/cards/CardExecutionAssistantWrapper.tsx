@@ -23,6 +23,7 @@ import { useCard } from '@/hooks/useCards';
 import { useDependencies } from '@/hooks/useDependencies';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useAllCards } from '@/hooks/useCards';
+import { CardAIAssistant } from './CardAIAssistant';
 
 interface CardExecutionAssistantWrapperProps {
   cardId: string;
@@ -124,7 +125,9 @@ export const CardExecutionAssistantWrapper: React.FC<CardExecutionAssistantWrapp
     return blockingCard && blockingCard.status !== 'delivered';
   });
 
-  if (blockedBy.length > 0) {
+  const isBlocked = blockedBy.length > 0;
+
+  if (isBlocked) {
     const blockingCardTitles = blockedBy
       .map(dep => allCards.find(c => c.id === dep.blocking_card_id)?.title)
       .filter(Boolean);
@@ -300,6 +303,9 @@ export const CardExecutionAssistantWrapper: React.FC<CardExecutionAssistantWrapp
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Assistant */}
+      <CardAIAssistant cardId={cardId} isBlocked={isBlocked} />
 
       {/* No alerts or recommendations */}
       {alerts.length === 0 && recommendations.length === 0 && (
