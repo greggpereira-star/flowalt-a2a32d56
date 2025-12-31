@@ -273,7 +273,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-    // If not allowed, show modal
+    // If not allowed, show modal and emit blocked event
     if (!validation.allowed) {
       setPendingTransition({
         card,
@@ -283,6 +283,24 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         validation,
       });
       setBlockModalOpen(true);
+      
+      // Emit stage.transition_blocked event for EDA
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase
+        .from('workflow_events')
+        .insert({
+          workspace_id: card.workspace_id,
+          event_type: 'stage.transition_blocked',
+          entity_type: 'card',
+          entity_id: card.id,
+          payload: {
+            from_stage: fromStage,
+            to_stage: toStage,
+            failed_gates: validation.failedGates.map(g => ({ gate: g.gate, message: g.message })),
+          },
+          triggered_by: null, // Will be captured from auth context
+        });
+      
       return;
     }
 

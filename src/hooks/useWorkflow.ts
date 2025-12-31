@@ -431,11 +431,27 @@ export const useCreateDefaultWorkflow = () => {
         });
 
       if (error) throw error;
-      return data as string; // Returns workflow_id
+      
+      const workflowId = data as string;
+      
+      // Emit workflow.created event
+      await supabase
+        .from('workflow_events')
+        .insert({
+          workspace_id: currentWorkspace.id,
+          event_type: 'workflow.created',
+          entity_type: 'workflow',
+          entity_id: workflowId,
+          payload: { created_by: user.id, is_default: true },
+          triggered_by: user.id,
+        });
+      
+      return workflowId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       queryClient.invalidateQueries({ queryKey: ['workflow', 'default'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-events'] });
     },
   });
 };
