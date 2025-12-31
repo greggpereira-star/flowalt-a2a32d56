@@ -743,42 +743,32 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                   {/* Briefing Section */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "p-1.5 rounded-lg",
-                          card.briefing_completed 
-                            ? "bg-success/10 text-success" 
-                            : "bg-warning/10 text-warning"
-                        )}>
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-semibold flex items-center gap-1.5">
-                            Briefing do Projeto
-                            {card.briefing_completed && (
-                              <Badge variant="secondary" className="text-[10px] h-5 bg-success/10 text-success border-success/20">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Completo
-                              </Badge>
-                            )}
-                          </label>
-                          <p className="text-[11px] text-muted-foreground">
-                            Informações essenciais do card
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "p-1.5 rounded-lg",
+                        card.briefing_completed 
+                          ? "bg-success/10 text-success" 
+                          : "bg-warning/10 text-warning"
+                      )}>
+                        <FileText className="h-4 w-4" />
                       </div>
-                      {!card.briefing_completed && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="h-8 text-xs gap-1.5 bg-success hover:bg-success/90"
-                          onClick={handleMarkBriefingComplete}
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Concluir
-                        </Button>
-                      )}
+                      <div>
+                        <label className="text-sm font-semibold flex items-center gap-1.5">
+                          Briefing do Projeto
+                          {card.briefing_completed && (
+                            <Badge variant="secondary" className="text-[10px] h-5 bg-success/10 text-success border-success/20">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Validado
+                            </Badge>
+                          )}
+                        </label>
+                        <p className="text-[11px] text-muted-foreground">
+                          {card.briefing_completed 
+                            ? "Briefing aprovado pela IA" 
+                            : "Preencha com informações detalhadas para validação"
+                          }
+                        </p>
+                      </div>
                     </div>
                     <div className={cn(
                       "rounded-xl border-2 p-4 transition-colors",
