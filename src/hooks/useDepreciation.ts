@@ -117,7 +117,7 @@ export function useGenerateDepreciation() {
           description: `Depreciação - ${monthRef}`,
           due_date: dateStr,
           date: dateStr,
-          status: 'completed' as const,
+          status: 'paid' as const,
         };
         await supabase.from('transactions').insert([txData]);
       }
