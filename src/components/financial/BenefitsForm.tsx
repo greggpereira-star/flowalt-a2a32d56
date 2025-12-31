@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,8 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Bus, Utensils, Heart, Smile, Dumbbell, Car, Gift } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bus, Utensils, Heart, Smile, Dumbbell, Car, Gift, User } from "lucide-react";
 import { useCollaboratorBenefits, useUpdateBenefits } from "@/hooks/useCollaboratorPayroll";
+import { useCollaborators } from "@/hooks/useCollaborators";
 
 const benefitsSchema = z.object({
   vt_enabled: z.boolean(),
@@ -34,11 +36,15 @@ const benefitsSchema = z.object({
 type FormData = z.infer<typeof benefitsSchema>;
 
 interface BenefitsFormProps {
-  collaboratorId: string;
+  collaboratorId?: string;
   onSuccess?: () => void;
 }
 
-export function BenefitsForm({ collaboratorId, onSuccess }: BenefitsFormProps) {
+export function BenefitsForm({ collaboratorId: propCollaboratorId, onSuccess }: BenefitsFormProps) {
+  const { data: collaborators = [] } = useCollaborators();
+  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>(propCollaboratorId || "");
+  
+  const collaboratorId = propCollaboratorId || selectedCollaboratorId;
   const { data: benefits, isLoading } = useCollaboratorBenefits(collaboratorId);
   const updateBenefits = useUpdateBenefits();
 
@@ -113,10 +119,6 @@ export function BenefitsForm({ collaboratorId, onSuccess }: BenefitsFormProps) {
     onSuccess?.();
   };
 
-  if (isLoading) {
-    return <div className="text-muted-foreground p-4">Carregando...</div>;
-  }
-
   const watchVT = form.watch("vt_enabled");
   const watchVA = form.watch("va_enabled");
   const watchVR = form.watch("vr_enabled");
@@ -126,47 +128,94 @@ export function BenefitsForm({ collaboratorId, onSuccess }: BenefitsFormProps) {
   const watchParking = form.watch("parking_enabled");
   const watchBonus = form.watch("bonus_enabled");
 
+  if (!propCollaboratorId && collaborators.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          Nenhum colaborador cadastrado
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Vale Transporte */}
+    <div className="space-y-6">
+      {/* Collaborator Selector - only show if no collaboratorId prop */}
+      {!propCollaboratorId && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Bus className="w-4 h-4 text-blue-500" />
-              Vale Transporte
+              <User className="w-4 h-4 text-primary" />
+              Selecionar Colaborador
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <FormField
-              control={form.control}
-              name="vt_enabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between">
-                  <FormLabel>Habilitado</FormLabel>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            {watchVT && (
-              <FormField
-                control={form.control}
-                name="vt_value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor mensal (R$)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormDescription>Desconto de 6% será aplicado no salário</FormDescription>
-                  </FormItem>
-                )}
-              />
-            )}
+          <CardContent>
+            <Select value={selectedCollaboratorId} onValueChange={setSelectedCollaboratorId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um colaborador..." />
+              </SelectTrigger>
+              <SelectContent>
+                {collaborators.map((collab) => (
+                  <SelectItem key={collab.id} value={collab.id || ""}>
+                    {collab.full_name || collab.member?.profile?.full_name || "Sem nome"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
+      )}
+
+      {/* Show form only when collaborator is selected */}
+      {!collaboratorId ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Selecione um colaborador para configurar os benefícios
+          </CardContent>
+        </Card>
+      ) : isLoading ? (
+        <div className="text-muted-foreground p-4">Carregando...</div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Vale Transporte */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bus className="w-4 h-4 text-blue-500" />
+                  Vale Transporte
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="vt_enabled"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <FormLabel>Habilitado</FormLabel>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                {watchVT && (
+                  <FormField
+                    control={form.control}
+                    name="vt_value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor mensal (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormDescription>Desconto de 6% será aplicado no salário</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </CardContent>
+            </Card>
 
         {/* Vale Alimentação */}
         <Card>
@@ -427,12 +476,14 @@ export function BenefitsForm({ collaboratorId, onSuccess }: BenefitsFormProps) {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={updateBenefits.isPending}>
-            {updateBenefits.isPending ? "Salvando..." : "Salvar Benefícios"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={updateBenefits.isPending}>
+                {updateBenefits.isPending ? "Salvando..." : "Salvar Benefícios"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      )}
+    </div>
   );
 }

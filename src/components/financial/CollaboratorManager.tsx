@@ -11,6 +11,10 @@ import {
   Calendar,
   TrendingUp,
   AlertCircle,
+  Gift,
+  Wallet,
+  Umbrella,
+  BarChart3,
 } from "lucide-react";
 import {
   AreaChart,
@@ -42,11 +46,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollaborators, useSalaryHistory, useGenerateSalaryTransactions, CollaboratorDetails } from "@/hooks/useCollaborators";
 import { CollaboratorForm } from "./CollaboratorForm";
+import { BenefitsForm } from "./BenefitsForm";
+import { PayrollDashboard } from "./PayrollDashboard";
+import { VacationManager } from "./VacationManager";
+import { CollaboratorAnalytics } from "./CollaboratorAnalytics";
 
 export function CollaboratorManager() {
   const { data: collaborators = [], isLoading } = useCollaborators();
   const [selectedCollaborator, setSelectedCollaborator] = useState<CollaboratorDetails | null>(null);
   const [editingCollaborator, setEditingCollaborator] = useState<string | null>(null);
+  const [activeMainTab, setActiveMainTab] = useState("list");
   const generateSalaries = useGenerateSalaryTransactions();
 
   const formatCurrency = (value: number | null) => {
@@ -87,7 +96,7 @@ export function CollaboratorManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Controle de Colaboradores</h2>
+        <h2 className="text-xl font-semibold">Gestão de Colaboradores</h2>
         <Button 
           onClick={() => generateSalaries.mutate(new Date())}
           disabled={generateSalaries.isPending}
@@ -97,162 +106,211 @@ export function CollaboratorManager() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Colaboradores
-            </CardTitle>
-            <User className="w-5 h-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{collaborators.length}</p>
-          </CardContent>
-        </Card>
+      {/* Main Navigation Tabs */}
+      <Tabs value={activeMainTab} onValueChange={setActiveMainTab}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Colaboradores</span>
+          </TabsTrigger>
+          <TabsTrigger value="payroll" className="flex items-center gap-2">
+            <Wallet className="w-4 h-4" />
+            <span className="hidden sm:inline">Folha</span>
+          </TabsTrigger>
+          <TabsTrigger value="benefits" className="flex items-center gap-2">
+            <Gift className="w-4 h-4" />
+            <span className="hidden sm:inline">Benefícios</span>
+          </TabsTrigger>
+          <TabsTrigger value="vacations" className="flex items-center gap-2">
+            <Umbrella className="w-4 h-4" />
+            <span className="hidden sm:inline">Férias</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Folha Mensal
-            </CardTitle>
-            <DollarSign className="w-5 h-5 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {formatCurrency(
-                collaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0)
-              )}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Collaborators List Tab */}
+        <TabsContent value="list" className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Colaboradores
+                </CardTitle>
+                <User className="w-5 h-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{collaborators.length}</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Horas/Semana
-            </CardTitle>
-            <Clock className="w-5 h-5 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {collaborators.reduce((acc, c) => acc + (c?.weekly_hours || 40), 0)}h
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Folha Mensal
+                </CardTitle>
+                <DollarSign className="w-5 h-5 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(
+                    collaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0)
+                  )}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Docs Vencendo
-            </CardTitle>
-            <AlertCircle className="w-5 h-5 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-orange-500">
-              {collaborators.reduce((acc, c) => acc + getExpiringDocuments(c?.documents).length, 0)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Horas/Semana
+                </CardTitle>
+                <Clock className="w-5 h-5 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">
+                  {collaborators.reduce((acc, c) => acc + (c?.weekly_hours || 40), 0)}h
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Collaborators List */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Cargo/Depto</TableHead>
-                <TableHead>Contrato</TableHead>
-                <TableHead>Salário</TableHead>
-                <TableHead>Horas/Sem</TableHead>
-                <TableHead>Admissão</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {collaborators.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    Nenhum colaborador cadastrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                collaborators.map((collab) => {
-                  const expiringDocs = getExpiringDocuments(collab?.documents);
-                  return (
-                    <TableRow
-                      key={collab?.member?.id || collab?.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedCollaborator(collab)}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={collab?.member?.profile?.avatar_url || ""} />
-                            <AvatarFallback>
-                              {getInitials(collab?.full_name || collab?.member?.profile?.full_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {collab?.full_name || collab?.member?.profile?.full_name || "Sem nome"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {collab?.member?.profile?.email}
-                            </p>
-                          </div>
-                          {expiringDocs.length > 0 && (
-                            <Badge variant="outline" className="text-orange-500 border-orange-500">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              {expiringDocs.length} doc(s)
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{collab?.member?.function_title || "-"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {collab?.member?.department || "-"}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {collab?.contract_type?.toUpperCase() || "CLT"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(collab?.base_salary)}
-                      </TableCell>
-                      <TableCell>{collab?.weekly_hours || 40}h</TableCell>
-                      <TableCell>
-                        {collab?.hire_date
-                          ? format(new Date(collab.hire_date), "dd/MM/yyyy")
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingCollaborator(collab?.member?.id || null);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Docs Vencendo
+                </CardTitle>
+                <AlertCircle className="w-5 h-5 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-orange-500">
+                  {collaborators.reduce((acc, c) => acc + getExpiringDocuments(c?.documents).length, 0)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Collaborators List */}
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Colaborador</TableHead>
+                    <TableHead>Cargo/Depto</TableHead>
+                    <TableHead>Contrato</TableHead>
+                    <TableHead>Salário</TableHead>
+                    <TableHead>Horas/Sem</TableHead>
+                    <TableHead>Admissão</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collaborators.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Nenhum colaborador cadastrado
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  ) : (
+                    collaborators.map((collab) => {
+                      const expiringDocs = getExpiringDocuments(collab?.documents);
+                      return (
+                        <TableRow
+                          key={collab?.member?.id || collab?.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedCollaborator(collab)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={collab?.member?.profile?.avatar_url || ""} />
+                                <AvatarFallback>
+                                  {getInitials(collab?.full_name || collab?.member?.profile?.full_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">
+                                  {collab?.full_name || collab?.member?.profile?.full_name || "Sem nome"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {collab?.member?.profile?.email}
+                                </p>
+                              </div>
+                              {expiringDocs.length > 0 && (
+                                <Badge variant="outline" className="text-orange-500 border-orange-500">
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  {expiringDocs.length} doc(s)
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p>{collab?.member?.function_title || "-"}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {collab?.member?.department || "-"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {collab?.contract_type?.toUpperCase() || "CLT"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {formatCurrency(collab?.base_salary)}
+                          </TableCell>
+                          <TableCell>{collab?.weekly_hours || 40}h</TableCell>
+                          <TableCell>
+                            {collab?.hire_date
+                              ? format(new Date(collab.hire_date), "dd/MM/yyyy")
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCollaborator(collab?.member?.id || null);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Payroll Tab */}
+        <TabsContent value="payroll">
+          <PayrollDashboard />
+        </TabsContent>
+
+        {/* Benefits Tab */}
+        <TabsContent value="benefits">
+          <BenefitsForm />
+        </TabsContent>
+
+        {/* Vacations Tab */}
+        <TabsContent value="vacations">
+          <VacationManager />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <CollaboratorAnalytics />
+        </TabsContent>
+      </Tabs>
 
       {/* Collaborator Detail Sheet */}
       <Sheet open={!!selectedCollaborator} onOpenChange={() => setSelectedCollaborator(null)}>
