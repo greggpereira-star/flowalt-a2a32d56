@@ -43,6 +43,8 @@ import { useAllCards } from "@/hooks/useCards";
 import { useClients } from "@/hooks/useClients";
 import { useWorkspaceMembers, useMemberCapacity } from "@/hooks/useWorkspaceMembers";
 import { useCollaborators } from "@/hooks/useCollaborators";
+import { ExecutiveRiskPanel } from "@/components/partners/ExecutiveRiskPanel";
+import { ExecutiveAssetsPanel } from "@/components/partners/ExecutiveAssetsPanel";
 
 const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"];
 
@@ -483,6 +485,12 @@ export default function PartnersPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Executive Panels Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ExecutiveRiskPanel />
+            <ExecutiveAssetsPanel />
           </div>
         </div>
       </AppLayout>

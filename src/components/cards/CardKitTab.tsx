@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Package,
   Plus,
@@ -21,11 +21,14 @@ import {
   Clock,
   Box,
   Hash,
+  History,
+  User,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useCardKit, useAddItemToCardKit, useCheckoutCardKit, useReturnCardKit, useRemoveFromCardKit, type CardKit } from '@/hooks/useCardKit';
+import { useCardKitTimeline } from '@/hooks/useCardKitTimeline';
 import { useInventoryItems, useInventoryUnits } from '@/hooks/useInventory';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -52,6 +55,7 @@ const getStatusBadge = (status?: string) => {
 export const CardKitTab: React.FC<CardKitTabProps> = ({ cardId }) => {
   const { user } = useAuth();
   const { data: kitItems, isLoading } = useCardKit(cardId);
+  const { data: timeline = [], isLoading: timelineLoading } = useCardKitTimeline(cardId);
   const { data: inventoryItems = [] } = useInventoryItems();
   const addToKit = useAddItemToCardKit();
   const checkout = useCheckoutCardKit();
@@ -144,7 +148,19 @@ export const CardKitTab: React.FC<CardKitTabProps> = ({ cardId }) => {
   }
 
   return (
-    <div className="p-5 space-y-6">
+    <Tabs defaultValue="kit" className="p-5">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger value="kit" className="gap-2">
+          <Package className="h-4 w-4" />
+          Kit
+        </TabsTrigger>
+        <TabsTrigger value="timeline" className="gap-2">
+          <History className="h-4 w-4" />
+          Timeline
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="kit" className="space-y-6 mt-0">
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-3">
         <Card className="p-3">
@@ -387,6 +403,74 @@ export const CardKitTab: React.FC<CardKitTabProps> = ({ cardId }) => {
           </div>
         </ScrollArea>
       )}
-    </div>
+      </TabsContent>
+
+      <TabsContent value="timeline" className="mt-0">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Histórico de Movimentações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {timelineLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : timeline.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma movimentação registrada</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {timeline.map((entry) => (
+                  <div key={entry.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className={cn(
+                      "p-1.5 rounded-full",
+                      entry.type === 'checkout' && "bg-warning/20 text-warning",
+                      entry.type === 'return' && "bg-success/20 text-success",
+                      entry.type === 'kit_added' && "bg-primary/20 text-primary"
+                    )}>
+                      {entry.type === 'checkout' && <ArrowUpFromLine className="h-3 w-3" />}
+                      {entry.type === 'return' && <ArrowDownToLine className="h-3 w-3" />}
+                      {entry.type === 'kit_added' && <Plus className="h-3 w-3" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        {entry.type === 'checkout' && 'Retirada'}
+                        {entry.type === 'return' && 'Devolução'}
+                        {entry.type === 'kit_added' && 'Adicionado'}
+                        : {entry.itemName}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <span>{format(new Date(entry.timestamp), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
+                        {entry.userName && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {entry.userName}
+                            </span>
+                          </>
+                        )}
+                        {entry.quantity && entry.quantity > 1 && (
+                          <>
+                            <span>•</span>
+                            <span>Qtd: {entry.quantity}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 };
