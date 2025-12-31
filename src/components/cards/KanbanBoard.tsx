@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -15,12 +15,26 @@ import { TaskCard } from './TaskCard';
 import { DraggableCard } from './DraggableCard';
 import { DragOverlayCard } from './DragOverlayCard';
 import { CardContextMenu } from './CardContextMenu';
+import { TransitionBlockedModal } from './TransitionBlockedModal';
 import { statusConfig } from './CardBadges';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
+import { useChecklists } from '@/hooks/useChecklists';
+import { useCardDependencies } from '@/hooks/useDependencies';
+import { 
+  useDefaultWorkflow, 
+  useCompleteWorkflow, 
+  validateTransition, 
+  useTransitionCard,
+  mapStatusToStage,
+  mapStageToStatus,
+  type TransitionValidationResult 
+} from '@/hooks/useWorkflow';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
@@ -55,6 +69,81 @@ const DroppableColumn: React.FC<{
 
 const defaultStatuses: CardStatus[] = ['backlog', 'briefing', 'todo', 'in_progress', 'review', 'approved', 'delivered'];
 
+// Card status indicators component
+const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
+  const { data: checklists } = useChecklists(card.id);
+  const { data: deps } = useCardDependencies(card.id);
+  
+  const checklistProgress = useMemo(() => {
+    if (!checklists || checklists.length === 0) return 100;
+    const completed = checklists.filter(c => c.is_completed).length;
+    return Math.round((completed / checklists.length) * 100);
+  }, [checklists]);
+  
+  const hasActiveDeps = useMemo(() => {
+    if (!deps) return false;
+    return deps.blocking.some((d: any) => 
+      d.blocking_card?.status !== 'delivered'
+    );
+  }, [deps]);
+  
+  const indicators = [];
+  
+  if (!card.briefing_completed) {
+    indicators.push(
+      <Tooltip key="briefing">
+        <TooltipTrigger asChild>
+          <div className="p-1 rounded-full bg-amber-500/20">
+            <FileText className="h-3 w-3 text-amber-600" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="text-xs">Briefing pendente</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  if (checklists && checklists.length > 0 && checklistProgress < 100) {
+    indicators.push(
+      <Tooltip key="checklist">
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/20">
+            <ListChecks className="h-3 w-3 text-blue-600" />
+            <span className="text-[10px] font-medium text-blue-600">{checklistProgress}%</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="text-xs">Checklist {checklistProgress}% completo</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  if (hasActiveDeps) {
+    indicators.push(
+      <Tooltip key="deps">
+        <TooltipTrigger asChild>
+          <div className="p-1 rounded-full bg-red-500/20">
+            <Link2 className="h-3 w-3 text-red-600" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="text-xs">Bloqueado por dependência</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  if (indicators.length === 0) return null;
+  
+  return (
+    <div className="flex items-center gap-1 mb-1">
+      {indicators}
+    </div>
+  );
+};
+
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   cards,
   onCardClick,
@@ -62,13 +151,29 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   visibleStatuses = defaultStatuses,
 }) => {
   const { toast } = useToast();
+  const { currentRole } = useWorkspace();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard();
+  const transitionCard = useTransitionCard();
+  
+  // Workflow data
+  const { data: defaultWorkflow } = useDefaultWorkflow();
+  const { stages, transitions } = useCompleteWorkflow(defaultWorkflow?.id);
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  
+  // Transition blocking modal state
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<{
+    card: Card;
+    fromStage: string;
+    toStage: string;
+    targetStatus: CardStatus;
+    validation: TransitionValidationResult;
+  } | null>(null);
 
   // DnD sensors
   const sensors = useSensors(
@@ -89,6 +194,115 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (!activeId) return null;
     return cards.find(c => c.id === activeId) || null;
   }, [activeId, cards]);
+
+  // Validate and attempt transition
+  const attemptTransition = useCallback(async (
+    card: Card, 
+    targetStatus: CardStatus,
+    forceReason?: string
+  ) => {
+    // If no workflow configured, use legacy behavior
+    if (!defaultWorkflow || stages.length === 0) {
+      await updateCard.mutateAsync({ id: card.id, status: targetStatus });
+      toast({
+        title: 'Card movido',
+        description: `Movido para ${statusConfig[targetStatus].label}`,
+      });
+      return;
+    }
+
+    const fromStage = card.current_stage || mapStatusToStage(card.status);
+    const toStage = mapStatusToStage(targetStatus);
+
+    // Get card checklist progress
+    const { data: checklists } = await (await import('@/integrations/supabase/client')).supabase
+      .from('checklists')
+      .select('is_completed')
+      .eq('card_id', card.id);
+
+    const checklistProgress = checklists && checklists.length > 0
+      ? Math.round((checklists.filter(c => c.is_completed).length / checklists.length) * 100)
+      : 100;
+
+    // Get card dependencies
+    const { data: deps } = await (await import('@/integrations/supabase/client')).supabase
+      .from('dependencies')
+      .select('*, blocking_card:cards!dependencies_blocking_card_id_fkey(status)')
+      .eq('dependent_card_id', card.id);
+
+    const hasActiveDependencies = deps?.some(d => 
+      (d.blocking_card as any)?.status !== 'delivered'
+    ) ?? false;
+
+    // Validate transition
+    const validation = await validateTransition({
+      cardId: card.id,
+      fromStage,
+      toStage,
+      workflowId: defaultWorkflow.id,
+      stages,
+      transitions,
+      briefingCompleted: card.briefing_completed,
+      checklistProgress,
+      hasActiveDependencies,
+      userRole: currentRole || 'member',
+    });
+
+    // If forcing with reason, proceed
+    if (forceReason && !validation.allowed) {
+      await transitionCard.mutateAsync({
+        cardId: card.id,
+        fromStage,
+        toStage,
+        workflowId: defaultWorkflow.id,
+        transitionType: 'forced',
+        reason: forceReason,
+        gatesPassed: validation.gates.map(g => g.gate),
+        gatesFailed: validation.failedGates.map(g => g.gate),
+      });
+
+      // Also update legacy status
+      await updateCard.mutateAsync({ id: card.id, status: targetStatus });
+      
+      toast({
+        title: 'Transição forçada',
+        description: `Card movido para ${statusConfig[targetStatus].label}`,
+        variant: 'default',
+      });
+      return;
+    }
+
+    // If not allowed, show modal
+    if (!validation.allowed) {
+      setPendingTransition({
+        card,
+        fromStage,
+        toStage,
+        targetStatus,
+        validation,
+      });
+      setBlockModalOpen(true);
+      return;
+    }
+
+    // Transition allowed - proceed
+    await transitionCard.mutateAsync({
+      cardId: card.id,
+      fromStage,
+      toStage,
+      workflowId: defaultWorkflow.id,
+      transitionType: 'normal',
+      gatesPassed: validation.gates.map(g => g.gate),
+    });
+
+    // Also update legacy status for compatibility
+    await updateCard.mutateAsync({ id: card.id, status: targetStatus });
+    
+    toast({
+      title: 'Card movido',
+      description: `Movido para ${statusConfig[targetStatus].label}`,
+    });
+  }, [defaultWorkflow, stages, transitions, currentRole, transitionCard, updateCard, toast]);
 
   // DnD handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -128,11 +342,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (!targetStatus || targetStatus === card.status) return;
 
     try {
-      await updateCard.mutateAsync({ id: card.id, status: targetStatus });
-      toast({
-        title: 'Card movido',
-        description: `Movido para ${statusConfig[targetStatus].label}`,
-      });
+      await attemptTransition(card, targetStatus);
     } catch (error) {
       toast({
         title: 'Erro ao mover',
@@ -144,11 +354,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const handleStatusChange = async (card: Card, newStatus: CardStatus) => {
     try {
-      await updateCard.mutateAsync({ id: card.id, status: newStatus });
-      toast({
-        title: 'Status atualizado',
-        description: `Card movido para ${statusConfig[newStatus].label}`,
-      });
+      await attemptTransition(card, newStatus);
     } catch (error) {
       toast({
         title: 'Erro ao atualizar',
@@ -156,6 +362,27 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         variant: 'destructive',
       });
     }
+  };
+
+  const handleForceTransition = async (reason: string) => {
+    if (!pendingTransition) return;
+    
+    try {
+      await attemptTransition(pendingTransition.card, pendingTransition.targetStatus, reason);
+    } catch (error) {
+      toast({
+        title: 'Erro ao forçar transição',
+        description: 'Não foi possível completar a transição.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFixGate = (gate: string) => {
+    if (!pendingTransition) return;
+    
+    // Open card detail to fix the gate
+    onCardClick(pendingTransition.card);
   };
 
   const handleUrgencyChange = async (card: Card, newUrgency: CardUrgency) => {
@@ -176,7 +403,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         title: `${card.title} (cópia)`,
         space_id: card.space_id,
         description: card.description || undefined,
-        status: card.status,
+        status: 'backlog', // Always start duplicates in backlog
         urgency: card.urgency,
         due_date: card.due_date || undefined,
         client_id: card.client_id || undefined,
@@ -202,112 +429,131 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }
   };
 
+  // Check if user can force transitions
+  const canForceTransition = currentRole === 'owner' || currentRole === 'admin';
+
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={rectIntersection}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-3 h-full min-w-max pb-4">
-        {visibleStatuses.map((status) => {
-          const config = statusConfig[status];
-          const columnCards = groupedCards[status] || [];
-          const isDropTarget = overId === status;
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-3 h-full min-w-max pb-4">
+          {visibleStatuses.map((status) => {
+            const config = statusConfig[status];
+            const columnCards = groupedCards[status] || [];
+            const isDropTarget = overId === status;
 
-          return (
-            <div
-              key={status}
-              className={cn(
-                'flex-shrink-0 w-72 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
-                isDropTarget
-                  ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
-                  : 'border-border/30'
-              )}
-            >
-              {/* Column Header */}
-              <div className="p-3 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
-                      status === 'backlog' && 'bg-status-backlog ring-status-backlog/30',
-                      status === 'briefing' && 'bg-status-briefing ring-status-briefing/30',
-                      status === 'todo' && 'bg-status-todo ring-status-todo/30',
-                      status === 'in_progress' && 'bg-status-in-progress ring-status-in-progress/30',
-                      status === 'review' && 'bg-status-review ring-status-review/30',
-                      status === 'approved' && 'bg-status-approved ring-status-approved/30',
-                      status === 'delivered' && 'bg-status-delivered ring-status-delivered/30',
-                    )}
-                  />
-                  <span className="text-sm font-semibold">{config.label}</span>
-                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
-                    {columnCards.length}
-                  </Badge>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => onAddCard(status)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Column Cards - Droppable Area */}
-              <DroppableColumn id={status} isOver={isDropTarget}>
-                {columnCards.length === 0 ? (
-                  <div 
-                    className={cn(
-                      'flex flex-col items-center justify-center py-8 text-center transition-colors rounded-lg',
-                      isDropTarget && 'bg-primary/10 border-2 border-dashed border-primary/30'
-                    )}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                      <Sparkles className="h-4 w-4 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {isDropTarget ? 'Solte aqui' : 'Nenhum card'}
-                    </p>
-                  </div>
-                ) : (
-                  columnCards.map((card) => (
-                    <DraggableCard key={card.id} id={card.id}>
-                      <CardContextMenu
-                        card={card}
-                        onStatusChange={(status) => handleStatusChange(card, status)}
-                        onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                        onDuplicate={() => handleDuplicate(card)}
-                        onDelete={() => handleDelete(card)}
-                      >
-                        <div className={cn(
-                          'transition-all',
-                          activeId === card.id && 'opacity-50 scale-95'
-                        )}>
-                          <TaskCard
-                            card={card}
-                            onClick={() => onCardClick(card)}
-                          />
-                        </div>
-                      </CardContextMenu>
-                    </DraggableCard>
-                  ))
+            return (
+              <div
+                key={status}
+                className={cn(
+                  'flex-shrink-0 w-72 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
+                  isDropTarget
+                    ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
+                    : 'border-border/30'
                 )}
-              </DroppableColumn>
-            </div>
-          );
-        })}
-      </div>
+              >
+                {/* Column Header */}
+                <div className="p-3 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
+                        status === 'backlog' && 'bg-status-backlog ring-status-backlog/30',
+                        status === 'briefing' && 'bg-status-briefing ring-status-briefing/30',
+                        status === 'todo' && 'bg-status-todo ring-status-todo/30',
+                        status === 'in_progress' && 'bg-status-in-progress ring-status-in-progress/30',
+                        status === 'review' && 'bg-status-review ring-status-review/30',
+                        status === 'approved' && 'bg-status-approved ring-status-approved/30',
+                        status === 'delivered' && 'bg-status-delivered ring-status-delivered/30',
+                      )}
+                    />
+                    <span className="text-sm font-semibold">{config.label}</span>
+                    <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
+                      {columnCards.length}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onAddCard(status)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
 
-      {/* Drag Overlay with 3D effect */}
-      <DragOverlay dropAnimation={{
-        duration: 200,
-        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-      }}>
-        {activeCard && <DragOverlayCard card={activeCard} />}
-      </DragOverlay>
-    </DndContext>
+                {/* Column Cards - Droppable Area */}
+                <DroppableColumn id={status} isOver={isDropTarget}>
+                  {columnCards.length === 0 ? (
+                    <div 
+                      className={cn(
+                        'flex flex-col items-center justify-center py-8 text-center transition-colors rounded-lg',
+                        isDropTarget && 'bg-primary/10 border-2 border-dashed border-primary/30'
+                      )}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+                        <Sparkles className="h-4 w-4 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {isDropTarget ? 'Solte aqui' : 'Nenhum card'}
+                      </p>
+                    </div>
+                  ) : (
+                    columnCards.map((card) => (
+                      <DraggableCard key={card.id} id={card.id}>
+                        <CardContextMenu
+                          card={card}
+                          onStatusChange={(status) => handleStatusChange(card, status)}
+                          onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                          onDuplicate={() => handleDuplicate(card)}
+                          onDelete={() => handleDelete(card)}
+                        >
+                          <div className={cn(
+                            'transition-all',
+                            activeId === card.id && 'opacity-50 scale-95'
+                          )}>
+                            {/* Gate indicators above card */}
+                            <CardBlockIndicators card={card} />
+                            <TaskCard
+                              card={card}
+                              onClick={() => onCardClick(card)}
+                            />
+                          </div>
+                        </CardContextMenu>
+                      </DraggableCard>
+                    ))
+                  )}
+                </DroppableColumn>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Drag Overlay with 3D effect */}
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}>
+          {activeCard && <DragOverlayCard card={activeCard} />}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Transition Blocked Modal */}
+      <TransitionBlockedModal
+        open={blockModalOpen}
+        onOpenChange={setBlockModalOpen}
+        fromStage={pendingTransition?.fromStage ?? ''}
+        toStage={pendingTransition?.toStage ?? ''}
+        validation={pendingTransition?.validation ?? null}
+        onForceTransition={handleForceTransition}
+        onFixGate={handleFixGate}
+        canForce={canForceTransition}
+      />
+    </>
   );
 };
