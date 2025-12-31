@@ -2,6 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
+export interface InventoryKPIs {
+  total_items: number;
+  total_units: number;
+  total_asset_value: number;
+  total_book_value: number;
+  monthly_license_cost: number;
+  yearly_license_cost: number;
+  yearly_maintenance_cost: number;
+  low_stock_count: number;
+  expiring_subscriptions_count: number;
+  underutilized_licenses_count: number;
+  pending_maintenance_count: number;
+  overdue_returns_count: number;
+}
+
 export interface ExecutiveKPIs {
   timestamp: string;
   workspace_id: string;
@@ -24,6 +39,8 @@ export interface ExecutiveKPIs {
   // Financial metrics
   revenue_month: number;
   expenses_month: number;
+  profit_month: number;
+  margin_month: number;
   
   // Client metrics
   active_clients: number;
@@ -31,6 +48,9 @@ export interface ExecutiveKPIs {
   
   // Velocity metrics
   avg_completion_time_hours: number;
+  
+  // Inventory metrics
+  inventory: InventoryKPIs;
 }
 
 export const useExecutiveKPIs = () => {
@@ -49,13 +69,12 @@ export const useExecutiveKPIs = () => {
       return data as unknown as ExecutiveKPIs;
     },
     enabled: !!currentWorkspace?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 };
 
 export const useRefreshSnapshots = () => {
-  const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -72,7 +91,6 @@ export const useRefreshSnapshots = () => {
   });
 };
 
-// Hook to get KPI trends over time
 export const useKPITrends = (days = 30) => {
   const { currentWorkspace } = useWorkspace();
 
