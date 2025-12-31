@@ -31,6 +31,21 @@ export function useCardFinancialData(cardId: string | undefined) {
         .select("*")
         .eq("card_id", cardId);
 
+      // Get profiles with hourly_rate for labor cost calculation
+      const userIds = [...new Set(timeEntries?.map(e => e.user_id) || [])];
+      let profileRates: Record<string, number> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, hourly_rate")
+          .in("id", userIds);
+        
+        profiles?.forEach(p => {
+          profileRates[p.id] = p.hourly_rate || 50; // Fallback to 50 if not set
+        });
+      }
+
       const totalIncome = transactions
         ?.filter(t => t.type === "income" && t.status === "paid")
         .reduce((acc, t) => acc + Number(t.amount), 0) || 0;
@@ -41,10 +56,10 @@ export function useCardFinancialData(cardId: string | undefined) {
 
       const totalHours = timeEntries?.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0) || 0;
 
-      // Estimated labor cost using default rate
-      const DEFAULT_HOURLY_RATE = 50;
+      // Calculate labor cost using actual hourly rates from profiles
       const laborCost = timeEntries?.reduce((acc, e) => {
-        return acc + (e.duration_seconds / 3600) * DEFAULT_HOURLY_RATE;
+        const rate = profileRates[e.user_id] || 50;
+        return acc + (e.duration_seconds / 3600) * rate;
       }, 0) || 0;
 
       const invoiceTotal = invoices?.reduce((acc, inv) => acc + Number(inv.gross_amount), 0) || 0;
@@ -102,7 +117,20 @@ export function useProjectProfitability() {
         .select("*")
         .eq("workspace_id", currentWorkspace.id);
 
-      const DEFAULT_HOURLY_RATE = 50;
+      // Get all profiles with hourly rates
+      const userIds = [...new Set(timeEntries?.map(e => e.user_id) || [])];
+      let profileRates: Record<string, number> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, hourly_rate")
+          .in("id", userIds);
+        
+        profiles?.forEach(p => {
+          profileRates[p.id] = p.hourly_rate || 50;
+        });
+      }
 
       // Calculate profitability per card
       const profitabilityData = cards.map(card => {
@@ -120,7 +148,8 @@ export function useProjectProfitability() {
         const hours = cardTimeEntries.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
 
         const laborCost = cardTimeEntries.reduce((acc, e) => {
-          return acc + (e.duration_seconds / 3600) * DEFAULT_HOURLY_RATE;
+          const rate = profileRates[e.user_id] || 50;
+          return acc + (e.duration_seconds / 3600) * rate;
         }, 0);
 
         const profit = income - expenses - laborCost;
@@ -179,7 +208,20 @@ export function useClientProfitability() {
 
       if (!clients) return [];
 
-      const DEFAULT_HOURLY_RATE = 50;
+      // Get all profiles with hourly rates
+      const userIds = [...new Set(timeEntries?.map(e => e.user_id) || [])];
+      let profileRates: Record<string, number> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, hourly_rate")
+          .in("id", userIds);
+        
+        profiles?.forEach(p => {
+          profileRates[p.id] = p.hourly_rate || 50;
+        });
+      }
 
       return clients.map(client => {
         const clientCards = cards?.filter(c => c.client_id === client.id) || [];
@@ -204,7 +246,8 @@ export function useClientProfitability() {
         const hours = clientTimeEntries.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
 
         const laborCost = clientTimeEntries.reduce((acc, e) => {
-          return acc + (e.duration_seconds / 3600) * DEFAULT_HOURLY_RATE;
+          const rate = profileRates[e.user_id] || 50;
+          return acc + (e.duration_seconds / 3600) * rate;
         }, 0);
 
         const profit = income - expenses - laborCost;
