@@ -16,6 +16,8 @@ import { BankReconciliationPanel } from "@/components/financial/BankReconciliati
 import { CashFlowForecastChart } from "@/components/financial/CashFlowForecastChart";
 import { FinancialAuditPanel } from "@/components/financial/FinancialAuditPanel";
 import { ProjectProfitabilityPanel } from "@/components/financial/ProjectProfitabilityPanel";
+import { TaxSettingsPanel } from "@/components/financial/TaxSettingsPanel";
+import { TaxCalculatorWidget } from "@/components/financial/TaxCalculatorWidget";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
@@ -29,6 +31,7 @@ import {
   GitCompare,
   Shield,
   PieChart,
+  Calculator,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -117,6 +120,10 @@ export default function FinancialPage() {
                     <Users className="w-4 h-4" />
                     <span>Colaboradores</span>
                   </TabsTrigger>
+                  <TabsTrigger value="tax-settings" variant="wrap" className="gap-2">
+                    <Calculator className="w-4 h-4" />
+                    <span>Config. Fiscal</span>
+                  </TabsTrigger>
                   </TabsList>
 
                   {/* Minimalist Divider */}
@@ -193,6 +200,17 @@ export default function FinancialPage() {
 
                   <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
                     <CollaboratorManager />
+                  </TabsContent>
+
+                  <TabsContent value="tax-settings" className="mt-0 animate-in fade-in-50 duration-300">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="lg:col-span-2">
+                        <TaxSettingsPanel />
+                      </div>
+                      <div>
+                        <TaxCalculatorWidget />
+                      </div>
+                    </div>
                   </TabsContent>
                   </div>
                 </Tabs>
