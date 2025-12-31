@@ -87,12 +87,12 @@ export function DepreciationPanel() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {byDepartment.slice(0, 4).map((dept) => (
-                <div key={dept.departmentId} className="p-3 rounded-lg bg-muted/50">
+                <div key={dept.department_id || 'no-dept'} className="p-3 rounded-lg bg-muted/50">
                   <p className="text-sm font-medium truncate">
-                    {dept.departmentId === 'sem-departamento' ? 'Sem Departamento' : dept.departmentId.slice(0, 8)}
+                    {dept.department_id ? dept.department_id.slice(0, 8) : 'Sem Departamento'}
                   </p>
-                  <p className="text-lg font-bold">{formatCurrency(dept.total)}</p>
-                  <p className="text-xs text-muted-foreground">{dept.items.length} itens</p>
+                  <p className="text-lg font-bold">{formatCurrency(dept.total_depreciation)}</p>
+                  <p className="text-xs text-muted-foreground">{dept.items_count} itens</p>
                 </div>
               ))}
             </div>
