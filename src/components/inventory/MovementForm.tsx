@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateMovement, useInventoryItems, useInventoryUnits, MovementType } from "@/hooks/useInventory";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { useInventoryItems, useInventoryUnits, MovementType } from "@/hooks/useInventory";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { useCheckoutAvailability, useValidatedMovement } from "@/hooks/useStockOperations";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
 const formSchema = z.object({
   item_id: z.string().min(1, "Item obrigatório"),
@@ -26,7 +30,7 @@ interface Props {
 }
 
 export function MovementForm({ type, cardId, onSuccess }: Props) {
-  const createMovement = useCreateMovement();
+  const createMovement = useValidatedMovement();
   const { data: items = [] } = useInventoryItems();
   const { data: costCenters = [] } = useCostCenters();
 
@@ -42,25 +46,43 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
   });
 
   const selectedItemId = form.watch("item_id");
+  const selectedUnitId = form.watch("unit_id");
+  const quantity = form.watch("quantity");
+  
   const selectedItem = items.find(i => i.id === selectedItemId);
   const { data: units = [] } = useInventoryUnits(selectedItemId);
+  
+  // Validate checkout availability for OUT movements
+  const { data: validation, isLoading: isValidating } = useCheckoutAvailability(
+    type === 'OUT' ? selectedItemId : undefined,
+    type === 'OUT' ? selectedUnitId : undefined,
+    type === 'OUT' ? quantity : 1
+  );
+
+  // Filter available units (only in_stock for OUT)
+  const availableUnits = type === 'OUT' 
+    ? units.filter(u => u.current_status === 'in_stock')
+    : units;
 
   const onSubmit = async (values: FormValues) => {
     try {
       await createMovement.mutateAsync({
-        movement_type: type,
-        item_id: values.item_id,
-        unit_id: values.unit_id || undefined,
+        movementType: type,
+        itemId: values.item_id,
+        unitId: values.unit_id || undefined,
         quantity: values.quantity,
-        department_id: values.department_id || undefined,
-        card_id: cardId,
+        departmentId: values.department_id || undefined,
+        cardId: cardId,
         notes: values.notes,
       });
       onSuccess?.();
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
+
+  const showValidation = type === 'OUT' && selectedItemId && validation;
+  const isValid = !showValidation || validation?.valid;
 
   return (
     <Form {...form}>
@@ -80,7 +102,14 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
                 <SelectContent>
                   {items.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.code} - {item.name}
+                      <div className="flex items-center gap-2">
+                        <span>{item.code} - {item.name}</span>
+                        {item.category === 'consumable' && (
+                          <Badge variant="outline" className="text-xs">
+                            Estoque: {item.current_stock}
+                          </Badge>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -90,7 +119,7 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
           )}
         />
 
-        {selectedItem?.is_serialized && units.length > 0 && (
+        {selectedItem?.is_serialized && availableUnits.length > 0 && (
           <FormField
             control={form.control}
             name="unit_id"
@@ -104,9 +133,24 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {units.map((unit) => (
+                    {availableUnits.map((unit) => (
                       <SelectItem key={unit.id} value={unit.id}>
-                        {unit.serial_number || unit.tag_qr_code || unit.id.slice(0, 8)}
+                        <div className="flex items-center gap-2">
+                          <span>{unit.serial_number || unit.tag_qr_code || unit.id.slice(0, 8)}</span>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              unit.current_status === 'in_stock' 
+                                ? 'text-green-600' 
+                                : unit.current_status === 'checked_out'
+                                ? 'text-orange-600'
+                                : 'text-red-600'
+                            }
+                          >
+                            {unit.current_status === 'in_stock' ? 'Disponível' : 
+                             unit.current_status === 'checked_out' ? 'Em uso' : 'Manutenção'}
+                          </Badge>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -115,6 +159,15 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
               </FormItem>
             )}
           />
+        )}
+
+        {selectedItem?.is_serialized && availableUnits.length === 0 && type === 'OUT' && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>
+              Não há unidades disponíveis para retirada deste item.
+            </AlertDescription>
+          </Alert>
         )}
 
         {!selectedItem?.is_serialized && (
@@ -136,6 +189,46 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
               </FormItem>
             )}
           />
+        )}
+
+        {/* Validation feedback */}
+        {showValidation && !isValidating && (
+          <>
+            {validation?.valid && !validation?.warning && (
+              <Alert className="border-green-500/50 bg-green-500/10">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  {validation.message}
+                  {validation.available !== undefined && (
+                    <span className="block text-xs mt-1">
+                      Após retirada: {validation.after_checkout} unidades restantes
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {validation?.warning && (
+              <Alert className="border-orange-500/50 bg-orange-500/10">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-700">
+                  {validation.message}
+                  <span className="block text-xs mt-1">
+                    Estoque mínimo: {validation.min_stock} | Após retirada: {validation.after_checkout}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!validation?.valid && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {validation?.message}
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
         )}
 
         <FormField
@@ -176,8 +269,11 @@ export function MovementForm({ type, cardId, onSuccess }: Props) {
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={createMovement.isPending}>
-            Registrar
+          <Button 
+            type="submit" 
+            disabled={createMovement.isPending || !isValid || isValidating}
+          >
+            {createMovement.isPending ? 'Registrando...' : 'Registrar'}
           </Button>
         </div>
       </form>

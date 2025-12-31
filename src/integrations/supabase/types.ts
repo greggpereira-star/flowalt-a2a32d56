@@ -5150,6 +5150,71 @@ export type Database = {
           },
         ]
       }
+      inventory_movement_history: {
+        Row: {
+          card_id: string | null
+          card_title: string | null
+          created_at: string | null
+          department_id: string | null
+          department_name: string | null
+          id: string | null
+          item_code: string | null
+          item_id: string | null
+          item_name: string | null
+          movement_type: Database["public"]["Enums"]["movement_type"] | null
+          notes: string | null
+          occurred_at: string | null
+          quantity: number | null
+          serial_number: string | null
+          stock_delta: number | null
+          unit_id: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_stock_summary"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_stock_summary: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"] | null
@@ -5331,6 +5396,21 @@ export type Database = {
           response_status: number
         }[]
       }
+      get_item_movement_timeline: {
+        Args: { p_item_id: string; p_limit?: number }
+        Returns: {
+          card_title: string
+          department_name: string
+          id: string
+          movement_type: string
+          notes: string
+          occurred_at: string
+          quantity: number
+          running_balance: number
+          serial_number: string
+          stock_delta: number
+        }[]
+      }
       get_unprocessed_events: {
         Args: { p_limit?: number; p_workspace_id: string }
         Returns: {
@@ -5424,6 +5504,10 @@ export type Database = {
           permissions: string[]
           workspace_id: string
         }[]
+      }
+      validate_checkout_availability: {
+        Args: { p_item_id: string; p_quantity?: number; p_unit_id?: string }
+        Returns: Json
       }
     }
     Enums: {
