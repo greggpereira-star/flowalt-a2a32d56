@@ -21,6 +21,7 @@ import { TaxCalculatorWidget } from "@/components/financial/TaxCalculatorWidget"
 import { TaxGuidesPanel } from "@/components/financial/TaxGuidesPanel";
 import { RetentionsPanel } from "@/components/financial/RetentionsPanel";
 import { OFXImporter } from "@/components/financial/OFXImporter";
+import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
   LayoutDashboard,
@@ -37,6 +38,7 @@ import {
   Calculator,
   Receipt,
   FileCheck,
+  Package,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -138,6 +140,10 @@ export default function FinancialPage() {
                     <Calculator className="w-4 h-4" />
                     <span>Config. Fiscal</span>
                   </TabsTrigger>
+                  <TabsTrigger value="inventory" variant="wrap" className="gap-2">
+                    <Package className="w-4 h-4" />
+                    <span>Almoxarifado</span>
+                  </TabsTrigger>
                   </TabsList>
 
                   {/* Minimalist Divider */}
@@ -233,6 +239,10 @@ export default function FinancialPage() {
                         <TaxCalculatorWidget />
                       </div>
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
+                    <InventoryDashboard />
                   </TabsContent>
                   </div>
                 </Tabs>

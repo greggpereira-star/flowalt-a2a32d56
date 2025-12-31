@@ -52,6 +52,8 @@ export function SubscriptionsPanel() {
     nextDate.setMonth(nextDate.getMonth() + 1);
     await renewSubscription.mutateAsync({ id, newRenewalDate: format(nextDate, 'yyyy-MM-dd') });
   };
+
+  const handleCancel = async (id: string) => {
     await cancelSubscription.mutateAsync(id);
   };
 
@@ -64,7 +66,7 @@ export function SubscriptionsPanel() {
             <CardTitle className="text-sm text-muted-foreground">Licenças Ativas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{costSummary?.totalActive || 0}</div>
+            <div className="text-2xl font-bold">{subscriptions.filter(s => s.status === 'active').length}</div>
           </CardContent>
         </Card>
 
@@ -73,7 +75,7 @@ export function SubscriptionsPanel() {
             <CardTitle className="text-sm text-muted-foreground">Custo Mensal</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(costSummary?.totalMonthlyCost || 0)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(costSummary?.monthly || 0)}</div>
           </CardContent>
         </Card>
 
@@ -82,7 +84,7 @@ export function SubscriptionsPanel() {
             <CardTitle className="text-sm text-muted-foreground">Custo Anual</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(costSummary?.totalYearlyCost || 0)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(costSummary?.yearly || 0)}</div>
           </CardContent>
         </Card>
 
