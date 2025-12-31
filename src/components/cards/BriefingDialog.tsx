@@ -208,103 +208,105 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden">
-        {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Briefing
+      <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[700px] p-0 gap-0 flex flex-col overflow-hidden">
+        {/* Header - Fixed */}
+        <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-muted/30">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <DialogTitle className="text-base sm:text-xl font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                <span className="truncate">Briefing</span>
               </DialogTitle>
               {cardTitle && (
-                <DialogDescription className="text-sm">
+                <DialogDescription className="text-xs sm:text-sm truncate">
                   {cardTitle}
                 </DialogDescription>
               )}
             </div>
             {isCompleted && (
-              <Badge className="bg-success/20 text-success border-success/30 gap-1">
+              <Badge className="bg-success/20 text-success border-success/30 gap-1 flex-shrink-0 text-[10px] sm:text-xs">
                 <CheckCircle2 className="h-3 w-3" />
-                Completo
+                <span className="hidden sm:inline">Completo</span>
               </Badge>
             )}
           </div>
 
           {/* Progress */}
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between text-xs">
+          <div className="mt-3 space-y-1.5">
+            <div className="flex justify-between text-[10px] sm:text-xs">
               <span className="text-muted-foreground">Progresso</span>
               <span className="font-medium text-primary">{filledSteps} de {STEPS.length}</span>
             </div>
-            <Progress value={progressPercent} className="h-1.5" />
+            <Progress value={progressPercent} className="h-1 sm:h-1.5" />
           </div>
         </DialogHeader>
 
-        {/* Step Navigation Pills */}
-        <div className="px-6 py-3 border-b bg-background">
-          <div className="flex gap-1 overflow-x-auto pb-1">
-            {STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              const isActive = idx === currentStep;
-              const isComplete = isStepComplete(idx);
+        {/* Step Navigation Pills - Fixed */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-2 sm:py-3 border-b bg-background">
+          <ScrollArea className="w-full">
+            <div className="flex gap-1 pb-1">
+              {STEPS.map((step, idx) => {
+                const Icon = step.icon;
+                const isActive = idx === currentStep;
+                const isComplete = isStepComplete(idx);
 
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => setCurrentStep(idx)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : isComplete
-                        ? 'bg-success/10 text-success hover:bg-success/20'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  )}
-                >
-                  {isComplete && !isActive ? (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  ) : (
-                    <Icon className="h-3.5 w-3.5" />
-                  )}
-                  <span className="hidden sm:inline">{step.title}</span>
-                  {step.required && !isComplete && (
-                    <span className="text-destructive">*</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => setCurrentStep(idx)}
+                    className={cn(
+                      'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap flex-shrink-0',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : isComplete
+                          ? 'bg-success/10 text-success hover:bg-success/20'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    )}
+                  >
+                    {isComplete && !isActive ? (
+                      <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    ) : (
+                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    )}
+                    <span className="hidden xs:inline sm:inline">{step.title}</span>
+                    {step.required && !isComplete && (
+                      <span className="text-destructive">*</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
         </div>
 
-        {/* Validation Error */}
+        {/* Validation Error - Fixed when visible */}
         {validationError && !validationError.isValid && (
-          <div className="mx-6 mt-4 flex gap-3 p-3 rounded-lg border border-destructive/50 bg-destructive/5">
+          <div className="flex-shrink-0 mx-4 sm:mx-6 mt-3 flex gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border border-destructive/50 bg-destructive/5">
             <ShieldAlert className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-            <div className="space-y-1 text-sm">
+            <div className="space-y-0.5 text-xs sm:text-sm min-w-0">
               <p className="font-medium text-destructive">Ajustes necessários</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                 {validationError.issues?.slice(0, 2).join(" • ")}
               </p>
             </div>
           </div>
         )}
 
-        {/* Content */}
-        <ScrollArea className="flex-1 max-h-[400px]">
-          <div className="p-6 space-y-4">
+        {/* Content - Scrollable, takes remaining space */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
             {/* Current Step Header */}
-            <div className="space-y-1">
+            <div className="space-y-0.5 sm:space-y-1">
               <div className="flex items-center gap-2">
                 {React.createElement(currentStepData.icon, { 
-                  className: 'h-5 w-5 text-primary' 
+                  className: 'h-4 w-4 sm:h-5 sm:w-5 text-primary' 
                 })}
-                <h3 className="text-lg font-semibold">{currentStepData.title}</h3>
+                <h3 className="text-base sm:text-lg font-semibold">{currentStepData.title}</h3>
                 {currentStepData.required && (
-                  <span className="text-xs text-destructive font-medium">*obrigatório</span>
+                  <span className="text-[10px] sm:text-xs text-destructive font-medium">*obrigatório</span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{currentStepData.subtitle}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{currentStepData.subtitle}</p>
             </div>
 
             {/* Input Area */}
@@ -315,7 +317,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                 placeholder={currentStepData.placeholder}
                 disabled={disabled}
                 className={cn(
-                  'min-h-[180px] text-sm resize-none',
+                  'min-h-[140px] sm:min-h-[180px] text-sm resize-none',
                   currentStepData.required && 
                   validationError && 
                   getFieldValue(currentStepData.field).trim().length < (currentStepData.minLength || 1) && 
@@ -324,14 +326,14 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               />
               
               {/* Tip & Counter */}
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Lightbulb className="h-3 w-3" />
-                  {currentStepData.tip}
+              <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
+                <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3 flex-shrink-0" />
+                  <span>{currentStepData.tip}</span>
                 </p>
                 {currentStepData.minLength && (
                   <p className={cn(
-                    'text-xs',
+                    'text-[10px] sm:text-xs flex-shrink-0',
                     getFieldValue(currentStepData.field).length >= currentStepData.minLength
                       ? 'text-success'
                       : 'text-muted-foreground'
@@ -342,46 +344,71 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between gap-3">
+        {/* Footer - Fixed */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 flex items-center justify-between gap-2 sm:gap-3">
           <Button
             variant="ghost"
             onClick={handlePrev}
             disabled={isFirstStep}
-            className="gap-1"
+            size="sm"
+            className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
           >
-            <ChevronLeft className="h-4 w-4" />
-            Anterior
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Anterior</span>
           </Button>
+
+          {/* Step indicator for mobile */}
+          <div className="flex items-center gap-1 sm:hidden">
+            {STEPS.map((_, idx) => (
+              <div 
+                key={idx}
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full transition-colors',
+                  idx === currentStep 
+                    ? 'bg-primary' 
+                    : isStepComplete(idx)
+                      ? 'bg-success'
+                      : 'bg-muted-foreground/30'
+                )}
+              />
+            ))}
+          </div>
 
           <div className="flex items-center gap-2">
             {!isLastStep ? (
-              <Button onClick={handleNext} className="gap-1">
-                Próximo
-                <ChevronRight className="h-4 w-4" />
+              <Button 
+                onClick={handleNext} 
+                size="sm"
+                className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
+              >
+                <span>Próximo</span>
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             ) : (
               <Button
                 onClick={handleValidateAndComplete}
                 disabled={!requiredStepsComplete || disabled || isValidating || isCompleted}
-                className="gap-1.5"
+                size="sm"
+                className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
               >
                 {isValidating ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Validando...
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                    <span className="hidden sm:inline">Validando...</span>
+                    <span className="sm:hidden">...</span>
                   </>
                 ) : isCompleted ? (
                   <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Completo
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Completo</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
-                    Validar e Concluir
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Validar e Concluir</span>
+                    <span className="sm:hidden">Validar</span>
                   </>
                 )}
               </Button>
