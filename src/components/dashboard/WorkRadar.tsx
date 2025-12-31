@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertTriangle,
   Timer,
   Calendar,
-  CheckCircle2,
-  ChevronRight,
-  Radar,
+  Zap,
+  ArrowRight,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,209 +125,165 @@ export const WorkRadar: React.FC = () => {
   });
 
   const isLoading = cardsLoading || timersLoading || eventsLoading;
-  const hasCriticalItems = (criticalCards?.length || 0) > 0;
-  const hasSecondaryData = (runningTimers?.length || 0) > 0 || (todayEvents?.length || 0) > 0;
-  const hasAnyData = hasCriticalItems || hasSecondaryData;
+  const criticalCount = criticalCards?.length || 0;
 
   if (isLoading) {
     return (
       <Card className="col-span-full">
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Skeleton className="h-5 w-5 rounded-full" />
+          <div className="flex items-center gap-3 mb-4">
+            <Skeleton className="h-5 w-5" />
             <Skeleton className="h-5 w-32" />
           </div>
-          <div className="space-y-3">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-16" />
+          <div className="grid grid-cols-3 gap-6">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
           </div>
         </CardContent>
       </Card>
     );
   }
-
-  // Empty state - all clear
-  if (!hasAnyData) {
-    return (
-      <Card className="col-span-full overflow-hidden">
-        <CardContent className="p-0">
-          <div className="bg-gradient-to-br from-emerald-500/5 via-green-500/5 to-teal-500/5 p-8">
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">Tudo sob controle</h3>
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma tarefa crítica ou atividade urgente no momento
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const overdueCards = criticalCards?.filter(c => c.severity === 'critical') || [];
-  const dueTodayCards = criticalCards?.filter(c => c.severity === 'warning') || [];
 
   return (
-    <Card className="col-span-full overflow-hidden">
-      <CardContent className="p-0">
+    <Card className="col-span-full">
+      <CardContent className="p-6">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border/50 bg-muted/30">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-              <Radar className="h-4 w-4 text-primary animate-pulse" />
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <h3 className="text-sm font-semibold text-foreground">Work Radar</h3>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mb-5">
+          Visão rápida do que precisa de atenção
+        </p>
+
+        {/* 3 Column Grid */}
+        <div className="grid grid-cols-3 gap-8">
+          {/* Column 1: Atenção Urgente */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+              <span className="text-xs font-medium text-destructive">Atenção Urgente</span>
+              {criticalCount > 0 && (
+                <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">
+                  {criticalCount}
+                </Badge>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">Radar de Atenção</h3>
-              <p className="text-xs text-muted-foreground">
-                {hasCriticalItems 
-                  ? `${criticalCards?.length} ${criticalCards?.length === 1 ? 'item requer' : 'itens requerem'} atenção`
-                  : 'Atividades em andamento'}
+
+            {criticalCount === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                Nenhuma tarefa urgente
               </p>
+            ) : (
+              <div className="space-y-2">
+                {criticalCards?.slice(0, 3).map(card => (
+                  <div
+                    key={card.id}
+                    onClick={() => navigate('/tasks')}
+                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-3 hover:translate-x-0.5 ${
+                      card.severity === 'critical'
+                        ? 'bg-destructive/5 border-l-destructive hover:bg-destructive/10'
+                        : 'bg-amber-500/5 border-l-amber-500 hover:bg-amber-500/10'
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground truncate mb-0.5">
+                      {card.title.toUpperCase()}
+                    </p>
+                    <p className={`text-xs ${
+                      card.severity === 'critical' ? 'text-destructive' : 'text-amber-600'
+                    }`}>
+                      {card.severity === 'critical' 
+                        ? `${Math.abs(card.daysUntil)} ${Math.abs(card.daysUntil) === 1 ? 'dia' : 'dias'} de atraso`
+                        : 'Vence hoje'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Column 2: Timers Ativos */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Timer className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="text-xs font-medium text-emerald-600">Timers Ativos</span>
             </div>
+
+            {(runningTimers?.length || 0) === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                Nenhum timer ativo
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {runningTimers?.slice(0, 3).map(timer => (
+                  <div
+                    key={timer.id}
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={timer.profile?.avatar_url} />
+                      <AvatarFallback className="text-[10px] bg-emerald-500/10 text-emerald-700">
+                        {timer.profile?.full_name?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs truncate text-foreground">
+                        {(timer.card as { title: string } | null)?.title || 'Timer'}
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono font-medium text-emerald-600 tabular-nums">
+                      {formatDuration(timer.duration)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Agenda de Hoje */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-blue-600" />
+              <span className="text-xs font-medium text-foreground">Agenda de Hoje</span>
+            </div>
+
+            {(todayEvents?.length || 0) === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                Nenhum evento hoje
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {todayEvents?.slice(0, 3).map(event => (
+                  <div
+                    key={event.id}
+                    onClick={() => navigate('/calendar')}
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs truncate text-foreground">{event.title}</p>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                      {format(new Date(event.start_time), 'HH:mm', { locale: ptBR })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Critical Section */}
-        {hasCriticalItems && (
-          <div className="p-4 space-y-3">
-            {/* Overdue Cards - Most Critical */}
-            {overdueCards.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3 animate-pulse" />
-                  Atrasado
-                </span>
-                {overdueCards.map(card => (
-                  <div
-                    key={card.id}
-                    onClick={() => navigate('/tasks')}
-                    className="group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent border-l-4 border-destructive hover:bg-destructive/15 hover:translate-x-0.5"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-destructive transition-colors">
-                        {card.title}
-                      </p>
-                      <p className="text-xs text-destructive/80">
-                        {Math.abs(card.daysUntil)} {Math.abs(card.daysUntil) === 1 ? 'dia' : 'dias'} de atraso
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Due Today Cards */}
-            {dueTodayCards.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" />
-                  Vence Hoje
-                </span>
-                {dueTodayCards.map(card => (
-                  <div
-                    key={card.id}
-                    onClick={() => navigate('/tasks')}
-                    className="group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 hover:bg-amber-500/15 hover:translate-x-0.5"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-amber-600 transition-colors">
-                        {card.title}
-                      </p>
-                      <p className="text-xs text-amber-600/80">
-                        {isToday(new Date(card.due_date!)) ? 'Vence hoje' : 'Vence amanhã'}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Secondary Section - Only if has data */}
-        {hasSecondaryData && (
-          <div className={`grid ${(runningTimers?.length || 0) > 0 && (todayEvents?.length || 0) > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-px bg-border/50 ${hasCriticalItems ? 'border-t border-border/50' : ''}`}>
-            {/* Active Timers */}
-            {(runningTimers?.length || 0) > 0 && (
-              <div className="p-4 bg-background">
-                <div className="flex items-center gap-2 mb-3">
-                  <Timer className="h-4 w-4 text-emerald-600" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {runningTimers?.length} timer{(runningTimers?.length || 0) > 1 ? 's' : ''} ativo{(runningTimers?.length || 0) > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {runningTimers?.slice(0, 3).map(timer => (
-                    <div
-                      key={timer.id}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10"
-                    >
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={timer.profile?.avatar_url} />
-                        <AvatarFallback className="text-[10px] bg-emerald-500/20 text-emerald-700">
-                          {timer.profile?.full_name?.[0] || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs truncate text-foreground">
-                          {(timer.card as { title: string } | null)?.title || 'Card'}
-                        </p>
-                      </div>
-                      <span className="text-xs font-mono font-medium text-emerald-600 tabular-nums">
-                        {formatDuration(timer.duration)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Today's Events */}
-            {(todayEvents?.length || 0) > 0 && (
-              <div className="p-4 bg-background">
-                <div className="flex items-center gap-2 mb-3">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {todayEvents?.length} evento{(todayEvents?.length || 0) > 1 ? 's' : ''} hoje
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {todayEvents?.slice(0, 3).map(event => (
-                    <div
-                      key={event.id}
-                      onClick={() => navigate('/calendar')}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/5 border border-blue-500/10 cursor-pointer hover:bg-blue-500/10 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs truncate text-foreground">{event.title}</p>
-                      </div>
-                      <span className="text-xs font-mono text-blue-600 tabular-nums">
-                        {format(new Date(event.start_time), 'HH:mm', { locale: ptBR })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Footer Action */}
-        <div
-          onClick={() => navigate('/tasks')}
-          className="px-4 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors group"
-        >
-          <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+        {/* Footer */}
+        <div className="flex justify-end mt-6 pt-4 border-t border-border/50">
+          <button
+            onClick={() => navigate('/tasks')}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+          >
             Ver todas as tarefas
-          </span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </div>
       </CardContent>
     </Card>
