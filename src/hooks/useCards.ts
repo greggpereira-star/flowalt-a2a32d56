@@ -44,6 +44,11 @@ export interface CreateCardInput {
   urgency?: CardUrgency;
   due_date?: string;
   client_id?: string;
+  estimated_hours?: number;
+  briefing_data?: any;
+  briefing_completed?: boolean;
+  workflow_id?: string;
+  current_stage?: string;
 }
 
 export const useCards = (spaceId: string | undefined) => {
@@ -189,6 +194,12 @@ export const useCreateCard = () => {
           client_id: input.client_id,
           owner_id: user.id,
           created_by: user.id,
+          estimated_hours: input.estimated_hours,
+          briefing_data: input.briefing_data,
+          briefing_completed: input.briefing_completed,
+          workflow_id: input.workflow_id,
+          current_stage: input.current_stage,
+          stage_entered_at: input.current_stage ? new Date().toISOString() : null,
         });
 
       if (cardError) {
