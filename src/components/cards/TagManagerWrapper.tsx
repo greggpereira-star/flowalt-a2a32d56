@@ -237,33 +237,6 @@ export const TagManagerWrapper: React.FC<TagManagerWrapperProps> = ({ cardId }) 
         </CardContent>
       </Card>
 
-      {/* Color Legend */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Legenda de Cores
-          </CardTitle>
-          <CardDescription className="text-xs">
-            As cores são atribuídas automaticamente com base no nome da tag.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {TAG_COLORS.map((color, index) => (
-              <div
-                key={color.name}
-                className={cn(
-                  'w-6 h-6 rounded-full border',
-                  color.bg,
-                  color.border
-                )}
-                title={color.name}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
