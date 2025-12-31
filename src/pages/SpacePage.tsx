@@ -15,6 +15,9 @@ import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
 import { CreateFolderWithTemplateDialog } from '@/components/social-media/CreateFolderWithTemplateDialog';
+import { ApprovalsPendingView } from '@/components/social-media/ApprovalsPendingView';
+import { WeeklyChecklistView } from '@/components/social-media/WeeklyChecklistView';
+import { IdeasBankView } from '@/components/social-media/IdeasBankView';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -53,7 +56,7 @@ import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 
-type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar';
+type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'approvals' | 'checklist' | 'ideas';
 
 // Hook to fetch a specific folder view
 function useFolderView(viewId: string | null) {
@@ -103,7 +106,18 @@ const SpacePage: React.FC = () => {
   }, []);
 
   // Determine view type from active view or default
-  const getViewTypeFromConfig = useCallback((viewType: string | undefined): ViewType => {
+  const getViewTypeFromConfig = useCallback((viewType: string | undefined, viewName?: string): ViewType => {
+    // Check for special social media views by name
+    const nameLower = viewName?.toLowerCase() || '';
+    if (nameLower.includes('aprovações') || nameLower.includes('aprovacoes') || nameLower.includes('pendente')) {
+      return 'approvals';
+    }
+    if (nameLower.includes('checklist') || nameLower.includes('semanal')) {
+      return 'checklist';
+    }
+    if (nameLower.includes('ideias') || nameLower.includes('banco') || nameLower.includes('referência')) {
+      return 'ideas';
+    }
     if (viewType === 'kanban') return 'kanban';
     if (viewType === 'calendar') return 'calendar';
     if (viewType === 'list') return 'list';
@@ -125,7 +139,7 @@ const SpacePage: React.FC = () => {
   // Update view type and folder when active view changes
   useEffect(() => {
     if (activeView) {
-      setView(getViewTypeFromConfig(activeView.view_type));
+      setView(getViewTypeFromConfig(activeView.view_type, activeView.name));
       // Set the folder from the view
       if (activeView.folder_id) {
         setSelectedFolder(activeView.folder_id);
@@ -401,6 +415,22 @@ const SpacePage: React.FC = () => {
               <div className="h-full p-4 overflow-auto">
                 <ListView cards={filteredCards} onCardClick={handleCardClick} />
               </div>
+            ) : view === 'approvals' ? (
+              <ApprovalsPendingView 
+                cards={filteredCards} 
+                onCardClick={handleCardClick}
+                isLoading={cardsLoading}
+              />
+            ) : view === 'checklist' && activeViewId && selectedFolder ? (
+              <WeeklyChecklistView 
+                folderId={selectedFolder} 
+                viewId={activeViewId}
+              />
+            ) : view === 'ideas' && activeViewId && selectedFolder ? (
+              <IdeasBankView 
+                folderId={selectedFolder} 
+                viewId={activeViewId}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
