@@ -323,83 +323,82 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl p-0 flex flex-col overflow-hidden">
+      <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col overflow-hidden bg-background">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : card ? (
           <>
-            {/* Compact Header */}
-            <div className="flex-shrink-0 border-b bg-card">
-              {/* Top bar with close & quick actions */}
-              <div className="flex items-center justify-between pl-4 pr-12 py-3 border-b border-border/50">
-                <div className="flex items-center gap-3 flex-wrap">
+            {/* Header Section */}
+            <div className="flex-shrink-0 bg-card">
+              {/* Top Status Bar */}
+              <div className="flex items-center justify-between px-5 pr-14 py-3 border-b">
+                <div className="flex items-center gap-2">
                   <StatusBadge status={status} />
                   <UrgencyBadge urgency={urgency} />
                   {!card.briefing_completed && (
-                    <Badge variant="outline" className="text-warning border-warning text-xs">
+                    <Badge variant="outline" className="text-warning border-warning/50 text-[10px] h-5">
                       <AlertCircle className="w-3 h-3 mr-1" />
-                      Brief Pendente
+                      Brief
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Timer Quick Action */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant={runningTimer ? 'default' : 'outline'}
-                          size="sm"
-                          className={cn(
-                            'h-8 gap-1.5',
-                            runningTimer && 'bg-status-inProgress hover:bg-status-inProgress/90'
-                          )}
-                          onClick={handleToggleTimer}
-                        >
-                          {runningTimer ? (
-                            <>
-                              <Pause className="h-3.5 w-3.5" />
-                              <span className="text-xs font-mono">
-                                {formatDistanceToNow(new Date(runningTimer.started_at), { locale: ptBR })}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-3.5 w-3.5" />
-                              <span className="text-xs">Iniciar</span>
-                            </>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {runningTimer ? 'Pausar timer' : 'Iniciar timer'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                
+                {/* Timer Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={runningTimer ? 'default' : 'outline'}
+                        size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 text-xs',
+                          runningTimer && 'bg-primary hover:bg-primary/90'
+                        )}
+                        onClick={handleToggleTimer}
+                      >
+                        {runningTimer ? (
+                          <>
+                            <Pause className="h-3 w-3" />
+                            <span className="font-mono text-[10px]">
+                              {formatDistanceToNow(new Date(runningTimer.started_at), { locale: ptBR })}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-3 w-3" />
+                            Iniciar
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs">
+                      {runningTimer ? 'Pausar timer' : 'Iniciar timer'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              {/* Title & Progress */}
-              <div className="px-4 py-4">
+              {/* Title Section */}
+              <div className="px-5 py-4 space-y-4">
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   onBlur={() => title !== card.title && handleSave({ title })}
-                  className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+                  className="text-xl font-semibold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent leading-tight"
                   placeholder="Título do card..."
                 />
 
-                {/* Visual Progress Bar */}
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Progresso do Workflow</span>
-                    <span className="font-medium">{Math.round(getStatusProgress(status))}%</span>
+                {/* Progress Workflow */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Progresso</span>
+                    <span className="text-xs font-semibold text-primary">{Math.round(getStatusProgress(status))}%</span>
                   </div>
                   <div className="relative">
-                    <Progress value={getStatusProgress(status)} className="h-2" />
-                    <div className="flex justify-between mt-1">
+                    <Progress value={getStatusProgress(status)} className="h-1.5" />
+                    <div className="flex justify-between mt-2">
                       {STATUS_OPTIONS.map((opt, idx) => (
                         <TooltipProvider key={opt.value}>
                           <Tooltip>
@@ -407,14 +406,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                               <button
                                 onClick={() => handleStatusChange(opt.value)}
                                 className={cn(
-                                  'w-3 h-3 rounded-full border-2 transition-all hover:scale-125',
+                                  'w-2.5 h-2.5 rounded-full border-2 transition-all hover:scale-150',
                                   getStatusIndex(status) >= idx
                                     ? 'bg-primary border-primary'
-                                    : 'bg-muted border-muted-foreground/30'
+                                    : 'bg-muted border-muted-foreground/20'
                                 )}
                               />
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs">
+                            <TooltipContent side="bottom" className="text-xs py-1 px-2">
                               {opt.label}
                             </TooltipContent>
                           </Tooltip>
@@ -425,92 +424,94 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="px-4 pb-3 flex items-center gap-4 text-sm">
-                {/* Due Date */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className={cn(
-                        'flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors hover:bg-accent',
-                        dueDateStatus === 'overdue' && 'text-destructive',
-                        dueDateStatus === 'today' && 'text-warning',
-                        !dueDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="h-3.5 w-3.5" />
-                      <span className="text-xs">
-                        {dueDate
-                          ? dueDateStatus === 'overdue'
-                            ? `Atrasado (${format(dueDate, 'dd/MM')})`
-                            : dueDateStatus === 'today'
-                              ? 'Hoje'
-                              : dueDateStatus === 'tomorrow'
-                                ? 'Amanhã'
-                                : format(dueDate, 'dd/MM')
-                          : 'Sem prazo'}
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dueDate}
-                      onSelect={(date) => {
-                        setDueDate(date);
-                        handleSave({ due_date: date ? date.toISOString() : null });
-                      }}
-                      locale={ptBR}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                <Separator orientation="vertical" className="h-4" />
-
-                {/* Checklist Progress */}
-                <button
-                  onClick={() => setActiveTab('checklist')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors"
-                >
-                  <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs">
-                    {checklistCompleted}/{checklistTotal}
-                  </span>
-                  {checklistTotal > 0 && (
-                    <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-success transition-all"
-                        style={{ width: `${checklistProgress}%` }}
+              {/* Quick Stats Bar */}
+              <div className="px-5 pb-4">
+                <div className="flex items-center gap-1 p-1.5 bg-muted/50 rounded-lg">
+                  {/* Due Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors hover:bg-background text-xs',
+                          dueDateStatus === 'overdue' && 'text-destructive bg-destructive/10',
+                          dueDateStatus === 'today' && 'text-warning bg-warning/10',
+                          !dueDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        <span className="font-medium">
+                          {dueDate
+                            ? dueDateStatus === 'overdue'
+                              ? `Atrasado`
+                              : dueDateStatus === 'today'
+                                ? 'Hoje'
+                                : dueDateStatus === 'tomorrow'
+                                  ? 'Amanhã'
+                                  : format(dueDate, 'dd/MM')
+                            : 'Prazo'}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={(date) => {
+                          setDueDate(date);
+                          handleSave({ due_date: date ? date.toISOString() : null });
+                        }}
+                        locale={ptBR}
+                        className="pointer-events-auto"
                       />
-                    </div>
-                  )}
-                </button>
+                    </PopoverContent>
+                  </Popover>
 
-                <Separator orientation="vertical" className="h-4" />
+                  <div className="w-px h-4 bg-border" />
 
-                {/* Comments */}
-                <button
-                  onClick={() => setActiveTab('comments')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors"
-                >
-                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs">{commentsCount}</span>
-                </button>
+                  {/* Checklist */}
+                  <button
+                    onClick={() => setActiveTab('checklist')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-background transition-colors text-xs"
+                  >
+                    <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{checklistCompleted}/{checklistTotal}</span>
+                    {checklistTotal > 0 && (
+                      <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-success transition-all"
+                          style={{ width: `${checklistProgress}%` }}
+                        />
+                      </div>
+                    )}
+                  </button>
 
-                {/* Attachments */}
-                <button
-                  onClick={() => setActiveTab('attachments')}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors"
-                >
-                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs">{attachmentsCount}</span>
-                </button>
+                  <div className="w-px h-4 bg-border" />
+
+                  {/* Comments */}
+                  <button
+                    onClick={() => setActiveTab('comments')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-background transition-colors text-xs"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{commentsCount}</span>
+                  </button>
+
+                  <div className="w-px h-4 bg-border" />
+
+                  {/* Attachments */}
+                  <button
+                    onClick={() => setActiveTab('attachments')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-background transition-colors text-xs"
+                  >
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{attachmentsCount}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* NextBestAction - positioned after Quick Stats */}
+              {/* Next Best Action */}
               {card && (
-                <div className="px-4 pb-4">
+                <div className="px-5 pb-4">
                   <NextBestAction
                     card={card}
                     checklistProgress={{ completed: checklistCompleted, total: checklistTotal }}
@@ -521,6 +522,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 </div>
               )}
             </div>
+
 
             {/* Tabs Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
@@ -635,121 +637,142 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               </div>
 
               <ScrollArea className="flex-1">
-                {/* Overview Tab - New consolidated view */}
-                <TabsContent value="overview" className="m-0 p-4 space-y-6">
+                {/* Overview Tab */}
+                <TabsContent value="overview" className="m-0 p-5 space-y-6">
+                  
+                  {/* Tags - Moved to top */}
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <Tags className="h-3.5 w-3.5" />
+                      Tags
+                    </label>
+                    <TagManagerWrapper cardId={card.id} />
+                  </div>
+
+                  <Separator />
+
                   {/* Quick Controls Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Status</label>
-                      <Select value={status} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                {opt.icon}
-                                {opt.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Configurações
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Status</label>
+                        <Select value={status} onValueChange={handleStatusChange}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <div className="flex items-center gap-2">
+                                  {opt.icon}
+                                  {opt.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Urgência</label>
-                      <Select
-                        value={urgency}
-                        onValueChange={(v: CardUrgency) => {
-                          setUrgency(v);
-                          handleSave({ urgency: v });
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {URGENCY_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <div className="flex items-center gap-2">
-                                <div className={cn('w-2 h-2 rounded-full', opt.color)} />
-                                {opt.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Urgência</label>
+                        <Select
+                          value={urgency}
+                          onValueChange={(v: CardUrgency) => {
+                            setUrgency(v);
+                            handleSave({ urgency: v });
+                          }}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {URGENCY_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <div className="flex items-center gap-2">
+                                  <div className={cn('w-2 h-2 rounded-full', opt.color)} />
+                                  {opt.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Prazo</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'h-9 w-full justify-start text-left font-normal',
-                              !dueDate && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                            {dueDate ? format(dueDate, 'dd/MM/yy') : 'Definir'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={dueDate}
-                            onSelect={(date) => {
-                              setDueDate(date);
-                              handleSave({ due_date: date ? date.toISOString() : null });
-                            }}
-                            locale={ptBR}
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Prazo</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'h-10 w-full justify-start text-left font-normal',
+                                !dueDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dueDate ? format(dueDate, 'dd/MM/yyyy') : 'Definir prazo'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={dueDate}
+                              onSelect={(date) => {
+                                setDueDate(date);
+                                handleSave({ due_date: date ? date.toISOString() : null });
+                              }}
+                              locale={ptBR}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Horas Est.</label>
-                      <Input
-                        type="number"
-                        placeholder="0h"
-                        value={estimatedHours}
-                        onChange={(e) => setEstimatedHours(e.target.value)}
-                        onBlur={() => {
-                          const hours = parseFloat(estimatedHours) || null;
-                          if (hours !== card.estimated_hours) {
-                            handleSave({ estimated_hours: hours });
-                          }
-                        }}
-                        className="h-9"
-                      />
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Horas Estimadas</label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={estimatedHours}
+                          onChange={(e) => setEstimatedHours(e.target.value)}
+                          onBlur={() => {
+                            const hours = parseFloat(estimatedHours) || null;
+                            if (hours !== card.estimated_hours) {
+                              handleSave({ estimated_hours: hours });
+                            }
+                          }}
+                          className="h-10"
+                        />
+                      </div>
                     </div>
                   </div>
 
+                  <Separator />
+
                   {/* Description */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5" />
                       Descrição
                     </label>
                     <Textarea
-                      placeholder="Adicione uma descrição detalhada..."
+                      placeholder="Adicione uma descrição detalhada para este card..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       onBlur={() => description !== card.description && handleSave({ description })}
-                      className="min-h-[100px] resize-none"
+                      className="min-h-[120px] resize-none text-sm leading-relaxed"
                     />
                   </div>
+
+                  <Separator />
 
                   {/* Briefing Section */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5" />
                         Briefing
                         {card.briefing_completed && (
@@ -760,15 +783,15 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs gap-1"
                           onClick={handleMarkBriefingComplete}
                         >
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          <CheckCircle2 className="h-3 w-3" />
                           Marcar Completo
                         </Button>
                       )}
                     </div>
-                    <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="rounded-xl border bg-muted/20 p-4">
                       <BriefingForm
                         data={briefingData}
                         onChange={setBriefingData}
@@ -780,55 +803,49 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                   {/* Traffic Briefing (conditional) */}
                   {isTrafficSpace && (
-                    <div className="space-y-3">
-                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                        <Truck className="h-3.5 w-3.5" />
-                        Briefing de Tráfego
-                      </label>
-                      <div className="rounded-lg border bg-muted/30 p-4">
-                        <TrafficBriefingForm
-                          data={trafficBriefingData}
-                          onChange={setTrafficBriefingData}
-                        />
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                          <Truck className="h-3.5 w-3.5" />
+                          Briefing de Tráfego
+                        </label>
+                        <div className="rounded-xl border bg-muted/20 p-4">
+                          <TrafficBriefingForm
+                            data={trafficBriefingData}
+                            onChange={setTrafficBriefingData}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
-
-                  {/* Tags */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <Tags className="h-3.5 w-3.5" />
-                      Tags
-                    </label>
-                    <TagManagerWrapper cardId={card.id} />
-                  </div>
                 </TabsContent>
 
-                <TabsContent value="assistant" className="m-0 p-4">
+                <TabsContent value="assistant" className="m-0 p-5">
                   <CardExecutionAssistantWrapper cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="checklist" className="m-0 p-4">
+                <TabsContent value="checklist" className="m-0 p-5">
                   <ChecklistPanel cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="time" className="m-0 p-4">
+                <TabsContent value="time" className="m-0 p-5">
                   <TimeTrackingPanel cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="comments" className="m-0 p-4">
+                <TabsContent value="comments" className="m-0 p-5">
                   <CommentsPanel cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="attachments" className="m-0 p-4">
+                <TabsContent value="attachments" className="m-0 p-5">
                   <AttachmentsPanel cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="financial" className="m-0">
+                <TabsContent value="financial" className="m-0 p-5">
                   <CardFinancialTab cardId={card.id} />
                 </TabsContent>
 
-                <TabsContent value="invites" className="m-0 p-4">
+                <TabsContent value="invites" className="m-0 p-5">
                   <CardInvitePanel cardId={card.id} />
                 </TabsContent>
               </ScrollArea>
