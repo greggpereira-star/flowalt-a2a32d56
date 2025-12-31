@@ -554,6 +554,13 @@ export type Database = {
             foreignKeyName: "bank_reconciliations_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1606,6 +1613,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "collaborator_details"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_payroll_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
           },
           {
             foreignKeyName: "collaborator_payroll_transaction_id_fkey"
@@ -3284,6 +3298,13 @@ export type Database = {
             foreignKeyName: "invoices_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "invoices_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -4523,6 +4544,13 @@ export type Database = {
             foreignKeyName: "transactions_parent_transaction_id_fkey"
             columns: ["parent_transaction_id"]
             isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -5228,6 +5256,93 @@ export type Database = {
       }
     }
     Views: {
+      card_financial_history_view: {
+        Row: {
+          amount: number | null
+          card_id: string | null
+          created_at: string | null
+          description: string | null
+          entry_date: string | null
+          entry_id: string | null
+          entry_status: string | null
+          entry_type: string | null
+          metadata: Json | null
+          source_type: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          card_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          entry_date?: string | null
+          entry_id?: string | null
+          entry_status?: never
+          entry_type?: never
+          metadata?: Json | null
+          source_type?: never
+          workspace_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          card_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          entry_date?: string | null
+          entry_id?: string | null
+          entry_status?: never
+          entry_type?: never
+          metadata?: Json | null
+          source_type?: never
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_movements_history_view: {
+        Row: {
+          card_id: string | null
+          created_at: string | null
+          entry_date: string | null
+          entry_id: string | null
+          entry_type: Database["public"]["Enums"]["movement_type"] | null
+          estimated_value: number | null
+          item_name: string | null
+          notes: string | null
+          quantity: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       depreciation_by_department_view: {
         Row: {
           department_id: string | null
@@ -5668,6 +5783,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      calculate_card_kit_cost: {
+        Args: { p_card_id: string }
+        Returns: {
+          items_count: number
+          total_cost: number
+        }[]
+      }
       calculate_depreciation: {
         Args: { p_month: string; p_workspace_id: string }
         Returns: number
@@ -5754,6 +5876,16 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      get_card_financial_summary: {
+        Args: { p_card_id: string }
+        Returns: {
+          kit_estimated_cost: number
+          movements_count: number
+          total_expenses: number
+          total_income: number
+          transactions_count: number
+        }[]
       }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
       get_idempotent_response: {

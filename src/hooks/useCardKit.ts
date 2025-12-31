@@ -223,3 +223,124 @@ export function useRemoveFromCardKit() {
     },
   });
 }
+
+/**
+ * Hook para calcular custo total do kit via RPC
+ */
+export function useCardKitCost(cardId: string) {
+  return useQuery({
+    queryKey: ['card-kit-cost', cardId],
+    queryFn: async () => {
+      if (!cardId) return { total_cost: 0, items_count: 0 };
+
+      const { data, error } = await supabase.rpc('calculate_card_kit_cost', {
+        p_card_id: cardId,
+      });
+
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      return result as { total_cost: number; items_count: number };
+    },
+    enabled: !!cardId,
+  });
+}
+
+/**
+ * Hook para resumo financeiro do card via RPC
+ */
+export function useCardFinancialSummary(cardId: string) {
+  return useQuery({
+    queryKey: ['card-financial-summary', cardId],
+    queryFn: async () => {
+      if (!cardId) return null;
+
+      const { data, error } = await supabase.rpc('get_card_financial_summary', {
+        p_card_id: cardId,
+      });
+
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      return result as {
+        total_income: number;
+        total_expenses: number;
+        kit_estimated_cost: number;
+        movements_count: number;
+        transactions_count: number;
+      };
+    },
+    enabled: !!cardId,
+  });
+}
+
+/**
+ * Hook para histórico de movimentos do card
+ */
+export function useCardMovementsHistory(cardId: string) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['card-movements-history', cardId, currentWorkspace?.id],
+    queryFn: async () => {
+      if (!cardId || !currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from('card_movements_history_view')
+        .select('*')
+        .eq('card_id', cardId)
+        .eq('workspace_id', currentWorkspace.id)
+        .order('entry_date', { ascending: false });
+
+      if (error) throw error;
+      return data as Array<{
+        card_id: string;
+        workspace_id: string;
+        entry_id: string;
+        entry_type: string;
+        estimated_value: number;
+        item_name: string;
+        quantity: number;
+        entry_date: string;
+        notes: string | null;
+        created_at: string;
+      }>;
+    },
+    enabled: !!cardId && !!currentWorkspace?.id,
+  });
+}
+
+/**
+ * Hook para histórico financeiro (transações) do card
+ */
+export function useCardFinancialHistory(cardId: string) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['card-financial-history', cardId, currentWorkspace?.id],
+    queryFn: async () => {
+      if (!cardId || !currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from('card_financial_history_view')
+        .select('*')
+        .eq('card_id', cardId)
+        .eq('workspace_id', currentWorkspace.id)
+        .order('entry_date', { ascending: false });
+
+      if (error) throw error;
+      return data as Array<{
+        card_id: string;
+        workspace_id: string;
+        entry_id: string;
+        entry_type: string;
+        amount: number;
+        description: string;
+        entry_date: string;
+        entry_status: string;
+        metadata: any;
+        created_at: string;
+        source_type: string;
+      }>;
+    },
+    enabled: !!cardId && !!currentWorkspace?.id,
+  });
+}
