@@ -875,6 +875,261 @@ export type Database = {
           },
         ]
       }
+      collaborator_absences: {
+        Row: {
+          absence_type: string
+          approved_at: string | null
+          approved_by: string | null
+          collaborator_id: string
+          created_at: string
+          days_count: number
+          document_type: string | null
+          document_url: string | null
+          end_date: string
+          id: string
+          is_paid: boolean | null
+          notes: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          start_date: string
+          status: string | null
+          total_value: number | null
+          updated_at: string
+          vacation_bonus: boolean | null
+          vacation_bonus_days: number | null
+          vacation_third: number | null
+          vacation_value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          absence_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          collaborator_id: string
+          created_at?: string
+          days_count: number
+          document_type?: string | null
+          document_url?: string | null
+          end_date: string
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          start_date: string
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string
+          vacation_bonus?: boolean | null
+          vacation_bonus_days?: number | null
+          vacation_third?: number | null
+          vacation_value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          absence_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          collaborator_id?: string
+          created_at?: string
+          days_count?: number
+          document_type?: string | null
+          document_url?: string | null
+          end_date?: string
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          start_date?: string
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string
+          vacation_bonus?: boolean | null
+          vacation_bonus_days?: number | null
+          vacation_third?: number | null
+          vacation_value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_absences_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_absences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_audit: {
+        Row: {
+          action: string
+          changes: Json | null
+          collaborator_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          performed_by: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          collaborator_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_by?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          collaborator_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_by?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_audit_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_benefits: {
+        Row: {
+          bonus_enabled: boolean | null
+          bonus_type: string | null
+          bonus_value: number | null
+          collaborator_id: string
+          created_at: string
+          dental_plan_enabled: boolean | null
+          dental_plan_value: number | null
+          gym_enabled: boolean | null
+          gym_value: number | null
+          health_plan_employee_percentage: number | null
+          health_plan_enabled: boolean | null
+          health_plan_value: number | null
+          id: string
+          notes: string | null
+          parking_enabled: boolean | null
+          parking_value: number | null
+          updated_at: string
+          va_enabled: boolean | null
+          va_value: number | null
+          vr_enabled: boolean | null
+          vr_value: number | null
+          vt_discount_percentage: number | null
+          vt_enabled: boolean | null
+          vt_value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          bonus_enabled?: boolean | null
+          bonus_type?: string | null
+          bonus_value?: number | null
+          collaborator_id: string
+          created_at?: string
+          dental_plan_enabled?: boolean | null
+          dental_plan_value?: number | null
+          gym_enabled?: boolean | null
+          gym_value?: number | null
+          health_plan_employee_percentage?: number | null
+          health_plan_enabled?: boolean | null
+          health_plan_value?: number | null
+          id?: string
+          notes?: string | null
+          parking_enabled?: boolean | null
+          parking_value?: number | null
+          updated_at?: string
+          va_enabled?: boolean | null
+          va_value?: number | null
+          vr_enabled?: boolean | null
+          vr_value?: number | null
+          vt_discount_percentage?: number | null
+          vt_enabled?: boolean | null
+          vt_value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          bonus_enabled?: boolean | null
+          bonus_type?: string | null
+          bonus_value?: number | null
+          collaborator_id?: string
+          created_at?: string
+          dental_plan_enabled?: boolean | null
+          dental_plan_value?: number | null
+          gym_enabled?: boolean | null
+          gym_value?: number | null
+          health_plan_employee_percentage?: number | null
+          health_plan_enabled?: boolean | null
+          health_plan_value?: number | null
+          id?: string
+          notes?: string | null
+          parking_enabled?: boolean | null
+          parking_value?: number | null
+          updated_at?: string
+          va_enabled?: boolean | null
+          va_value?: number | null
+          vr_enabled?: boolean | null
+          vr_value?: number | null
+          vt_discount_percentage?: number | null
+          vt_enabled?: boolean | null
+          vt_value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_benefits_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_benefits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborator_details: {
         Row: {
           address: Json | null
@@ -958,6 +1213,238 @@ export type Database = {
           },
           {
             foreignKeyName: "collaborator_details_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_payroll: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          base_salary: number
+          bonus: number | null
+          collaborator_id: string
+          commission: number | null
+          created_at: string
+          created_by: string | null
+          dental_plan_value: number | null
+          fgts_percentage: number | null
+          fgts_value: number | null
+          gross_salary: number | null
+          health_plan_discount: number | null
+          health_plan_value: number | null
+          id: string
+          inss_patronal: number | null
+          inss_percentage: number | null
+          inss_value: number | null
+          irrf_base: number | null
+          irrf_value: number | null
+          net_salary: number | null
+          notes: string | null
+          other_benefits: number | null
+          other_discounts: number | null
+          other_discounts_description: string | null
+          overtime_hours: number | null
+          overtime_value: number | null
+          paid_at: string | null
+          payment_date: string | null
+          provision_13th: number | null
+          provision_vacation: number | null
+          provision_vacation_13th: number | null
+          reference_month: string
+          status: string | null
+          total_cost: number | null
+          total_discounts: number | null
+          transaction_id: string | null
+          updated_at: string
+          va_value: number | null
+          vr_value: number | null
+          vt_discount: number | null
+          vt_value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          base_salary?: number
+          bonus?: number | null
+          collaborator_id: string
+          commission?: number | null
+          created_at?: string
+          created_by?: string | null
+          dental_plan_value?: number | null
+          fgts_percentage?: number | null
+          fgts_value?: number | null
+          gross_salary?: number | null
+          health_plan_discount?: number | null
+          health_plan_value?: number | null
+          id?: string
+          inss_patronal?: number | null
+          inss_percentage?: number | null
+          inss_value?: number | null
+          irrf_base?: number | null
+          irrf_value?: number | null
+          net_salary?: number | null
+          notes?: string | null
+          other_benefits?: number | null
+          other_discounts?: number | null
+          other_discounts_description?: string | null
+          overtime_hours?: number | null
+          overtime_value?: number | null
+          paid_at?: string | null
+          payment_date?: string | null
+          provision_13th?: number | null
+          provision_vacation?: number | null
+          provision_vacation_13th?: number | null
+          reference_month: string
+          status?: string | null
+          total_cost?: number | null
+          total_discounts?: number | null
+          transaction_id?: string | null
+          updated_at?: string
+          va_value?: number | null
+          vr_value?: number | null
+          vt_discount?: number | null
+          vt_value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          base_salary?: number
+          bonus?: number | null
+          collaborator_id?: string
+          commission?: number | null
+          created_at?: string
+          created_by?: string | null
+          dental_plan_value?: number | null
+          fgts_percentage?: number | null
+          fgts_value?: number | null
+          gross_salary?: number | null
+          health_plan_discount?: number | null
+          health_plan_value?: number | null
+          id?: string
+          inss_patronal?: number | null
+          inss_percentage?: number | null
+          inss_value?: number | null
+          irrf_base?: number | null
+          irrf_value?: number | null
+          net_salary?: number | null
+          notes?: string | null
+          other_benefits?: number | null
+          other_discounts?: number | null
+          other_discounts_description?: string | null
+          overtime_hours?: number | null
+          overtime_value?: number | null
+          paid_at?: string | null
+          payment_date?: string | null
+          provision_13th?: number | null
+          provision_vacation?: number | null
+          provision_vacation_13th?: number | null
+          reference_month?: string
+          status?: string | null
+          total_cost?: number | null
+          total_discounts?: number | null
+          transaction_id?: string | null
+          updated_at?: string
+          va_value?: number | null
+          vr_value?: number | null
+          vt_discount?: number | null
+          vt_value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_payroll_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_payroll_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_payroll_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_vacation_balance: {
+        Row: {
+          acquisition_end: string
+          acquisition_start: string
+          collaborator_id: string
+          concession_end: string
+          concession_start: string
+          created_at: string
+          days_remaining: number | null
+          days_sold: number | null
+          days_taken: number | null
+          id: string
+          is_expired: boolean | null
+          notes: string | null
+          status: string | null
+          total_days: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acquisition_end: string
+          acquisition_start: string
+          collaborator_id: string
+          concession_end: string
+          concession_start: string
+          created_at?: string
+          days_remaining?: number | null
+          days_sold?: number | null
+          days_taken?: number | null
+          id?: string
+          is_expired?: boolean | null
+          notes?: string | null
+          status?: string | null
+          total_days?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acquisition_end?: string
+          acquisition_start?: string
+          collaborator_id?: string
+          concession_end?: string
+          concession_start?: string
+          created_at?: string
+          days_remaining?: number | null
+          days_sold?: number | null
+          days_taken?: number | null
+          id?: string
+          is_expired?: boolean | null
+          notes?: string | null
+          status?: string | null
+          total_days?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_vacation_balance_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborator_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_vacation_balance_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3125,6 +3612,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      calculate_inss: {
+        Args: { p_salary: number }
+        Returns: {
+          inss_percentage: number
+          inss_value: number
+        }[]
+      }
+      calculate_irrf: {
+        Args: { p_base_salary: number; p_dependents?: number }
+        Returns: {
+          irrf_base: number
+          irrf_value: number
+        }[]
+      }
       calculate_user_level: {
         Args: { score: number }
         Returns: {
@@ -3152,6 +3653,14 @@ export type Database = {
       compute_executive_kpis: {
         Args: { p_workspace_id: string }
         Returns: Json
+      }
+      generate_payroll: {
+        Args: {
+          p_collaborator_id?: string
+          p_reference_month: string
+          p_workspace_id: string
+        }
+        Returns: number
       }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
       get_idempotent_response: {
