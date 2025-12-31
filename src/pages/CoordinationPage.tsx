@@ -21,7 +21,7 @@ import {
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { BottleneckCard } from '@/components/coordination/BottleneckCard';
+import { BottleneckCard, type BottleneckItem } from '@/components/coordination/BottleneckCard';
 import { BottleneckDetector } from '@/components/coordination/BottleneckDetector';
 import { CapacityChart } from '@/components/coordination/CapacityChart';
 import { CriticalPathAnalyzer } from '@/components/coordination/CriticalPathAnalyzer';
@@ -44,21 +44,44 @@ const CoordinationPage: React.FC = () => {
   const { currentWorkspace } = useWorkspace();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
-  // Fetch all cards for the workspace
+  // Fetch all cards for the workspace with space info
   const { data: cards, isLoading: cardsLoading } = useQuery({
     queryKey: ['coordination-cards', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await supabase
+      const { data: cardsData, error: cardsError } = await supabase
         .from('cards')
-        .select('*')
+        .select(`
+          *,
+          space:spaces(id, name, color)
+        `)
         .eq('workspace_id', currentWorkspace.id)
         .neq('status', 'archived')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as CardType[];
+      if (cardsError) throw cardsError;
+
+      // Get unique owner IDs to fetch profiles
+      const ownerIds = [...new Set(cardsData?.filter(c => c.owner_id).map(c => c.owner_id) || [])];
+      
+      let profiles: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
+      if (ownerIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', ownerIds);
+        profiles = profilesData || [];
+      }
+
+      // Merge profiles with cards
+      return (cardsData || []).map(card => ({
+        ...card,
+        owner: profiles.find(p => p.id === card.owner_id),
+      })) as Array<CardType & {
+        space?: { id: string; name: string; color: string | null };
+        owner?: { id: string; full_name: string | null; avatar_url: string | null };
+      }>;
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -66,23 +89,33 @@ const CoordinationPage: React.FC = () => {
   const { data: dependencies = [], isLoading: depsLoading } = useDependencies();
   const { data: memberCapacity = [], isLoading: capacityLoading } = useMemberCapacity();
 
-  // Calculate bottlenecks
+  // Calculate bottlenecks with space and owner info
   const bottlenecks = useMemo(() => {
     if (!cards) return { overdue: [], blocked: [], stale: [], overloaded: [] };
 
     const now = new Date();
 
+    // Helper to build bottleneck item with space/owner
+    const buildItem = (c: typeof cards[0], detail: string, severity: 'low' | 'medium' | 'high' | 'critical'): BottleneckItem => ({
+      id: c.id,
+      title: c.title,
+      detail,
+      severity,
+      spaceId: c.space?.id || c.space_id,
+      spaceName: c.space?.name,
+      spaceColor: c.space?.color || undefined,
+      ownerId: c.owner?.id || c.owner_id || undefined,
+      ownerName: c.owner?.full_name || undefined,
+      ownerAvatar: c.owner?.avatar_url || undefined,
+    });
+
     // Overdue cards
-    const overdue: Array<{ id: string; title: string; detail: string; severity: 'low' | 'medium' | 'high' | 'critical' }> = cards
+    const overdue: BottleneckItem[] = cards
       .filter(c => c.due_date && new Date(c.due_date) < now && c.status !== 'delivered')
       .map(c => {
         const daysOverdue = differenceInDays(now, new Date(c.due_date!));
-        return {
-          id: c.id,
-          title: c.title,
-          detail: `${daysOverdue} dias de atraso`,
-          severity: (daysOverdue > 7 ? 'critical' : daysOverdue > 3 ? 'high' : 'medium') as 'critical' | 'high' | 'medium',
-        };
+        const severity = (daysOverdue > 7 ? 'critical' : daysOverdue > 3 ? 'high' : 'medium') as 'critical' | 'high' | 'medium';
+        return buildItem(c, `${daysOverdue} dias de atraso`, severity);
       })
       .sort((a, b) => {
         const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -90,7 +123,7 @@ const CoordinationPage: React.FC = () => {
       });
 
     // Blocked cards (cards with dependencies that aren't done)
-    const blocked: Array<{ id: string; title: string; detail: string; severity: 'low' | 'medium' | 'high' | 'critical' }> = cards
+    const blocked: BottleneckItem[] = cards
       .filter(c => {
         const cardDeps = dependencies.filter(d => d.dependent_card_id === c.id);
         if (cardDeps.length === 0) return false;
@@ -100,15 +133,10 @@ const CoordinationPage: React.FC = () => {
           return blockingCard && blockingCard.status !== 'delivered';
         });
       })
-      .map(c => ({
-        id: c.id,
-        title: c.title,
-        detail: 'Aguardando dependência',
-        severity: 'medium' as const,
-      }));
+      .map(c => buildItem(c, 'Aguardando dependência', 'medium'));
 
     // Stale cards (in progress for too long without updates)
-    const stale: Array<{ id: string; title: string; detail: string; severity: 'low' | 'medium' | 'high' | 'critical' }> = cards
+    const stale: BottleneckItem[] = cards
       .filter(c => {
         if (c.status !== 'in_progress') return false;
         const hoursInProgress = differenceInHours(now, new Date(c.updated_at));
@@ -117,16 +145,12 @@ const CoordinationPage: React.FC = () => {
       .map(c => {
         const hoursStale = differenceInHours(now, new Date(c.updated_at));
         const daysStale = Math.floor(hoursStale / 24);
-        return {
-          id: c.id,
-          title: c.title,
-          detail: `${daysStale} dias sem atualização`,
-          severity: (daysStale > 5 ? 'high' : 'medium') as 'high' | 'medium',
-        };
+        const severity = (daysStale > 5 ? 'high' : 'medium') as 'high' | 'medium';
+        return buildItem(c, `${daysStale} dias sem atualização`, severity);
       });
 
-    // Overloaded members
-    const overloaded: Array<{ id: string; title: string; detail: string; severity: 'low' | 'medium' | 'high' | 'critical' }> = memberCapacity
+    // Overloaded members (these don't have space/owner - they're people)
+    const overloaded: BottleneckItem[] = memberCapacity
       .filter(m => m.allocated_hours > 40)
       .map(m => ({
         id: m.id,
@@ -296,16 +320,19 @@ const CoordinationPage: React.FC = () => {
                   title="Cards Atrasados"
                   type="overdue"
                   items={bottlenecks.overdue}
+                  onCardClick={setSelectedCardId}
                 />
                 <BottleneckCard
                   title="Cards Bloqueados"
                   type="blocked"
                   items={bottlenecks.blocked}
+                  onCardClick={setSelectedCardId}
                 />
                 <BottleneckCard
                   title="Cards Estagnados"
                   type="stale"
                   items={bottlenecks.stale}
+                  onCardClick={setSelectedCardId}
                 />
                 <BottleneckCard
                   title="Membros Sobrecarregados"
