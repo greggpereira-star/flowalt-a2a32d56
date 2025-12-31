@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,11 +14,14 @@ import {
   ArrowDownRight,
   Plus,
   ExternalLink,
+  Receipt,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCardFinancialData } from "@/hooks/useCardFinancial";
 import { cn } from "@/lib/utils";
+import { CardQuickExpenseForm } from "./CardQuickExpenseForm";
+import { CardQuickIncomeForm } from "./CardQuickIncomeForm";
 
 interface CardFinancialTabProps {
   cardId: string;
@@ -44,15 +47,18 @@ export function CardFinancialTab({ cardId }: CardFinancialTabProps) {
     );
   }
 
-  if (!data) {
+  if (!data || (data.transactions.length === 0 && data.invoices.length === 0)) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-        <DollarSign className="w-12 h-12 mb-4 opacity-20" />
-        <p>Nenhum dado financeiro vinculado a este card</p>
-        <Button variant="outline" size="sm" className="mt-4 gap-2">
-          <Plus className="w-4 h-4" />
-          Vincular Transação
-        </Button>
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <Receipt className="w-12 h-12 mb-4 text-muted-foreground/30" />
+        <p className="text-muted-foreground mb-1">Nenhum lançamento financeiro</p>
+        <p className="text-xs text-muted-foreground/70 mb-4">
+          Lance despesas de campanha como transporte, alimentação, produção...
+        </p>
+        <div className="flex gap-2">
+          <CardQuickExpenseForm cardId={cardId} />
+          <CardQuickIncomeForm cardId={cardId} />
+        </div>
       </div>
     );
   }
@@ -256,14 +262,24 @@ export function CardFinancialTab({ cardId }: CardFinancialTabProps) {
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1 gap-2">
-            <Plus className="w-4 h-4" />
-            Vincular Transação
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1 gap-2">
-            <ExternalLink className="w-4 h-4" />
-            Ver no Financeiro
-          </Button>
+          <CardQuickExpenseForm 
+            cardId={cardId} 
+            trigger={
+              <Button variant="outline" size="sm" className="flex-1 gap-2">
+                <TrendingDown className="w-4 h-4 text-rose-500" />
+                Despesa
+              </Button>
+            }
+          />
+          <CardQuickIncomeForm 
+            cardId={cardId}
+            trigger={
+              <Button variant="outline" size="sm" className="flex-1 gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                Receita
+              </Button>
+            }
+          />
         </div>
       </div>
     </ScrollArea>
