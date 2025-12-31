@@ -3,6 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { startOfMonth, endOfMonth, subMonths, addMonths, format, differenceInDays } from "date-fns";
 
+export interface TaxBreakdown {
+  regime: string;
+  das: number;
+  irpj: number;
+  csll: number;
+  pis: number;
+  cofins: number;
+  iss: number;
+  total: number;
+  effectiveRate: number;
+}
+
 export interface FinancialKPIs {
   // Core Metrics
   revenue: number;
@@ -13,6 +25,10 @@ export interface FinancialKPIs {
   // EBITDA (simplified - expenses excluding depreciation/amortization)
   ebitda: number;
   ebitdaMargin: number;
+  
+  // Taxes
+  taxes: TaxBreakdown;
+  netProfitAfterTaxes: number;
   
   // Growth
   revenueGrowth: number;
@@ -46,6 +62,10 @@ export interface FinancialKPIs {
   totalTransactions: number;
   overdueCount: number;
   pendingCount: number;
+  
+  // Payroll
+  payrollTotal: number;
+  payrollCount: number;
 }
 
 export function useFinancialKPIs(selectedMonth?: Date) {
@@ -95,6 +115,23 @@ export function useFinancialKPIs(selectedMonth?: Date) {
         .eq("workspace_id", currentWorkspace.id)
         .eq("is_active", true);
 
+      // Fetch tax settings
+      const { data: taxSettings } = await supabase
+        .from("tax_settings")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .lte("effective_from", format(periodEnd, "yyyy-MM-dd"))
+        .order("effective_from", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Fetch payroll for the month
+      const { data: payrollData } = await supabase
+        .from("collaborator_payroll")
+        .select("net_salary, total_cost")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("reference_month", format(periodStart, "yyyy-MM-01"));
+
       const transactions = currentTransactions || [];
       const prev = prevTransactions || [];
       const pending = pendingTransactions || [];
@@ -112,6 +149,63 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const operationalExpenses = expenses * 0.85; // Assuming 15% is depreciation/amortization
       const ebitda = revenue - operationalExpenses;
       const ebitdaMargin = revenue > 0 ? (ebitda / revenue) * 100 : 0;
+
+      // Calculate taxes based on settings
+      let taxes: TaxBreakdown = {
+        regime: 'simples_nacional',
+        das: 0,
+        irpj: 0,
+        csll: 0,
+        pis: 0,
+        cofins: 0,
+        iss: 0,
+        total: 0,
+        effectiveRate: 0,
+      };
+
+      if (taxSettings && revenue > 0) {
+        taxes.regime = taxSettings.tax_regime;
+        
+        switch (taxSettings.tax_regime) {
+          case 'simples_nacional':
+            taxes.das = revenue * (Number(taxSettings.simples_aliquota_efetiva) / 100);
+            taxes.total = taxes.das;
+            break;
+          case 'lucro_presumido': {
+            const baseCalculo = revenue * (Number(taxSettings.lp_presuncao_servicos) / 100);
+            taxes.irpj = baseCalculo * (Number(taxSettings.lp_irpj_aliquota) / 100);
+            if (baseCalculo > 20000) {
+              taxes.irpj += (baseCalculo - 20000) * (Number(taxSettings.lp_irpj_adicional) / 100);
+            }
+            taxes.csll = baseCalculo * (Number(taxSettings.lp_csll_aliquota) / 100);
+            taxes.pis = revenue * (Number(taxSettings.lp_pis_aliquota) / 100);
+            taxes.cofins = revenue * (Number(taxSettings.lp_cofins_aliquota) / 100);
+            taxes.iss = revenue * (Number(taxSettings.iss_aliquota) / 100);
+            taxes.total = taxes.irpj + taxes.csll + taxes.pis + taxes.cofins + taxes.iss;
+            break;
+          }
+          case 'lucro_real':
+            taxes.irpj = revenue * (Number(taxSettings.lr_irpj_aliquota) / 100);
+            taxes.csll = revenue * (Number(taxSettings.lr_csll_aliquota) / 100);
+            taxes.pis = revenue * (Number(taxSettings.lr_pis_aliquota) / 100);
+            taxes.cofins = revenue * (Number(taxSettings.lr_cofins_aliquota) / 100);
+            taxes.iss = revenue * (Number(taxSettings.iss_aliquota) / 100);
+            taxes.total = taxes.irpj + taxes.csll + taxes.pis + taxes.cofins + taxes.iss;
+            break;
+        }
+        taxes.effectiveRate = (taxes.total / revenue) * 100;
+      } else if (revenue > 0) {
+        // Default to 6% Simples if no settings
+        taxes.das = revenue * 0.06;
+        taxes.total = taxes.das;
+        taxes.effectiveRate = 6;
+      }
+
+      const netProfitAfterTaxes = netProfit - taxes.total;
+
+      // Payroll totals
+      const payrollTotal = (payrollData || []).reduce((acc, p) => acc + Number(p.total_cost || 0), 0);
+      const payrollCount = (payrollData || []).length;
 
       // Previous period metrics for growth
       const prevRevenue = prev.filter(t => t.type === "income" && t.status === "paid").reduce((acc, t) => acc + Number(t.amount), 0);
@@ -192,6 +286,8 @@ export function useFinancialKPIs(selectedMonth?: Date) {
         profitMargin,
         ebitda,
         ebitdaMargin,
+        taxes,
+        netProfitAfterTaxes,
         revenueGrowth,
         expenseGrowth,
         profitGrowth,
@@ -207,6 +303,8 @@ export function useFinancialKPIs(selectedMonth?: Date) {
         totalTransactions: transactions.length,
         overdueCount: transactions.filter(t => t.status === "overdue").length,
         pendingCount: transactions.filter(t => t.status === "pending").length,
+        payrollTotal,
+        payrollCount,
       };
     },
     enabled: !!currentWorkspace?.id,
