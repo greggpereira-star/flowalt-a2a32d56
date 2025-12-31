@@ -16,7 +16,17 @@ export type SocialMediaEventType =
   | 'social.cards.scope_resolved'
   | 'social.approval.action'
   | 'social.calendar.scheduled'
-  | 'social.post.published';
+  | 'social.post.published'
+  // RBAC events
+  | 'rbac.folder.delete_attempt'
+  | 'rbac.folder.delete_success'
+  | 'rbac.folder.delete_denied'
+  | 'rbac.view.delete_attempt'
+  | 'rbac.view.delete_success'
+  | 'rbac.view.delete_denied'
+  | 'rbac.checklist.item.delete_attempt'
+  | 'rbac.checklist.item.delete_success'
+  | 'rbac.checklist.item.delete_denied';
 
 interface BaseEventPayload {
   space_id?: string;
@@ -72,6 +82,14 @@ interface ScopeResolvedPayload extends BaseEventPayload {
   count_cards: number;
 }
 
+interface RbacEventPayload extends BaseEventPayload {
+  target_type: 'folder' | 'view' | 'checklist_item';
+  target_id: string;
+  result: 'attempt' | 'success' | 'denied';
+  role?: string;
+  reason?: string;
+}
+
 type EventPayload =
   | FolderCreatedPayload
   | ViewCreatedPayload
@@ -83,6 +101,7 @@ type EventPayload =
   | PostPublishedPayload
   | CardLinkedToFolderPayload
   | ScopeResolvedPayload
+  | RbacEventPayload
   | BaseEventPayload;
 
 export function useSocialMediaTracking() {
@@ -199,6 +218,31 @@ export function useSocialMediaTracking() {
     [trackEvent]
   );
 
+  // RBAC Tracking
+  const trackRbacFolderDelete = useCallback(
+    (folderId: string, result: 'attempt' | 'success' | 'denied', role?: string, reason?: string) => {
+      const eventType = `rbac.folder.delete_${result}` as SocialMediaEventType;
+      trackEvent(eventType, { folder_id: folderId, target_type: 'folder', target_id: folderId, result, role, reason });
+    },
+    [trackEvent]
+  );
+
+  const trackRbacViewDelete = useCallback(
+    (viewId: string, folderId: string, result: 'attempt' | 'success' | 'denied', role?: string, reason?: string) => {
+      const eventType = `rbac.view.delete_${result}` as SocialMediaEventType;
+      trackEvent(eventType, { view_id: viewId, folder_id: folderId, target_type: 'view', target_id: viewId, result, role, reason });
+    },
+    [trackEvent]
+  );
+
+  const trackRbacChecklistDelete = useCallback(
+    (itemId: string, folderId: string, result: 'attempt' | 'success' | 'denied', role?: string, reason?: string) => {
+      const eventType = `rbac.checklist.item.delete_${result}` as SocialMediaEventType;
+      trackEvent(eventType, { folder_id: folderId, target_type: 'checklist_item', target_id: itemId, result, role, reason });
+    },
+    [trackEvent]
+  );
+
   return {
     trackEvent,
     trackFolderCreated,
@@ -213,5 +257,8 @@ export function useSocialMediaTracking() {
     trackPostPublished,
     trackCardLinkedToFolder,
     trackScopeResolved,
+    trackRbacFolderDelete,
+    trackRbacViewDelete,
+    trackRbacChecklistDelete,
   };
 }

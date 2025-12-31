@@ -7,12 +7,32 @@ import {
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFolders } from '@/hooks/useFolders';
-import { useFolderViews } from '@/hooks/useSocialMediaTemplates';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useFolders, useDeleteFolder } from '@/hooks/useFolders';
+import { useFolderViews, useDeleteFolderView } from '@/hooks/useSocialMediaTemplates';
 import { useExpandedFolders } from '@/hooks/useUserPreferences';
 import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
+import { useFolderPermissions, useIsAdmin } from '@/hooks/useFolderPermissions';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { CreateFolderWithTemplateDialog } from './CreateFolderWithTemplateDialog';
 import { CreateViewDialog } from './CreateViewDialog';
+import { useToast } from '@/hooks/use-toast';
 import {
   ChevronRight,
   ChevronDown,
@@ -27,6 +47,9 @@ import {
   CheckCircle,
   Megaphone,
   BarChart,
+  MoreHorizontal,
+  Trash2,
+  Edit,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +70,6 @@ const viewTypeIcons: Record<string, React.ElementType> = {
 };
 
 const getViewIcon = (viewType: string, viewName?: string) => {
-  // Try to infer from view name
   const nameLower = viewName?.toLowerCase() || '';
   if (nameLower.includes('ideias') || nameLower.includes('ideas')) return Lightbulb;
   if (nameLower.includes('aprovação') || nameLower.includes('approval')) return CheckCircle;
@@ -58,13 +80,15 @@ const getViewIcon = (viewType: string, viewName?: string) => {
 };
 
 interface FolderItemProps {
-  folder: { id: string; name: string; color: string | null };
+  folder: { id: string; name: string; color: string | null; owner_id: string | null };
   spaceId: string;
   isExpanded: boolean;
   onToggle: () => void;
   selectedViewId?: string | null;
   onViewSelect: (viewId: string, viewType: string) => void;
   onCreateView: () => void;
+  onDeleteFolder: () => void;
+  onDeleteView: (viewId: string) => void;
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({
@@ -75,8 +99,11 @@ const FolderItem: React.FC<FolderItemProps> = ({
   selectedViewId,
   onViewSelect,
   onCreateView,
+  onDeleteFolder,
+  onDeleteView,
 }) => {
   const { data: views, isLoading } = useFolderViews(folder.id);
+  const folderPermissions = useFolderPermissions(folder.owner_id);
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -106,18 +133,40 @@ const FolderItem: React.FC<FolderItemProps> = ({
             <span className="truncate text-sm">{folder.name}</span>
           </Button>
         </CollapsibleTrigger>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateView();
-          }}
-          title="Adicionar View"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        
+        {/* Folder actions - only for those with permission */}
+        {folderPermissions.canManageViews && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onCreateView}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova View
+              </DropdownMenuItem>
+              {folderPermissions.canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={onDeleteFolder}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Pasta
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <CollapsibleContent>
@@ -133,19 +182,35 @@ const FolderItem: React.FC<FolderItemProps> = ({
               const isActive = selectedViewId === view.id;
 
               return (
-                <Button
-                  key={view.id}
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={cn(
-                    'w-full justify-start gap-2 px-2 h-7 font-normal text-sm',
-                    isActive && 'bg-primary/10 text-primary'
+                <div key={view.id} className="flex items-center group/view">
+                  <Button
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className={cn(
+                      'flex-1 justify-start gap-2 px-2 h-7 font-normal text-sm',
+                      isActive && 'bg-primary/10 text-primary'
+                    )}
+                    onClick={() => onViewSelect(view.id, view.view_type)}
+                  >
+                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="truncate">{view.name}</span>
+                  </Button>
+                  
+                  {/* View delete - only for admin or folder owner */}
+                  {folderPermissions.canManageViews && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover/view:opacity-100 transition-opacity flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteView(view.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
                   )}
-                  onClick={() => onViewSelect(view.id, view.view_type)}
-                >
-                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="truncate">{view.name}</span>
-                </Button>
+                </div>
               );
             })
           ) : (
@@ -164,15 +229,31 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+  const { currentRole } = useWorkspace();
+  const isAdmin = useIsAdmin();
+  
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
   const { value: expandedFolders, setValue: setExpandedFolders } = useExpandedFolders(spaceId);
-  const { trackFolderExpanded, trackFolderCollapsed, trackViewOpened } = useSocialMediaTracking();
+  const { 
+    trackFolderExpanded, 
+    trackFolderCollapsed, 
+    trackViewOpened,
+    trackRbacFolderDelete,
+    trackRbacViewDelete,
+  } = useSocialMediaTracking();
+  
+  const deleteFolder = useDeleteFolder();
+  const deleteView = useDeleteFolderView();
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [createViewOpen, setCreateViewOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  
+  // Delete confirmation dialogs
+  const [deleteFolderDialog, setDeleteFolderDialog] = useState<{ open: boolean; folderId: string; folderName: string } | null>(null);
+  const [deleteViewDialog, setDeleteViewDialog] = useState<{ open: boolean; viewId: string; folderId: string } | null>(null);
 
-  // Parse current view from URL
   const searchParams = new URLSearchParams(location.search);
   const currentViewId = searchParams.get('view');
 
@@ -184,7 +265,6 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
 
       setExpandedFolders(newExpanded);
 
-      // Track event
       if (isCurrentlyExpanded) {
         trackFolderCollapsed(spaceId, folderId);
       } else {
@@ -207,6 +287,47 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
     setCreateViewOpen(true);
   };
 
+  const handleDeleteFolder = async (folderId: string) => {
+    trackRbacFolderDelete(folderId, 'attempt', currentRole || undefined);
+    
+    try {
+      await deleteFolder.mutateAsync({ id: folderId, spaceId });
+      trackRbacFolderDelete(folderId, 'success', currentRole || undefined);
+      toast({ title: 'Pasta excluída', description: 'A pasta foi excluída com sucesso.' });
+      setDeleteFolderDialog(null);
+    } catch (error) {
+      trackRbacFolderDelete(folderId, 'denied', currentRole || undefined, (error as Error).message);
+      toast({ 
+        title: 'Erro ao excluir pasta', 
+        description: 'Você não tem permissão para excluir esta pasta.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteView = async (viewId: string, folderId: string) => {
+    trackRbacViewDelete(viewId, folderId, 'attempt', currentRole || undefined);
+    
+    try {
+      await deleteView.mutateAsync(viewId);
+      trackRbacViewDelete(viewId, folderId, 'success', currentRole || undefined);
+      toast({ title: 'View excluída', description: 'A view foi excluída com sucesso.' });
+      setDeleteViewDialog(null);
+      
+      // If current view was deleted, navigate away
+      if (currentViewId === viewId) {
+        navigate(`/space/${spaceId}`);
+      }
+    } catch (error) {
+      trackRbacViewDelete(viewId, folderId, 'denied', currentRole || undefined, (error as Error).message);
+      toast({ 
+        title: 'Erro ao excluir view', 
+        description: 'Você não tem permissão para excluir esta view.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-1">
       {/* Space Header */}
@@ -218,18 +339,21 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
           />
           <span className="text-sm font-medium truncate">{spaceName}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          onClick={() => setCreateFolderOpen(true)}
-          title="Adicionar Pasta"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        {/* Only admins can create folders for other users */}
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            onClick={() => setCreateFolderOpen(true)}
+            title="Adicionar Pasta"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
-      {/* Folders Tree */}
+      {/* Folders Tree - RLS already filters by ownership */}
       <div className="space-y-0.5">
         {foldersLoading ? (
           <>
@@ -249,11 +373,21 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
               selectedViewId={currentViewId}
               onViewSelect={handleViewSelect}
               onCreateView={() => handleCreateViewForFolder(folder.id)}
+              onDeleteFolder={() => setDeleteFolderDialog({ 
+                open: true, 
+                folderId: folder.id, 
+                folderName: folder.name 
+              })}
+              onDeleteView={(viewId) => setDeleteViewDialog({ 
+                open: true, 
+                viewId, 
+                folderId: folder.id 
+              })}
             />
           ))
         ) : (
           <p className="text-xs text-muted-foreground px-2 py-2">
-            Nenhuma pasta. Clique em + para criar.
+            {isAdmin ? 'Nenhuma pasta. Clique em + para criar.' : 'Nenhuma pasta atribuída a você.'}
           </p>
         )}
       </div>
@@ -276,6 +410,54 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
           handleViewSelect(viewId, viewType);
         }}
       />
+
+      {/* Delete Folder Confirmation */}
+      <AlertDialog 
+        open={deleteFolderDialog?.open} 
+        onOpenChange={(open) => !open && setDeleteFolderDialog(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pasta "{deleteFolderDialog?.folderName}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Todos os cards e views dentro desta pasta serão arquivados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteFolderDialog && handleDeleteFolder(deleteFolderDialog.folderId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete View Confirmation */}
+      <AlertDialog 
+        open={deleteViewDialog?.open} 
+        onOpenChange={(open) => !open && setDeleteViewDialog(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta view?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A view será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteViewDialog && handleDeleteView(deleteViewDialog.viewId, deleteViewDialog.folderId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

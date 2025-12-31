@@ -6840,6 +6840,10 @@ export type Database = {
           next_level_score: number
         }[]
       }
+      can_access_folder: {
+        Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_api_key_id: string
@@ -6917,6 +6921,7 @@ export type Database = {
         }[]
       }
       get_card_workspace: { Args: { _card_id: string }; Returns: string }
+      get_folder_workspace_id: { Args: { _folder_id: string }; Returns: string }
       get_idempotent_response: {
         Args: { p_idempotency_key: string; p_workspace_id: string }
         Returns: {
@@ -6969,6 +6974,10 @@ export type Database = {
       initialize_space_custom_fields: {
         Args: { p_space_type: string; p_workspace_id: string }
         Returns: number
+      }
+      is_folder_owner: {
+        Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
       }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
