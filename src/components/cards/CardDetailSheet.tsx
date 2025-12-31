@@ -741,6 +741,23 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                   <Separator />
 
+                  {/* Description - moved here after settings */}
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      Descrição
+                    </label>
+                    <Textarea
+                      placeholder="Adicione uma descrição detalhada para este card..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      onBlur={() => description !== card.description && handleSave({ description })}
+                      className="min-h-[120px] resize-none text-sm leading-relaxed"
+                    />
+                  </div>
+
+                  <Separator />
+
                   {/* Briefing Section */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -817,23 +834,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       Tags
                     </label>
                     <TagManagerWrapper cardId={card.id} />
-                  </div>
-
-                  <Separator />
-
-                  {/* Description */}
-                  <div className="space-y-3">
-                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5" />
-                      Descrição
-                    </label>
-                    <Textarea
-                      placeholder="Adicione uma descrição detalhada para este card..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      onBlur={() => description !== card.description && handleSave({ description })}
-                      className="min-h-[120px] resize-none text-sm leading-relaxed"
-                    />
                   </div>
                 </TabsContent>
 
