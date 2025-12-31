@@ -3,9 +3,10 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
 import { useFolders, useCreateFolder } from '@/hooks/useFolders';
-import { useCards } from '@/hooks/useCards';
+import { useCards, useCardsByFolder } from '@/hooks/useCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
+import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
 import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
 import { ListView } from '@/components/cards/ListView';
@@ -89,9 +90,34 @@ const SpacePage: React.FC = () => {
 
   const { data: space, isLoading: spaceLoading } = useSpace(spaceId);
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
-  const { data: cards, isLoading: cardsLoading } = useCards(spaceId);
   const { data: activeView, isLoading: viewLoading } = useFolderView(activeViewId);
   const createFolder = useCreateFolder();
+  
+  // Social media tracking
+  const { trackEvent } = useSocialMediaTracking();
+
+  // Determine active folder ID from view or manual selection
+  const activeFolderId = activeView?.folder_id || null;
+
+  // Fetch cards: folder-scoped when folder is active, space-scoped otherwise
+  const { data: spaceCards, isLoading: spaceCardsLoading } = useCards(spaceId);
+  const { data: folderCards, isLoading: folderCardsLoading } = useCardsByFolder(activeFolderId || undefined);
+
+  // Use folder cards when folder is active, otherwise space cards
+  const cards = activeFolderId ? folderCards : spaceCards;
+  const cardsLoading = activeFolderId ? folderCardsLoading : spaceCardsLoading;
+
+  // Track scope resolution
+  useEffect(() => {
+    if (cards !== undefined && spaceId) {
+      trackEvent('social.cards.scope_resolved' as any, {
+        space_id: spaceId,
+        folder_id: activeFolderId || undefined,
+        scope: activeFolderId ? 'folder' : 'space',
+        count_cards: cards?.length || 0,
+      } as any);
+    }
+  }, [activeFolderId, spaceId, cards?.length, trackEvent]);
 
   // Enable realtime updates for cards
   useRealtimeCards(spaceId);
@@ -144,8 +170,15 @@ const SpacePage: React.FC = () => {
       if (activeView.folder_id) {
         setSelectedFolder(activeView.folder_id);
       }
+      // Track view opened
+      trackEvent('social.view.opened', {
+        space_id: spaceId,
+        folder_id: activeView.folder_id || undefined,
+        view_id: activeView.id,
+        view_type: activeView.view_type,
+      });
     }
-  }, [activeView, getViewTypeFromConfig]);
+  }, [activeView, getViewTypeFromConfig, spaceId, trackEvent]);
 
   // Keyboard shortcut handlers
   useShortcutEvent('flowalt:newCard', useCallback(() => setCreateCardOpen(true), []));
@@ -186,14 +219,9 @@ const SpacePage: React.FC = () => {
   // Apply view config filters
   const viewConfig = activeView?.view_config as Record<string, any> | undefined;
 
-  // Filter cards by search, folder, and view config
+  // Filter cards by search and view config (folder filtering is now done at query level)
   const filteredCards = useMemo(() => {
     let result = cards || [];
-
-    // Filter by folder if set
-    if (selectedFolder) {
-      // TODO: Filter by folder when card_folders relation is implemented
-    }
 
     // Apply view config filters
     if (viewConfig?.filters && Array.isArray(viewConfig.filters)) {
@@ -215,7 +243,7 @@ const SpacePage: React.FC = () => {
     }
 
     return result;
-  }, [cards, selectedFolder, viewConfig, searchQuery]);
+  }, [cards, viewConfig, searchQuery]);
 
   // Get view title
   const viewTitle = activeView?.name || space?.name || 'Espaço';
@@ -517,6 +545,7 @@ const SpacePage: React.FC = () => {
         open={demandFormOpen}
         onOpenChange={setDemandFormOpen}
         spaceId={spaceId}
+        folderId={activeFolderId || undefined}
         onSuccess={(cardId) => setSelectedCardId(cardId)}
       />
     </AppLayout>
