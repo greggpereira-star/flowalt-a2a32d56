@@ -29,6 +29,10 @@ export interface Card {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Workflow fields
+  workflow_id: string | null;
+  current_stage: string | null;
+  stage_entered_at: string | null;
 }
 
 export interface CreateCardInput {

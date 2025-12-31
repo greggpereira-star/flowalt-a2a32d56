@@ -693,6 +693,66 @@ export type Database = {
           },
         ]
       }
+      card_stage_history: {
+        Row: {
+          card_id: string
+          created_at: string
+          from_stage: string | null
+          gates_failed: string[] | null
+          gates_passed: string[] | null
+          id: string
+          reason: string | null
+          time_in_previous_stage: unknown
+          to_stage: string
+          transition_type: string
+          triggered_by: string | null
+          workflow_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          from_stage?: string | null
+          gates_failed?: string[] | null
+          gates_passed?: string[] | null
+          id?: string
+          reason?: string | null
+          time_in_previous_stage?: unknown
+          to_stage: string
+          transition_type?: string
+          triggered_by?: string | null
+          workflow_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          from_stage?: string | null
+          gates_failed?: string[] | null
+          gates_passed?: string[] | null
+          id?: string
+          reason?: string | null
+          time_in_previous_stage?: unknown
+          to_stage?: string
+          transition_type?: string
+          triggered_by?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_stage_history_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_stage_history_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cards: {
         Row: {
           actual_hours: number | null
@@ -702,6 +762,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          current_stage: string | null
           description: string | null
           due_date: string | null
           estimated_hours: number | null
@@ -709,11 +770,13 @@ export type Database = {
           owner_id: string | null
           sort_order: number | null
           space_id: string
+          stage_entered_at: string | null
           status: Database["public"]["Enums"]["card_status"]
           title: string
           traffic_briefing_data: Json | null
           updated_at: string
           urgency: Database["public"]["Enums"]["card_urgency"]
+          workflow_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -724,6 +787,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          current_stage?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
@@ -731,11 +795,13 @@ export type Database = {
           owner_id?: string | null
           sort_order?: number | null
           space_id: string
+          stage_entered_at?: string | null
           status?: Database["public"]["Enums"]["card_status"]
           title: string
           traffic_briefing_data?: Json | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["card_urgency"]
+          workflow_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -746,6 +812,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          current_stage?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
@@ -753,11 +820,13 @@ export type Database = {
           owner_id?: string | null
           sort_order?: number | null
           space_id?: string
+          stage_entered_at?: string | null
           status?: Database["public"]["Enums"]["card_status"]
           title?: string
           traffic_briefing_data?: Json | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["card_urgency"]
+          workflow_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -773,6 +842,13 @@ export type Database = {
             columns: ["space_id"]
             isOneToOne: false
             referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
           {
@@ -2859,6 +2935,47 @@ export type Database = {
           },
         ]
       }
+      stage_checklist_templates: {
+        Row: {
+          created_at: string
+          default_assignee_role: string | null
+          description: string | null
+          id: string
+          is_required: boolean | null
+          sort_order: number
+          stage_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          default_assignee_role?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          sort_order?: number
+          stage_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          default_assignee_role?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          sort_order?: number
+          stage_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_checklist_templates_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       structured_logs: {
         Row: {
           context: Json | null
@@ -3622,6 +3739,247 @@ export type Database = {
           },
         ]
       }
+      workflow_events: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          payload: Json
+          triggered_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          payload?: Json
+          triggered_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          triggered_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_stages: {
+        Row: {
+          allow_auto_assignment: boolean | null
+          allow_auto_checklist: boolean | null
+          allow_auto_transition: boolean | null
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_final: boolean | null
+          is_initial: boolean | null
+          is_optional: boolean | null
+          min_checklist_progress: number | null
+          name: string
+          requires_briefing: boolean | null
+          requires_checklist: boolean | null
+          requires_no_dependencies: boolean | null
+          sla_critical_hours: number | null
+          sla_warning_hours: number | null
+          slug: string
+          sort_order: number
+          updated_at: string
+          wip_limit: number | null
+          wip_limit_per_person: number | null
+          workflow_id: string
+        }
+        Insert: {
+          allow_auto_assignment?: boolean | null
+          allow_auto_checklist?: boolean | null
+          allow_auto_transition?: boolean | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_final?: boolean | null
+          is_initial?: boolean | null
+          is_optional?: boolean | null
+          min_checklist_progress?: number | null
+          name: string
+          requires_briefing?: boolean | null
+          requires_checklist?: boolean | null
+          requires_no_dependencies?: boolean | null
+          sla_critical_hours?: number | null
+          sla_warning_hours?: number | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          wip_limit?: number | null
+          wip_limit_per_person?: number | null
+          workflow_id: string
+        }
+        Update: {
+          allow_auto_assignment?: boolean | null
+          allow_auto_checklist?: boolean | null
+          allow_auto_transition?: boolean | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_final?: boolean | null
+          is_initial?: boolean | null
+          is_optional?: boolean | null
+          min_checklist_progress?: number | null
+          name?: string
+          requires_briefing?: boolean | null
+          requires_checklist?: boolean | null
+          requires_no_dependencies?: boolean | null
+          sla_critical_hours?: number | null
+          sla_warning_hours?: number | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          wip_limit?: number | null
+          wip_limit_per_person?: number | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_stages_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_transitions: {
+        Row: {
+          allowed_roles: string[] | null
+          created_at: string
+          from_stage_id: string
+          id: string
+          is_allowed: boolean | null
+          is_backward: boolean | null
+          is_forward: boolean | null
+          requires_approval: boolean | null
+          requires_reason: boolean | null
+          to_stage_id: string
+          workflow_id: string
+        }
+        Insert: {
+          allowed_roles?: string[] | null
+          created_at?: string
+          from_stage_id: string
+          id?: string
+          is_allowed?: boolean | null
+          is_backward?: boolean | null
+          is_forward?: boolean | null
+          requires_approval?: boolean | null
+          requires_reason?: boolean | null
+          to_stage_id: string
+          workflow_id: string
+        }
+        Update: {
+          allowed_roles?: string[] | null
+          created_at?: string
+          from_stage_id?: string
+          id?: string
+          is_allowed?: boolean | null
+          is_backward?: boolean | null
+          is_forward?: boolean | null
+          requires_approval?: boolean | null
+          requires_reason?: boolean | null
+          to_stage_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_transitions_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_transitions_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_transitions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           can_view_financials: boolean | null
@@ -3765,6 +4123,10 @@ export type Database = {
       compute_executive_kpis: {
         Args: { p_workspace_id: string }
         Returns: Json
+      }
+      create_default_workflow: {
+        Args: { p_created_by: string; p_workspace_id: string }
+        Returns: string
       }
       generate_payroll: {
         Args: {
