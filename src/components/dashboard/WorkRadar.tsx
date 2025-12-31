@@ -1,25 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertTriangle,
-  Clock,
   Timer,
-  ArrowRight,
   Calendar,
-  Zap,
-  TrendingUp,
+  CheckCircle2,
+  ChevronRight,
+  Radar,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, differenceInDays, differenceInSeconds, isToday, isTomorrow } from 'date-fns';
+import { format, differenceInDays, differenceInSeconds, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const formatDuration = (seconds: number): string => {
@@ -40,11 +36,9 @@ export const WorkRadar: React.FC = () => {
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
-      const now = new Date().toISOString();
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Get cards owned by user or where user is member
       const { data: ownedCards } = await supabase
         .from('cards')
         .select('id, title, due_date, status, urgency, space_id')
@@ -61,9 +55,8 @@ export const WorkRadar: React.FC = () => {
         const dueDate = new Date(card.due_date!);
         const daysUntil = differenceInDays(dueDate, new Date());
         
-        let severity: 'critical' | 'warning' | 'info' = 'info';
+        let severity: 'critical' | 'warning' = 'warning';
         if (daysUntil < 0) severity = 'critical';
-        else if (isToday(dueDate)) severity = 'warning';
 
         return { ...card, severity, daysUntil };
       });
@@ -132,182 +125,209 @@ export const WorkRadar: React.FC = () => {
   });
 
   const isLoading = cardsLoading || timersLoading || eventsLoading;
-  const hasData = (criticalCards?.length || 0) > 0 || 
-                  (runningTimers?.length || 0) > 0 || 
-                  (todayEvents?.length || 0) > 0;
+  const hasCriticalItems = (criticalCards?.length || 0) > 0;
+  const hasSecondaryData = (runningTimers?.length || 0) > 0 || (todayEvents?.length || 0) > 0;
+  const hasAnyData = hasCriticalItems || hasSecondaryData;
 
   if (isLoading) {
     return (
       <Card className="col-span-full">
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-16" />
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!hasData) {
+  // Empty state - all clear
+  if (!hasAnyData) {
     return (
-      <Card className="col-span-full bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
-        <CardContent className="py-8 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/20 mb-4">
-            <TrendingUp className="h-6 w-6 text-green-600" />
+      <Card className="col-span-full overflow-hidden">
+        <CardContent className="p-0">
+          <div className="bg-gradient-to-br from-emerald-500/5 via-green-500/5 to-teal-500/5 p-8">
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Tudo sob controle</h3>
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma tarefa crítica ou atividade urgente no momento
+                </p>
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold mb-1">Tudo em dia! 🎉</h3>
-          <p className="text-muted-foreground text-sm">
-            Nenhum alerta crítico ou atividade urgente no momento.
-          </p>
         </CardContent>
       </Card>
     );
   }
+
+  const overdueCards = criticalCards?.filter(c => c.severity === 'critical') || [];
+  const dueTodayCards = criticalCards?.filter(c => c.severity === 'warning') || [];
 
   return (
-    <Card className="col-span-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-yellow-500" />
-          Work Radar
-        </CardTitle>
-        <CardDescription>
-          Visão rápida do que precisa de atenção
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid md:grid-cols-3 gap-4">
-          {/* Critical Cards */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              Atenção Urgente
-              {(criticalCards?.length || 0) > 0 && (
-                <Badge variant="destructive" className="ml-auto">
-                  {criticalCards?.length}
-                </Badge>
-              )}
-            </h4>
-            <ScrollArea className="h-32">
-              {criticalCards && criticalCards.length > 0 ? (
-                <div className="space-y-2 pr-2">
-                  {criticalCards.map(card => (
-                    <div
-                      key={card.id}
-                      onClick={() => navigate(`/tasks`)}
-                      className={`p-2 rounded-md cursor-pointer transition-colors ${
-                        card.severity === 'critical' 
-                          ? 'bg-destructive/10 hover:bg-destructive/20 border border-destructive/30' 
-                          : 'bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
-                      }`}
-                    >
-                      <p className="text-sm font-medium truncate">{card.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {card.daysUntil < 0 
-                          ? `${Math.abs(card.daysUntil)} dias de atraso`
-                          : isToday(new Date(card.due_date!))
-                            ? 'Vence hoje'
-                            : 'Vence amanhã'}
+    <Card className="col-span-full overflow-hidden">
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border/50 bg-muted/30">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <Radar className="h-4 w-4 text-primary animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Radar de Atenção</h3>
+              <p className="text-xs text-muted-foreground">
+                {hasCriticalItems 
+                  ? `${criticalCards?.length} ${criticalCards?.length === 1 ? 'item requer' : 'itens requerem'} atenção`
+                  : 'Atividades em andamento'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Critical Section */}
+        {hasCriticalItems && (
+          <div className="p-4 space-y-3">
+            {/* Overdue Cards - Most Critical */}
+            {overdueCards.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3 animate-pulse" />
+                  Atrasado
+                </span>
+                {overdueCards.map(card => (
+                  <div
+                    key={card.id}
+                    onClick={() => navigate('/tasks')}
+                    className="group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent border-l-4 border-destructive hover:bg-destructive/15 hover:translate-x-0.5"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-destructive transition-colors">
+                        {card.title}
+                      </p>
+                      <p className="text-xs text-destructive/80">
+                        {Math.abs(card.daysUntil)} {Math.abs(card.daysUntil) === 1 ? 'dia' : 'dias'} de atraso
                       </p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Nenhuma tarefa urgente
-                </p>
-              )}
-            </ScrollArea>
-          </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            )}
 
-          {/* Active Timers */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2 text-green-600">
-              <Timer className="h-4 w-4" />
-              Timers Ativos
-              {(runningTimers?.length || 0) > 0 && (
-                <Badge variant="secondary" className="ml-auto bg-green-500/20 text-green-600">
-                  {runningTimers?.length}
-                </Badge>
-              )}
-            </h4>
-            <ScrollArea className="h-32">
-              {runningTimers && runningTimers.length > 0 ? (
-                <div className="space-y-2 pr-2">
-                  {runningTimers.map(timer => (
+            {/* Due Today Cards */}
+            {dueTodayCards.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  Vence Hoje
+                </span>
+                {dueTodayCards.map(card => (
+                  <div
+                    key={card.id}
+                    onClick={() => navigate('/tasks')}
+                    className="group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 hover:bg-amber-500/15 hover:translate-x-0.5"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-amber-600 transition-colors">
+                        {card.title}
+                      </p>
+                      <p className="text-xs text-amber-600/80">
+                        {isToday(new Date(card.due_date!)) ? 'Vence hoje' : 'Vence amanhã'}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Secondary Section - Only if has data */}
+        {hasSecondaryData && (
+          <div className={`grid ${(runningTimers?.length || 0) > 0 && (todayEvents?.length || 0) > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-px bg-border/50 ${hasCriticalItems ? 'border-t border-border/50' : ''}`}>
+            {/* Active Timers */}
+            {(runningTimers?.length || 0) > 0 && (
+              <div className="p-4 bg-background">
+                <div className="flex items-center gap-2 mb-3">
+                  <Timer className="h-4 w-4 text-emerald-600" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {runningTimers?.length} timer{(runningTimers?.length || 0) > 1 ? 's' : ''} ativo{(runningTimers?.length || 0) > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {runningTimers?.slice(0, 3).map(timer => (
                     <div
                       key={timer.id}
-                      className="p-2 rounded-md bg-green-500/10 border border-green-500/20 flex items-center gap-2"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10"
                     >
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={timer.profile?.avatar_url} />
-                        <AvatarFallback className="text-xs">
+                        <AvatarFallback className="text-[10px] bg-emerald-500/20 text-emerald-700">
                           {timer.profile?.full_name?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs truncate">
+                        <p className="text-xs truncate text-foreground">
                           {(timer.card as { title: string } | null)?.title || 'Card'}
                         </p>
-                        <p className="text-xs font-medium text-green-600">
-                          {formatDuration(timer.duration)}
-                        </p>
                       </div>
+                      <span className="text-xs font-mono font-medium text-emerald-600 tabular-nums">
+                        {formatDuration(timer.duration)}
+                      </span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Nenhum timer ativo
-                </p>
-              )}
-            </ScrollArea>
-          </div>
+              </div>
+            )}
 
-          {/* Today's Events */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              Agenda de Hoje
-              {(todayEvents?.length || 0) > 0 && (
-                <Badge variant="secondary" className="ml-auto">
-                  {todayEvents?.length}
-                </Badge>
-              )}
-            </h4>
-            <ScrollArea className="h-32">
-              {todayEvents && todayEvents.length > 0 ? (
-                <div className="space-y-2 pr-2">
-                  {todayEvents.map(event => (
+            {/* Today's Events */}
+            {(todayEvents?.length || 0) > 0 && (
+              <div className="p-4 bg-background">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {todayEvents?.length} evento{(todayEvents?.length || 0) > 1 ? 's' : ''} hoje
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {todayEvents?.slice(0, 3).map(event => (
                     <div
                       key={event.id}
                       onClick={() => navigate('/calendar')}
-                      className="p-2 rounded-md bg-blue-500/10 border border-blue-500/20 cursor-pointer hover:bg-blue-500/20 transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/5 border border-blue-500/10 cursor-pointer hover:bg-blue-500/10 transition-colors"
                     >
-                      <p className="text-sm font-medium truncate">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs truncate text-foreground">{event.title}</p>
+                      </div>
+                      <span className="text-xs font-mono text-blue-600 tabular-nums">
                         {format(new Date(event.start_time), 'HH:mm', { locale: ptBR })}
-                      </p>
+                      </span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Nenhum evento hoje
-                </p>
-              )}
-            </ScrollArea>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
-        <div className="mt-4 flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
+        {/* Footer Action */}
+        <div
+          onClick={() => navigate('/tasks')}
+          className="px-4 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors group"
+        >
+          <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
             Ver todas as tarefas
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
         </div>
       </CardContent>
     </Card>
