@@ -31,7 +31,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
-import { BriefingForm, type BriefingData } from './BriefingForm';
+import { BriefingDialog } from './BriefingDialog';
+import type { BriefingData } from './BriefingForm';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { ChecklistPanel } from './ChecklistPanel';
 import { TimeTrackingPanel } from './TimeTrackingPanel';
@@ -142,6 +143,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [estimatedHours, setEstimatedHours] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingData, setBriefingData] = useState<BriefingData>({
     context: '',
     target_audience: '',
@@ -229,6 +231,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     due_date: string | null;
     estimated_hours: number | null;
     briefing_completed: boolean;
+    briefing_data: BriefingData;
   }>) => {
     if (!card) return;
 
@@ -240,6 +243,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     } catch (error) {
       toast.error('Erro ao salvar alterações');
     }
+  };
+
+  // Handler for briefing data changes with auto-save
+  const handleBriefingDataChange = (newData: BriefingData) => {
+    setBriefingData(newData);
+    // Debounced save
+    handleSave({ briefing_data: newData });
   };
 
   const handleStatusChange = async (newStatus: CardStatus) => {
@@ -289,8 +299,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         toast.info(`Dependência bloqueante: "${blockingCards[0]?.title}"`);
         break;
       case 'complete-briefing':
-        setActiveTab('overview');
-        toast.info('Complete o briefing abaixo');
+        setBriefingDialogOpen(true);
         break;
       case 'set-deadline':
         setActiveTab('overview');
@@ -758,7 +767,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                   <Separator />
 
-                  {/* Briefing Section */}
+                  {/* Briefing Section - Compact Card */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className={cn(
@@ -769,7 +778,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       )}>
                         <FileText className="h-4 w-4" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <label className="text-sm font-semibold flex items-center gap-1.5">
                           Briefing do Projeto
                           {card.briefing_completed && (
@@ -782,25 +791,83 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         <p className="text-[11px] text-muted-foreground">
                           {card.briefing_completed 
                             ? "Briefing aprovado pela IA" 
-                            : "Preencha com informações detalhadas para validação"
+                            : "Preencha informações para liberar o card"
                           }
                         </p>
                       </div>
                     </div>
-                    <div className={cn(
-                      "rounded-xl border-2 p-4 transition-colors",
-                      card.briefing_completed 
-                        ? "border-success/20 bg-success/5" 
-                        : "border-warning/30 bg-warning/5"
-                    )}>
-                      <BriefingForm
-                        data={briefingData}
-                        onChange={setBriefingData}
-                        isCompleted={card.briefing_completed}
-                        onMarkComplete={handleMarkBriefingComplete}
-                      />
-                    </div>
+                    
+                    {/* Briefing Preview Card */}
+                    <button
+                      onClick={() => setBriefingDialogOpen(true)}
+                      className={cn(
+                        "w-full rounded-xl border-2 p-4 transition-all hover:shadow-md text-left group",
+                        card.briefing_completed 
+                          ? "border-success/20 bg-success/5 hover:border-success/40" 
+                          : "border-warning/30 bg-warning/5 hover:border-warning/50"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {card.briefing_completed ? (
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-warning" />
+                          )}
+                          <div>
+                            <p className={cn(
+                              "font-medium text-sm",
+                              card.briefing_completed ? "text-success" : "text-warning"
+                            )}>
+                              {card.briefing_completed ? "Briefing Completo" : "Completar Briefing"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {card.briefing_completed 
+                                ? "Clique para visualizar ou editar"
+                                : "6 campos • 2 obrigatórios"
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                      
+                      {/* Quick preview of filled fields */}
+                      {(briefingData.context || briefingData.deliverables) && (
+                        <div className="mt-3 pt-3 border-t border-border/50 flex gap-2 flex-wrap">
+                          {briefingData.context && (
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                              <FileText className="h-2.5 w-2.5" />
+                              Contexto
+                            </Badge>
+                          )}
+                          {briefingData.target_audience && (
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                              <User className="h-2.5 w-2.5" />
+                              Público
+                            </Badge>
+                          )}
+                          {briefingData.deliverables && (
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                              <Target className="h-2.5 w-2.5" />
+                              Entregáveis
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </button>
                   </div>
+
+                  {/* Briefing Dialog */}
+                  <BriefingDialog
+                    open={briefingDialogOpen}
+                    onOpenChange={setBriefingDialogOpen}
+                    data={briefingData}
+                    onChange={handleBriefingDataChange}
+                    isCompleted={card.briefing_completed || false}
+                    onMarkComplete={handleMarkBriefingComplete}
+                    cardTitle={card.title}
+                  />
 
                   {/* Traffic Briefing (conditional) */}
                   {isTrafficSpace && (
