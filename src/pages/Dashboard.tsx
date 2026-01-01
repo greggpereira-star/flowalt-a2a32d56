@@ -32,6 +32,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'da
 import { ptBR } from 'date-fns/locale';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { PendingInvitesNotification } from '@/components/cards/PendingInvitesNotification';
+import { ClientHealthWidget } from '@/components/dashboard/ClientHealthWidget';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'hsl(var(--muted-foreground))',
@@ -336,44 +337,65 @@ const Dashboard: React.FC = () => {
           </Card>
         </div>
 
-        {/* Overdue Cards */}
-        {overdueCards > 0 && cards && (
-          <Card className="border-destructive/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Cards Atrasados
-              </CardTitle>
-              <CardDescription>Estes cards precisam de atenção imediata</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {cards
-                  .filter((c) => {
-                    if (!c.due_date || c.status === 'delivered') return false;
-                    return new Date(c.due_date) < new Date();
-                  })
-                  .slice(0, 5)
-                  .map((card) => (
-                    <div
-                      key={card.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                    >
-                      <div>
-                        <p className="font-medium">{card.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Prazo: {format(new Date(card.due_date!), "dd 'de' MMMM", { locale: ptBR })}
-                        </p>
+        {/* Bottom Row: Clients Widget + Overdue Cards */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Client Health Widget */}
+          <ClientHealthWidget />
+
+          {/* Overdue Cards */}
+          {overdueCards > 0 && cards ? (
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  Cards Atrasados
+                </CardTitle>
+                <CardDescription>Estes cards precisam de atenção imediata</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {cards
+                    .filter((c) => {
+                      if (!c.due_date || c.status === 'delivered') return false;
+                      return new Date(c.due_date) < new Date();
+                    })
+                    .slice(0, 5)
+                    .map((card) => (
+                      <div
+                        key={card.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                      >
+                        <div>
+                          <p className="font-medium">{card.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Prazo: {format(new Date(card.due_date!), "dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Badge variant="destructive">
+                          {STATUS_LABELS[card.status]}
+                        </Badge>
                       </div>
-                      <Badge variant="destructive">
-                        {STATUS_LABELS[card.status]}
-                      </Badge>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  Em Dia
+                </CardTitle>
+                <CardDescription>Nenhum card atrasado</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Todos os cards estão dentro do prazo. Continue assim!
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </AppLayout>
   );
