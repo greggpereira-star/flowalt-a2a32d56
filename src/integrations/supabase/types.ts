@@ -1116,6 +1116,7 @@ export type Database = {
           traffic_briefing_data: Json | null
           updated_at: string
           urgency: Database["public"]["Enums"]["card_urgency"]
+          visibility: string
           workflow_id: string | null
           workspace_id: string
         }
@@ -1141,6 +1142,7 @@ export type Database = {
           traffic_briefing_data?: Json | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["card_urgency"]
+          visibility?: string
           workflow_id?: string | null
           workspace_id: string
         }
@@ -1166,6 +1168,7 @@ export type Database = {
           traffic_briefing_data?: Json | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["card_urgency"]
+          visibility?: string
           workflow_id?: string | null
           workspace_id?: string
         }
@@ -3541,6 +3544,41 @@ export type Database = {
           },
         ]
       }
+      folder_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          folder_id: string
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          folder_id: string
+          id?: string
+          permission?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_members_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folder_templates: {
         Row: {
           created_at: string
@@ -3678,6 +3716,7 @@ export type Database = {
           id: string
           is_archived: boolean | null
           is_personal: boolean | null
+          is_restricted: boolean
           is_system: boolean | null
           name: string
           owner_id: string | null
@@ -3694,6 +3733,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_personal?: boolean | null
+          is_restricted?: boolean
           is_system?: boolean | null
           name: string
           owner_id?: string | null
@@ -3710,6 +3750,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_personal?: boolean | null
+          is_restricted?: boolean
           is_system?: boolean | null
           name?: string
           owner_id?: string | null
@@ -5269,6 +5310,8 @@ export type Database = {
       }
       spaces: {
         Row: {
+          access_level: string
+          allowed_roles: Database["public"]["Enums"]["app_role"][] | null
           color: string | null
           created_at: string
           description: string | null
@@ -5285,6 +5328,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          access_level?: string
+          allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           color?: string | null
           created_at?: string
           description?: string | null
@@ -5301,6 +5346,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          access_level?: string
+          allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           color?: string | null
           created_at?: string
           description?: string | null
@@ -7664,9 +7711,29 @@ export type Database = {
           next_level_score: number
         }[]
       }
+      can_access_card: {
+        Args: { _card_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_folder: {
         Args: { _folder_id: string; _user_id: string }
         Returns: boolean
+      }
+      can_access_space: {
+        Args: { _space_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_receive_card_notification: {
+        Args: { _card_id: string; _user_id: string }
+        Returns: boolean
+      }
+      change_member_role: {
+        Args: {
+          p_new_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       check_rate_limit: {
         Args: {
@@ -7902,6 +7969,7 @@ export type Database = {
         Args: { p_items: Json; p_reason?: string; p_workspace_id: string }
         Returns: Json
       }
+      revoke_workspace_invite: { Args: { p_invite_id: string }; Returns: Json }
       run_subscription_check_job: { Args: never; Returns: undefined }
       run_warranty_check_job: { Args: never; Returns: undefined }
       store_idempotent_response: {

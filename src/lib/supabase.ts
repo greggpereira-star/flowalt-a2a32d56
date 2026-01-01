@@ -2,12 +2,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export { supabase };
 
-// Types para RBAC
-export type AppRole = 'super_admin' | 'owner' | 'admin' | 'coordinator' | 'member' | 'viewer';
+// Types para RBAC - Updated with 'finance' role per blueprint
+export type AppRole = 'super_admin' | 'owner' | 'admin' | 'coordinator' | 'finance' | 'member' | 'viewer';
 export type WorkspaceStatus = 'active' | 'trial' | 'suspended' | 'inactive';
 export type CardStatus = 'backlog' | 'briefing' | 'todo' | 'in_progress' | 'review' | 'approved' | 'delivered' | 'archived';
 export type CardUrgency = 'low' | 'medium' | 'high' | 'critical';
 export type SpaceType = 'designer' | 'audiovisual' | 'social_media' | 'traffic' | 'administrative' | 'coordination' | 'custom';
+export type SpaceAccessLevel = 'operational' | 'restricted';
+export type CardVisibility = 'inherit' | 'restricted' | 'public';
 
 // Helper para verificar roles
 export const hasMinimumRole = (userRole: AppRole, requiredRole: AppRole): boolean => {
