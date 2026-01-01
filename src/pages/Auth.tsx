@@ -114,11 +114,22 @@ const Auth: React.FC = () => {
 
     if (error) {
       let message = 'Erro ao criar conta';
-      if (error.message.includes('User already registered')) {
-        message = 'Este email já está cadastrado';
+      const errorMsg = error.message?.toLowerCase() || '';
+      
+      if (errorMsg.includes('user already registered') || errorMsg.includes('already been registered')) {
+        message = 'Este email já está cadastrado. Tente fazer login.';
+      } else if (errorMsg.includes('password') && errorMsg.includes('weak')) {
+        message = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+      } else if (errorMsg.includes('invalid') && errorMsg.includes('email')) {
+        message = 'O email informado é inválido.';
+      } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many')) {
+        message = 'Muitas tentativas. Aguarde um momento e tente novamente.';
+      } else if (error.message) {
+        message = error.message;
       }
+      
       toast({
-        title: 'Erro',
+        title: 'Erro ao criar conta',
         description: message,
         variant: 'destructive',
       });
