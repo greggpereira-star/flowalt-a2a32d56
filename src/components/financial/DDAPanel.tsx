@@ -380,11 +380,11 @@ export function DDAPanel() {
             <div className="flex-1">
               <p className="font-medium">Pluggy não configurado</p>
               <p className="text-sm text-muted-foreground">
-                Configure a integração Pluggy em Configurações → Conectores para sincronizar boletos automaticamente.
+                Não há integração Pluggy ativa para o workspace atual{currentWorkspace?.name ? ` (${currentWorkspace.name})` : ''}. Configure em Configurações → Conectores.
               </p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <a href="/settings">Configurar</a>
+              <a href="/settings?tab=connectors">Configurar</a>
             </Button>
           </CardContent>
         </Card>
