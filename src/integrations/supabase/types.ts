@@ -8150,6 +8150,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      has_folder_admin_access: {
+        Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -8165,6 +8169,10 @@ export type Database = {
       initialize_space_custom_fields: {
         Args: { p_space_type: string; p_workspace_id: string }
         Returns: number
+      }
+      is_folder_member: {
+        Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
       }
       is_folder_owner: {
         Args: { _folder_id: string; _user_id: string }
