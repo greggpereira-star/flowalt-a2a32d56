@@ -30,6 +30,8 @@ import { useExpandedFolders } from '@/hooks/useUserPreferences';
 import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 import { useFolderPermissions, useIsAdmin } from '@/hooks/useFolderPermissions';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { RestrictedBadge, PermissionTooltip } from '@/components/governance';
 import { CreateFolderWithTemplateDialog } from './CreateFolderWithTemplateDialog';
 import { CreateViewDialog } from './CreateViewDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +52,7 @@ import {
   Trash2,
   Edit,
   Share2,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,7 +83,7 @@ const getViewIcon = (viewType: string, viewName?: string) => {
 };
 
 interface FolderItemProps {
-  folder: { id: string; name: string; color: string | null; owner_id: string | null };
+  folder: { id: string; name: string; color: string | null; owner_id: string | null; is_personal?: boolean };
   spaceId: string;
   isExpanded: boolean;
   onToggle: () => void;
@@ -89,6 +92,7 @@ interface FolderItemProps {
   onCreateView: () => void;
   onDeleteFolder: () => void;
   onDeleteView: (viewId: string) => void;
+  currentUserId?: string;
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({
@@ -101,9 +105,15 @@ const FolderItem: React.FC<FolderItemProps> = ({
   onCreateView,
   onDeleteFolder,
   onDeleteView,
+  currentUserId,
 }) => {
   const { data: views, isLoading } = useFolderViews(folder.id);
   const folderPermissions = useFolderPermissions(folder.owner_id);
+  
+  // Determine folder visibility type for badge
+  const isPersonalFolder = folder.is_personal && folder.owner_id;
+  const isOwnFolder = folder.owner_id === currentUserId;
+  const isRestrictedFolder = isPersonalFolder && !isOwnFolder;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -120,7 +130,11 @@ const FolderItem: React.FC<FolderItemProps> = ({
                 isExpanded && "rotate-180"
               )}
             />
-            {isExpanded ? (
+            {isRestrictedFolder ? (
+              <Lock
+                className="h-4 w-4 flex-shrink-0 text-warning"
+              />
+            ) : isExpanded ? (
               <FolderOpen
                 className="h-4 w-4 flex-shrink-0"
                 style={{ color: folder.color || undefined }}
@@ -132,6 +146,18 @@ const FolderItem: React.FC<FolderItemProps> = ({
               />
             )}
             <span className="truncate text-sm">{folder.name}</span>
+            {/* Visibility badges */}
+            {isOwnFolder && isPersonalFolder && (
+              <RestrictedBadge type="owner" size="sm" showLabel={false} />
+            )}
+            {isRestrictedFolder && (
+              <RestrictedBadge 
+                type="restricted" 
+                size="sm" 
+                showLabel={false}
+                tooltipContent="Pasta pessoal de outro usuário"
+              />
+            )}
           </Button>
         </CollapsibleTrigger>
         
@@ -232,6 +258,7 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
   const location = useLocation();
   const { toast } = useToast();
   const { currentRole } = useWorkspace();
+  const { user } = useAuth();
   const isAdmin = useIsAdmin();
   
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
@@ -412,6 +439,7 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
                   viewId, 
                   folderId: folder.id 
                 })}
+                currentUserId={user?.id}
               />
             ))
           ) : (
