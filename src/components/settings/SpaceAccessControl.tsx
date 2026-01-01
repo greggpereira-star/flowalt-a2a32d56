@@ -34,10 +34,10 @@ export function SpaceAccessControl() {
 
   const handleSave = async (spaceId: string) => {
     try {
-      // Note: access_level and allowed_roles need to be added to useUpdateSpace
       await updateSpace.mutateAsync({
         id: spaceId,
-        name: spaces?.find(s => s.id === spaceId)?.name,
+        access_level: accessLevel,
+        allowed_roles: accessLevel === 'restricted' ? allowedRoles : [],
       });
       toast.success('Configurações de acesso atualizadas');
       setEditingSpace(null);

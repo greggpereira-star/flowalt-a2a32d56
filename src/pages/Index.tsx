@@ -131,61 +131,12 @@ const Index: React.FC = () => {
     }
   };
 
-  // Se não tem workspace, mostra tela de onboarding
+  // Se não tem workspace, redireciona para FirstAccessPage
   if (!loading && workspaces.length === 0) {
+    navigate('/first-access');
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-primary/5 blur-3xl" />
-          <div className="absolute -bottom-1/4 -right-1/4 h-1/2 w-1/2 rounded-full bg-primary/5 blur-3xl" />
-        </div>
-
-        <div className="relative w-full max-w-lg animate-fade-in text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="text-lg font-semibold text-primary">Flowalt</span>
-          </div>
-
-          <h1 className="mb-3 text-3xl font-semibold tracking-tight">
-            Bem-vindo, {firstName}!
-          </h1>
-          <p className="mb-8 text-muted-foreground">
-            Vamos criar seu primeiro workspace para começar a organizar o trabalho da sua equipe.
-          </p>
-
-          <Card className="border-border/50 text-left">
-            <CardHeader>
-              <CardTitle className="text-lg">Criar Workspace</CardTitle>
-              <CardDescription>
-                Um workspace é o espaço de trabalho da sua empresa. Ele contém todos os projetos, tarefas e membros da equipe.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span>6 espaços padrão (Designer, Audiovisual, Social Media...)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span>Sistema de cards com briefing inteligente</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span>Controle de tempo e hora-homem</span>
-                </div>
-              </div>
-              <Button onClick={handleCreateWorkspace} className="w-full" disabled={isCreating}>
-                {isCreating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Criar Workspace
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
