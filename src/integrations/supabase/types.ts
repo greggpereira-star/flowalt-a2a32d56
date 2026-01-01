@@ -1254,6 +1254,221 @@ export type Database = {
           },
         ]
       }
+      client_cards: {
+        Row: {
+          about_client: string | null
+          agreed_deliverables: string | null
+          brand_essence: string | null
+          brand_files: Json | null
+          challenges: string | null
+          color: string | null
+          competitors: string | null
+          contract_notes: string | null
+          contract_type: string | null
+          contracted_services: string[] | null
+          created_at: string
+          created_by: string | null
+          financial_state:
+            | Database["public"]["Enums"]["client_financial_state"]
+            | null
+          health_score: number | null
+          id: string
+          important_links: Json | null
+          keywords: string[] | null
+          language_restrictions: string | null
+          language_style: string | null
+          legacy_client_id: string | null
+          logo_url: string | null
+          name: string
+          objectives: string | null
+          personality: string | null
+          positioning: string | null
+          products_services: string | null
+          relationship_tone: string | null
+          responsible_user_id: string | null
+          scope_limits: string | null
+          segment: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["client_status"]
+          target_audience: string | null
+          updated_at: string
+          visual_guidelines: string | null
+          workspace_id: string
+        }
+        Insert: {
+          about_client?: string | null
+          agreed_deliverables?: string | null
+          brand_essence?: string | null
+          brand_files?: Json | null
+          challenges?: string | null
+          color?: string | null
+          competitors?: string | null
+          contract_notes?: string | null
+          contract_type?: string | null
+          contracted_services?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          financial_state?:
+            | Database["public"]["Enums"]["client_financial_state"]
+            | null
+          health_score?: number | null
+          id?: string
+          important_links?: Json | null
+          keywords?: string[] | null
+          language_restrictions?: string | null
+          language_style?: string | null
+          legacy_client_id?: string | null
+          logo_url?: string | null
+          name: string
+          objectives?: string | null
+          personality?: string | null
+          positioning?: string | null
+          products_services?: string | null
+          relationship_tone?: string | null
+          responsible_user_id?: string | null
+          scope_limits?: string | null
+          segment?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          target_audience?: string | null
+          updated_at?: string
+          visual_guidelines?: string | null
+          workspace_id: string
+        }
+        Update: {
+          about_client?: string | null
+          agreed_deliverables?: string | null
+          brand_essence?: string | null
+          brand_files?: Json | null
+          challenges?: string | null
+          color?: string | null
+          competitors?: string | null
+          contract_notes?: string | null
+          contract_type?: string | null
+          contracted_services?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          financial_state?:
+            | Database["public"]["Enums"]["client_financial_state"]
+            | null
+          health_score?: number | null
+          id?: string
+          important_links?: Json | null
+          keywords?: string[] | null
+          language_restrictions?: string | null
+          language_style?: string | null
+          legacy_client_id?: string | null
+          logo_url?: string | null
+          name?: string
+          objectives?: string | null
+          personality?: string | null
+          positioning?: string | null
+          products_services?: string | null
+          relationship_tone?: string | null
+          responsible_user_id?: string | null
+          scope_limits?: string | null
+          segment?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          target_audience?: string | null
+          updated_at?: string
+          visual_guidelines?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_cards_legacy_client_id_fkey"
+            columns: ["legacy_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "client_cards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_financials: {
+        Row: {
+          billing_type: string | null
+          client_card_id: string
+          contract_value: number | null
+          created_at: string
+          expected_margin: number | null
+          financial_notes: string | null
+          id: string
+          real_margin: number | null
+          total_cost: number | null
+          total_hours: number | null
+          total_revenue: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_type?: string | null
+          client_card_id: string
+          contract_value?: number | null
+          created_at?: string
+          expected_margin?: number | null
+          financial_notes?: string | null
+          id?: string
+          real_margin?: number | null
+          total_cost?: number | null
+          total_hours?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          billing_type?: string | null
+          client_card_id?: string
+          contract_value?: number | null
+          created_at?: string
+          expected_margin?: number | null
+          financial_notes?: string | null
+          id?: string
+          real_margin?: number | null
+          total_cost?: number | null
+          total_hours?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_financials_client_card_id_fkey"
+            columns: ["client_card_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_financials_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "client_financials_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           color: string | null
@@ -2972,6 +3187,7 @@ export type Database = {
           id: string
           is_archived: boolean | null
           is_personal: boolean | null
+          is_system: boolean | null
           name: string
           owner_id: string | null
           sort_order: number | null
@@ -2987,6 +3203,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_personal?: boolean | null
+          is_system?: boolean | null
           name: string
           owner_id?: string | null
           sort_order?: number | null
@@ -3002,6 +3219,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_personal?: boolean | null
+          is_system?: boolean | null
           name?: string
           owner_id?: string | null
           sort_order?: number | null
@@ -6868,6 +7086,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: Json
       }
+      create_clients_space_for_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       create_default_workflow: {
         Args: { p_created_by: string; p_workspace_id: string }
         Returns: string
@@ -7009,6 +7231,10 @@ export type Database = {
         Args: { p_event_ids: string[] }
         Returns: number
       }
+      migrate_clients_to_client_cards: {
+        Args: { p_workspace_id: string }
+        Returns: number
+      }
       record_metric:
         | {
             Args: {
@@ -7095,6 +7321,8 @@ export type Database = {
         | "delivered"
         | "archived"
       card_urgency: "low" | "medium" | "high" | "critical"
+      client_financial_state: "healthy" | "attention" | "critical" | "loss"
+      client_status: "active" | "paused" | "closed"
       depreciation_method:
         | "straight_line"
         | "declining_balance"
@@ -7275,6 +7503,8 @@ export const Constants = {
         "archived",
       ],
       card_urgency: ["low", "medium", "high", "critical"],
+      client_financial_state: ["healthy", "attention", "critical", "loss"],
+      client_status: ["active", "paused", "closed"],
       depreciation_method: [
         "straight_line",
         "declining_balance",

@@ -24,6 +24,7 @@ import SettingsPage from "./pages/SettingsPage";
 import GamificationPage from "./pages/GamificationPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PeopleAnalyticsPage from "./pages/PeopleAnalyticsPage";
+import ClientsPage from "./pages/ClientsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,8 @@ const App = () => (
               <Route path="/gamification" element={<AuthGuard><GamificationPage /></AuthGuard>} />
               <Route path="/analytics" element={<AuthGuard><AnalyticsPage /></AuthGuard>} />
               <Route path="/people-analytics" element={<AuthGuard><PeopleAnalyticsPage /></AuthGuard>} />
+              <Route path="/clients" element={<AuthGuard><ClientsPage /></AuthGuard>} />
+              <Route path="/clients/:clientId" element={<AuthGuard><ClientsPage /></AuthGuard>} />
               <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
