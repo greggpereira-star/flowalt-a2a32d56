@@ -353,8 +353,27 @@ export function DDAPanel() {
         </div>
       </div>
 
-      {/* Alerts */}
-      {!syncStatus?.is_configured && (
+      {/* Integration Status */}
+      {syncStatus?.is_configured ? (
+        <Card className="border-green-500/50 bg-green-500/5">
+          <CardContent className="flex items-center gap-4 py-4">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <div className="flex-1">
+              <p className="font-medium text-green-700">Pluggy conectado e ativo</p>
+              <p className="text-sm text-muted-foreground">
+                {syncStatus.last_sync 
+                  ? `Última sincronização: ${format(new Date(syncStatus.last_sync.synced_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                  : 'Nenhuma sincronização realizada ainda. Clique em "Sincronizar" para buscar boletos.'
+                }
+              </p>
+            </div>
+            <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/30">
+              <Shield className="w-3 h-3 mr-1" />
+              Integração Ativa
+            </Badge>
+          </CardContent>
+        </Card>
+      ) : (
         <Card className="border-warning/50 bg-warning/5">
           <CardContent className="flex items-center gap-4 py-4">
             <AlertTriangle className="w-5 h-5 text-warning" />

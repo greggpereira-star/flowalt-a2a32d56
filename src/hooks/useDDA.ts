@@ -108,7 +108,7 @@ export function useDDABoletos(filters?: {
   });
 }
 
-// Fetch sync status
+// Fetch sync status with fallback to direct DB query
 export function useDDASyncStatus() {
   const { currentWorkspace } = useWorkspace();
 
@@ -124,18 +124,64 @@ export function useDDASyncStatus() {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke('dda-sync', {
-        body: {
-          action: 'status',
-          workspace_id: currentWorkspace.id,
-        },
-      });
+      try {
+        // Try edge function first
+        const { data, error } = await supabase.functions.invoke('dda-sync', {
+          body: {
+            action: 'status',
+            workspace_id: currentWorkspace.id,
+          },
+        });
 
-      if (error) throw error;
-      return data as DDASyncStatus;
+        if (!error && data) {
+          return data as DDASyncStatus;
+        }
+        
+        console.warn('Edge function failed, falling back to direct query:', error);
+      } catch (edgeFnError) {
+        console.warn('Edge function error, falling back to direct query:', edgeFnError);
+      }
+
+      // Fallback: query database directly
+      const [integrationResult, syncLogResult, pendingResult, overdueResult] = await Promise.all([
+        supabase
+          .from('integration_credentials')
+          .select('is_active, last_sync_at, sync_status')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('integration_type', 'pluggy')
+          .maybeSingle(),
+        supabase
+          .from('dda_sync_logs')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .order('synced_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('dda_boletos')
+          .select('id', { count: 'exact', head: true })
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('status', 'pending')
+          .is('deleted_at', null),
+        supabase
+          .from('dda_boletos')
+          .select('id', { count: 'exact', head: true })
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('status', 'pending')
+          .is('deleted_at', null)
+          .lt('data_vencimento', new Date().toISOString().split('T')[0]),
+      ]);
+
+      return {
+        is_configured: !!integrationResult.data?.is_active,
+        last_sync: syncLogResult.data as DDASyncLog | null,
+        pending_boletos: pendingResult.count || 0,
+        overdue_boletos: overdueResult.count || 0,
+      };
     },
     enabled: !!currentWorkspace?.id,
     refetchInterval: 60000, // Refresh every minute
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 }
 
