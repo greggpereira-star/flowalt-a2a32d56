@@ -473,6 +473,7 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          actor_type: string | null
           created_at: string
           entity_id: string
           entity_type: string
@@ -485,6 +486,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_type?: string | null
           created_at?: string
           entity_id: string
           entity_type: string
@@ -497,6 +499,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_type?: string | null
           created_at?: string
           entity_id?: string
           entity_type?: string
@@ -997,6 +1000,9 @@ export type Database = {
       }
       card_members: {
         Row: {
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
           card_id: string
           created_at: string
           function_title: string | null
@@ -1006,6 +1012,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
           card_id: string
           created_at?: string
           function_title?: string | null
@@ -1015,6 +1024,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
           card_id?: string
           created_at?: string
           function_title?: string | null
@@ -3546,6 +3558,9 @@ export type Database = {
       }
       folder_members: {
         Row: {
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
           created_at: string
           created_by: string | null
           folder_id: string
@@ -3554,6 +3569,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
           created_at?: string
           created_by?: string | null
           folder_id: string
@@ -3562,6 +3580,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
           created_at?: string
           created_by?: string | null
           folder_id?: string
@@ -3723,6 +3744,7 @@ export type Database = {
           sort_order: number | null
           space_id: string
           updated_at: string
+          visibility: string | null
           workspace_id: string
         }
         Insert: {
@@ -3740,6 +3762,7 @@ export type Database = {
           sort_order?: number | null
           space_id: string
           updated_at?: string
+          visibility?: string | null
           workspace_id: string
         }
         Update: {
@@ -3757,6 +3780,7 @@ export type Database = {
           sort_order?: number | null
           space_id?: string
           updated_at?: string
+          visibility?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -5308,6 +5332,36 @@ export type Database = {
           },
         ]
       }
+      space_templates: {
+        Row: {
+          created_at: string
+          definition: Json
+          description: string | null
+          is_optional: boolean
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          definition?: Json
+          description?: string | null
+          is_optional?: boolean
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          definition?: Json
+          description?: string | null
+          is_optional?: boolean
+          key?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       spaces: {
         Row: {
           access_level: string
@@ -5323,6 +5377,7 @@ export type Database = {
           settings: Json | null
           sort_order: number | null
           space_type: string | null
+          template_key: string | null
           type: Database["public"]["Enums"]["space_type"]
           updated_at: string
           workspace_id: string
@@ -5341,6 +5396,7 @@ export type Database = {
           settings?: Json | null
           sort_order?: number | null
           space_type?: string | null
+          template_key?: string | null
           type?: Database["public"]["Enums"]["space_type"]
           updated_at?: string
           workspace_id: string
@@ -5359,6 +5415,7 @@ export type Database = {
           settings?: Json | null
           sort_order?: number | null
           space_type?: string | null
+          template_key?: string | null
           type?: Database["public"]["Enums"]["space_type"]
           updated_at?: string
           workspace_id?: string
