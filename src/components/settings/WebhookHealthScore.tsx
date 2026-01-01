@@ -44,9 +44,9 @@ export function WebhookHealthScore() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      // Get all webhooks
+      // Get all webhooks (using safe view)
       const { data: subscriptions } = await supabase
-        .from('webhook_subscriptions')
+        .from('webhook_subscriptions_safe')
         .select('id, name, url, is_active')
         .eq('workspace_id', currentWorkspace.id);
 

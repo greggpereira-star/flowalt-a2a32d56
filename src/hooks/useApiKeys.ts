@@ -23,9 +23,10 @@ export function useApiKeys() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      // Use safe view to avoid exposing key_hash
       const { data, error } = await supabase
-        .from('api_keys')
-        .select('id, workspace_id, name, key_prefix, permissions, is_active, last_used_at, expires_at, created_at')
+        .from('api_keys_safe')
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
 
