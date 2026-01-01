@@ -95,6 +95,7 @@ import {
   WorkflowStatus,
 } from '@/hooks/useDDA';
 import { DDAQAChecklist } from './DDAQAChecklist';
+import { PluggyConnectButton } from './PluggyConnectButton';
 
 // Workflow status configuration
 const workflowConfig: Record<WorkflowStatus, { label: string; color: string; icon: React.ElementType; next?: WorkflowStatus }> = {
@@ -388,6 +389,11 @@ export function DDAPanel() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Bank Account Connection */}
+      {syncStatus?.is_configured && (
+        <PluggyConnectButton />
       )}
 
       {/* Stats Dashboard */}

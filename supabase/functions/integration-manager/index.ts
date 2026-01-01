@@ -148,6 +148,57 @@ serve(async (req: Request) => {
         if (!allowed) return forbidden();
         return await ddaAddManualBoleto(supabase, workspaceId, boletoData, user.id);
       }
+      case 'pluggy_connect_token': {
+        const workspaceId = body?.workspace_id as string;
+        if (!workspaceId) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await createPluggyConnectToken(supabase, workspaceId);
+      }
+      case 'pluggy_save_item': {
+        const workspaceId = body?.workspace_id as string;
+        const itemId = body?.item_id as string;
+        const connectorName = body?.connector_name as string | undefined;
+        if (!workspaceId || !itemId) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id and item_id required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await savePluggyItem(supabase, workspaceId, itemId, connectorName, user.id);
+      }
+      case 'pluggy_list_items': {
+        const workspaceId = body?.workspace_id as string;
+        if (!workspaceId) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await listPluggyItems(supabase, workspaceId);
+      }
+      case 'pluggy_delete_item': {
+        const workspaceId = body?.workspace_id as string;
+        const itemId = body?.item_id as string;
+        if (!workspaceId || !itemId) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id and item_id required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await deletePluggyItem(supabase, workspaceId, itemId);
+      }
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown action' }),
@@ -704,6 +755,231 @@ async function ddaAddManualBoleto(
 
   return new Response(
     JSON.stringify({ success: true, message: 'Boleto adicionado com sucesso' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// =====================
+// Pluggy Connect Token & Items Management
+// =====================
+
+async function createPluggyConnectToken(
+  supabase: any,
+  workspaceId: string
+): Promise<Response> {
+  console.log(`Pluggy: Creating connect token for workspace ${workspaceId}`);
+
+  // Get Pluggy credentials
+  const { data: credentials, error: credError } = await supabase
+    .from('integration_credentials')
+    .select('credentials')
+    .eq('workspace_id', workspaceId)
+    .eq('integration_type', 'pluggy')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (credError || !credentials?.credentials) {
+    return new Response(
+      JSON.stringify({
+        error: 'Pluggy não configurado. Configure as credenciais em Configurações > Conectores.'
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const { client_id, client_secret } = credentials.credentials as {
+    client_id: string;
+    client_secret: string;
+  };
+
+  try {
+    // Get API key from Pluggy
+    const authResponse = await fetch('https://api.pluggy.ai/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client_id, clientSecret: client_secret })
+    });
+
+    if (!authResponse.ok) {
+      console.error('Pluggy: Auth failed');
+      return new Response(
+        JSON.stringify({ error: 'Falha na autenticação com Pluggy' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authData = await authResponse.json();
+    const apiKey = authData.apiKey;
+
+    // Create connect token
+    const tokenResponse = await fetch('https://api.pluggy.ai/connect_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': apiKey
+      },
+      body: JSON.stringify({
+        // Optional: configure which products to enable
+        // products: ['IDENTITY', 'ACCOUNTS', 'TRANSACTIONS', 'PAYMENT_DATA', 'BROKERAGE_ACCOUNTS', 'INVESTMENTS']
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      const tokenError = await tokenResponse.text();
+      console.error('Pluggy: Failed to create connect token:', tokenError);
+      return new Response(
+        JSON.stringify({ error: 'Falha ao criar token de conexão' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Pluggy: Connect token created successfully');
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        accessToken: tokenData.accessToken
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Pluggy: Error creating connect token:', errorMsg);
+    return new Response(
+      JSON.stringify({ error: `Erro ao criar token: ${errorMsg}` }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function savePluggyItem(
+  supabase: any,
+  workspaceId: string,
+  itemId: string,
+  connectorName: string | undefined,
+  userId: string
+): Promise<Response> {
+  console.log(`Pluggy: Saving item ${itemId} for workspace ${workspaceId}`);
+
+  // Save item to pluggy_items table
+  const { error } = await supabase
+    .from('pluggy_items')
+    .upsert({
+      workspace_id: workspaceId,
+      pluggy_item_id: itemId,
+      connector_name: connectorName || 'Unknown',
+      status: 'connected',
+      connected_by: userId,
+      connected_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'workspace_id,pluggy_item_id'
+    });
+
+  if (error) {
+    console.error('Pluggy: Error saving item:', error);
+    return new Response(
+      JSON.stringify({ error: 'Erro ao salvar conexão bancária' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Conta bancária conectada com sucesso' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function listPluggyItems(
+  supabase: any,
+  workspaceId: string
+): Promise<Response> {
+  const { data, error } = await supabase
+    .from('pluggy_items')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('status', 'connected')
+    .order('connected_at', { ascending: false });
+
+  if (error) {
+    console.error('Pluggy: Error listing items:', error);
+    return new Response(
+      JSON.stringify({ error: 'Erro ao listar conexões bancárias' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ items: data || [] }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function deletePluggyItem(
+  supabase: any,
+  workspaceId: string,
+  itemId: string
+): Promise<Response> {
+  console.log(`Pluggy: Deleting item ${itemId} from workspace ${workspaceId}`);
+
+  // Get Pluggy credentials to also delete from Pluggy API
+  const { data: credentials } = await supabase
+    .from('integration_credentials')
+    .select('credentials')
+    .eq('workspace_id', workspaceId)
+    .eq('integration_type', 'pluggy')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (credentials?.credentials) {
+    try {
+      const { client_id, client_secret } = credentials.credentials as {
+        client_id: string;
+        client_secret: string;
+      };
+
+      // Get API key
+      const authResponse = await fetch('https://api.pluggy.ai/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client_id, clientSecret: client_secret })
+      });
+
+      if (authResponse.ok) {
+        const authData = await authResponse.json();
+
+        // Delete from Pluggy
+        await fetch(`https://api.pluggy.ai/items/${itemId}`, {
+          method: 'DELETE',
+          headers: { 'X-API-KEY': authData.apiKey }
+        });
+      }
+    } catch (err) {
+      console.warn('Pluggy: Failed to delete item from Pluggy API:', err);
+    }
+  }
+
+  // Mark as disconnected in database
+  const { error } = await supabase
+    .from('pluggy_items')
+    .update({
+      status: 'disconnected',
+      updated_at: new Date().toISOString()
+    })
+    .eq('workspace_id', workspaceId)
+    .eq('pluggy_item_id', itemId);
+
+  if (error) {
+    console.error('Pluggy: Error deleting item:', error);
+    return new Response(
+      JSON.stringify({ error: 'Erro ao remover conexão bancária' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Conexão bancária removida' }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
