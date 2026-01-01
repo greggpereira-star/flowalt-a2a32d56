@@ -34,10 +34,8 @@ import { CreateFolderWithTemplateDialog } from './CreateFolderWithTemplateDialog
 import { CreateViewDialog } from './CreateViewDialog';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ChevronRight,
   ChevronDown,
-  ChevronsDown,
-  ChevronsUp,
+  ChevronRight,
   Folder,
   FolderOpen,
   Plus,
@@ -288,14 +286,6 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
     localStorage.setItem(`space-collapsed-${spaceId}`, String(isSpaceCollapsed));
   }, [isSpaceCollapsed, spaceId]);
 
-  const handleExpandAll = useCallback(() => {
-    setIsSpaceCollapsed(false);
-  }, []);
-
-  const handleCollapseAll = useCallback(() => {
-    setIsSpaceCollapsed(true);
-    setExpandedFolders([]);
-  }, [setExpandedFolders]);
 
   const handleToggleSpace = useCallback(() => {
     setIsSpaceCollapsed((prev) => !prev);
@@ -368,36 +358,14 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
             style={{ color: spaceColor }}
           />
           <span className="text-sm font-medium truncate">{spaceName}</span>
-          {isSpaceCollapsed ? (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          )}
+          <ChevronDown 
+            className={cn(
+              "h-3.5 w-3.5 text-muted-foreground flex-shrink-0 transition-transform duration-200",
+              !isSpaceCollapsed && "rotate-180"
+            )}
+          />
         </div>
         <div className="flex items-center gap-0.5">
-          {/* Expand/Collapse All - mostra se tem pelo menos 1 pasta */}
-          {folders && folders.length > 0 && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                onClick={handleExpandAll}
-                title="Expandir todas as pastas"
-              >
-                <ChevronsDown className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                onClick={handleCollapseAll}
-                title="Minimizar todas as pastas"
-              >
-                <ChevronsUp className="h-3.5 w-3.5" />
-              </Button>
-            </>
-          )}
           {/* Only admins can create folders for other users */}
           {isAdmin && (
             <Button
