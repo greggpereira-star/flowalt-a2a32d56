@@ -2478,9 +2478,71 @@ export type Database = {
           },
         ]
       }
+      dda_audit_events: {
+        Row: {
+          action: string
+          boleto_id: string | null
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          performed_at: string
+          performed_by: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          boleto_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          boleto_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dda_audit_events_boleto_id_fkey"
+            columns: ["boleto_id"]
+            isOneToOne: false
+            referencedRelation: "dda_boletos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dda_audit_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dda_audit_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dda_boletos: {
         Row: {
           barcode: string | null
+          bill_type: string | null
           category_id: string | null
           cedente_agencia: string | null
           cedente_banco: string | null
@@ -2493,11 +2555,18 @@ export type Database = {
           data_emissao: string | null
           data_pagamento: string | null
           data_vencimento: string
+          deleted_at: string | null
           digitable_line: string | null
           external_id: string | null
           id: string
+          linked_ap_id: string | null
           metadata: Json | null
           notes: string | null
+          pluggy_bill_id: string | null
+          pluggy_item_id: string | null
+          raw_payload: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           sacado_documento: string | null
           sacado_nome: string | null
           source: string | null
@@ -2509,10 +2578,12 @@ export type Database = {
           valor_atualizado: number | null
           valor_desconto: number | null
           valor_original: number
+          workflow_status: string | null
           workspace_id: string
         }
         Insert: {
           barcode?: string | null
+          bill_type?: string | null
           category_id?: string | null
           cedente_agencia?: string | null
           cedente_banco?: string | null
@@ -2525,11 +2596,18 @@ export type Database = {
           data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento: string
+          deleted_at?: string | null
           digitable_line?: string | null
           external_id?: string | null
           id?: string
+          linked_ap_id?: string | null
           metadata?: Json | null
           notes?: string | null
+          pluggy_bill_id?: string | null
+          pluggy_item_id?: string | null
+          raw_payload?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sacado_documento?: string | null
           sacado_nome?: string | null
           source?: string | null
@@ -2541,10 +2619,12 @@ export type Database = {
           valor_atualizado?: number | null
           valor_desconto?: number | null
           valor_original: number
+          workflow_status?: string | null
           workspace_id: string
         }
         Update: {
           barcode?: string | null
+          bill_type?: string | null
           category_id?: string | null
           cedente_agencia?: string | null
           cedente_banco?: string | null
@@ -2557,11 +2637,18 @@ export type Database = {
           data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string
+          deleted_at?: string | null
           digitable_line?: string | null
           external_id?: string | null
           id?: string
+          linked_ap_id?: string | null
           metadata?: Json | null
           notes?: string | null
+          pluggy_bill_id?: string | null
+          pluggy_item_id?: string | null
+          raw_payload?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sacado_documento?: string | null
           sacado_nome?: string | null
           source?: string | null
@@ -2573,6 +2660,7 @@ export type Database = {
           valor_atualizado?: number | null
           valor_desconto?: number | null
           valor_original?: number
+          workflow_status?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -2581,6 +2669,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_linked_ap_id_fkey"
+            columns: ["linked_ap_id"]
+            isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_linked_ap_id_fkey"
+            columns: ["linked_ap_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
@@ -2618,10 +2720,15 @@ export type Database = {
           boletos_found: number | null
           boletos_new: number | null
           boletos_updated: number | null
+          cursor_position: string | null
           error_message: string | null
+          finished_at: string | null
           id: string
           metadata: Json | null
+          pluggy_item_id: string | null
+          raw_response_sample: Json | null
           source: string
+          started_at: string | null
           status: string
           synced_at: string
           synced_by: string | null
@@ -2631,10 +2738,15 @@ export type Database = {
           boletos_found?: number | null
           boletos_new?: number | null
           boletos_updated?: number | null
+          cursor_position?: string | null
           error_message?: string | null
+          finished_at?: string | null
           id?: string
           metadata?: Json | null
+          pluggy_item_id?: string | null
+          raw_response_sample?: Json | null
           source?: string
+          started_at?: string | null
           status: string
           synced_at?: string
           synced_by?: string | null
@@ -2644,10 +2756,15 @@ export type Database = {
           boletos_found?: number | null
           boletos_new?: number | null
           boletos_updated?: number | null
+          cursor_position?: string | null
           error_message?: string | null
+          finished_at?: string | null
           id?: string
           metadata?: Json | null
+          pluggy_item_id?: string | null
+          raw_response_sample?: Json | null
           source?: string
+          started_at?: string | null
           status?: string
           synced_at?: string
           synced_by?: string | null
@@ -7604,6 +7721,19 @@ export type Database = {
       mark_events_processed: {
         Args: { p_event_ids: string[] }
         Returns: number
+      }
+      match_dda_with_transactions: {
+        Args: {
+          p_tolerance_amount?: number
+          p_tolerance_days?: number
+          p_workspace_id: string
+        }
+        Returns: {
+          boleto_id: string
+          match_reason: string
+          match_score: number
+          transaction_id: string
+        }[]
       }
       migrate_clients_to_client_cards: {
         Args: { p_workspace_id: string }
