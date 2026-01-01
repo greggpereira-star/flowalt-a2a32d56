@@ -5275,6 +5275,7 @@ export type Database = {
           icon: string | null
           id: string
           is_archived: boolean | null
+          is_system: boolean | null
           name: string
           settings: Json | null
           sort_order: number | null
@@ -5290,6 +5291,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_archived?: boolean | null
+          is_system?: boolean | null
           name: string
           settings?: Json | null
           sort_order?: number | null
@@ -5305,6 +5307,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_archived?: boolean | null
+          is_system?: boolean | null
           name?: string
           settings?: Json | null
           sort_order?: number | null
@@ -7649,6 +7652,7 @@ export type Database = {
         }
         Returns: string
       }
+      fix_space_order: { Args: { p_workspace_id: string }; Returns: number }
       generate_payroll: {
         Args: {
           p_collaborator_id?: string
@@ -7813,6 +7817,10 @@ export type Database = {
             }
             Returns: string
           }
+      reorder_spaces: {
+        Args: { p_items: Json; p_reason?: string; p_workspace_id: string }
+        Returns: Json
+      }
       run_subscription_check_job: { Args: never; Returns: undefined }
       run_warranty_check_job: { Args: never; Returns: undefined }
       store_idempotent_response: {

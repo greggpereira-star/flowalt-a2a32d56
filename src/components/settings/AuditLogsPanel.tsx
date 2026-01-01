@@ -33,6 +33,8 @@ const ACTION_COLORS: Record<string, string> = {
   create: 'bg-green-500/20 text-green-600',
   update: 'bg-blue-500/20 text-blue-600',
   delete: 'bg-red-500/20 text-red-600',
+  reordered: 'bg-purple-500/20 text-purple-600',
+  archived: 'bg-orange-500/20 text-orange-600',
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -45,6 +47,7 @@ const ENTITY_LABELS: Record<string, string> = {
   feature_flags: 'Feature Flag',
   collaborator_details: 'Colaborador',
   sprints: 'Sprint',
+  space: 'Espaço',
 };
 
 export function AuditLogsPanel() {
