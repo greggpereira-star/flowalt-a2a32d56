@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -20,9 +21,10 @@ import {
 } from '@/components/ui/select';
 import { useCreateCard } from '@/hooks/useCards';
 import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Building2, BanknoteIcon } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { statusConfig, urgencyConfig } from './CardBadges';
 
@@ -44,7 +46,25 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const createCard = useCreateCard();
-  const { data: clients } = useClients();
+  const { data: legacyClients } = useClients();
+  const { data: clientCards } = useClientCards();
+
+  // Build combined clients list
+  const allClients = useMemo(() => {
+    const clients: Array<{ id: string; name: string; color: string | null }> = [];
+    
+    legacyClients?.forEach(c => {
+      clients.push({ id: c.id, name: c.name, color: c.color });
+    });
+    
+    clientCards?.forEach(c => {
+      if (!clients.some(existing => existing.id === c.id)) {
+        clients.push({ id: c.id, name: c.name, color: c.color || null });
+      }
+    });
+    
+    return clients.sort((a, b) => a.name.localeCompare(b.name));
+  }, [legacyClients, clientCards]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -183,19 +203,42 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label>Cliente</Label>
+                <Label className="flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Cliente
+                  {!clientId && (
+                    <Badge variant="outline" className="text-[9px] h-4 text-muted-foreground ml-1">
+                      <BanknoteIcon className="h-2.5 w-2.5 mr-0.5" />
+                      Não faturável
+                    </Badge>
+                  )}
+                </Label>
                 <Select
-                  value={clientId}
+                  value={clientId || '__none__'}
                   onValueChange={(v) => setClientId(v === '__none__' ? '' : v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecionar..." />
+                    <SelectValue placeholder="Selecionar cliente..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {clients?.map((client) => (
+                    <SelectItem value="__none__">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <BanknoteIcon className="h-3 w-3" />
+                        Sem cliente (Não faturável)
+                      </div>
+                    </SelectItem>
+                    {allClients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                        <div className="flex items-center gap-2">
+                          {client.color && (
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: client.color }}
+                            />
+                          )}
+                          {!client.color && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                          {client.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
