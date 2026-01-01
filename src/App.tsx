@@ -25,6 +25,7 @@ import GamificationPage from "./pages/GamificationPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PeopleAnalyticsPage from "./pages/PeopleAnalyticsPage";
 import ClientsPage from "./pages/ClientsPage";
+import PluggyOAuthCallback from "./pages/PluggyOAuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <KeyboardShortcutsDialog />
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
               <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
