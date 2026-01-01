@@ -4894,6 +4894,57 @@ export type Database = {
           },
         ]
       }
+      pluggy_items: {
+        Row: {
+          connected_at: string | null
+          connected_by: string | null
+          connector_name: string | null
+          id: string
+          metadata: Json | null
+          pluggy_item_id: string
+          status: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          connected_by?: string | null
+          connector_name?: string | null
+          id?: string
+          metadata?: Json | null
+          pluggy_item_id: string
+          status?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          connected_by?: string | null
+          connector_name?: string | null
+          id?: string
+          metadata?: Json | null
+          pluggy_item_id?: string
+          status?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "pluggy_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_templates: {
         Row: {
           category: string | null
