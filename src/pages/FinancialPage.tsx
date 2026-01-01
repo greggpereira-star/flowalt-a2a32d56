@@ -21,6 +21,7 @@ import { TaxCalculatorWidget } from "@/components/financial/TaxCalculatorWidget"
 import { TaxGuidesPanel } from "@/components/financial/TaxGuidesPanel";
 import { RetentionsPanel } from "@/components/financial/RetentionsPanel";
 import { OFXImporter } from "@/components/financial/OFXImporter";
+import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import {
@@ -39,6 +40,7 @@ import {
   Receipt,
   FileCheck,
   Package,
+  CreditCard,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';

@@ -2478,6 +2478,198 @@ export type Database = {
           },
         ]
       }
+      dda_boletos: {
+        Row: {
+          barcode: string | null
+          category_id: string | null
+          cedente_agencia: string | null
+          cedente_banco: string | null
+          cedente_conta: string | null
+          cedente_documento: string | null
+          cedente_nome: string
+          created_at: string
+          created_by: string | null
+          data_baixa: string | null
+          data_emissao: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          digitable_line: string | null
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          sacado_documento: string | null
+          sacado_nome: string | null
+          source: string | null
+          status: string
+          synced_at: string | null
+          transaction_id: string | null
+          updated_at: string
+          valor_abatimento: number | null
+          valor_atualizado: number | null
+          valor_desconto: number | null
+          valor_original: number
+          workspace_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          category_id?: string | null
+          cedente_agencia?: string | null
+          cedente_banco?: string | null
+          cedente_conta?: string | null
+          cedente_documento?: string | null
+          cedente_nome: string
+          created_at?: string
+          created_by?: string | null
+          data_baixa?: string | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          digitable_line?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          sacado_documento?: string | null
+          sacado_nome?: string | null
+          source?: string | null
+          status?: string
+          synced_at?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          valor_abatimento?: number | null
+          valor_atualizado?: number | null
+          valor_desconto?: number | null
+          valor_original: number
+          workspace_id: string
+        }
+        Update: {
+          barcode?: string | null
+          category_id?: string | null
+          cedente_agencia?: string | null
+          cedente_banco?: string | null
+          cedente_conta?: string | null
+          cedente_documento?: string | null
+          cedente_nome?: string
+          created_at?: string
+          created_by?: string | null
+          data_baixa?: string | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          digitable_line?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          sacado_documento?: string | null
+          sacado_nome?: string | null
+          source?: string | null
+          status?: string
+          synced_at?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          valor_abatimento?: number | null
+          valor_atualizado?: number | null
+          valor_desconto?: number | null
+          valor_original?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dda_boletos_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "card_financial_history_view"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dda_boletos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dda_sync_logs: {
+        Row: {
+          boletos_found: number | null
+          boletos_new: number | null
+          boletos_updated: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          source: string
+          status: string
+          synced_at: string
+          synced_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          boletos_found?: number | null
+          boletos_new?: number | null
+          boletos_updated?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string
+          status: string
+          synced_at?: string
+          synced_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          boletos_found?: number | null
+          boletos_new?: number | null
+          boletos_updated?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string
+          status?: string
+          synced_at?: string
+          synced_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dda_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dda_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dependencies: {
         Row: {
           blocking_card_id: string | null
