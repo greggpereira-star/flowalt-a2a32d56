@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, Link2, Unlink, Building2, RefreshCw, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Unlink, Building2, RefreshCw, Plus, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
@@ -18,11 +17,49 @@ interface PluggyItem {
   connected_at: string;
 }
 
+// Pluggy Connect URL base
+const PLUGGY_CONNECT_URL = 'https://connect.pluggy.ai';
+
 export function PluggyConnectButton() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Listen for messages from Pluggy Connect popup
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      // Only accept messages from Pluggy
+      if (!event.origin.includes('pluggy.ai')) return;
+
+      console.log('Received message from Pluggy:', event.data);
+
+      if (event.data?.type === 'pluggy-connect-success' && event.data?.itemId) {
+        try {
+          const { error: saveError } = await supabase.functions.invoke('integration-manager', {
+            body: {
+              action: 'pluggy_save_item',
+              workspace_id: currentWorkspace?.id,
+              item_id: event.data.itemId,
+              connector_name: event.data.connectorName || 'Banco',
+            },
+          });
+
+          if (saveError) throw saveError;
+
+          queryClient.invalidateQueries({ queryKey: ['pluggy-items'] });
+          queryClient.invalidateQueries({ queryKey: ['dda-sync-status'] });
+          toast.success('Conta bancária conectada com sucesso!');
+        } catch (err) {
+          console.error('Error saving Pluggy item:', err);
+          toast.error('Erro ao salvar conexão bancária');
+        }
+        setIsConnecting(false);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [currentWorkspace?.id, queryClient]);
 
   // Fetch connected items
   const { data: connectedItems, isLoading: isLoadingItems, refetch: refetchItems } = useQuery({
@@ -70,7 +107,7 @@ export function PluggyConnectButton() {
     },
   });
 
-  // Open Pluggy Connect widget
+  // Open Pluggy Connect in a new window
   const openPluggyConnect = useCallback(async () => {
     if (!currentWorkspace?.id) {
       toast.error('Workspace não selecionado');
@@ -96,59 +133,42 @@ export function PluggyConnectButton() {
         throw new Error('Token de conexão não recebido');
       }
 
-      // Dynamically import Pluggy Connect SDK
-      const { PluggyConnect } = await import('pluggy-connect-sdk');
+      // Build Pluggy Connect URL with parameters
+      const connectUrl = new URL(PLUGGY_CONNECT_URL);
+      connectUrl.searchParams.set('connect_token', connectToken);
+      connectUrl.searchParams.set('language', 'pt');
+      connectUrl.searchParams.set('country', 'BR');
+      
+      // Open in new window/tab
+      const popup = window.open(
+        connectUrl.toString(),
+        'pluggy-connect',
+        'width=500,height=700,left=200,top=100,scrollbars=yes,resizable=yes'
+      );
 
-      const pluggyConnect = new PluggyConnect({
-        connectToken,
-        includeSandbox: false, // Set to true for testing
-        language: 'pt',
-        theme: 'light',
-        countries: ['BR'],
-        onSuccess: async (itemData: { item: { id: string; connector?: { name?: string } } }) => {
-          console.log('Pluggy Connect success:', itemData);
-          
-          // Save item to database
-          try {
-            const { error: saveError } = await supabase.functions.invoke('integration-manager', {
-              body: {
-                action: 'pluggy_save_item',
-                workspace_id: currentWorkspace.id,
-                item_id: itemData.item.id,
-                connector_name: itemData.item.connector?.name,
-              },
-            });
+      if (!popup) {
+        toast.error('Popup bloqueado. Permita popups para este site.');
+        setIsConnecting(false);
+        return;
+      }
 
-            if (saveError) throw saveError;
-
-            queryClient.invalidateQueries({ queryKey: ['pluggy-items'] });
-            queryClient.invalidateQueries({ queryKey: ['dda-sync-status'] });
-            toast.success('Conta bancária conectada com sucesso!');
-            setDialogOpen(false);
-          } catch (err) {
-            console.error('Error saving Pluggy item:', err);
-            toast.error('Erro ao salvar conexão bancária');
-          }
-          
+      // Monitor popup close
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
           setIsConnecting(false);
-        },
-        onError: (error: { message: string }) => {
-          console.error('Pluggy Connect error:', error);
-          toast.error(error.message || 'Erro ao conectar conta bancária');
-          setIsConnecting(false);
-        },
-        onClose: () => {
-          setIsConnecting(false);
-        },
-      });
+          // Refresh items in case connection was made
+          refetchItems();
+        }
+      }, 500);
 
-      pluggyConnect.init();
+      toast.info('Complete a conexão na janela aberta');
     } catch (err) {
       console.error('Error opening Pluggy Connect:', err);
       toast.error(err instanceof Error ? err.message : 'Erro ao abrir conexão bancária');
       setIsConnecting(false);
     }
-  }, [currentWorkspace?.id, queryClient]);
+  }, [currentWorkspace?.id, refetchItems]);
 
   const hasConnectedAccounts = (connectedItems?.length || 0) > 0;
 
