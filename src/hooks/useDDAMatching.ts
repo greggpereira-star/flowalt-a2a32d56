@@ -115,12 +115,15 @@ export function useAutoReconcileDDA() {
         const endDate = new Date(dueDateObj);
         endDate.setDate(endDate.getDate() + 5);
 
+        // Only search for paid expense transactions not already linked
         const { data: transactions } = await supabase
           .from('transactions')
-          .select('id, amount, due_date, paid_date')
+          .select('id, amount, due_date, paid_date, description')
           .eq('workspace_id', currentWorkspace.id)
           .eq('type', 'expense')
-          .eq('status', 'paid');
+          .eq('status', 'paid')
+          .gte('paid_date', startDate.toISOString().split('T')[0])
+          .lte('paid_date', endDate.toISOString().split('T')[0]);
 
         // Find high-confidence match
         const match = (transactions || []).find((t) => {

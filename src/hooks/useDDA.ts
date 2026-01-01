@@ -85,6 +85,7 @@ export function useDDABoletos(filters?: {
         .from('dda_boletos')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
+        .is('deleted_at', null) // Filter out soft-deleted boletos
         .order('data_vencimento', { ascending: true });
 
       if (filters?.status && filters.status !== 'all') {
