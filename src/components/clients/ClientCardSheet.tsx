@@ -32,10 +32,12 @@ import {
   AlertTriangle,
   Lock,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { ClientReportTab } from './ClientReportTab';
 
 interface ClientCardSheetProps {
   clientId: string | null;
@@ -789,7 +791,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
             {/* Tabs com scroll */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="w-full grid grid-cols-6 h-auto">
+                <TabsList className="w-full grid grid-cols-7 h-auto">
                   <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-1">
                     <Building2 className="h-4 w-4" />
                     <span className="text-[10px]">Identidade</span>
@@ -809,6 +811,10 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-1">
                     <FileText className="h-4 w-4" />
                     <span className="text-[10px]">Contrato</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="text-[10px]">Relatório</span>
                   </TabsTrigger>
                   <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-1">
                     <DollarSign className="h-4 w-4" />
@@ -839,6 +845,9 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <TabsContent value="contract" className="mt-0 focus-visible:outline-none">
                     <ContractTab formData={formData} setFormData={setFormData} />
                   </TabsContent>
+                  <TabsContent value="report" className="mt-0 focus-visible:outline-none">
+                    <ClientReportTab clientId={client.id} />
+                  </TabsContent>
                   <TabsContent value="financial" className="mt-0 focus-visible:outline-none">
                     <FinancialTab clientId={client.id} canViewFinancials={canEditFinancials} />
                   </TabsContent>
@@ -847,7 +856,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
             </Tabs>
 
             {/* Footer fixo - só aparece em abas editáveis (não financeiro) */}
-            {activeTab !== 'financial' && (
+            {activeTab !== 'financial' && activeTab !== 'report' && (
               <div className="p-4 border-t flex-shrink-0 bg-background">
                 <Button 
                   onClick={handleSave} 
