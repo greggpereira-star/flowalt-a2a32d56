@@ -52,6 +52,7 @@ import {
   MoreHorizontal,
   Trash2,
   Edit,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -366,16 +367,16 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
           className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
           onClick={handleToggleSpace}
         >
-          {isSpaceCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          )}
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: spaceColor }}
+          <Share2 
+            className="h-4 w-4 flex-shrink-0" 
+            style={{ color: spaceColor }}
           />
           <span className="text-sm font-medium truncate">{spaceName}</span>
+          {isSpaceCollapsed ? (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          )}
         </div>
         <div className="flex items-center gap-0.5">
           {/* Expand/Collapse All - mostra se tem pelo menos 1 pasta */}
