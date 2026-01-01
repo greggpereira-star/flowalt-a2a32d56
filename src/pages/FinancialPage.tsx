@@ -142,6 +142,10 @@ export default function FinancialPage() {
                     <Calculator className="w-4 h-4" />
                     <span>Config. Fiscal</span>
                   </TabsTrigger>
+                  <TabsTrigger value="dda" variant="wrap" className="gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    <span>DDA</span>
+                  </TabsTrigger>
                   <TabsTrigger value="inventory" variant="wrap" className="gap-2">
                     <Package className="w-4 h-4" />
                     <span>Almoxarifado</span>
@@ -241,6 +245,10 @@ export default function FinancialPage() {
                         <TaxCalculatorWidget />
                       </div>
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="dda" className="mt-0 animate-in fade-in-50 duration-300">
+                    <DDAPanel />
                   </TabsContent>
 
                   <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
