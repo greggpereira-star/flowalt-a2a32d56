@@ -6605,6 +6605,13 @@ export type Database = {
             referencedRelation: "webhook_subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "webhook_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       webhook_subscriptions: {
@@ -7849,9 +7856,75 @@ export type Database = {
           },
         ]
       }
+      webhook_subscriptions_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          events: string[] | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          secret: string | null
+          updated_at: string | null
+          url: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          events?: string[] | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          secret?: never
+          updated_at?: string | null
+          url?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          events?: string[] | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          secret?: never
+          updated_at?: string | null
+          url?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "webhook_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      accept_workspace_invite: { Args: { p_token: string }; Returns: Json }
+      accept_workspace_invite:
+        | {
+            Args: { p_token: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.accept_workspace_invite(p_token => text), public.accept_workspace_invite(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { p_token: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.accept_workspace_invite(p_token => text), public.accept_workspace_invite(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       add_user_score: {
         Args: { p_points: number; p_user_id: string; p_workspace_id: string }
         Returns: undefined
@@ -8061,6 +8134,14 @@ export type Database = {
           version: number
         }[]
       }
+      has_active_support_session: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: {
+          expires_at: string
+          is_active: boolean
+          mode: string
+        }[]
+      }
       has_admin_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -8090,6 +8171,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin_with_session: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
+      is_super_admin_with_write_session: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }

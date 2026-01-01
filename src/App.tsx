@@ -30,6 +30,7 @@ import PluggyOAuthCallback from "./pages/PluggyOAuthCallback";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import FirstAccessPage from "./pages/FirstAccessPage";
 import PlatformAdminPage from "./pages/PlatformAdminPage";
+import SecurityAuditPage from "./pages/SecurityAuditPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/first-access" element={<AuthGuard><FirstAccessPage /></AuthGuard>} />
               <Route path="/platform" element={<AuthGuard><PlatformAdminPage /></AuthGuard>} />
+              <Route path="/security-audit" element={<AuthGuard><SecurityAuditPage /></AuthGuard>} />
               <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
               <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
               <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
