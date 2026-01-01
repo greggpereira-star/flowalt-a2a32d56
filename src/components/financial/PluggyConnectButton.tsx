@@ -93,6 +93,7 @@ export function PluggyConnectButton() {
     // O widget costuma falhar dentro de previews embutidos (iframes)
     if (isEmbedded) {
       toast.error('Abra o app em uma nova aba para conectar sua conta.');
+      openAppInNewTab();
       return;
     }
 
@@ -161,7 +162,7 @@ export function PluggyConnectButton() {
       toast.error(err instanceof Error ? err.message : 'Erro ao abrir conexão bancária');
       setIsConnecting(false);
     }
-  }, [currentWorkspace?.id, isEmbedded, queryClient, refetchItems]);
+  }, [currentWorkspace?.id, isEmbedded, openAppInNewTab, queryClient, refetchItems]);
 
   const hasConnectedAccounts = (connectedItems?.length || 0) > 0;
 

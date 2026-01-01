@@ -158,7 +158,9 @@ serve(async (req: Request) => {
         }
         const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
         if (!allowed) return forbidden();
-        return await createPluggyConnectToken(supabase, workspaceId);
+
+        const requestOrigin = req.headers.get('origin') || req.headers.get('referer');
+        return await createPluggyConnectToken(supabase, workspaceId, requestOrigin);
       }
       case 'pluggy_save_item': {
         const workspaceId = body?.workspace_id as string;
@@ -765,7 +767,8 @@ async function ddaAddManualBoleto(
 
 async function createPluggyConnectToken(
   supabase: any,
-  workspaceId: string
+  workspaceId: string,
+  requestOrigin?: string | null
 ): Promise<Response> {
   console.log(`Pluggy: Creating connect token for workspace ${workspaceId}`);
 
@@ -811,6 +814,28 @@ async function createPluggyConnectToken(
     const authData = await authResponse.json();
     const apiKey = authData.apiKey;
 
+    // Some connectors (ex: Nubank) require OAuth in a popup/tab.
+    // Pluggy recommends setting oauthRedirectUri when generating the connect token.
+    let oauthRedirectUri: string | undefined;
+    if (requestOrigin) {
+      try {
+        const url = new URL(requestOrigin);
+        if (url.protocol === 'https:') {
+          oauthRedirectUri = `${url.origin}/pluggy/oauth/callback`;
+        }
+      } catch {
+        // ignore invalid origin
+      }
+    }
+
+    const connectTokenPayload: Record<string, unknown> = {};
+    if (oauthRedirectUri) {
+      connectTokenPayload.options = { oauthRedirectUri };
+      console.log(`Pluggy: Using oauthRedirectUri ${oauthRedirectUri}`);
+    } else {
+      console.log('Pluggy: No oauthRedirectUri provided (origin not available)');
+    }
+
     // Create connect token
     const tokenResponse = await fetch('https://api.pluggy.ai/connect_token', {
       method: 'POST',
@@ -818,10 +843,7 @@ async function createPluggyConnectToken(
         'Content-Type': 'application/json',
         'X-API-KEY': apiKey
       },
-      body: JSON.stringify({
-        // Optional: configure which products to enable
-        // products: ['IDENTITY', 'ACCOUNTS', 'TRANSACTIONS', 'PAYMENT_DATA', 'BROKERAGE_ACCOUNTS', 'INVESTMENTS']
-      })
+      body: JSON.stringify(connectTokenPayload)
     });
 
     if (!tokenResponse.ok) {
