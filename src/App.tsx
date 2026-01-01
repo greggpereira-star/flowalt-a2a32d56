@@ -21,6 +21,7 @@ import AgendaPage from "./pages/AgendaPage";
 import FinancialPage from "./pages/FinancialPage";
 import PartnersPage from "./pages/PartnersPage";
 import SettingsPage from "./pages/SettingsPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 import GamificationPage from "./pages/GamificationPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PeopleAnalyticsPage from "./pages/PeopleAnalyticsPage";
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/financial" element={<AuthGuard><FinancialPage /></AuthGuard>} />
               <Route path="/partners" element={<AuthGuard><PartnersPage /></AuthGuard>} />
               <Route path="/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
+              <Route path="/integrations" element={<AuthGuard><IntegrationsPage /></AuthGuard>} />
               <Route path="/gamification" element={<AuthGuard><GamificationPage /></AuthGuard>} />
               <Route path="/analytics" element={<AuthGuard><AnalyticsPage /></AuthGuard>} />
               <Route path="/people-analytics" element={<AuthGuard><PeopleAnalyticsPage /></AuthGuard>} />

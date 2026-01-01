@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
+import { usePermissions } from '@/hooks/usePermissions';
 import { SocialMediaTreeNav } from '@/components/social-media/SocialMediaTreeNav';
 import {
   LayoutDashboard,
@@ -51,6 +52,7 @@ import {
   Trophy,
   TrendingUp,
   UserCircle,
+  Plug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -72,15 +74,24 @@ const mainNavItems = [
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
 ];
 
-const managementItems = [
-  { icon: Users, label: 'Coordenação', path: '/coordination' },
-  { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
-  { icon: DollarSign, label: 'Financeiro', path: '/financial' },
-  { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
-  { icon: Trophy, label: 'Ranking', path: '/gamification' },
-  { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
-  { icon: Settings, label: 'API & Integrações', path: '/settings' },
-];
+// Management items - will be filtered based on permissions
+const getManagementItems = (hasIntegrationAccess: boolean) => {
+  const items = [
+    { icon: Users, label: 'Coordenação', path: '/coordination' },
+    { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
+    { icon: DollarSign, label: 'Financeiro', path: '/financial' },
+    { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
+    { icon: Trophy, label: 'Ranking', path: '/gamification' },
+    { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
+  ];
+  
+  // Only show integrations link if user has access
+  if (hasIntegrationAccess) {
+    items.push({ icon: Plug, label: 'API & Integrações', path: '/integrations' });
+  }
+  
+  return items;
+};
 
 export const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -88,6 +99,11 @@ export const AppSidebar: React.FC = () => {
   const { user, signOut } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const { data: spaces, isLoading: spacesLoading } = useSpaces();
+  const { isAdmin, isCoordinator } = usePermissions();
+  
+  // Permission check: Owner, Admin, or Coordinator can access integrations
+  const hasIntegrationAccess = isAdmin || isCoordinator;
+  const managementItems = getManagementItems(hasIntegrationAccess);
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')
@@ -231,7 +247,7 @@ export const AppSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
-                    isActive={location.pathname === item.path}
+                    isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '?')}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>

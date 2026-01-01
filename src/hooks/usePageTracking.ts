@@ -13,6 +13,7 @@ export type ModuleName =
   | 'gamification'
   | 'analytics'
   | 'settings'
+  | 'integrations'
   | 'spaces'
   | 'cards'
   | 'time_tracking'
@@ -29,6 +30,7 @@ const ROUTE_TO_MODULE: Record<string, ModuleName> = {
   '/gamification': 'gamification',
   '/analytics': 'analytics',
   '/settings': 'settings',
+  '/integrations': 'integrations',
   '/people-analytics': 'people_analytics',
 };
 
