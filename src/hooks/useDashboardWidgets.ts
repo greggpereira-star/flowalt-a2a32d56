@@ -7,7 +7,8 @@ export type WidgetId =
   | 'today-deadlines'
   | 'today-events'
   | 'quick-tasks'
-  | 'recent-activity';
+  | 'recent-activity'
+  | 'client-health';
 
 export interface WidgetConfig {
   id: WidgetId;
@@ -19,12 +20,13 @@ export interface WidgetConfig {
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: 'work-radar', label: 'Work Radar', description: 'Visão rápida do trabalho', enabled: true, order: 0 },
-  { id: 'pending-tasks', label: 'Tarefas Pendentes', description: 'Cards aguardando ação', enabled: true, order: 1 },
-  { id: 'active-timer', label: 'Timer Ativo', description: 'Cronômetro em execução', enabled: true, order: 2 },
-  { id: 'today-deadlines', label: 'Prazos de Hoje', description: 'Cards com vencimento hoje', enabled: true, order: 3 },
-  { id: 'today-events', label: 'Eventos de Hoje', description: 'Reuniões e compromissos', enabled: true, order: 4 },
-  { id: 'quick-tasks', label: 'Acesso Rápido', description: 'Minhas tarefas', enabled: true, order: 5 },
-  { id: 'recent-activity', label: 'Atividade Recente', description: 'Últimas atualizações', enabled: true, order: 6 },
+  { id: 'client-health', label: 'Saúde dos Clientes', description: 'Status e alertas de clientes', enabled: true, order: 1 },
+  { id: 'pending-tasks', label: 'Tarefas Pendentes', description: 'Cards aguardando ação', enabled: true, order: 2 },
+  { id: 'active-timer', label: 'Timer Ativo', description: 'Cronômetro em execução', enabled: true, order: 3 },
+  { id: 'today-deadlines', label: 'Prazos de Hoje', description: 'Cards com vencimento hoje', enabled: true, order: 4 },
+  { id: 'today-events', label: 'Eventos de Hoje', description: 'Reuniões e compromissos', enabled: true, order: 5 },
+  { id: 'quick-tasks', label: 'Acesso Rápido', description: 'Minhas tarefas', enabled: true, order: 6 },
+  { id: 'recent-activity', label: 'Atividade Recente', description: 'Últimas atualizações', enabled: true, order: 7 },
 ];
 
 const STORAGE_KEY = 'flowalt_dashboard_widgets';
