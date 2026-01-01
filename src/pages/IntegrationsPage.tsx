@@ -82,6 +82,10 @@ export default function IntegrationsPage() {
   const navigate = useNavigate();
   const { canManageApiKeys, canManageWebhooks, isAdmin, isCoordinator } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Check entitlement for integrations
+  const hasIntegrationsEntitlement = useHasEntitlement('integrations.enabled');
+  const hasWebhookReplayEntitlement = useHasEntitlement('webhooks.replay');
 
   // Permission check: Owner, Admin, or Coordinator
   const hasAccess = isAdmin || isCoordinator;
@@ -98,7 +102,7 @@ export default function IntegrationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTab]);
 
-  // If user doesn't have access, show unauthorized message
+  // If user doesn't have access (role-based), show unauthorized message
   if (!hasAccess) {
     return (
       <AppLayout>
@@ -106,6 +110,18 @@ export default function IntegrationsPage() {
           <title>API & Integrações - Acesso Restrito</title>
         </Helmet>
         <UnauthorizedAccess />
+      </AppLayout>
+    );
+  }
+
+  // If user doesn't have integrations entitlement (plan-based), show paywall
+  if (!hasIntegrationsEntitlement) {
+    return (
+      <AppLayout>
+        <Helmet>
+          <title>API & Integrações - Upgrade Necessário</title>
+        </Helmet>
+        <IntegrationsPaywall />
       </AppLayout>
     );
   }
@@ -230,7 +246,9 @@ export default function IntegrationsPage() {
             <WebhookHealthScore />
           </TabsContent>
           <TabsContent value="webhook-dlq">
-            <WebhookReplayPanel />
+            <PlanGate featureKey="webhooks.replay" requiredTier="enterprise">
+              <WebhookReplayPanel />
+            </PlanGate>
           </TabsContent>
           <TabsContent value="webhook-monitor">
             <WebhookDashboard />

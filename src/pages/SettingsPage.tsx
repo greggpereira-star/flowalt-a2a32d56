@@ -249,6 +249,10 @@ export default function SettingsPage() {
                     <PieChart className="h-5 w-5" />
                     <span className="text-xs font-medium">Uso</span>
                   </TabsTrigger>
+                  <TabsTrigger value="billing" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <CreditCard className="h-5 w-5" />
+                    <span className="text-xs font-medium">Plano</span>
+                  </TabsTrigger>
                 </>
               )}
               
@@ -313,6 +317,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="usage">
             <UsageAnalyticsDashboard />
+          </TabsContent>
+          <TabsContent value="billing">
+            <BillingPlanPage />
           </TabsContent>
 
           {/* Super Admin */}
