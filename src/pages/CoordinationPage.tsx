@@ -18,6 +18,7 @@ import {
   Target,
   Brain,
   Activity,
+  Heart,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ import { DependencyManager } from '@/components/coordination/DependencyManager';
 import { SprintManager } from '@/components/coordination/SprintManager';
 import { MetricsPanel } from '@/components/coordination/MetricsPanel';
 import { WorkflowMetricsPanel } from '@/components/coordination/WorkflowMetricsPanel';
+import { ClientMetricsPanel } from '@/components/coordination/ClientMetricsPanel';
 import { CapacityPlanner } from '@/components/coordination/CapacityPlanner';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useMemberCapacity } from '@/hooks/useWorkspaceMembers';
@@ -264,8 +266,8 @@ const CoordinationPage: React.FC = () => {
 
         <Tabs defaultValue="bottlenecks" className="space-y-4">
           <TabsList className="flex h-auto p-4 bg-gradient-to-b from-muted/50 to-muted/30 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm w-full">
-            {/* 10 columns grid */}
-            <div className="grid grid-cols-10 gap-2 w-full">
+            {/* 11 columns grid */}
+            <div className="grid grid-cols-11 gap-2 w-full">
               <TabsTrigger 
                 value="bottlenecks" 
                 className="flex flex-col items-center gap-1 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
@@ -355,6 +357,15 @@ const CoordinationPage: React.FC = () => {
                   <Zap className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-medium">Sprints</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="clients" 
+                className="flex flex-col items-center gap-1 p-2 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=active]:shadow-primary/10 transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+              >
+                <div className="p-1.5 rounded-lg bg-muted/50">
+                  <Heart className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium">Clientes</span>
               </TabsTrigger>
             </div>
           </TabsList>
@@ -465,6 +476,10 @@ const CoordinationPage: React.FC = () => {
 
           <TabsContent value="sprints">
             <SprintManager />
+          </TabsContent>
+
+          <TabsContent value="clients">
+            <ClientMetricsPanel />
           </TabsContent>
         </Tabs>
       </div>
