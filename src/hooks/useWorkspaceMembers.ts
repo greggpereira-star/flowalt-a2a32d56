@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
+import type { AppRole } from '@/lib/supabase';
 
 export interface WorkspaceMember {
   id: string;
@@ -10,6 +12,7 @@ export interface WorkspaceMember {
   department: string | null;
   is_active: boolean;
   joined_at: string;
+  role?: AppRole;
   profile?: {
     full_name: string | null;
     email: string;
@@ -43,12 +46,61 @@ export const useWorkspaceMembers = () => {
 
       if (profilesError) throw profilesError;
 
+      // Fetch roles for each member
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('workspace_id', currentWorkspace.id)
+        .in('user_id', memberIds);
+
+      if (rolesError) throw rolesError;
+
       return members.map(member => ({
         ...member,
         profile: profiles?.find(p => p.id === member.user_id),
+        role: roles?.find(r => r.user_id === member.user_id)?.role as AppRole | undefined,
       })) as WorkspaceMember[];
     },
     enabled: !!currentWorkspace?.id,
+  });
+};
+
+/**
+ * Hook to remove a member from the workspace
+ */
+export const useRemoveWorkspaceMember = () => {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      if (!currentWorkspace?.id) throw new Error('No workspace selected');
+
+      // Deactivate member
+      const { error } = await supabase
+        .from('workspace_members')
+        .update({ is_active: false })
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Remove role
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('user_id', userId);
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace_members'] });
+      toast.success('Membro removido do workspace');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao remover membro');
+    },
   });
 };
 
