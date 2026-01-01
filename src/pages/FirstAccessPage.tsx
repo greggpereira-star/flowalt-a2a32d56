@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { LogOut } from 'lucide-react';
 import { 
   Plus, 
   Mail, 
@@ -47,7 +48,7 @@ const USE_OBJECTIVES = [
 
 export default function FirstAccessPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { createWorkspace, refreshWorkspaces } = useWorkspace();
   
   const [step, setStep] = useState<Step>('choice');
@@ -196,9 +197,23 @@ export default function FirstAccessPage() {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-8">
-            Logado como {user?.email}
-          </p>
+          <div className="text-center mt-8 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Logado como {user?.email}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}
+              className="text-xs text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="h-3 w-3 mr-1" />
+              Sair
+            </Button>
+          </div>
         </div>
       </div>
     );
