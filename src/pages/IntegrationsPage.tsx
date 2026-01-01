@@ -18,6 +18,8 @@ import { ConnectorsPanel } from '@/components/settings/ConnectorsPanel';
 import { PredictiveSyncPanel } from '@/components/settings/PredictiveSyncPanel';
 import { FeatureFlagsManager } from '@/components/settings/FeatureFlagsManager';
 import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
+import { IntegrationsPaywall } from '@/components/billing/IntegrationsPaywall';
+import { PlanGate } from '@/components/billing/PlanGate';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { useHasEntitlement } from '@/hooks/useWorkspacePlan';
 
 const INTEGRATION_TABS = new Set([
   'api-keys',
