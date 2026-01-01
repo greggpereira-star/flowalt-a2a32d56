@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,8 +49,8 @@ const USE_OBJECTIVES = [
 export default function FirstAccessPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { createWorkspace, refreshWorkspaces } = useWorkspace();
-  
+  const { createWorkspace, refreshWorkspaces, workspaces, loading: workspaceLoading } = useWorkspace();
+
   const [step, setStep] = useState<Step>('choice');
   const [isCreating, setIsCreating] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -64,6 +64,13 @@ export default function FirstAccessPage() {
   
   // Formulário de convite
   const [inviteToken, setInviteToken] = useState('');
+
+  useEffect(() => {
+    // Se o usuário já tem workspace, não faz sentido ficar preso no onboarding.
+    if (!workspaceLoading && workspaces.length > 0) {
+      navigate('/');
+    }
+  }, [navigate, workspaceLoading, workspaces.length]);
 
   const toggleObjective = (id: string) => {
     setObjectives(prev => 
