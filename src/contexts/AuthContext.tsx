@@ -49,16 +49,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
-      email,
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: fullName,
+          full_name: fullName.trim(),
         },
       },
     });
+    
+    // Se retornou usuário mas sem session, pode ser que o email já existe
+    // (Supabase retorna user fake quando email já existe por segurança)
+    if (data?.user && !data.session && !data.user.identities?.length) {
+      return { 
+        error: new Error('Este email já está cadastrado. Tente fazer login.') 
+      };
+    }
+    
     return { error };
   };
 
