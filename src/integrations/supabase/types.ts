@@ -331,6 +331,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "api_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "api_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -371,6 +378,13 @@ export type Database = {
             columns: ["api_key_id"]
             isOneToOne: false
             referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_rate_limits_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7105,6 +7119,69 @@ export type Database = {
       }
     }
     Views: {
+      api_keys_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          key_prefix: string | null
+          last_used_at: string | null
+          name: string | null
+          permissions: string[] | null
+          rate_limit_per_hour: number | null
+          rate_limit_per_minute: number | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          permissions?: string[] | null
+          rate_limit_per_hour?: number | null
+          rate_limit_per_minute?: number | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          permissions?: string[] | null
+          rate_limit_per_hour?: number | null
+          rate_limit_per_minute?: number | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "api_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_financial_history_view: {
         Row: {
           amount: number | null
@@ -7844,6 +7921,10 @@ export type Database = {
         Args: { _card_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_sensitive_financial: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       change_member_role: {
         Args: {
           p_new_role: Database["public"]["Enums"]["app_role"]
@@ -8006,6 +8087,10 @@ export type Database = {
       }
       is_folder_owner: {
         Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_super_admin_with_session: {
+        Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
       is_workspace_member: {
