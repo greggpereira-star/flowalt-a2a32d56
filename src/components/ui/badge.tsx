@@ -31,19 +31,24 @@ const badgeVariants = cva(
   },
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
   dot?: boolean;
 }
 
-function Badge({ className, variant, size, dot, children, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant, size }), className)} {...props}>
-      {dot && (
-        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current animate-pulse-subtle" />
-      )}
-      {children}
-    </div>
-  );
-}
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, size, dot, children, ...props }, ref) => {
+    return (
+      <div ref={ref} className={cn(badgeVariants({ variant, size }), className)} {...props}>
+        {dot && (
+          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current animate-pulse-subtle" />
+        )}
+        {children}
+      </div>
+    );
+  }
+);
+Badge.displayName = 'Badge';
 
 export { Badge, badgeVariants };

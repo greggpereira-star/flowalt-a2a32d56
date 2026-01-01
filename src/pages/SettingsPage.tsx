@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager';
@@ -30,6 +30,7 @@ import { WorkflowBuilder } from '@/components/workflow/WorkflowBuilder';
 import { QAChecklist } from '@/components/settings/QAChecklist';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
@@ -39,10 +40,52 @@ import {
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
+const SETTINGS_TABS = new Set([
+  'qa-checklist',
+  'workflow',
+  'onboarding',
+  'automations',
+  'templates',
+  'marketplace',
+  'connectors',
+  'predictive',
+  'api-keys',
+  'webhooks',
+  'webhook-health',
+  'webhook-dlq',
+  'events',
+  'monitoring',
+  'api-metrics',
+  'api-logs',
+  'system',
+  'feature-flags',
+  'usage',
+  'audit',
+  'docs',
+  'api-tester',
+  'super-admin',
+  'push',
+  'health',
+  'backup',
+]);
+
 export default function SettingsPage() {
   usePageTracking('settings');
   const { currentWorkspace } = useWorkspace();
-  const [activeTab, setActiveTab] = useState('onboarding');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialTab = useMemo(() => {
+    const tab = searchParams.get('tab');
+    return tab && SETTINGS_TABS.has(tab) ? tab : 'onboarding';
+  }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    // Keep in sync with URL (?tab=connectors)
+    if (initialTab !== activeTab) setActiveTab(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab]);
 
   return (
     <AppLayout>
@@ -63,7 +106,18 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) => {
+            setActiveTab(tab);
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set('tab', tab);
+              return next;
+            });
+          }}
+          className="space-y-8"
+        >
           <div className="flex justify-center px-4 md:px-8 lg:px-12">
             <TabsList className="grid grid-cols-5 sm:grid-cols-10 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-5xl w-full">
               <TabsTrigger value="qa-checklist" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
