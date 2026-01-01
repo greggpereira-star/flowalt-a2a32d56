@@ -168,7 +168,7 @@ export function usePromoteToOwner() {
 
       const { data, error } = await supabase.rpc('promote_to_owner', {
         p_workspace_id: currentWorkspace.id,
-        p_user_id: userId,
+        p_target_user_id: userId,
       });
 
       if (error) throw error;

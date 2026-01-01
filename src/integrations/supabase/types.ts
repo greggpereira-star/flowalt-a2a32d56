@@ -4959,6 +4959,24 @@ export type Database = {
           },
         ]
       }
+      platform_super_admins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pluggy_items: {
         Row: {
           connected_at: string | null
@@ -5727,6 +5745,60 @@ export type Database = {
           },
           {
             foreignKeyName: "subscription_licenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          mode: string
+          reason: string
+          scope: Json | null
+          started_at: string
+          super_admin_user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          mode?: string
+          reason: string
+          scope?: Json | null
+          started_at?: string
+          super_admin_user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          mode?: string
+          reason?: string
+          scope?: Json | null
+          started_at?: string
+          super_admin_user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "support_sessions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -7768,18 +7840,6 @@ export type Database = {
           next_level_score: number
         }[]
       }
-      can_access_card: {
-        Args: { _card_id: string; _user_id: string }
-        Returns: boolean
-      }
-      can_access_folder: {
-        Args: { _folder_id: string; _user_id: string }
-        Returns: boolean
-      }
-      can_access_space: {
-        Args: { _space_id: string; _user_id: string }
-        Returns: boolean
-      }
       can_receive_card_notification: {
         Args: { _card_id: string; _user_id: string }
         Returns: boolean
@@ -7996,8 +8056,8 @@ export type Database = {
         Returns: number
       }
       promote_to_owner: {
-        Args: { p_user_id: string; p_workspace_id: string }
-        Returns: Json
+        Args: { p_target_user_id: string; p_workspace_id: string }
+        Returns: boolean
       }
       record_metric:
         | {
@@ -8040,14 +8100,19 @@ export type Database = {
         }
         Returns: undefined
       }
-      transfer_ownership: {
-        Args: {
-          p_demote_self?: boolean
-          p_new_owner_id: string
-          p_workspace_id: string
-        }
-        Returns: Json
-      }
+      transfer_ownership:
+        | {
+            Args: { p_new_owner_id: string; p_workspace_id: string }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_demote_self?: boolean
+              p_new_owner_id: string
+              p_workspace_id: string
+            }
+            Returns: Json
+          }
       update_goal_progress: {
         Args: {
           p_goal_type: string
