@@ -59,7 +59,7 @@ export interface WorkspaceMetadata {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
@@ -67,6 +67,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [loading, setLoading] = useState(true);
 
   const fetchWorkspaces = async () => {
+    // Keep provider in loading state while auth is still resolving.
+    // This prevents false redirects to onboarding during the login transition.
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
+    setLoading(true);
+
     if (!user) {
       setWorkspaces([]);
       setCurrentWorkspace(null);
@@ -91,7 +100,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
-      const workspaceIds = members.map(m => m.workspace_id);
+      const workspaceIds = members.map((m) => m.workspace_id);
 
       const { data: workspacesData, error: workspacesError } = await supabase
         .from('workspaces')
@@ -148,8 +157,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [user, currentWorkspace]);
 
   useEffect(() => {
+    // Wait for auth to finish; otherwise we can briefly think the user has 0 workspaces.
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
     fetchWorkspaces();
-  }, [user]);
+  }, [user, authLoading]);
 
   const createWorkspace = async (name: string, metadata?: WorkspaceMetadata): Promise<{ error: Error | null; workspace?: Workspace }> => {
     if (!user) return { error: new Error('User not authenticated') };
