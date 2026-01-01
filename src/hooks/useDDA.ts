@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
 
+import type { Json } from '@/integrations/supabase/types';
+
 export interface DDABoleto {
   id: string;
   workspace_id: string;
@@ -28,7 +30,7 @@ export interface DDABoleto {
   transaction_id: string | null;
   category_id: string | null;
   notes: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: Json | null;
   source: string;
   synced_at: string | null;
   created_at: string;
