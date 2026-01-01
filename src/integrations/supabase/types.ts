@@ -6980,6 +6980,48 @@ export type Database = {
           },
         ]
       }
+      workspace_entitlements: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_entitlements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_entitlements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           accepted_at: string | null
@@ -7084,6 +7126,144 @@ export type Database = {
           },
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_plans: {
+        Row: {
+          api_keys_limit: number
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_tier: Database["public"]["Enums"]["plan_tier"]
+          provider: Database["public"]["Enums"]["billing_provider"]
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          seats_limit: number
+          spaces_limit: number
+          status: Database["public"]["Enums"]["plan_status"]
+          storage_mb_limit: number
+          trial_ends_at: string | null
+          updated_at: string
+          webhooks_limit: number
+          workspace_id: string
+        }
+        Insert: {
+          api_keys_limit?: number
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          seats_limit?: number
+          spaces_limit?: number
+          status?: Database["public"]["Enums"]["plan_status"]
+          storage_mb_limit?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+          webhooks_limit?: number
+          workspace_id: string
+        }
+        Update: {
+          api_keys_limit?: number
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier"]
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          seats_limit?: number
+          spaces_limit?: number
+          status?: Database["public"]["Enums"]["plan_status"]
+          storage_mb_limit?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+          webhooks_limit?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_usage: {
+        Row: {
+          api_keys_used: number | null
+          automations_runs: number | null
+          created_at: string
+          events_ingested: number | null
+          id: string
+          period_end: string
+          period_start: string
+          seats_used: number | null
+          spaces_used: number | null
+          storage_mb_used: number | null
+          updated_at: string
+          webhooks_used: number | null
+          workspace_id: string
+        }
+        Insert: {
+          api_keys_used?: number | null
+          automations_runs?: number | null
+          created_at?: string
+          events_ingested?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          seats_used?: number | null
+          spaces_used?: number | null
+          storage_mb_used?: number | null
+          updated_at?: string
+          webhooks_used?: number | null
+          workspace_id: string
+        }
+        Update: {
+          api_keys_used?: number | null
+          automations_runs?: number | null
+          created_at?: string
+          events_ingested?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          seats_used?: number | null
+          spaces_used?: number | null
+          storage_mb_used?: number | null
+          updated_at?: string
+          webhooks_used?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_usage_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -8134,6 +8314,15 @@ export type Database = {
           version: number
         }[]
       }
+      get_workspace_plan: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          plan_tier: Database["public"]["Enums"]["plan_tier"]
+          seats_limit: number
+          spaces_limit: number
+          status: Database["public"]["Enums"]["plan_status"]
+        }[]
+      }
       has_active_support_session: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: {
@@ -8144,6 +8333,10 @@ export type Database = {
       }
       has_admin_access: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      has_entitlement: {
+        Args: { p_key: string; p_workspace_id: string }
         Returns: boolean
       }
       has_finance_access: {
@@ -8311,6 +8504,10 @@ export type Database = {
         Args: { p_item_id: string; p_quantity?: number; p_unit_id?: string }
         Returns: Json
       }
+      within_limit: {
+        Args: { p_increment?: number; p_metric: string; p_workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       alert_severity_level: "low" | "medium" | "high" | "critical"
@@ -8332,6 +8529,7 @@ export type Database = {
         | "member"
         | "viewer"
       billing_cycle: "monthly" | "quarterly" | "yearly" | "custom"
+      billing_provider: "manual" | "stripe"
       card_status:
         | "backlog"
         | "briefing"
@@ -8352,6 +8550,8 @@ export type Database = {
       inventory_category: "consumable" | "equipment" | "asset"
       item_condition: "good" | "fair" | "defective" | "maintenance"
       movement_type: "IN" | "OUT" | "RETURN" | "TRANSFER" | "ADJUST"
+      plan_status: "active" | "past_due" | "canceled" | "trialing"
+      plan_tier: "free" | "pro" | "enterprise"
       recurrence_type: "none" | "monthly" | "yearly"
       space_type:
         | "designer"
@@ -8514,6 +8714,7 @@ export const Constants = {
         "viewer",
       ],
       billing_cycle: ["monthly", "quarterly", "yearly", "custom"],
+      billing_provider: ["manual", "stripe"],
       card_status: [
         "backlog",
         "briefing",
@@ -8536,6 +8737,8 @@ export const Constants = {
       inventory_category: ["consumable", "equipment", "asset"],
       item_condition: ["good", "fair", "defective", "maintenance"],
       movement_type: ["IN", "OUT", "RETURN", "TRANSFER", "ADJUST"],
+      plan_status: ["active", "past_due", "canceled", "trialing"],
+      plan_tier: ["free", "pro", "enterprise"],
       recurrence_type: ["none", "monthly", "yearly"],
       space_type: [
         "designer",
