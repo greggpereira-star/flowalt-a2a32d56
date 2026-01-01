@@ -25,8 +25,10 @@ import {
   Loader2,
   Search,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Crown
 } from 'lucide-react';
+import { PlanManagementPanel } from '@/components/settings/PlanManagementPanel';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -78,13 +80,16 @@ export default function PlatformAdminPage() {
     enabled: !!isSuperAdmin,
   });
 
-  // All workspaces (for support mode)
+  // All workspaces (for support mode and plan management)
   const { data: workspaces, isLoading: loadingWorkspaces } = useQuery({
     queryKey: ['all-workspaces', searchQuery],
     queryFn: async () => {
       let query = supabase
         .from('workspaces')
-        .select('id, name, slug, status, created_at')
+        .select(`
+          id, name, slug, status, created_at,
+          workspace_plans (plan_tier, status, seats_limit, spaces_limit)
+        `)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -94,7 +99,13 @@ export default function PlatformAdminPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data?.map(ws => ({
+        ...ws,
+        plan_tier: ws.workspace_plans?.[0]?.plan_tier || 'free',
+        plan_status: ws.workspace_plans?.[0]?.status || 'active',
+        seats_limit: ws.workspace_plans?.[0]?.seats_limit || 3,
+        spaces_limit: ws.workspace_plans?.[0]?.spaces_limit || 3,
+      }));
     },
     enabled: !!isSuperAdmin,
   });
@@ -299,6 +310,10 @@ export default function PlatformAdminPage() {
               <Building2 className="h-4 w-4" />
               Workspaces
             </TabsTrigger>
+            <TabsTrigger value="plans" className="gap-2">
+              <Crown className="h-4 w-4" />
+              Planos
+            </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="h-4 w-4" />
               Auditoria
@@ -450,6 +465,21 @@ export default function PlatformAdminPage() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="plans" className="mt-4">
+            <PlanManagementPanel 
+              workspaces={workspaces?.map(ws => ({
+                id: ws.id,
+                name: ws.name,
+                plan_tier: ws.plan_tier as 'free' | 'pro' | 'enterprise',
+                status: ws.plan_status || 'active',
+                seats_limit: ws.seats_limit,
+                spaces_limit: ws.spaces_limit,
+              })) || []}
+              isLoading={loadingWorkspaces}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ['all-workspaces'] })}
+            />
           </TabsContent>
 
           <TabsContent value="audit" className="mt-4">
