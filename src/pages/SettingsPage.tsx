@@ -31,6 +31,8 @@ import { QAChecklist } from '@/components/settings/QAChecklist';
 import { SpacesManager } from '@/components/settings/SpacesManager';
 import { WorkspaceMembersPanel } from '@/components/settings/WorkspaceMembersPanel';
 import { WorkspaceInvitesPanel } from '@/components/settings/WorkspaceInvitesPanel';
+import { GovernancePanel } from '@/components/settings/GovernancePanel';
+import { SpaceAccessControl } from '@/components/settings/SpaceAccessControl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'react-router-dom';
@@ -47,6 +49,8 @@ import { usePageTracking } from '@/hooks/usePageTracking';
 const SETTINGS_TABS = new Set([
   'members',
   'invites',
+  'governance',
+  'space-access',
   'spaces',
   'qa-checklist',
   'workflow',
@@ -137,6 +141,14 @@ export default function SettingsPage() {
                   <TabsTrigger value="invites" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
                     <UserPlus className="h-5 w-5" />
                     <span className="text-xs font-medium">Convites</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="governance" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <Shield className="h-5 w-5" />
+                    <span className="text-xs font-medium">Governança</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="space-access" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <FolderKanban className="h-5 w-5" />
+                    <span className="text-xs font-medium">Acessos</span>
                   </TabsTrigger>
                   <TabsTrigger value="spaces" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
                     <FolderKanban className="h-5 w-5" />
@@ -257,6 +269,14 @@ export default function SettingsPage() {
 
           <TabsContent value="invites">
             <WorkspaceInvitesPanel />
+          </TabsContent>
+
+          <TabsContent value="governance">
+            <GovernancePanel />
+          </TabsContent>
+
+          <TabsContent value="space-access">
+            <SpaceAccessControl />
           </TabsContent>
 
           <TabsContent value="spaces">

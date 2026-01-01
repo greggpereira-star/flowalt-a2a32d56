@@ -21,6 +21,10 @@ export interface Space {
   settings: Json;
   created_at: string;
   updated_at: string;
+  // Access control fields
+  access_level?: 'operational' | 'restricted';
+  allowed_roles?: string[];
+  template_key?: string;
 }
 
 export const useSpaces = () => {
@@ -174,6 +178,8 @@ export const useUpdateSpace = () => {
   return useMutation({
     mutationFn: async ({
       id,
+      access_level,
+      allowed_roles,
       ...updates
     }: {
       id: string;
@@ -182,10 +188,21 @@ export const useUpdateSpace = () => {
       icon?: string;
       color?: string;
       is_archived?: boolean;
+      access_level?: 'operational' | 'restricted';
+      allowed_roles?: string[];
     }) => {
+      // Build update object with proper typing
+      const updatePayload: Record<string, unknown> = { ...updates };
+      if (access_level !== undefined) {
+        updatePayload.access_level = access_level;
+      }
+      if (allowed_roles !== undefined) {
+        updatePayload.allowed_roles = allowed_roles;
+      }
+
       const { data, error } = await supabase
         .from('spaces')
-        .update(updates)
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
