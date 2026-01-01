@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { SpaceType } from '@/lib/supabase';
+import type { SpaceTemplate } from '@/lib/spaceTemplates';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -65,6 +67,7 @@ export const useSpace = (spaceId: string | undefined) => {
 export const useCreateSpace = () => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (space: {
@@ -73,10 +76,12 @@ export const useCreateSpace = () => {
       description?: string;
       icon?: string;
       color?: string;
+      template?: SpaceTemplate;
     }) => {
       if (!currentWorkspace?.id) throw new Error('No workspace selected');
 
-      const { data, error } = await supabase
+      // 1. Create the space
+      const { data: newSpace, error } = await supabase
         .from('spaces')
         .insert({
           workspace_id: currentWorkspace.id,
@@ -90,10 +95,17 @@ export const useCreateSpace = () => {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // 2. Apply template if provided
+      if (space.template && space.template.folders.length > 0) {
+        await applyTemplateToSpace(newSpace.id, currentWorkspace.id, space.template, user?.id);
+      }
+
+      return newSpace;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spaces'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
       toast.success('Espaço criado com sucesso');
     },
     onError: () => {
@@ -101,6 +113,60 @@ export const useCreateSpace = () => {
     },
   });
 };
+
+/**
+ * Apply template structure to a space (creates folders and views)
+ */
+async function applyTemplateToSpace(
+  spaceId: string, 
+  workspaceId: string, 
+  template: SpaceTemplate,
+  userId?: string
+) {
+  // Create template folders
+  if (template.folders.length > 0) {
+    const foldersToCreate = template.folders.map((folder, index) => ({
+      workspace_id: workspaceId,
+      space_id: spaceId,
+      name: folder.name,
+      icon: folder.icon,
+      color: folder.color,
+      description: folder.description || null,
+      is_personal: folder.isPersonal,
+      owner_id: folder.isPersonal ? userId : null,
+      sort_order: index,
+    }));
+
+    const { error: foldersError } = await supabase
+      .from('folders')
+      .insert(foldersToCreate);
+
+    if (foldersError) {
+      console.error('Error creating template folders:', foldersError);
+    }
+  }
+
+  // Store template custom fields in space settings for future use
+  if (template.customFields.length > 0) {
+    const customFieldsJson = template.customFields.map(field => ({
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      options: field.options || null,
+      required: field.required || false,
+    }));
+
+    await supabase
+      .from('spaces')
+      .update({
+        settings: {
+          customFields: customFieldsJson,
+          templateId: template.id,
+        } as Json,
+      })
+      .eq('id', spaceId);
+  }
+}
 
 export const useUpdateSpace = () => {
   const queryClient = useQueryClient();
