@@ -33,6 +33,8 @@ export interface Card {
   workflow_id: string | null;
   current_stage: string | null;
   stage_entered_at: string | null;
+  // ACL fields
+  visibility: 'inherit' | 'restricted' | 'public';
 }
 
 export interface CreateCardInput {

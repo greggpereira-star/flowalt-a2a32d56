@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-export type AppRole = 'super_admin' | 'owner' | 'admin' | 'coordinator' | 'member' | 'viewer';
+// Updated to include 'finance' role as per blueprint
+export type AppRole = 'super_admin' | 'owner' | 'admin' | 'coordinator' | 'finance' | 'member' | 'viewer';
 
 // Role hierarchy - higher index = more permissions
-const ROLE_HIERARCHY: AppRole[] = ['viewer', 'member', 'coordinator', 'admin', 'owner', 'super_admin'];
+// Note: 'finance' has specific access to financial data but not general admin powers
+const ROLE_HIERARCHY: AppRole[] = ['viewer', 'member', 'finance', 'coordinator', 'admin', 'owner', 'super_admin'];
 
 export interface Permissions {
   // Core permissions
@@ -22,11 +24,14 @@ export interface Permissions {
   canViewCoordination: boolean;
   canManageSprints: boolean;
   
-  // Financial
+  // Financial (Owner + Finance only - NOT coordinator)
   canViewFinancial: boolean;
   canManageFinancial: boolean;
   
-  // Client financials (restricted)
+  // Salary/Payroll (Owner only - super sensitive)
+  canViewSalaries: boolean;
+  
+  // Client financials (Owner + Finance only)
   canViewClientFinancials: boolean;
   
   // Partners (Sócios)
@@ -43,10 +48,15 @@ export interface Permissions {
   canManageWebhooks: boolean;
   canManageAutomations: boolean;
   
+  // Invite permissions
+  canInviteMembers: boolean;
+  canPromoteToOwner: boolean;
+  
   // Role checks
   isOwner: boolean;
   isAdmin: boolean;
   isCoordinator: boolean;
+  isFinance: boolean;
   isSuperAdmin: boolean;
 }
 
@@ -69,6 +79,13 @@ export function usePermissions(): Permissions {
     const isViewer = hasRole('viewer');
     const isSuperAdmin = role === 'super_admin';
     const isOwner = role === 'owner' || isSuperAdmin;
+    const isFinance = role === 'finance';
+    
+    // Financial access: Owner + Finance only (NOT coordinator per blueprint)
+    const hasFinanceAccess = isOwner || isFinance || isSuperAdmin;
+    
+    // Salary access: Owner only (super sensitive)
+    const hasSalaryAccess = isOwner || isSuperAdmin;
 
     return {
       // Core - everyone can view if they have any role
@@ -86,12 +103,15 @@ export function usePermissions(): Permissions {
       canViewCoordination: isCoordinator,
       canManageSprints: isOwnerOrAdmin,
 
-      // Financial - admin and owner only
-      canViewFinancial: isOwnerOrAdmin,
-      canManageFinancial: isOwnerOrAdmin,
+      // Financial - Owner + Finance only (NOT coordinator per blueprint STEP 7)
+      canViewFinancial: hasFinanceAccess,
+      canManageFinancial: hasFinanceAccess,
       
-      // Client financials - coordinators, admins, and owners
-      canViewClientFinancials: isCoordinator,
+      // Salary/Payroll - Owner only
+      canViewSalaries: hasSalaryAccess,
+      
+      // Client financials - Owner + Finance only
+      canViewClientFinancials: hasFinanceAccess,
 
       // Partners - owner only (sócios)
       canViewPartners: isOwner,
@@ -106,11 +126,16 @@ export function usePermissions(): Permissions {
       canManageApiKeys: isOwnerOrAdmin,
       canManageWebhooks: isOwnerOrAdmin,
       canManageAutomations: isOwnerOrAdmin,
+      
+      // Invite permissions
+      canInviteMembers: isOwnerOrAdmin, // owner, admin, coordinator can invite
+      canPromoteToOwner: isOwner, // only owners can promote to owner
 
       // Role checks
       isOwner,
       isAdmin: isOwnerOrAdmin,
       isCoordinator,
+      isFinance,
       isSuperAdmin,
     };
   }, [currentRole]);
