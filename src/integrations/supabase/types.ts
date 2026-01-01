@@ -1469,6 +1469,188 @@ export type Database = {
           },
         ]
       }
+      client_policies: {
+        Row: {
+          auto_pause_on_negative_margin: boolean | null
+          auto_pause_on_overdue_payment: boolean | null
+          briefing_approvers: string[] | null
+          budget_alert_threshold: number | null
+          client_card_id: string
+          created_at: string
+          created_by: string | null
+          delivery_approvers: string[] | null
+          hours_alert_threshold: number | null
+          id: string
+          margin_alert_threshold: number | null
+          max_budget_per_month: number | null
+          max_monthly_hours: number | null
+          max_tasks_per_month: number | null
+          monthly_report_enabled: boolean | null
+          notes: string | null
+          overdue_days_to_pause: number | null
+          report_recipients: string[] | null
+          requires_briefing_approval: boolean | null
+          requires_delivery_approval: boolean | null
+          updated_at: string
+          weekly_report_enabled: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          auto_pause_on_negative_margin?: boolean | null
+          auto_pause_on_overdue_payment?: boolean | null
+          briefing_approvers?: string[] | null
+          budget_alert_threshold?: number | null
+          client_card_id: string
+          created_at?: string
+          created_by?: string | null
+          delivery_approvers?: string[] | null
+          hours_alert_threshold?: number | null
+          id?: string
+          margin_alert_threshold?: number | null
+          max_budget_per_month?: number | null
+          max_monthly_hours?: number | null
+          max_tasks_per_month?: number | null
+          monthly_report_enabled?: boolean | null
+          notes?: string | null
+          overdue_days_to_pause?: number | null
+          report_recipients?: string[] | null
+          requires_briefing_approval?: boolean | null
+          requires_delivery_approval?: boolean | null
+          updated_at?: string
+          weekly_report_enabled?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          auto_pause_on_negative_margin?: boolean | null
+          auto_pause_on_overdue_payment?: boolean | null
+          briefing_approvers?: string[] | null
+          budget_alert_threshold?: number | null
+          client_card_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_approvers?: string[] | null
+          hours_alert_threshold?: number | null
+          id?: string
+          margin_alert_threshold?: number | null
+          max_budget_per_month?: number | null
+          max_monthly_hours?: number | null
+          max_tasks_per_month?: number | null
+          monthly_report_enabled?: boolean | null
+          notes?: string | null
+          overdue_days_to_pause?: number | null
+          report_recipients?: string[] | null
+          requires_briefing_approval?: boolean | null
+          requires_delivery_approval?: boolean | null
+          updated_at?: string
+          weekly_report_enabled?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_policies_client_card_id_fkey"
+            columns: ["client_card_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "client_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_upsell_suggestions: {
+        Row: {
+          accepted_at: string | null
+          client_card_id: string
+          created_at: string
+          description: string | null
+          id: string
+          potential_revenue_increase: number | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          status: string | null
+          suggested_value: number | null
+          suggestion_type: string
+          title: string
+          trigger_metric: string
+          trigger_value: number | null
+          updated_at: string
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          client_card_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          potential_revenue_increase?: number | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          suggested_value?: number | null
+          suggestion_type: string
+          title: string
+          trigger_metric: string
+          trigger_value?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          client_card_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          potential_revenue_increase?: number | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          suggested_value?: number | null
+          suggestion_type?: string
+          title?: string
+          trigger_metric?: string
+          trigger_value?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_upsell_suggestions_client_card_id_fkey"
+            columns: ["client_card_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_upsell_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "client_upsell_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           color: string | null
