@@ -24,8 +24,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Zap, Monitor, PieChart, FileStack, Shield, Crown, Bell, 
   HeartPulse, Archive, GitBranch, ClipboardCheck, FolderKanban, Users, 
-  UserPlus, ShieldX, ArrowLeft
+  UserPlus, ShieldX, ArrowLeft, CreditCard
 } from 'lucide-react';
+import { BillingPlanPage } from '@/components/billing/BillingPlanPage';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -36,6 +37,7 @@ const SETTINGS_TABS = new Set([
   'governance',
   'space-access',
   'spaces',
+  'billing',
   'qa-checklist',
   'workflow',
   'onboarding',

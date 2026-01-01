@@ -8493,6 +8493,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      upgrade_workspace_plan: {
+        Args: {
+          p_new_tier: Database["public"]["Enums"]["plan_tier"]
+          p_provider?: Database["public"]["Enums"]["billing_provider"]
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       validate_api_key: {
         Args: { api_key: string }
         Returns: {
