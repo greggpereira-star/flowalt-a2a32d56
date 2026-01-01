@@ -578,13 +578,28 @@ async function ddaSyncBoletos(
     const authData = await authResponse.json();
     const apiKey = authData.apiKey;
 
-    // Step 2: Get connected items
-    const itemsResponse = await fetch('https://api.pluggy.ai/items', {
-      headers: { 'X-API-KEY': apiKey }
-    });
+    // Step 2: Get connected items from our database (not from Pluggy API /items)
+    // The /items endpoint only returns items created in the current API session,
+    // but user connected via Pluggy Connect which uses a connect token.
+    // We must fetch item IDs from our pluggy_items table and query each one directly.
+    const { data: savedItems, error: savedItemsError } = await supabase
+      .from('pluggy_items')
+      .select('pluggy_item_id, connector_name')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'connected');
 
-    if (!itemsResponse.ok) {
-      console.error('DDA: Failed to fetch Pluggy items');
+    if (savedItemsError) {
+      console.error('DDA: Failed to fetch saved Pluggy items from database:', savedItemsError);
+      await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Erro ao buscar contas conectadas');
+
+      return new Response(
+        JSON.stringify({ error: 'Erro ao buscar contas bancárias conectadas.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!savedItems || savedItems.length === 0) {
+      console.log('DDA: No connected bank accounts found in database');
       await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Nenhuma conta bancária conectada');
 
       return new Response(
@@ -596,23 +611,52 @@ async function ddaSyncBoletos(
       );
     }
 
-    const itemsData = await itemsResponse.json();
-    const items = itemsData.results || [];
+    console.log(`DDA: Found ${savedItems.length} connected bank account(s) in database`);
+
+    // Fetch each item from Pluggy API to get fresh data
+    const items: Array<{ id: string; connector?: { name?: string } }> = [];
+    for (const savedItem of savedItems) {
+      try {
+        const itemResponse = await fetch(`https://api.pluggy.ai/items/${savedItem.pluggy_item_id}`, {
+          headers: { 'X-API-KEY': apiKey }
+        });
+
+        if (itemResponse.ok) {
+          const itemData = await itemResponse.json();
+          items.push(itemData);
+          console.log(`DDA: Successfully fetched item ${savedItem.pluggy_item_id} (${savedItem.connector_name})`);
+        } else {
+          const errorText = await itemResponse.text();
+          console.error(`DDA: Failed to fetch item ${savedItem.pluggy_item_id}:`, errorText);
+          
+          // If item not found (404), mark as disconnected in our database
+          if (itemResponse.status === 404) {
+            await supabase
+              .from('pluggy_items')
+              .update({ status: 'disconnected', updated_at: new Date().toISOString() })
+              .eq('pluggy_item_id', savedItem.pluggy_item_id)
+              .eq('workspace_id', workspaceId);
+            console.log(`DDA: Marked item ${savedItem.pluggy_item_id} as disconnected`);
+          }
+        }
+      } catch (itemFetchError) {
+        console.error(`DDA: Error fetching item ${savedItem.pluggy_item_id}:`, itemFetchError);
+      }
+    }
 
     if (items.length === 0) {
-      await logDdaSync(supabase, workspaceId, userId, 'success', 0, 0, 0);
+      await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Não foi possível acessar as contas conectadas');
 
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'Nenhuma conta bancária conectada no Pluggy',
-          boletos_found: 0,
-          boletos_new: 0,
-          boletos_updated: 0
+          error: 'Não foi possível acessar as contas bancárias. Tente reconectar.',
+          needsConnection: true
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`DDA: Processing ${items.length} valid bank account(s)`)
 
     // Step 3: Fetch boletos from each item
     let totalBoletos = 0;
