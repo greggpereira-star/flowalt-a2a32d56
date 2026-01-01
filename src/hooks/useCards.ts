@@ -180,6 +180,36 @@ export const useCreateCard = () => {
       const status = input.status || 'backlog';
       const urgency = input.urgency || 'medium';
 
+      // Auto-associate with default workflow if not specified
+      let workflowId = input.workflow_id;
+      let currentStage = input.current_stage;
+      
+      if (!workflowId) {
+        // Fetch default workflow for the workspace
+        const { data: defaultWorkflow } = await supabase
+          .from('workflows')
+          .select('id')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('is_default', true)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (defaultWorkflow) {
+          workflowId = defaultWorkflow.id;
+          // Set initial stage based on status
+          const statusToStageMap: Record<string, string> = {
+            backlog: 'backlog',
+            briefing: 'planejamento',
+            todo: 'planejamento',
+            in_progress: 'em_producao',
+            review: 'revisao',
+            approved: 'aprovacao',
+            delivered: 'concluido',
+          };
+          currentStage = currentStage || statusToStageMap[status] || 'backlog';
+        }
+      }
+
       const { error: cardError } = await supabase
         .from('cards')
         .insert({
@@ -197,9 +227,9 @@ export const useCreateCard = () => {
           estimated_hours: input.estimated_hours,
           briefing_data: input.briefing_data,
           briefing_completed: input.briefing_completed,
-          workflow_id: input.workflow_id,
-          current_stage: input.current_stage,
-          stage_entered_at: input.current_stage ? new Date().toISOString() : null,
+          workflow_id: workflowId,
+          current_stage: currentStage,
+          stage_entered_at: currentStage ? new Date().toISOString() : null,
         });
 
       if (cardError) {
