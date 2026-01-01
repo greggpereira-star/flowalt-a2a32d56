@@ -8,6 +8,8 @@ import { AgingReportChart } from "./AgingReportChart";
 import { CashFlowForecastChart } from "./CashFlowForecastChart";
 import { BudgetVsRealizedChart } from "./BudgetVsRealizedChart";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
+import { DDADashboardWidget } from "./DDADashboardWidget";
+import { DDAAlerts } from "./DDAAlerts";
 import { useFinancialKPIs } from "@/hooks/useFinancialKPIs";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -69,9 +71,17 @@ export function AdvancedFinancialDashboard() {
       {/* KPI Cards */}
       <AdvancedKPICards kpis={kpis} isLoading={isLoading} />
 
-      {/* Charts Row 1 */}
+      {/* DDA + Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <DDADashboardWidget />
+        <div className="lg:col-span-2">
+          <MonthlyTrendChart selectedMonth={selectedMonth} />
+        </div>
+      </div>
+
+      {/* Alerts + Aging Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MonthlyTrendChart selectedMonth={selectedMonth} />
+        <DDAAlerts maxAlerts={5} />
         <AgingReportChart aging={kpis?.aging} />
       </div>
 
