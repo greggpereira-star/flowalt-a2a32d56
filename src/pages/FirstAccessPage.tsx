@@ -6,14 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut } from 'lucide-react';
-import { 
-  Plus, 
-  Mail, 
-  Building2, 
-  ArrowRight, 
+import {
+  Plus,
+  Mail,
+  Building2,
+  ArrowRight,
   ArrowLeft,
-  Loader2, 
+  Loader2,
   Sparkles,
   Users,
   Target,
@@ -21,7 +20,8 @@ import {
   Megaphone,
   Share2,
   Briefcase,
-  Check
+  Check,
+  LogOut,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
