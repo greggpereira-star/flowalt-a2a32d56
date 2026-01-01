@@ -58,7 +58,7 @@ import {
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SpaceType } from '@/lib/supabase';
+import type { SpaceTemplateType, SpaceTemplate } from '@/lib/spaceTemplates';
 
 // Color palette for spaces
 const COLOR_OPTIONS = [
@@ -306,12 +306,22 @@ export function SpacesManager() {
     }
   };
 
-  const handleCreate = async (data: { name: string; icon: string; color: string; type: SpaceType }) => {
+  const handleCreate = async (data: { 
+    name: string; 
+    icon: string; 
+    color: string; 
+    type: SpaceTemplateType;
+    template: SpaceTemplate;
+  }) => {
+    // Map template type to SpaceType for database (blank maps to custom)
+    const spaceType = data.type === 'blank' ? 'custom' : data.type as 'social_media' | 'audiovisual' | 'designer' | 'administrative' | 'custom';
+    
     await createSpace.mutateAsync({
       name: data.name,
       icon: data.icon,
       color: data.color,
-      type: data.type,
+      type: spaceType,
+      template: data.template,
     });
     setIsCreateDialogOpen(false);
   };

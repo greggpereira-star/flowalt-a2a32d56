@@ -11,47 +11,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IconPicker } from './IconPicker';
-import { Folder, Smartphone, ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { SpaceTemplatePreview } from './SpaceTemplatePreview';
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-type SpaceType = 'custom' | 'social_media';
+import { 
+  SPACE_TEMPLATES, 
+  type SpaceTemplateType, 
+  type SpaceTemplate,
+  templateHasStructure,
+} from '@/lib/spaceTemplates';
 
 interface CreateSpaceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { name: string; icon: string; color: string; type: SpaceType }) => Promise<void>;
+  onSubmit: (data: { 
+    name: string; 
+    icon: string; 
+    color: string; 
+    type: SpaceTemplateType;
+    template: SpaceTemplate;
+  }) => Promise<void>;
   isLoading?: boolean;
 }
-
-interface SpaceTypeConfig {
-  icon: typeof Folder;
-  defaultIcon: string;
-  defaultColor: string;
-  title: string;
-  description: string;
-  placeholder: string;
-  badge?: string;
-}
-
-const SPACE_TYPE_CONFIG: Record<SpaceType, SpaceTypeConfig> = {
-  custom: {
-    icon: Folder,
-    defaultIcon: 'folder',
-    defaultColor: '#6366f1',
-    title: 'Espaço Comum',
-    description: 'Estrutura livre. Ideal para projetos gerais, administrativo ou áreas customizadas.',
-    placeholder: 'Ex: Administrativo, Marketing...',
-  },
-  social_media: {
-    icon: Smartphone,
-    defaultIcon: 'smartphone',
-    defaultColor: '#0ea5e9',
-    title: 'Espaço Social Media',
-    description: 'Estrutura por colaborador com templates prontos. Ideal para gestão de conteúdo e calendário editorial.',
-    placeholder: 'Ex: Social Media, Conteúdo...',
-    badge: 'Recomendado para Social',
-  },
-};
 
 const COLORS = [
   '#6366f1', // indigo
@@ -64,39 +45,60 @@ const COLORS = [
   '#06b6d4', // cyan
 ];
 
+type WizardStep = 1 | 2 | 3;
+
 export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: CreateSpaceDialogProps) {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [selectedType, setSelectedType] = useState<SpaceType>('custom');
+  const [step, setStep] = useState<WizardStep>(1);
+  const [selectedType, setSelectedType] = useState<SpaceTemplateType>('blank');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('folder');
   const [color, setColor] = useState('#6366f1');
 
-  const handleTypeChange = (type: SpaceType) => {
+  const template = SPACE_TEMPLATES[selectedType];
+  const hasStructure = templateHasStructure(selectedType);
+
+  const handleTypeChange = (type: SpaceTemplateType) => {
     setSelectedType(type);
-    setIcon(SPACE_TYPE_CONFIG[type].defaultIcon);
-    setColor(SPACE_TYPE_CONFIG[type].defaultColor);
+    const newTemplate = SPACE_TEMPLATES[type];
+    setIcon(newTemplate.defaultIcon);
+    setColor(newTemplate.defaultColor);
   };
 
   const handleNext = () => {
-    setStep(2);
+    if (step === 1) {
+      // If template has structure, show preview. Otherwise, skip to details.
+      setStep(hasStructure ? 2 : 3);
+    } else if (step === 2) {
+      setStep(3);
+    }
   };
 
   const handleBack = () => {
-    setStep(1);
+    if (step === 3) {
+      setStep(hasStructure ? 2 : 1);
+    } else if (step === 2) {
+      setStep(1);
+    }
   };
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
-    await onSubmit({ name: name.trim(), icon, color, type: selectedType });
+    await onSubmit({ 
+      name: name.trim(), 
+      icon, 
+      color, 
+      type: selectedType,
+      template,
+    });
     resetForm();
   };
 
   const resetForm = () => {
     setStep(1);
-    setSelectedType('custom');
+    setSelectedType('blank');
     setName('');
-    setIcon(SPACE_TYPE_CONFIG.custom.defaultIcon);
-    setColor(SPACE_TYPE_CONFIG.custom.defaultColor);
+    setIcon(SPACE_TEMPLATES.blank.defaultIcon);
+    setColor(SPACE_TEMPLATES.blank.defaultColor);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -106,73 +108,139 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
     onOpenChange(newOpen);
   };
 
+  const getStepTitle = () => {
+    switch (step) {
+      case 1:
+        return 'Escolha um Template';
+      case 2:
+        return 'Prévia do Template';
+      case 3:
+        return 'Configurar Espaço';
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case 1:
+        return 'Templates são opcionais e apenas sugerem uma estrutura inicial.';
+      case 2:
+        return 'Veja o que será criado com este template. Você pode personalizar depois.';
+      case 3:
+        return 'Configure os detalhes do seu novo espaço.';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Novo Espaço</DialogTitle>
-          <DialogDescription>
-            {step === 1
-              ? 'Escolha o tipo de espaço. Isso define a estrutura inicial e recursos disponíveis.'
-              : 'Configure os detalhes do seu novo espaço.'}
-          </DialogDescription>
+          <div className="flex items-center gap-2">
+            <DialogTitle>{getStepTitle()}</DialogTitle>
+            <div className="flex items-center gap-1 ml-auto">
+              {[1, 2, 3].map((s) => (
+                <div
+                  key={s}
+                  className={cn(
+                    'w-2 h-2 rounded-full transition-colors',
+                    step >= s ? 'bg-primary' : 'bg-muted'
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+          <DialogDescription>{getStepDescription()}</DialogDescription>
         </DialogHeader>
 
-        {step === 1 ? (
+        {/* Step 1: Template Selection */}
+        {step === 1 && (
           <div className="space-y-4">
             <RadioGroup
               value={selectedType}
-              onValueChange={(value) => handleTypeChange(value as SpaceType)}
-              className="grid gap-4"
+              onValueChange={(value) => handleTypeChange(value as SpaceTemplateType)}
+              className="grid gap-3"
             >
-              {(Object.entries(SPACE_TYPE_CONFIG) as [SpaceType, SpaceTypeConfig][]).map(
-                ([type, config]) => {
-                  const Icon = config.icon;
-                  const isSelected = selectedType === type;
+              {Object.entries(SPACE_TEMPLATES).map(([type, config]) => {
+                const Icon = config.icon;
+                const isSelected = selectedType === type;
 
-                  return (
-                    <label
-                      key={type}
-                      className={cn(
-                        'flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                      )}
+                return (
+                  <label
+                    key={type}
+                    className={cn(
+                      'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    )}
+                  >
+                    <RadioGroupItem value={type} className="mt-1" />
+                    <div
+                      className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${config.defaultColor}20` }}
                     >
-                      <RadioGroupItem value={type} className="mt-1" />
-                      <div
-                        className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${config.defaultColor}20` }}
-                      >
-                        <Icon className="w-6 h-6" style={{ color: config.defaultColor }} />
+                      <Icon className="w-5 h-5" style={{ color: config.defaultColor }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{config.name}</span>
+                        {config.badge && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                            <Sparkles className="w-3 h-3" />
+                            {config.badge}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{config.title}</span>
-                          {config.badge && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
-                              <Sparkles className="w-3 h-3" />
-                              {config.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{config.description}</p>
-                      </div>
-                    </label>
-                  );
-                }
-              )}
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                        {config.description}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </RadioGroup>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-2">
               <Button onClick={handleNext}>
-                Próximo
+                {hasStructure ? (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Preview
+                  </>
+                ) : (
+                  <>
+                    Próximo
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Template Preview */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <SpaceTemplatePreview 
+              template={template} 
+              spaceName={name || undefined}
+              spaceColor={color}
+            />
+
+            <div className="flex justify-between pt-2">
+              <Button variant="outline" onClick={handleBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button onClick={handleNext}>
+                Continuar
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Step 3: Space Details */}
+        {step === 3 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="space-name">Nome do Espaço</Label>
@@ -180,7 +248,7 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
                 id="space-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={SPACE_TYPE_CONFIG[selectedType].placeholder}
+                placeholder={`Ex: ${template.name}`}
                 autoFocus
               />
             </div>
@@ -208,7 +276,17 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
               </div>
             </div>
 
-            <div className="flex justify-between pt-4">
+            {/* Template indicator */}
+            {templateHasStructure(selectedType) && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm">
+                <template.icon className="w-4 h-4 text-primary" />
+                <span className="text-muted-foreground">
+                  Template: <span className="font-medium text-foreground">{template.name}</span>
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between pt-2">
               <Button variant="outline" onClick={handleBack}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
