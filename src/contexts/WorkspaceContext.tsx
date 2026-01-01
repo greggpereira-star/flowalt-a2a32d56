@@ -175,6 +175,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           user_id: user.id,
           function_title: 'Proprietário',
           is_active: true,
+          can_view_financials: true, // Proprietário deve ter acesso financeiro
         });
 
       if (memberError) throw memberError;
