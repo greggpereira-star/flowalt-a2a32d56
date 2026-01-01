@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -219,20 +218,20 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] h-auto flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
             Nova Demanda
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm text-muted-foreground">
             Crie uma nova demanda com briefing estruturado
           </DialogDescription>
         </DialogHeader>
 
         {/* Progress Steps */}
-        <div className="space-y-3">
-          <Progress value={overallProgress} className="h-1" />
+        <div className="px-6 pb-4 flex-shrink-0 space-y-3">
+          <Progress value={overallProgress} className="h-1.5" />
           <div className="flex justify-between">
             {STEPS.map((step, index) => (
               <div
@@ -243,21 +242,21 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                 )}
               >
                 <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-xs",
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors",
                   currentStepIndex > index && "bg-primary text-primary-foreground",
-                  currentStepIndex === index && "bg-primary/20 text-primary border border-primary",
+                  currentStepIndex === index && "bg-primary/20 text-primary border-2 border-primary",
                   currentStepIndex < index && "bg-muted text-muted-foreground"
                 )}>
-                  {currentStepIndex > index ? <CheckCircle2 className="h-3 w-3" /> : index + 1}
+                  {currentStepIndex > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                 </div>
-                <span className="hidden sm:inline">{step.label}</span>
+                <span className="hidden sm:inline font-medium">{step.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4 py-2">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-6 pb-4 space-y-5">
             {/* Step 1: Basic Info */}
             {currentStep === 'info' && (
               <div className="space-y-4">
@@ -533,44 +532,46 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
           </div>
         </ScrollArea>
 
-        <Separator />
-
-        <DialogFooter className="flex-row justify-between sm:justify-between">
-          <div>
-            {currentStep !== 'info' && (
-              <Button type="button" variant="outline" onClick={goPrev}>
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Voltar
-              </Button>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
+        <div className="flex-shrink-0 border-t border-border bg-muted/30">
+          <DialogFooter className="px-6 py-4 flex-row justify-between sm:justify-between gap-3">
+            <div className="flex-shrink-0">
+              {currentStep !== 'info' && (
+                <Button type="button" variant="outline" size="default" onClick={goPrev}>
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Voltar
+                </Button>
+              )}
+            </div>
             
-            {currentStep !== 'review' ? (
-              <Button 
-                type="button" 
-                onClick={goNext}
-                disabled={!canGoNext()}
-              >
-                Próximo
-                <ChevronRight className="h-4 w-4 ml-1" />
+            <div className="flex gap-3">
+              <Button type="button" variant="ghost" size="default" onClick={() => onOpenChange(false)}>
+                Cancelar
               </Button>
-            ) : (
-              <Button 
-                type="button" 
-                onClick={handleSubmit}
-                disabled={createCard.isPending}
-              >
-                {createCard.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Criar Demanda
-              </Button>
-            )}
-          </div>
-        </DialogFooter>
+              
+              {currentStep !== 'review' ? (
+                <Button 
+                  type="button" 
+                  size="default"
+                  onClick={goNext}
+                  disabled={!canGoNext()}
+                >
+                  Próximo
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              ) : (
+                <Button 
+                  type="button" 
+                  size="default"
+                  onClick={handleSubmit}
+                  disabled={createCard.isPending}
+                >
+                  {createCard.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Criar Demanda
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
