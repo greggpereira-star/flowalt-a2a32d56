@@ -44,6 +44,7 @@ import { NextBestAction } from './NextBestAction';
 import { CardFinancialTab } from './CardFinancialTab';
 import { CardKitTab } from './CardKitTab';
 import { CardInvitePanel } from './CardInvitePanel';
+import { AccessDeniedState } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
 import {
   CalendarIcon,
@@ -360,12 +361,24 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   if (!cardId) return null;
 
+  // Check if card is restricted and user doesn't have access
+  // The RLS will return null for cards the user can't see
+  const isRestrictedNoAccess = !isLoading && !card;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col overflow-hidden bg-background">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : isRestrictedNoAccess ? (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <AccessDeniedState
+              type="restricted_card"
+              showHomeButton={false}
+              showContactAdmin={true}
+            />
           </div>
         ) : card ? (
           <>

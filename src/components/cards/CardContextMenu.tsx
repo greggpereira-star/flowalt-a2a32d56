@@ -17,9 +17,12 @@ import {
   Trash2, 
   Calendar,
   User,
-  Flag
+  Flag,
+  Lock
 } from 'lucide-react';
 import { statusConfig } from './CardBadges';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
@@ -47,6 +50,12 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
   onDuplicate,
   onDelete,
 }) => {
+  const { canDeleteCards } = usePermissions();
+  const { user } = useAuth();
+  
+  // User can delete if they're admin OR they created the card
+  const isCardCreator = card.created_by === user?.id;
+  const canDelete = canDeleteCards || isCardCreator;
   const statuses = (Object.entries(statusConfig) as [CardStatus, typeof statusConfig[CardStatus]][])
     .filter(([status]) => status !== 'briefing');
 
@@ -112,11 +121,16 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
         <ContextMenuSeparator />
 
         <ContextMenuItem 
-          onClick={onDelete}
-          className="text-destructive focus:text-destructive"
+          onClick={canDelete ? onDelete : undefined}
+          disabled={!canDelete}
+          className={canDelete ? "text-destructive focus:text-destructive" : "text-muted-foreground"}
         >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Arquivar card
+          {canDelete ? (
+            <Trash2 className="mr-2 h-4 w-4" />
+          ) : (
+            <Lock className="mr-2 h-4 w-4" />
+          )}
+          {canDelete ? 'Arquivar card' : 'Você só pode excluir itens criados por você'}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

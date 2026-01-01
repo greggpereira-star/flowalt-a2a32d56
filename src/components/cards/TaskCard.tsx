@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
 import { CardRiskIndicators } from './CardRiskIndicators';
 import { RiskRadar } from './RiskRadar';
+import { VisibilityIcon } from '@/components/governance';
 import { Calendar, Clock, Building2, BanknoteIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
@@ -50,6 +51,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
           style={{ backgroundColor: clientColor }}
         />
+      )}
+
+      {/* Visibility indicator for restricted cards */}
+      {card.visibility === 'restricted' && (
+        <div className="absolute top-2 left-2 z-10">
+          <VisibilityIcon level="restricted" />
+        </div>
       )}
 
       {/* Risk Radar - compact indicator in top right */}
