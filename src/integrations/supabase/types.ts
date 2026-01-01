@@ -6783,6 +6783,66 @@ export type Database = {
           },
         ]
       }
+      workspace_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           can_view_financials: boolean | null
@@ -7538,6 +7598,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_workspace_invite: { Args: { p_token: string }; Returns: Json }
       add_user_score: {
         Args: { p_points: number; p_user_id: string; p_workspace_id: string }
         Returns: undefined
@@ -7639,6 +7700,14 @@ export type Database = {
         Args: { p_created_by: string; p_workspace_id: string }
         Returns: string
       }
+      create_workspace_invite: {
+        Args: {
+          p_email: string
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       emit_domain_event: {
         Args: {
           p_aggregate_id: string
@@ -7731,12 +7800,20 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      has_finance_access: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
           _workspace_id: string
         }
+        Returns: boolean
+      }
+      has_salary_access: {
+        Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
       initialize_space_custom_fields: {
@@ -7794,6 +7871,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: number
       }
+      promote_to_owner: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       record_metric:
         | {
             Args: {
@@ -7834,6 +7915,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      transfer_ownership: {
+        Args: {
+          p_demote_self?: boolean
+          p_new_owner_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       update_goal_progress: {
         Args: {
           p_goal_type: string
@@ -7871,6 +7960,7 @@ export type Database = {
         | "owner"
         | "admin"
         | "coordinator"
+        | "finance"
         | "member"
         | "viewer"
       billing_cycle: "monthly" | "quarterly" | "yearly" | "custom"
@@ -8051,6 +8141,7 @@ export const Constants = {
         "owner",
         "admin",
         "coordinator",
+        "finance",
         "member",
         "viewer",
       ],
