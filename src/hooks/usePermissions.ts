@@ -26,6 +26,9 @@ export interface Permissions {
   canViewFinancial: boolean;
   canManageFinancial: boolean;
   
+  // Client financials (restricted)
+  canViewClientFinancials: boolean;
+  
   // Partners (Sócios)
   canViewPartners: boolean;
   
@@ -40,7 +43,10 @@ export interface Permissions {
   canManageWebhooks: boolean;
   canManageAutomations: boolean;
   
-  // Super admin only
+  // Role checks
+  isOwner: boolean;
+  isAdmin: boolean;
+  isCoordinator: boolean;
   isSuperAdmin: boolean;
 }
 
@@ -83,6 +89,9 @@ export function usePermissions(): Permissions {
       // Financial - admin and owner only
       canViewFinancial: isOwnerOrAdmin,
       canManageFinancial: isOwnerOrAdmin,
+      
+      // Client financials - coordinators, admins, and owners
+      canViewClientFinancials: isCoordinator,
 
       // Partners - owner only (sócios)
       canViewPartners: isOwner,
@@ -98,7 +107,10 @@ export function usePermissions(): Permissions {
       canManageWebhooks: isOwnerOrAdmin,
       canManageAutomations: isOwnerOrAdmin,
 
-      // Super admin
+      // Role checks
+      isOwner,
+      isAdmin: isOwnerOrAdmin,
+      isCoordinator,
       isSuperAdmin,
     };
   }, [currentRole]);

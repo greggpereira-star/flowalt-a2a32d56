@@ -67,6 +67,7 @@ const spaceIconMap: Record<string, React.ElementType> = {
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/' },
   { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
+  { icon: Building2, label: 'Clientes', path: '/clients' },
   { icon: Clock, label: 'Tempo', path: '/time' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
 ];
