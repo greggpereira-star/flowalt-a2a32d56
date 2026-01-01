@@ -26,6 +26,8 @@ import {
   Banknote,
   TrendingUp,
   AlertCircle,
+  Zap,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,9 +77,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useAutoReconcileDDA } from '@/hooks/useDDAMatching';
 import {
   useDDABoletos,
   useDDASyncStatus,
@@ -89,6 +94,7 @@ import {
   DDABoleto,
   WorkflowStatus,
 } from '@/hooks/useDDA';
+import { DDAQAChecklist } from './DDAQAChecklist';
 
 // Workflow status configuration
 const workflowConfig: Record<WorkflowStatus, { label: string; color: string; icon: React.ElementType; next?: WorkflowStatus }> = {
@@ -111,6 +117,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 export function DDAPanel() {
   const { currentWorkspace } = useWorkspace();
+  const permissions = usePermissions();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [workflowFilter, setWorkflowFilter] = useState<string>('all');
   const [dueDateFilter, setDueDateFilter] = useState<string>('all');
@@ -129,6 +136,11 @@ export function DDAPanel() {
   const addBoletoMutation = useAddManualBoleto();
   const deleteMutation = useDeleteBoleto();
   const linkMutation = useLinkBoletoToTransaction();
+  const autoReconcileMutation = useAutoReconcileDDA();
+
+  // Permission checks
+  const canManage = permissions.canManageFinancial;
+  const canDelete = permissions.isOwner || permissions.isAdmin;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -303,6 +315,25 @@ export function DDAPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => autoReconcileMutation.mutate()}
+                  disabled={autoReconcileMutation.isPending || !canManage}
+                >
+                  <Zap className={`w-4 h-4 mr-2 ${autoReconcileMutation.isPending ? 'animate-pulse' : ''}`} />
+                  Auto-conciliar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Busca automaticamente transações pagas que correspondem a boletos pendentes</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <Button
             variant="outline"
             size="sm"
@@ -312,10 +343,13 @@ export function DDAPanel() {
             <RefreshCw className={`w-4 h-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
             Sincronizar
           </Button>
-          <Button size="sm" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar
-          </Button>
+          
+          {canManage && (
+            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -655,8 +689,8 @@ export function DDAPanel() {
                             
                             <DropdownMenuSeparator />
                             
-                            {/* AP Actions */}
-                            {!boleto.linked_ap_id && boleto.workflow_status !== 'paid_reconciled' && (
+                            {/* AP Actions - only if user can manage */}
+                            {canManage && !boleto.linked_ap_id && boleto.workflow_status !== 'paid_reconciled' && (
                               <>
                                 <DropdownMenuItem onClick={() => setCreateAPDialog(boleto)}>
                                   <Wallet className="h-4 w-4 mr-2 text-primary" />
@@ -673,15 +707,19 @@ export function DDAPanel() {
                               </>
                             )}
                             
-                            <DropdownMenuSeparator />
-                            
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleSoftDelete(boleto.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Remover
-                            </DropdownMenuItem>
+                            {/* Delete - only admin/owner */}
+                            {canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleSoftDelete(boleto.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remover
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -693,6 +731,11 @@ export function DDAPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* QA Checklist Section */}
+      {permissions.isAdmin && (
+        <DDAQAChecklist />
+      )}
 
       {/* Dialogs */}
       <AddBoletoDialog
