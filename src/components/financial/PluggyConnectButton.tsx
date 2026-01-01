@@ -17,56 +17,32 @@ interface PluggyItem {
   connected_at: string;
 }
 
-// Pluggy Connect URL base
-const PLUGGY_CONNECT_URL = 'https://connect.pluggy.ai';
 
 export function PluggyConnectButton() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isEmbedded, setIsEmbedded] = useState(false);
 
-  // Listen for messages from Pluggy Connect popup
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Only accept messages from Pluggy
-      if (!event.origin.includes('pluggy.ai')) return;
+    try {
+      setIsEmbedded(window.self !== window.top);
+    } catch {
+      setIsEmbedded(true);
+    }
+  }, []);
 
-      console.log('Received message from Pluggy:', event.data);
+  const openAppInNewTab = useCallback(() => {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer');
+  }, []);
 
-      if (event.data?.type === 'pluggy-connect-success' && event.data?.itemId) {
-        try {
-          const { error: saveError } = await supabase.functions.invoke('integration-manager', {
-            body: {
-              action: 'pluggy_save_item',
-              workspace_id: currentWorkspace?.id,
-              item_id: event.data.itemId,
-              connector_name: event.data.connectorName || 'Banco',
-            },
-          });
-
-          if (saveError) throw saveError;
-
-          queryClient.invalidateQueries({ queryKey: ['pluggy-items'] });
-          queryClient.invalidateQueries({ queryKey: ['dda-sync-status'] });
-          toast.success('Conta bancária conectada com sucesso!');
-        } catch (err) {
-          console.error('Error saving Pluggy item:', err);
-          toast.error('Erro ao salvar conexão bancária');
-        }
-        setIsConnecting(false);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [currentWorkspace?.id, queryClient]);
 
   // Fetch connected items
   const { data: connectedItems, isLoading: isLoadingItems, refetch: refetchItems } = useQuery({
     queryKey: ['pluggy-items', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      
+
       const { data, error } = await supabase.functions.invoke('integration-manager', {
         body: {
           action: 'pluggy_list_items',
@@ -107,10 +83,16 @@ export function PluggyConnectButton() {
     },
   });
 
-  // Open Pluggy Connect in a new window
+  // Open Pluggy Connect widget
   const openPluggyConnect = useCallback(async () => {
     if (!currentWorkspace?.id) {
       toast.error('Workspace não selecionado');
+      return;
+    }
+
+    // O widget costuma falhar dentro de previews embutidos (iframes)
+    if (isEmbedded) {
+      toast.error('Abra o app em uma nova aba para conectar sua conta.');
       return;
     }
 
@@ -128,47 +110,58 @@ export function PluggyConnectButton() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const connectToken = data.accessToken;
-      if (!connectToken) {
-        throw new Error('Token de conexão não recebido');
-      }
+      const connectToken = data.accessToken as string | undefined;
+      if (!connectToken) throw new Error('Token de conexão não recebido');
 
-      // Build Pluggy Connect URL with parameters
-      const connectUrl = new URL(PLUGGY_CONNECT_URL);
-      connectUrl.searchParams.set('connect_token', connectToken);
-      connectUrl.searchParams.set('language', 'pt');
-      connectUrl.searchParams.set('country', 'BR');
-      
-      // Open in new window/tab
-      const popup = window.open(
-        connectUrl.toString(),
-        'pluggy-connect',
-        'width=500,height=700,left=200,top=100,scrollbars=yes,resizable=yes'
-      );
+      const { PluggyConnect } = await import('pluggy-connect-sdk');
 
-      if (!popup) {
-        toast.error('Popup bloqueado. Permita popups para este site.');
-        setIsConnecting(false);
-        return;
-      }
+      const pluggyConnect = new PluggyConnect({
+        connectToken,
+        includeSandbox: false,
+        language: 'pt',
+        theme: 'light',
+        countries: ['BR'],
+        onSuccess: async (itemData: { item: { id: string; connector?: { name?: string } } }) => {
+          try {
+            const { error: saveError } = await supabase.functions.invoke('integration-manager', {
+              body: {
+                action: 'pluggy_save_item',
+                workspace_id: currentWorkspace.id,
+                item_id: itemData.item.id,
+                connector_name: itemData.item.connector?.name,
+              },
+            });
 
-      // Monitor popup close
-      const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosed);
+            if (saveError) throw saveError;
+
+            queryClient.invalidateQueries({ queryKey: ['pluggy-items'] });
+            queryClient.invalidateQueries({ queryKey: ['dda-sync-status'] });
+            toast.success('Conta bancária conectada com sucesso!');
+          } catch (err) {
+            console.error('Error saving Pluggy item:', err);
+            toast.error('Erro ao salvar conexão bancária');
+          } finally {
+            setIsConnecting(false);
+          }
+        },
+        onError: (error: { message?: string }) => {
+          console.error('Pluggy Connect error:', error);
+          toast.error(error.message || 'Erro ao conectar conta bancária');
           setIsConnecting(false);
-          // Refresh items in case connection was made
+        },
+        onClose: () => {
+          setIsConnecting(false);
           refetchItems();
-        }
-      }, 500);
+        },
+      });
 
-      toast.info('Complete a conexão na janela aberta');
+      pluggyConnect.init();
     } catch (err) {
       console.error('Error opening Pluggy Connect:', err);
       toast.error(err instanceof Error ? err.message : 'Erro ao abrir conexão bancária');
       setIsConnecting(false);
     }
-  }, [currentWorkspace?.id, refetchItems]);
+  }, [currentWorkspace?.id, isEmbedded, queryClient, refetchItems]);
 
   const hasConnectedAccounts = (connectedItems?.length || 0) > 0;
 
@@ -189,6 +182,24 @@ export function PluggyConnectButton() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {isEmbedded && (
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Conexão bancária bloqueada no preview</p>
+                <p className="text-xs text-muted-foreground">
+                  Abra o app em uma nova aba (fora do iframe) para conectar. Domínio atual:{' '}
+                  <span className="font-mono">{window.location.origin}</span>
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={openAppInNewTab}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Abrir
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isLoadingItems ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
