@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -131,9 +131,8 @@ const Index: React.FC = () => {
     }
   };
 
-  // Se não tem workspace, redireciona para FirstAccessPage
-  if (!loading && workspaces.length === 0) {
-    navigate('/first-access');
+  // Se está carregando, mostrar spinner
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -141,12 +140,9 @@ const Index: React.FC = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  // Se não tem workspace, redireciona para FirstAccessPage
+  if (workspaces.length === 0) {
+    return <Navigate to="/first-access" replace />;
   }
 
   return (
