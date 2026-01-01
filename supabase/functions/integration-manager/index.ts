@@ -123,6 +123,31 @@ serve(async (req: Request) => {
         if (!allowed) return forbidden();
         return await deleteIntegration(supabase, workspaceId, integrationType);
       }
+      case 'dda_sync': {
+        const workspaceId = body?.workspace_id as string;
+        if (!workspaceId) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await ddaSyncBoletos(supabase, workspaceId, user.id);
+      }
+      case 'dda_manual_add': {
+        const workspaceId = body?.workspace_id as string;
+        const boletoData = body?.boleto_data as Record<string, unknown> | undefined;
+        if (!workspaceId || !boletoData) {
+          return new Response(
+            JSON.stringify({ error: 'workspace_id and boleto_data required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allowed = await hasIntegrationAdminAccess(supabase, workspaceId, user.id);
+        if (!allowed) return forbidden();
+        return await ddaAddManualBoleto(supabase, workspaceId, boletoData, user.id);
+      }
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown action' }),
@@ -398,4 +423,287 @@ function getRequiredFields(integrationType: string): string[] {
     default:
       return [];
   }
+}
+
+// =====================
+// DDA (Pluggy bills) API
+// =====================
+
+function mapPluggyStatusToInternal(pluggyStatus: string): string {
+  switch (pluggyStatus?.toLowerCase()) {
+    case 'paid':
+    case 'pago':
+      return 'paid';
+    case 'pending':
+    case 'aberto':
+    case 'open':
+      return 'pending';
+    case 'overdue':
+    case 'vencido':
+      return 'expired';
+    case 'cancelled':
+    case 'cancelado':
+      return 'cancelled';
+    default:
+      return 'pending';
+  }
+}
+
+async function logDdaSync(
+  supabase: any,
+  workspaceId: string,
+  userId: string,
+  status: 'success' | 'error' | 'partial',
+  found: number,
+  newCount: number,
+  updated: number,
+  errorMessage?: string
+): Promise<void> {
+  await supabase.from('dda_sync_logs').insert({
+    workspace_id: workspaceId,
+    synced_by: userId,
+    status,
+    boletos_found: found,
+    boletos_new: newCount,
+    boletos_updated: updated,
+    error_message: errorMessage,
+    source: 'pluggy'
+  });
+}
+
+async function ddaSyncBoletos(
+  supabase: any,
+  workspaceId: string,
+  userId: string
+): Promise<Response> {
+  console.log(`DDA: Starting sync for workspace ${workspaceId}`);
+
+  // Get Pluggy credentials
+  const { data: credentials, error: credError } = await supabase
+    .from('integration_credentials')
+    .select('credentials')
+    .eq('workspace_id', workspaceId)
+    .eq('integration_type', 'pluggy')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (credError || !credentials?.credentials) {
+    await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Pluggy não configurado');
+
+    return new Response(
+      JSON.stringify({
+        error: 'Pluggy não configurado. Configure a integração em Configurações > Conectores.'
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const { client_id, client_secret } = credentials.credentials as {
+    client_id: string;
+    client_secret: string;
+  };
+
+  try {
+    // Step 1: Get Pluggy API key
+    const authResponse = await fetch('https://api.pluggy.ai/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client_id, clientSecret: client_secret })
+    });
+
+    if (!authResponse.ok) {
+      const authError = await authResponse.text();
+      console.error('DDA: Pluggy auth failed:', authError);
+      await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Falha na autenticação Pluggy');
+
+      return new Response(
+        JSON.stringify({ error: 'Falha na autenticação com Pluggy. Verifique suas credenciais.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authData = await authResponse.json();
+    const apiKey = authData.apiKey;
+
+    // Step 2: Get connected items
+    const itemsResponse = await fetch('https://api.pluggy.ai/items', {
+      headers: { 'X-API-KEY': apiKey }
+    });
+
+    if (!itemsResponse.ok) {
+      console.error('DDA: Failed to fetch Pluggy items');
+      await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, 'Nenhuma conta bancária conectada');
+
+      return new Response(
+        JSON.stringify({
+          error: 'Nenhuma conta bancária conectada. Conecte uma conta no Pluggy.',
+          needsConnection: true
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const itemsData = await itemsResponse.json();
+    const items = itemsData.results || [];
+
+    if (items.length === 0) {
+      await logDdaSync(supabase, workspaceId, userId, 'success', 0, 0, 0);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Nenhuma conta bancária conectada no Pluggy',
+          boletos_found: 0,
+          boletos_new: 0,
+          boletos_updated: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Step 3: Fetch boletos from each item
+    let totalBoletos = 0;
+    let newBoletos = 0;
+    let updatedBoletos = 0;
+
+    const allBoletos: any[] = [];
+
+    for (const item of items) {
+      try {
+        const boletosResponse = await fetch(`https://api.pluggy.ai/items/${item.id}/bills`, {
+          headers: { 'X-API-KEY': apiKey }
+        });
+
+        if (!boletosResponse.ok) continue;
+
+        const boletosData = await boletosResponse.json();
+        const boletos = boletosData.results || [];
+
+        for (const boleto of boletos) {
+          totalBoletos++;
+
+          allBoletos.push({
+            workspace_id: workspaceId,
+            created_by: userId,
+            external_id: boleto.id,
+            barcode: boleto.barcode || null,
+            digitable_line: boleto.digitableLine || null,
+            cedente_nome: boleto.payee?.name || 'Não informado',
+            cedente_documento: boleto.payee?.documentNumber || null,
+            cedente_banco: boleto.payee?.bankCode || null,
+            cedente_agencia: boleto.payee?.branchNumber || null,
+            cedente_conta: boleto.payee?.accountNumber || null,
+            sacado_nome: boleto.payer?.name || null,
+            sacado_documento: boleto.payer?.documentNumber || null,
+            valor_original: boleto.amount || 0,
+            valor_atualizado: (boleto.amount || 0) + (boleto.fine || 0) + (boleto.interest || 0),
+            valor_desconto: boleto.discount || 0,
+            data_emissao: boleto.issueDate || null,
+            data_vencimento: boleto.dueDate,
+            status: mapPluggyStatusToInternal(boleto.status),
+            source: 'pluggy',
+            synced_at: new Date().toISOString(),
+            metadata: {
+              pluggy_item_id: item.id,
+              pluggy_connector: item.connector?.name,
+              original_status: boleto.status,
+            },
+          });
+        }
+      } catch (itemError) {
+        console.error(`DDA: Error fetching boletos for item ${item.id}:`, itemError);
+      }
+    }
+
+    // Step 4: Upsert rows
+    for (const boleto of allBoletos) {
+      const { data: existing } = await supabase
+        .from('dda_boletos')
+        .select('id, status')
+        .eq('workspace_id', workspaceId)
+        .eq('external_id', boleto.external_id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('dda_boletos')
+          .update({
+            valor_atualizado: boleto.valor_atualizado,
+            status: boleto.status === 'pending' ? existing.status : boleto.status,
+            synced_at: boleto.synced_at,
+            metadata: boleto.metadata,
+          })
+          .eq('id', existing.id);
+
+        updatedBoletos++;
+      } else {
+        await supabase.from('dda_boletos').insert(boleto);
+        newBoletos++;
+      }
+    }
+
+    await supabase
+      .from('integration_credentials')
+      .update({
+        last_sync_at: new Date().toISOString(),
+        sync_status: 'success'
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('integration_type', 'pluggy');
+
+    await logDdaSync(supabase, workspaceId, userId, 'success', totalBoletos, newBoletos, updatedBoletos);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Sincronização concluída',
+        boletos_found: totalBoletos,
+        boletos_new: newBoletos,
+        boletos_updated: updatedBoletos,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (syncError: unknown) {
+    const errorMsg = syncError instanceof Error ? syncError.message : 'Erro desconhecido';
+    console.error('DDA: Sync error:', syncError);
+
+    await logDdaSync(supabase, workspaceId, userId, 'error', 0, 0, 0, errorMsg);
+
+    return new Response(
+      JSON.stringify({ error: `Erro na sincronização: ${errorMsg}` }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function ddaAddManualBoleto(
+  supabase: any,
+  workspaceId: string,
+  boletoData: Record<string, unknown>,
+  userId: string
+): Promise<Response> {
+  const { error } = await supabase
+    .from('dda_boletos')
+    .insert({
+      workspace_id: workspaceId,
+      created_by: userId,
+      source: 'manual',
+      status: 'pending',
+      cedente_nome: (boletoData.cedente_nome as string) || 'Não informado',
+      valor_original: (boletoData.valor_original as number) || 0,
+      data_vencimento: boletoData.data_vencimento as string,
+      ...boletoData,
+    });
+
+  if (error) {
+    return new Response(
+      JSON.stringify({ error: 'Erro ao adicionar boleto' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Boleto adicionado com sucesso' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }

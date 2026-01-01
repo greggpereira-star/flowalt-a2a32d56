@@ -185,9 +185,9 @@ export function useSyncDDA() {
         throw new Error('Sessão expirada. Faça login novamente.');
       }
 
-      const { data, error } = await supabase.functions.invoke('dda-sync', {
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
         body: {
-          action: 'sync',
+          action: 'dda_sync',
           workspace_id: currentWorkspace.id,
         },
       });
@@ -302,9 +302,9 @@ export function useAddManualBoleto() {
     mutationFn: async (boletoData: Partial<DDABoleto>) => {
       if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
 
-      const { data, error } = await supabase.functions.invoke('dda-sync', {
+      const { data, error } = await supabase.functions.invoke('integration-manager', {
         body: {
-          action: 'manual_add',
+          action: 'dda_manual_add',
           workspace_id: currentWorkspace.id,
           boleto_data: boletoData,
         },
