@@ -25,6 +25,8 @@ import { cn } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useCardDependencies } from '@/hooks/useDependencies';
+import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { 
   useDefaultWorkflow, 
   useCompleteWorkflow, 
@@ -156,6 +158,27 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard();
   const transitionCard = useTransitionCard();
+  
+  // Clients data for displaying client info on cards
+  const { data: legacyClients } = useClients();
+  const { data: clientCards } = useClientCards();
+  
+  // Build a map of client_id -> {name, color} for quick lookup
+  const clientMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string | null }>();
+    
+    // Add legacy clients
+    legacyClients?.forEach(client => {
+      map.set(client.id, { name: client.name, color: client.color });
+    });
+    
+    // Add client cards (new system)
+    clientCards?.forEach(client => {
+      map.set(client.id, { name: client.name, color: client.color || null });
+    });
+    
+    return map;
+  }, [legacyClients, clientCards]);
   
   // Workflow data
   const { data: defaultWorkflow } = useDefaultWorkflow();
@@ -527,29 +550,34 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </p>
                     </div>
                   ) : (
-                    columnCards.map((card) => (
-                      <DraggableCard key={card.id} id={card.id}>
-                        <CardContextMenu
-                          card={card}
-                          onStatusChange={(status) => handleStatusChange(card, status)}
-                          onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                          onDuplicate={() => handleDuplicate(card)}
-                          onDelete={() => handleDelete(card)}
-                        >
-                          <div className={cn(
-                            'transition-all',
-                            activeId === card.id && 'opacity-50 scale-95'
-                          )}>
-                            {/* Gate indicators above card */}
-                            <CardBlockIndicators card={card} />
-                            <TaskCard
-                              card={card}
-                              onClick={() => onCardClick(card)}
-                            />
-                          </div>
-                        </CardContextMenu>
-                      </DraggableCard>
-                    ))
+                    columnCards.map((card) => {
+                      const clientInfo = card.client_id ? clientMap.get(card.client_id) : undefined;
+                      return (
+                        <DraggableCard key={card.id} id={card.id}>
+                          <CardContextMenu
+                            card={card}
+                            onStatusChange={(status) => handleStatusChange(card, status)}
+                            onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                            onDuplicate={() => handleDuplicate(card)}
+                            onDelete={() => handleDelete(card)}
+                          >
+                            <div className={cn(
+                              'transition-all',
+                              activeId === card.id && 'opacity-50 scale-95'
+                            )}>
+                              {/* Gate indicators above card */}
+                              <CardBlockIndicators card={card} />
+                              <TaskCard
+                                card={card}
+                                onClick={() => onCardClick(card)}
+                                clientName={clientInfo?.name}
+                                clientColor={clientInfo?.color || undefined}
+                              />
+                            </div>
+                          </CardContextMenu>
+                        </DraggableCard>
+                      );
+                    })
                   )}
                 </DroppableColumn>
               </div>

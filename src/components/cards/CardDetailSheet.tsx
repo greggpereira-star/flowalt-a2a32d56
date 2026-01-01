@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -67,6 +67,8 @@ import {
   DollarSign,
   UserPlus,
   Package,
+  Building2,
+  BanknoteIcon,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -78,6 +80,8 @@ import { useComments } from '@/hooks/useComments';
 import { useAttachments } from '@/hooks/useAttachments';
 import { useRunningTimer, useStartTimer, useStopTimer } from '@/hooks/useTimeEntries';
 import { useCardDependencies } from '@/hooks/useDependencies';
+import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -125,9 +129,29 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { data: attachments } = useAttachments(cardId || undefined);
   const { data: runningTimer } = useRunningTimer(cardId || undefined);
   const { data: cardDependencies } = useCardDependencies(cardId || undefined);
+  const { data: legacyClients } = useClients();
+  const { data: clientCards } = useClientCards();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
   const updateCard = useUpdateCard();
+
+  // Build combined clients list
+  const allClients = useMemo(() => {
+    const clients: Array<{ id: string; name: string; color: string | null }> = [];
+    
+    legacyClients?.forEach(c => {
+      clients.push({ id: c.id, name: c.name, color: c.color });
+    });
+    
+    clientCards?.forEach(c => {
+      // Avoid duplicates if legacy_client_id links exist
+      if (!clients.some(existing => existing.id === c.id)) {
+        clients.push({ id: c.id, name: c.name, color: c.color || null });
+      }
+    });
+    
+    return clients.sort((a, b) => a.name.localeCompare(b.name));
+  }, [legacyClients, clientCards]);
 
   // Calculate blocking cards
   const blockingCards = cardDependencies?.blocking
@@ -145,6 +169,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [urgency, setUrgency] = useState<CardUrgency>('medium');
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [estimatedHours, setEstimatedHours] = useState('');
+  const [clientId, setClientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingData, setBriefingData] = useState<BriefingData>({
@@ -190,6 +215,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       setUrgency(card.urgency);
       setDueDate(card.due_date ? new Date(card.due_date) : undefined);
       setEstimatedHours(card.estimated_hours?.toString() || '');
+      setClientId(card.client_id);
 
       if (card.briefing_data && typeof card.briefing_data === 'object') {
         setBriefingData({
@@ -779,6 +805,54 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                           className="h-10"
                         />
                       </div>
+                    </div>
+
+                    {/* Client Selector - spans full width */}
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Building2 className="h-3 w-3" />
+                        Cliente
+                        {!clientId && (
+                          <Badge variant="outline" className="text-[9px] h-4 text-muted-foreground">
+                            <BanknoteIcon className="h-2.5 w-2.5 mr-0.5" />
+                            Não faturável
+                          </Badge>
+                        )}
+                      </label>
+                      <Select
+                        value={clientId || '__none__'}
+                        onValueChange={(v) => {
+                          const newClientId = v === '__none__' ? null : v;
+                          setClientId(newClientId);
+                          updateCard.mutate({ id: card.id, client_id: newClientId });
+                        }}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Selecionar cliente..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <BanknoteIcon className="h-3 w-3" />
+                              Sem cliente (Não faturável)
+                            </div>
+                          </SelectItem>
+                          {allClients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              <div className="flex items-center gap-2">
+                                {client.color && (
+                                  <div 
+                                    className="w-2 h-2 rounded-full" 
+                                    style={{ backgroundColor: client.color }}
+                                  />
+                                )}
+                                {!client.color && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                                {client.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
 import { CardRiskIndicators } from './CardRiskIndicators';
 import { RiskRadar } from './RiskRadar';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Building2, BanknoteIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,6 +17,8 @@ interface TaskCardProps {
   isDragging?: boolean;
   isBlocked?: boolean;
   ownerUtilization?: number;
+  clientName?: string;
+  clientColor?: string;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -24,9 +27,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   isDragging,
   isBlocked = false,
   ownerUtilization = 0,
+  clientName,
+  clientColor,
 }) => {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
+  const isBillable = !!card.client_id;
 
   return (
     <CardUI
@@ -38,6 +44,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       )}
       onClick={onClick}
     >
+      {/* Client indicator bar */}
+      {clientColor && (
+        <div 
+          className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
+          style={{ backgroundColor: clientColor }}
+        />
+      )}
+
       {/* Risk Radar - compact indicator in top right */}
       <div className="absolute top-2 right-2 z-10">
         <RiskRadar 
@@ -48,7 +62,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         />
       </div>
 
-      <CardHeader className="p-3 pb-2 pr-8">
+      <CardHeader className={cn("p-3 pb-2 pr-8", clientColor && "pt-4")}>
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
             {card.title}
@@ -57,6 +71,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-3 pt-0 space-y-2">
+        {/* Client Badge or Non-billable indicator */}
+        {clientName ? (
+          <Badge 
+            variant="outline" 
+            className="text-[10px] h-5 gap-1 max-w-full"
+            style={clientColor ? { 
+              borderColor: `${clientColor}40`,
+              backgroundColor: `${clientColor}10`,
+              color: clientColor 
+            } : undefined}
+          >
+            <Building2 className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate">{clientName}</span>
+          </Badge>
+        ) : (
+          <Badge 
+            variant="outline" 
+            className="text-[10px] h-5 gap-1 text-muted-foreground border-muted"
+          >
+            <BanknoteIcon className="h-2.5 w-2.5" />
+            Não faturável
+          </Badge>
+        )}
+
         {/* Risk indicators */}
         <CardRiskIndicators card={card} />
 
