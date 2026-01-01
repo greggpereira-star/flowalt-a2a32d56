@@ -29,6 +29,8 @@ import { PredictiveSyncPanel } from '@/components/settings/PredictiveSyncPanel';
 import { WorkflowBuilder } from '@/components/workflow/WorkflowBuilder';
 import { QAChecklist } from '@/components/settings/QAChecklist';
 import { SpacesManager } from '@/components/settings/SpacesManager';
+import { WorkspaceMembersPanel } from '@/components/settings/WorkspaceMembersPanel';
+import { WorkspaceInvitesPanel } from '@/components/settings/WorkspaceInvitesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'react-router-dom';
@@ -36,13 +38,15 @@ import {
   Code, Key, Webhook, BarChart3, Sparkles, Activity, Zap, Monitor, Flag, 
   PieChart, FileStack, Shield, Crown, Bell, HeartPulse, Archive, 
   RotateCcw, Search, Store, Heart, Link2, Brain, Play, TrendingUp, GitBranch,
-  ClipboardCheck, FolderKanban
+  ClipboardCheck, FolderKanban, Users, UserPlus
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
 const SETTINGS_TABS = new Set([
+  'members',
+  'invites',
   'spaces',
   'qa-checklist',
   'workflow',
@@ -125,10 +129,20 @@ export default function SettingsPage() {
           <div className="flex justify-center px-4 md:px-8 lg:px-12">
             <TabsList className="grid grid-cols-5 sm:grid-cols-10 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-5xl w-full">
               {canManageWorkspace && (
-                <TabsTrigger value="spaces" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                  <FolderKanban className="h-5 w-5" />
-                  <span className="text-xs font-medium">Espaços</span>
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="members" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <Users className="h-5 w-5" />
+                    <span className="text-xs font-medium">Membros</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="invites" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <UserPlus className="h-5 w-5" />
+                    <span className="text-xs font-medium">Convites</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="spaces" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                    <FolderKanban className="h-5 w-5" />
+                    <span className="text-xs font-medium">Espaços</span>
+                  </TabsTrigger>
+                </>
               )}
               <TabsTrigger value="qa-checklist" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
                 <ClipboardCheck className="h-5 w-5" />
@@ -236,6 +250,14 @@ export default function SettingsPage() {
               </TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="members">
+            <WorkspaceMembersPanel />
+          </TabsContent>
+
+          <TabsContent value="invites">
+            <WorkspaceInvitesPanel />
+          </TabsContent>
 
           <TabsContent value="spaces">
             <SpacesManager />
