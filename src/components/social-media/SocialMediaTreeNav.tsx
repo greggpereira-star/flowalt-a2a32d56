@@ -290,11 +290,7 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
 
   const handleExpandAll = useCallback(() => {
     setIsSpaceCollapsed(false);
-    if (folders && folders.length > 0) {
-      const allFolderIds = folders.map((f) => f.id);
-      setExpandedFolders(allFolderIds);
-    }
-  }, [folders, setExpandedFolders]);
+  }, []);
 
   const handleCollapseAll = useCallback(() => {
     setIsSpaceCollapsed(true);
