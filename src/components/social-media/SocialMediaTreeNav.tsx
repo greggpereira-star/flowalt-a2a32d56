@@ -35,7 +35,6 @@ import { CreateViewDialog } from './CreateViewDialog';
 import { useToast } from '@/hooks/use-toast';
 import {
   ChevronDown,
-  ChevronRight,
   Folder,
   FolderOpen,
   Plus,
@@ -115,11 +114,12 @@ const FolderItem: React.FC<FolderItemProps> = ({
             size="sm"
             className="flex-1 justify-start gap-1 px-2 h-8 font-normal hover:bg-muted/50"
           >
-            {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            )}
+            <ChevronDown 
+              className={cn(
+                "h-3.5 w-3.5 text-muted-foreground flex-shrink-0 transition-transform duration-200",
+                isExpanded && "rotate-180"
+              )}
+            />
             {isExpanded ? (
               <FolderOpen
                 className="h-4 w-4 flex-shrink-0"
@@ -348,7 +348,7 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
   return (
     <div className="space-y-1">
       {/* Space Header */}
-      <div className="flex items-center justify-between px-2 py-1 group">
+      <div className="flex items-center justify-between px-2 py-1 group rounded-md hover:bg-muted/50 transition-colors duration-150">
         <div 
           className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
           onClick={handleToggleSpace}
