@@ -33,11 +33,15 @@ import {
   Lock,
   TrendingUp,
   TrendingDown,
-  BarChart3
+  BarChart3,
+  Settings2,
+  Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ClientReportTab } from './ClientReportTab';
+import { ClientPoliciesTab } from './ClientPoliciesTab';
+import { ContractSimulatorTab } from './ContractSimulatorTab';
 
 interface ClientCardSheetProps {
   clientId: string | null;
@@ -791,34 +795,42 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
             {/* Tabs com scroll */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="w-full grid grid-cols-7 h-auto">
-                  <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-1">
-                    <Building2 className="h-4 w-4" />
-                    <span className="text-[10px]">Identidade</span>
+                <TabsList className="w-full grid grid-cols-9 h-auto">
+                  <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Identidade</span>
                   </TabsTrigger>
-                  <TabsTrigger value="onboarding" className="flex flex-col gap-0.5 py-2 px-1">
-                    <Users className="h-4 w-4" />
-                    <span className="text-[10px]">Onboarding</span>
+                  <TabsTrigger value="onboarding" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Onboard</span>
                   </TabsTrigger>
-                  <TabsTrigger value="branding" className="flex flex-col gap-0.5 py-2 px-1">
-                    <Palette className="h-4 w-4" />
-                    <span className="text-[10px]">Branding</span>
+                  <TabsTrigger value="branding" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <Palette className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Branding</span>
                   </TabsTrigger>
-                  <TabsTrigger value="voice" className="flex flex-col gap-0.5 py-2 px-1">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="text-[10px]">É/Faz/Fala</span>
+                  <TabsTrigger value="voice" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Voz</span>
                   </TabsTrigger>
-                  <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-1">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-[10px]">Contrato</span>
+                  <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Contrato</span>
                   </TabsTrigger>
-                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-1">
-                    <BarChart3 className="h-4 w-4" />
-                    <span className="text-[10px]">Relatório</span>
+                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Relatório</span>
                   </TabsTrigger>
-                  <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-[10px]">Financeiro</span>
+                  <TabsTrigger value="policies" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Políticas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="simulator" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <Calculator className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Simulador</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-0.5">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    <span className="text-[9px]">Financeiro</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -847,6 +859,12 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   </TabsContent>
                   <TabsContent value="report" className="mt-0 focus-visible:outline-none">
                     <ClientReportTab clientId={client.id} />
+                  </TabsContent>
+                  <TabsContent value="policies" className="mt-0 focus-visible:outline-none">
+                    <ClientPoliciesTab clientId={client.id} />
+                  </TabsContent>
+                  <TabsContent value="simulator" className="mt-0 focus-visible:outline-none">
+                    <ContractSimulatorTab clientId={client.id} />
                   </TabsContent>
                   <TabsContent value="financial" className="mt-0 focus-visible:outline-none">
                     <FinancialTab clientId={client.id} canViewFinancials={canEditFinancials} />
