@@ -70,26 +70,49 @@ serve(async (req: Request) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify auth
+    // Verify auth - get token from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
+        JSON.stringify({ code: 401, message: 'Authorization header required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Extract token and validate
+    const token = authHeader.replace('Bearer ', '');
+    if (!token || token.length < 10) {
+      console.error('Invalid token format');
+      return new Response(
+        JSON.stringify({ code: 401, message: 'Invalid token format' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create user client with the token
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
     const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
+    if (authError) {
+      console.error('Auth error:', authError.message);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ code: 401, message: 'Invalid JWT', details: authError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    if (!user) {
+      console.error('No user found for token');
+      return new Response(
+        JSON.stringify({ code: 401, message: 'User not found' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`DDA Sync: User ${user.id} authenticated successfully`);
 
     const body: SyncRequest = await req.json();
     const { action, workspace_id, boleto_data } = body;

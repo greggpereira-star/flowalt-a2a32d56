@@ -124,23 +124,8 @@ export function useDDASyncStatus() {
         };
       }
 
-      try {
-        // Try edge function first
-        const { data, error } = await supabase.functions.invoke('dda-sync', {
-          body: {
-            action: 'status',
-            workspace_id: currentWorkspace.id,
-          },
-        });
-
-        if (!error && data) {
-          return data as DDASyncStatus;
-        }
-        
-        console.warn('Edge function failed, falling back to direct query:', error);
-      } catch (edgeFnError) {
-        console.warn('Edge function error, falling back to direct query:', edgeFnError);
-      }
+      // Skip edge function for status check - use direct DB query for reliability
+      // This avoids JWT issues and is faster for status checks
 
       // Fallback: query database directly
       const [integrationResult, syncLogResult, pendingResult, overdueResult] = await Promise.all([
@@ -194,6 +179,12 @@ export function useSyncDDA() {
     mutationFn: async () => {
       if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
 
+      // Ensure we have a valid session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
       const { data, error } = await supabase.functions.invoke('dda-sync', {
         body: {
           action: 'sync',
@@ -201,7 +192,13 @@ export function useSyncDDA() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an auth error
+        if (error.message?.includes('401') || error.message?.includes('JWT')) {
+          throw new Error('Sessão expirada. Recarregue a página e tente novamente.');
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
       
       return data;
