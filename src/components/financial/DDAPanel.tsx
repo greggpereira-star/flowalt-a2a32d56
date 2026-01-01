@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO, differenceInDays, isAfter, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -1238,8 +1238,8 @@ function LinkTransactionDialog({
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
 
-  // Fetch pending expense transactions
-  useState(() => {
+  // Fetch pending expense transactions - use useEffect, not useState
+  useEffect(() => {
     if (!currentWorkspace?.id || !open) return;
     
     supabase
@@ -1248,12 +1248,12 @@ function LinkTransactionDialog({
       .eq('workspace_id', currentWorkspace.id)
       .eq('type', 'expense')
       .eq('status', 'pending')
-      .order('date', { ascending: true })
+      .order('due_date', { ascending: true })
       .limit(50)
       .then(({ data }) => {
         if (data) setTransactions(data);
       });
-  });
+  }, [currentWorkspace?.id, open]);
 
   const handleLink = async () => {
     if (!selectedId) {

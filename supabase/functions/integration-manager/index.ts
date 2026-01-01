@@ -667,14 +667,27 @@ async function ddaSyncBoletos(
 
     for (const item of items) {
       try {
+        console.log(`DDA: Fetching bills for item ${item.id} (${item.connector?.name || 'unknown'})`);
+        
         const boletosResponse = await fetch(`https://api.pluggy.ai/items/${item.id}/bills`, {
           headers: { 'X-API-KEY': apiKey }
         });
 
-        if (!boletosResponse.ok) continue;
+        if (!boletosResponse.ok) {
+          const errorText = await boletosResponse.text();
+          console.error(`DDA: Bills endpoint failed for item ${item.id}: ${boletosResponse.status} - ${errorText}`);
+          continue;
+        }
 
         const boletosData = await boletosResponse.json();
         const boletos = boletosData.results || [];
+        
+        console.log(`DDA: Found ${boletos.length} bills for item ${item.id}`);
+        
+        // Log raw response for debugging if there are bills
+        if (boletos.length > 0) {
+          console.log(`DDA: First bill sample:`, JSON.stringify(boletos[0], null, 2).slice(0, 500));
+        }
 
         for (const boleto of boletos) {
           totalBoletos++;
@@ -711,6 +724,8 @@ async function ddaSyncBoletos(
         console.error(`DDA: Error fetching boletos for item ${item.id}:`, itemError);
       }
     }
+    
+    console.log(`DDA: Total boletos collected: ${totalBoletos}`);
 
     // Step 4: Upsert rows
     for (const boleto of allBoletos) {
