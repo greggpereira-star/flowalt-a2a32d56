@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -23,16 +23,20 @@ import {
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useToast } from '@/hooks/use-toast';
 import { differenceInSeconds } from 'date-fns';
-import { useSpaces } from '@/hooks/useSpaces';
+import { useSpaces, useCreateSpace } from '@/hooks/useSpaces';
+import { EmptyWorkspaceState } from '@/components/workspace/EmptyWorkspaceState';
+import { CreateSpaceDialog } from '@/components/settings/CreateSpaceDialog';
+import type { SpaceTemplate, SpaceTemplateType } from '@/lib/spaceTemplates';
 
 const Index: React.FC = () => {
   usePageTracking('dashboard');
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currentWorkspace, workspaces, loading, createWorkspace } = useWorkspace();
-  const [isCreating, setIsCreating] = React.useState(false);
-  const { data: spaces } = useSpaces();
+  const { currentWorkspace, workspaces, loading } = useWorkspace();
+  const { data: spaces, isLoading: spacesLoading } = useSpaces();
+  const createSpace = useCreateSpace();
+  const [showCreateSpace, setShowCreateSpace] = useState(false);
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'Usuário';
 
@@ -116,23 +120,25 @@ const Index: React.FC = () => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleCreateWorkspace = async () => {
-    setIsCreating(true);
-    const { error } = await createWorkspace('Minha Empresa');
-    setIsCreating(false);
-
-    if (error) {
-      console.error('Error creating workspace:', error);
-      toast({
-        title: 'Erro ao criar workspace',
-        description: error.message || 'Não foi possível criar o workspace. Tente novamente.',
-        variant: 'destructive',
-      });
-    }
+  const handleCreateSpace = async (data: {
+    name: string;
+    icon: string;
+    color: string;
+    type: SpaceTemplateType;
+    template: SpaceTemplate;
+  }) => {
+    await createSpace.mutateAsync({
+      name: data.name,
+      icon: data.icon,
+      color: data.color,
+      type: data.type as any,
+      template: data.template,
+    });
+    setShowCreateSpace(false);
   };
 
   // Se está carregando, mostrar spinner
-  if (loading) {
+  if (loading || spacesLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -143,6 +149,25 @@ const Index: React.FC = () => {
   // Se não tem workspace, redireciona para FirstAccessPage
   if (workspaces.length === 0) {
     return <Navigate to="/first-access" replace />;
+  }
+
+  // Se workspace está vazio (sem espaços), mostrar estado vazio
+  if (!spaces || spaces.length === 0) {
+    return (
+      <AppLayout>
+        <EmptyWorkspaceState
+          workspaceName={currentWorkspace?.name || 'Workspace'}
+          onCreateSpace={() => setShowCreateSpace(true)}
+          onInviteMembers={() => navigate('/settings?tab=workspace')}
+        />
+        <CreateSpaceDialog
+          open={showCreateSpace}
+          onOpenChange={setShowCreateSpace}
+          onSubmit={handleCreateSpace}
+          isLoading={createSpace.isPending}
+        />
+      </AppLayout>
+    );
   }
 
   return (

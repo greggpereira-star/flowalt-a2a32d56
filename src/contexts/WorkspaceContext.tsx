@@ -46,7 +46,14 @@ interface WorkspaceContextType {
   loading: boolean;
   setCurrentWorkspace: (workspace: Workspace | null) => void;
   refreshWorkspaces: () => Promise<void>;
-  createWorkspace: (name: string) => Promise<{ error: Error | null; workspace?: Workspace }>;
+  createWorkspace: (name: string, metadata?: WorkspaceMetadata) => Promise<{ error: Error | null; workspace?: Workspace }>;
+}
+
+export interface WorkspaceMetadata {
+  company_size?: string;
+  objectives?: string[];
+  segment?: string | null;
+  country?: string;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -144,7 +151,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     fetchWorkspaces();
   }, [user]);
 
-  const createWorkspace = async (name: string): Promise<{ error: Error | null; workspace?: Workspace }> => {
+  const createWorkspace = async (name: string, metadata?: WorkspaceMetadata): Promise<{ error: Error | null; workspace?: Workspace }> => {
     if (!user) return { error: new Error('User not authenticated') };
 
     try {
@@ -162,9 +169,22 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // so asking for the inserted row can fail with RLS.
       const workspaceId = generateUuid();
 
+      // Incluir metadata nas settings do workspace
+      const workspaceSettings = metadata ? {
+        company_size: metadata.company_size,
+        objectives: metadata.objectives,
+        segment: metadata.segment,
+        country: metadata.country,
+      } : {};
+
       const { error: workspaceError } = await supabase
         .from('workspaces')
-        .insert({ id: workspaceId, name, slug });
+        .insert({ 
+          id: workspaceId, 
+          name, 
+          slug,
+          settings: workspaceSettings as Json,
+        });
 
       if (workspaceError) throw workspaceError;
 
@@ -190,29 +210,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (roleError) throw roleError;
 
-      const defaultSpaces: { name: string; type: SpaceType; icon: string; color: string }[] = [
-        { name: 'Designer', type: 'designer', icon: 'palette', color: '#8b5cf6' },
-        { name: 'Audiovisual', type: 'audiovisual', icon: 'video', color: '#ec4899' },
-        { name: 'Social Media', type: 'social_media', icon: 'share-2', color: '#0ea5e9' },
-        { name: 'Gestão de Tráfego', type: 'traffic', icon: 'target', color: '#f97316' },
-        { name: 'Administrativo', type: 'administrative', icon: 'briefcase', color: '#64748b' },
-        { name: 'Coordenação', type: 'coordination', icon: 'layout-dashboard', color: '#6366f1' },
-      ];
+      // NÃO criar espaços automaticamente - workspace começa vazio
+      // O usuário decide conscientemente quais espaços criar
 
-      const { error: spacesError } = await supabase.from('spaces').insert(
-        defaultSpaces.map((space, index) => ({
-          workspace_id: workspaceId,
-          name: space.name,
-          type: space.type,
-          icon: space.icon,
-          color: space.color,
-          sort_order: index,
-        }))
-      );
-
-      if (spacesError) console.error('Error creating default spaces:', spacesError);
-
-      // Create default financial categories
+      // Create default financial categories (necessário para o financeiro funcionar)
       const defaultCategories: Array<{
         workspace_id: string;
         name: string;
