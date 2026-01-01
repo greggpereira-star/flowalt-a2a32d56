@@ -5,10 +5,14 @@ import { toast } from 'sonner';
 
 import type { Json } from '@/integrations/supabase/types';
 
+export type WorkflowStatus = 'captured' | 'reviewed' | 'ap_created' | 'awaiting_payment' | 'paid_reconciled' | 'ignored';
+
 export interface DDABoleto {
   id: string;
   workspace_id: string;
   external_id: string | null;
+  pluggy_item_id: string | null;
+  pluggy_bill_id: string | null;
   barcode: string | null;
   digitable_line: string | null;
   cedente_nome: string;
@@ -27,12 +31,18 @@ export interface DDABoleto {
   data_pagamento: string | null;
   data_baixa: string | null;
   status: 'pending' | 'scheduled' | 'paid' | 'expired' | 'cancelled' | 'ignored';
+  workflow_status: WorkflowStatus;
   transaction_id: string | null;
+  linked_ap_id: string | null;
   category_id: string | null;
   notes: string | null;
   metadata: Json | null;
+  raw_payload: Json | null;
   source: string;
   synced_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
