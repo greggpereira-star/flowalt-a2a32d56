@@ -32,11 +32,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useSpaces,
@@ -49,6 +44,7 @@ import {
 } from '@/hooks/useSpaces';
 import { usePermissions } from '@/hooks/usePermissions';
 import { IconPicker, getIconByName } from '@/components/settings/IconPicker';
+import { CreateSpaceDialog } from '@/components/settings/CreateSpaceDialog';
 import {
   FolderKanban,
   GripVertical,
@@ -62,6 +58,7 @@ import {
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { SpaceType } from '@/lib/supabase';
 
 // Color palette for spaces
 const COLOR_OPTIONS = [
@@ -267,7 +264,7 @@ export function SpacesManager() {
   const createSpace = useCreateSpace();
 
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -296,7 +293,6 @@ export function SpacesManager() {
 
   const handleEdit = (space: Space) => {
     setEditingSpace(space);
-    setIsCreating(false);
   };
 
   const handleArchive = (space: Space) => {
@@ -310,9 +306,14 @@ export function SpacesManager() {
     }
   };
 
-  const handleCreate = async (data: { name: string; icon: string; color: string }) => {
-    await createSpace.mutateAsync(data);
-    setIsCreating(false);
+  const handleCreate = async (data: { name: string; icon: string; color: string; type: SpaceType }) => {
+    await createSpace.mutateAsync({
+      name: data.name,
+      icon: data.icon,
+      color: data.color,
+      type: data.type,
+    });
+    setIsCreateDialogOpen(false);
   };
 
   if (!canManageWorkspace) {
@@ -377,10 +378,9 @@ export function SpacesManager() {
             <Button
               size="sm"
               onClick={() => {
-                setIsCreating(true);
+                setIsCreateDialogOpen(true);
                 setEditingSpace(null);
               }}
-              disabled={isCreating}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Espaço
@@ -398,15 +398,13 @@ export function SpacesManager() {
           </p>
         </div>
 
-        {/* Create Form */}
-        {isCreating && (
-          <EditSpaceForm
-            space={null}
-            onSave={handleCreate}
-            onCancel={() => setIsCreating(false)}
-            isNew
-          />
-        )}
+        {/* Create Space Dialog */}
+        <CreateSpaceDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onSubmit={handleCreate}
+          isLoading={createSpace.isPending}
+        />
 
         {/* Edit Form */}
         {editingSpace && (
