@@ -8,10 +8,12 @@ interface WebhookSubscription {
   workspace_id: string;
   name: string;
   url: string;
-  secret: string;
+  secret: string; // Will be masked from safe view
   events: string[];
   is_active: boolean;
+  created_by: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface WebhookDelivery {
@@ -68,8 +70,9 @@ export function useWebhooks() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      // Use safe view to avoid exposing secrets
       const { data, error } = await supabase
-        .from('webhook_subscriptions')
+        .from('webhook_subscriptions_safe')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });

@@ -76,9 +76,9 @@ export function EventExplorer() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      // Get all subscriptions for the workspace
+      // Get all subscriptions for the workspace (using safe view)
       const { data: subscriptions } = await supabase
-        .from('webhook_subscriptions')
+        .from('webhook_subscriptions_safe')
         .select('id, name, url')
         .eq('workspace_id', currentWorkspace.id);
 
