@@ -45,18 +45,27 @@ export type TransactionEventType =
 export type DepreciationEventType =
   | 'DepreciationScheduleCreated';
 
+export type SpaceEventType =
+  | 'SpaceCreated'
+  | 'SpaceUpdated'
+  | 'SpaceReordered'
+  | 'SpaceArchived'
+  | 'SpaceOrderFixed';
+
 export type AllEventTypes = 
   | InventoryEventType 
   | MaintenanceEventType 
   | TransactionEventType 
-  | DepreciationEventType;
+  | DepreciationEventType
+  | SpaceEventType;
 
 export type AggregateType = 
   | 'InventoryItem'
   | 'InventoryMovement'
   | 'MaintenanceRecord'
   | 'Transaction'
-  | 'DepreciationSchedule';
+  | 'DepreciationSchedule'
+  | 'Space';
 
 interface EventFilters {
   aggregateType?: AggregateType;
