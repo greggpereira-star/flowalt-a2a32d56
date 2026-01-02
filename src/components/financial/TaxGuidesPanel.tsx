@@ -11,7 +11,10 @@ import {
   Building2,
   AlertTriangle,
   CheckCircle2,
-  Clock
+  Clock,
+  Info,
+  CreditCard,
+  Upload
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +22,18 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTransactions } from "@/hooks/useFinancial";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useTransactions, useCreateTransaction } from "@/hooks/useFinancial";
 import { useTaxSettings, useLocalTaxCalculation } from "@/hooks/useTaxSettings";
 import { generatePDFReport, downloadPDF, type ReportData } from "@/lib/pdfGenerator";
 import { toast } from "sonner";
@@ -39,6 +53,7 @@ interface TaxGuide {
   value: number;
   status: "pending" | "due_soon" | "overdue" | "paid";
   code?: string;
+  transactionId?: string; // ID da transação vinculada quando paga
 }
 
 const regimeLabels: Record<string, string> = {
@@ -49,8 +64,13 @@ const regimeLabels: Record<string, string> = {
 
 export function TaxGuidesPanel() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [payGuideDialog, setPayGuideDialog] = useState<TaxGuide | null>(null);
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [paymentValue, setPaymentValue] = useState("");
+  
   const { data: taxSettings, isLoading: settingsLoading } = useTaxSettings();
   const { calculateTaxes } = useLocalTaxCalculation();
+  const createTransaction = useCreateTransaction();
 
   const periodStart = startOfMonth(selectedMonth);
   const periodEnd = endOfMonth(selectedMonth);
@@ -70,6 +90,47 @@ export function TaxGuidesPanel() {
     });
   };
 
+  // Verificar guias já pagas (transações de imposto do período)
+  const paidGuides = useMemo(() => {
+    return transactions
+      .filter(t => 
+        t.type === "expense" && 
+        t.status === "paid" && 
+        t.description?.toLowerCase().includes("imposto")
+      )
+      .map(t => t.description?.toLowerCase() || "");
+  }, [transactions]);
+
+  const handleOpenPayDialog = (guide: TaxGuide) => {
+    setPayGuideDialog(guide);
+    setPaymentValue(guide.value.toFixed(2).replace(".", ","));
+  };
+
+  const handlePayGuide = async () => {
+    if (!payGuideDialog) return;
+
+    const nextMonth = new Date(selectedMonth);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const dueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), payGuideDialog.dueDay);
+
+    try {
+      await createTransaction.mutateAsync({
+        type: "expense",
+        amount: parseFloat(paymentValue.replace(",", ".")),
+        description: `Imposto - ${payGuideDialog.name} - ${format(selectedMonth, "MM/yyyy")}`,
+        status: "paid",
+        paid_date: paymentDate,
+        due_date: format(dueDate, "yyyy-MM-dd"),
+        category_id: null,
+      });
+      
+      toast.success("Guia registrada como paga em Despesas!");
+      setPayGuideDialog(null);
+    } catch (error) {
+      toast.error("Erro ao registrar pagamento");
+    }
+  };
+
   // Calculate revenue for the period
   const revenue = useMemo(() => {
     return transactions
@@ -80,13 +141,21 @@ export function TaxGuidesPanel() {
   // Calculate taxes
   const taxes = useMemo(() => calculateTaxes(revenue), [revenue, calculateTaxes]);
 
-  // Generate tax guides based on regime
+  // Generate tax guides based on regime (with paid status check)
   const guides = useMemo((): TaxGuide[] => {
     const today = new Date();
     const nextMonth = new Date(selectedMonth);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const competencia = format(selectedMonth, "MM/yyyy");
 
-    const getStatus = (dueDay: number): TaxGuide["status"] => {
+    const getStatus = (dueDay: number, guideName: string): TaxGuide["status"] => {
+      // Verificar se já existe transação paga para essa guia
+      const isPaid = paidGuides.some(desc => 
+        desc.includes(guideName.toLowerCase()) && 
+        desc.includes(competencia)
+      );
+      if (isPaid) return "paid";
+
       const dueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), dueDay);
       const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
@@ -105,64 +174,64 @@ export function TaxGuidesPanel() {
           description: "Guia unificada de impostos federais e ISS",
           dueDay: 20,
           value: taxes.das,
-          status: getStatus(20),
+          status: getStatus(20, "das"),
           code: "DAS",
         },
       ];
     }
 
     // Lucro Presumido ou Real
-    const guides: TaxGuide[] = [];
+    const guidesList: TaxGuide[] = [];
 
     if (taxes.irpj > 0 || taxes.csll > 0) {
-      guides.push({
+      guidesList.push({
         id: "darf-irpj-csll",
         name: "DARF - IRPJ/CSLL",
         description: "Imposto de Renda e Contribuição Social",
         dueDay: regime === 'lucro_presumido' ? 31 : 25,
         value: taxes.irpj + taxes.csll,
-        status: getStatus(regime === 'lucro_presumido' ? 31 : 25),
+        status: getStatus(regime === 'lucro_presumido' ? 31 : 25, "irpj/csll"),
         code: regime === 'lucro_presumido' ? "2089/2372" : "0220/6012",
       });
     }
 
     if (taxes.pis > 0) {
-      guides.push({
+      guidesList.push({
         id: "darf-pis",
         name: "DARF - PIS",
         description: "Programa de Integração Social",
         dueDay: 25,
         value: taxes.pis,
-        status: getStatus(25),
+        status: getStatus(25, "pis"),
         code: regime === 'lucro_presumido' ? "8109" : "6912",
       });
     }
 
     if (taxes.cofins > 0) {
-      guides.push({
+      guidesList.push({
         id: "darf-cofins",
         name: "DARF - COFINS",
         description: "Contribuição para Financiamento da Seguridade Social",
         dueDay: 25,
         value: taxes.cofins,
-        status: getStatus(25),
+        status: getStatus(25, "cofins"),
         code: regime === 'lucro_presumido' ? "2172" : "5856",
       });
     }
 
     if (taxes.iss > 0) {
-      guides.push({
+      guidesList.push({
         id: "iss",
         name: "Guia ISS Municipal",
         description: "Imposto Sobre Serviços",
         dueDay: 10,
         value: taxes.iss,
-        status: getStatus(10),
+        status: getStatus(10, "iss"),
       });
     }
 
-    return guides;
-  }, [taxes, selectedMonth]);
+    return guidesList;
+  }, [taxes, selectedMonth, paidGuides]);
 
   const totalTaxes = guides.reduce((acc, g) => acc + g.value, 0);
   const overdueCount = guides.filter(g => g.status === "overdue").length;
@@ -301,6 +370,65 @@ export function TaxGuidesPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Dialog de Pagamento */}
+      <Dialog open={!!payGuideDialog} onOpenChange={() => setPayGuideDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Pagamento de Guia</DialogTitle>
+            <DialogDescription>
+              Ao confirmar, uma despesa será criada automaticamente com os dados da guia fiscal.
+            </DialogDescription>
+          </DialogHeader>
+          {payGuideDialog && (
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg bg-muted p-4">
+                <div className="font-medium">{payGuideDialog.name}</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Competência: {format(selectedMonth, "MMMM/yyyy", { locale: ptBR })}
+                </div>
+              </div>
+              
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="paymentDate">Data do Pagamento</Label>
+                  <Input
+                    id="paymentDate"
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="paymentValue">Valor Pago (R$)</Label>
+                  <Input
+                    id="paymentValue"
+                    value={paymentValue}
+                    onChange={(e) => setPaymentValue(e.target.value)}
+                    placeholder="0,00"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Valor calculado: {formatCurrency(payGuideDialog.value)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayGuideDialog(null)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handlePayGuide} 
+              disabled={createTransaction.isPending}
+              className="gap-2"
+            >
+              <CreditCard className="w-4 h-4" />
+              {createTransaction.isPending ? "Registrando..." : "Confirmar Pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <Card>
         <CardHeader className="pb-3">
@@ -330,6 +458,33 @@ export function TaxGuidesPanel() {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Alerta sobre geração de guias */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Guias Estimadas</AlertTitle>
+        <AlertDescription className="text-sm">
+          Os valores são <strong>estimativas</strong> baseadas na receita do período. 
+          Para obter as guias oficiais (DAS, DARF), acesse o{" "}
+          <a 
+            href="https://www8.receita.fazenda.gov.br/SimplesNacional/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            Portal do Simples Nacional
+          </a>{" "}ou{" "}
+          <a 
+            href="https://cav.receita.fazenda.gov.br/autenticacao/login" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            e-CAC
+          </a>.
+          Após pagar a guia, clique em <strong>"Marcar como Paga"</strong> para registrar a despesa.
+        </AlertDescription>
+      </Alert>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -421,13 +576,29 @@ export function TaxGuidesPanel() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                       <div className="text-right">
                         <div className="font-semibold">{formatCurrency(guide.value)}</div>
                         <div className="text-xs text-muted-foreground">
                           Venc: {format(dueDate, "dd/MM/yyyy")}
                         </div>
                       </div>
+                      {guide.status !== "paid" ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleOpenPayDialog(guide)}
+                          className="gap-1"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          Marcar Paga
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Registrada
+                        </Badge>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
