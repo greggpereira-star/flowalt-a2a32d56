@@ -15,6 +15,10 @@ import {
   Wallet,
   Umbrella,
   BarChart3,
+  Plus,
+  UserPlus,
+  Users,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -44,8 +48,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCollaborators, useSalaryHistory, useGenerateSalaryTransactions, CollaboratorDetails } from "@/hooks/useCollaborators";
+import { useExternalCollaborators, useDeleteExternalCollaborator, ExternalCollaborator } from "@/hooks/useExternalCollaborators";
 import { CollaboratorForm } from "./CollaboratorForm";
+import { ExternalCollaboratorFormModal } from "./ExternalCollaboratorFormModal";
 import { BenefitsForm } from "./BenefitsForm";
 import { PayrollDashboard } from "./PayrollDashboard";
 import { VacationManager } from "./VacationManager";
@@ -53,9 +69,16 @@ import { CollaboratorAnalytics } from "./CollaboratorAnalytics";
 
 export function CollaboratorManager() {
   const { data: collaborators = [], isLoading } = useCollaborators();
+  const { data: externalCollaborators = [], isLoading: loadingExternal } = useExternalCollaborators();
+  const deleteExternalCollaborator = useDeleteExternalCollaborator();
   const [selectedCollaborator, setSelectedCollaborator] = useState<CollaboratorDetails | null>(null);
+  const [selectedExternalCollaborator, setSelectedExternalCollaborator] = useState<ExternalCollaborator | null>(null);
   const [editingCollaborator, setEditingCollaborator] = useState<string | null>(null);
+  const [externalFormOpen, setExternalFormOpen] = useState(false);
+  const [editingExternalId, setEditingExternalId] = useState<string | null>(null);
+  const [deleteExternalId, setDeleteExternalId] = useState<string | null>(null);
   const [activeMainTab, setActiveMainTab] = useState("list");
+  const [listSubTab, setListSubTab] = useState<"members" | "external">("members");
   const generateSalaries = useGenerateSalaryTransactions();
 
   const formatCurrency = (value: number | null) => {
@@ -138,9 +161,9 @@ export function CollaboratorManager() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Colaboradores
+                  Membros c/ Acesso
                 </CardTitle>
-                <User className="w-5 h-5 text-primary" />
+                <Users className="w-5 h-5 text-primary" />
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{collaborators.length}</p>
@@ -150,29 +173,28 @@ export function CollaboratorManager() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Folha Mensal
+                  Colaboradores Externos
                 </CardTitle>
-                <DollarSign className="w-5 h-5 text-green-500" />
+                <UserPlus className="w-5 h-5 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(
-                    collaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0)
-                  )}
-                </p>
+                <p className="text-2xl font-bold">{externalCollaborators.length}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Horas/Semana
+                  Folha Mensal Total
                 </CardTitle>
-                <Clock className="w-5 h-5 text-blue-500" />
+                <DollarSign className="w-5 h-5 text-green-500" />
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {collaborators.reduce((acc, c) => acc + (c?.weekly_hours || 40), 0)}h
+                  {formatCurrency(
+                    collaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0) +
+                    externalCollaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0)
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -192,103 +214,244 @@ export function CollaboratorManager() {
             </Card>
           </div>
 
-          {/* Collaborators List */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Cargo/Depto</TableHead>
-                    <TableHead>Contrato</TableHead>
-                    <TableHead>Salário</TableHead>
-                    <TableHead>Horas/Sem</TableHead>
-                    <TableHead>Admissão</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {collaborators.length === 0 ? (
+          {/* Sub tabs for members vs external */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button
+                variant={listSubTab === "members" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setListSubTab("members")}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Membros ({collaborators.length})
+              </Button>
+              <Button
+                variant={listSubTab === "external" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setListSubTab("external")}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Externos ({externalCollaborators.length})
+              </Button>
+            </div>
+            {listSubTab === "external" && (
+              <Button onClick={() => { setEditingExternalId(null); setExternalFormOpen(true); }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Colaborador
+              </Button>
+            )}
+          </div>
+
+          {/* Members List */}
+          {listSubTab === "members" && (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        Nenhum colaborador cadastrado
-                      </TableCell>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Cargo/Depto</TableHead>
+                      <TableHead>Contrato</TableHead>
+                      <TableHead>Salário</TableHead>
+                      <TableHead>Horas/Sem</TableHead>
+                      <TableHead>Admissão</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ) : (
-                    collaborators.map((collab) => {
-                      const expiringDocs = getExpiringDocuments(collab?.documents);
-                      return (
+                  </TableHeader>
+                  <TableBody>
+                    {collaborators.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhum colaborador com acesso ao sistema
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      collaborators.map((collab) => {
+                        const expiringDocs = getExpiringDocuments(collab?.documents);
+                        return (
+                          <TableRow
+                            key={collab?.member?.id || collab?.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setSelectedCollaborator(collab)}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage src={collab?.member?.profile?.avatar_url || ""} />
+                                  <AvatarFallback>
+                                    {getInitials(collab?.full_name || collab?.member?.profile?.full_name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">
+                                    {collab?.full_name || collab?.member?.profile?.full_name || "Sem nome"}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {collab?.member?.profile?.email}
+                                  </p>
+                                </div>
+                                {expiringDocs.length > 0 && (
+                                  <Badge variant="outline" className="text-orange-500 border-orange-500">
+                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                    {expiringDocs.length} doc(s)
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p>{collab?.member?.function_title || "-"}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {collab?.member?.department || "-"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {collab?.contract_type?.toUpperCase() || "CLT"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {formatCurrency(collab?.base_salary)}
+                            </TableCell>
+                            <TableCell>{collab?.weekly_hours || 40}h</TableCell>
+                            <TableCell>
+                              {collab?.hire_date
+                                ? format(new Date(collab.hire_date), "dd/MM/yyyy")
+                                : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCollaborator(collab?.member?.id || null);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* External Collaborators List */}
+          {listSubTab === "external" && (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Cargo/Depto</TableHead>
+                      <TableHead>Contrato</TableHead>
+                      <TableHead>Salário</TableHead>
+                      <TableHead>Horas/Sem</TableHead>
+                      <TableHead>Admissão</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loadingExternal ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : externalCollaborators.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhum colaborador externo cadastrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      externalCollaborators.map((collab) => (
                         <TableRow
-                          key={collab?.member?.id || collab?.id}
+                          key={collab.id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setSelectedCollaborator(collab)}
+                          onClick={() => setSelectedExternalCollaborator(collab)}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
-                                <AvatarImage src={collab?.member?.profile?.avatar_url || ""} />
                                 <AvatarFallback>
-                                  {getInitials(collab?.full_name || collab?.member?.profile?.full_name)}
+                                  {getInitials(collab.full_name)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium">
-                                  {collab?.full_name || collab?.member?.profile?.full_name || "Sem nome"}
-                                </p>
+                                <p className="font-medium">{collab.full_name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {collab?.member?.profile?.email}
+                                  {collab.email || collab.phone || "Sem contato"}
                                 </p>
                               </div>
-                              {expiringDocs.length > 0 && (
-                                <Badge variant="outline" className="text-orange-500 border-orange-500">
-                                  <AlertCircle className="w-3 h-3 mr-1" />
-                                  {expiringDocs.length} doc(s)
-                                </Badge>
+                              {!collab.is_active && (
+                                <Badge variant="secondary">Inativo</Badge>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p>{collab?.member?.function_title || "-"}</p>
+                              <p>{collab.job_title || "-"}</p>
                               <p className="text-sm text-muted-foreground">
-                                {collab?.member?.department || "-"}
+                                {collab.department || "-"}
                               </p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {collab?.contract_type?.toUpperCase() || "CLT"}
+                              {collab.contract_type?.toUpperCase() || "CLT"}
                             </Badge>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {formatCurrency(collab?.base_salary)}
+                            {formatCurrency(collab.base_salary)}
                           </TableCell>
-                          <TableCell>{collab?.weekly_hours || 40}h</TableCell>
+                          <TableCell>{collab.weekly_hours || 40}h</TableCell>
                           <TableCell>
-                            {collab?.hire_date
+                            {collab.hire_date
                               ? format(new Date(collab.hire_date), "dd/MM/yyyy")
                               : "-"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingCollaborator(collab?.member?.id || null);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingExternalId(collab.id);
+                                  setExternalFormOpen(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteExternalId(collab.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Payroll Tab */}
@@ -341,6 +504,61 @@ export function CollaboratorManager() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* External Collaborator Form Modal */}
+      <ExternalCollaboratorFormModal
+        open={externalFormOpen}
+        onOpenChange={(open) => {
+          setExternalFormOpen(open);
+          if (!open) setEditingExternalId(null);
+        }}
+        collaboratorId={editingExternalId}
+      />
+
+      {/* External Collaborator Detail Sheet */}
+      <Sheet 
+        open={!!selectedExternalCollaborator} 
+        onOpenChange={() => setSelectedExternalCollaborator(null)}
+      >
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          {selectedExternalCollaborator && (
+            <ExternalCollaboratorDetailView
+              collaborator={selectedExternalCollaborator}
+              onEdit={() => {
+                setEditingExternalId(selectedExternalCollaborator.id);
+                setExternalFormOpen(true);
+                setSelectedExternalCollaborator(null);
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteExternalId} onOpenChange={() => setDeleteExternalId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este colaborador? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteExternalId) {
+                  deleteExternalCollaborator.mutate(deleteExternalId);
+                  setDeleteExternalId(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -598,6 +816,176 @@ function CollaboratorDetailView({
               })}
             </div>
           )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function ExternalCollaboratorDetailView({
+  collaborator,
+  onEdit,
+}: {
+  collaborator: ExternalCollaborator;
+  onEdit: () => void;
+}) {
+  const formatCurrency = (value: number | null) => {
+    if (!value) return "R$ 0,00";
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
+  return (
+    <div className="space-y-6 pt-4">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <Avatar className="w-16 h-16">
+          <AvatarFallback className="text-lg">
+            {getInitials(collaborator.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <h3 className="text-xl font-semibold">{collaborator.full_name}</h3>
+          <p className="text-muted-foreground">
+            {collaborator.email || collaborator.phone || "Sem contato"}
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Badge>{collaborator.job_title || "Sem cargo"}</Badge>
+            <Badge variant="outline">{collaborator.contract_type?.toUpperCase() || "CLT"}</Badge>
+            {!collaborator.is_active && (
+              <Badge variant="secondary">Inativo</Badge>
+            )}
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Pencil className="w-4 h-4 mr-2" />
+          Editar
+        </Button>
+      </div>
+
+      <Tabs defaultValue="info">
+        <TabsList className="w-full">
+          <TabsTrigger value="info" className="flex-1">Informações</TabsTrigger>
+          <TabsTrigger value="salary" className="flex-1">Salário</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="info" className="space-y-4 mt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">CPF</p>
+              <p className="font-medium">{collaborator.cpf || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">RG</p>
+              <p className="font-medium">{collaborator.rg || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Data de Nascimento</p>
+              <p className="font-medium">
+                {collaborator.birth_date
+                  ? format(new Date(collaborator.birth_date), "dd/MM/yyyy")
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Admissão</p>
+              <p className="font-medium">
+                {collaborator.hire_date
+                  ? format(new Date(collaborator.hire_date), "dd/MM/yyyy")
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Horas/Semana</p>
+              <p className="font-medium">{collaborator.weekly_hours || 40}h</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Departamento</p>
+              <p className="font-medium">{collaborator.department || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Telefone</p>
+              <p className="font-medium">{collaborator.phone || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="font-medium">{collaborator.email || "-"}</p>
+            </div>
+          </div>
+
+          {collaborator.address && Object.keys(collaborator.address).length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Building className="w-4 h-4" />
+                Endereço
+              </h4>
+              <div className="text-sm bg-muted p-3 rounded-md">
+                {collaborator.address.street && (
+                  <p>{collaborator.address.street}, {collaborator.address.number}</p>
+                )}
+                {(collaborator.address.neighborhood || collaborator.address.city) && (
+                  <p>
+                    {collaborator.address.neighborhood} - {collaborator.address.city}/{collaborator.address.state}
+                  </p>
+                )}
+                {collaborator.address.zip && <p>CEP: {collaborator.address.zip}</p>}
+              </div>
+            </div>
+          )}
+
+          {(collaborator.pix_key || collaborator.bank_name) && (
+            <div>
+              <h4 className="font-medium mb-2">Dados Bancários</h4>
+              <div className="text-sm bg-muted p-3 rounded-md space-y-1">
+                {collaborator.bank_name && <p>Banco: {collaborator.bank_name}</p>}
+                {collaborator.bank_agency && <p>Agência: {collaborator.bank_agency}</p>}
+                {collaborator.bank_account && <p>Conta: {collaborator.bank_account}</p>}
+                {collaborator.pix_key && <p>PIX: {collaborator.pix_key}</p>}
+              </div>
+            </div>
+          )}
+
+          {collaborator.notes && (
+            <div>
+              <h4 className="font-medium mb-2">Observações</h4>
+              <div className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
+                {collaborator.notes}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="salary" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Salário Atual</p>
+              <p className="text-2xl font-bold">{formatCurrency(collaborator.base_salary)}</p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-primary" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground">Tipo de Contrato</p>
+              <p className="font-medium">{collaborator.contract_type?.toUpperCase() || "CLT"}</p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground">Horas/Semana</p>
+              <p className="font-medium">{collaborator.weekly_hours || 40}h</p>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

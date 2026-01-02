@@ -3453,6 +3453,146 @@ export type Database = {
           },
         ]
       }
+      external_collaborator_salary_history: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          effective_date: string
+          id: string
+          new_salary: number
+          previous_salary: number | null
+          reason: string | null
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          new_salary: number
+          previous_salary?: number | null
+          reason?: string | null
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          new_salary?: number
+          previous_salary?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_collaborator_salary_history_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "external_collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_collaborators: {
+        Row: {
+          address: Json | null
+          bank_account: string | null
+          bank_agency: string | null
+          bank_name: string | null
+          base_salary: number | null
+          birth_date: string | null
+          contract_type: string | null
+          cpf: string | null
+          created_at: string
+          department: string | null
+          documents: Json | null
+          email: string | null
+          emergency_contact: Json | null
+          full_name: string
+          hire_date: string | null
+          id: string
+          is_active: boolean | null
+          job_title: string | null
+          notes: string | null
+          phone: string | null
+          pix_key: string | null
+          rg: string | null
+          termination_date: string | null
+          updated_at: string
+          weekly_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          address?: Json | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
+          created_at?: string
+          department?: string | null
+          documents?: Json | null
+          email?: string | null
+          emergency_contact?: Json | null
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          pix_key?: string | null
+          rg?: string | null
+          termination_date?: string | null
+          updated_at?: string
+          weekly_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          address?: Json | null
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
+          created_at?: string
+          department?: string | null
+          documents?: Json | null
+          email?: string | null
+          emergency_contact?: Json | null
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          pix_key?: string | null
+          rg?: string | null
+          termination_date?: string | null
+          updated_at?: string
+          weekly_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_collaborators_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "external_collaborators_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           created_at: string
