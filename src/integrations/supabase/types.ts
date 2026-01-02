@@ -8779,19 +8779,7 @@ export type Database = {
       }
     }
     Functions: {
-      accept_workspace_invite:
-        | {
-            Args: { p_token: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.accept_workspace_invite(p_token => text), public.accept_workspace_invite(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { p_token: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.accept_workspace_invite(p_token => text), public.accept_workspace_invite(p_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
+      accept_workspace_invite: { Args: { p_token: string }; Returns: Json }
       add_user_score: {
         Args: { p_points: number; p_user_id: string; p_workspace_id: string }
         Returns: undefined
