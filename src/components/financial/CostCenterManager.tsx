@@ -97,6 +97,7 @@ export function CostCenterManager() {
   const [editingCenter, setEditingCenter] = useState<CostCenter | null>(null);
   const [showUnassignedModal, setShowUnassignedModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [viewMode, setViewMode] = useState<'cost' | 'profit' | 'both'>('cost');
   const { toast } = useToast();
   
   const { data: costCenters = [], isLoading: loadingCenters } = useCostCenters();
@@ -109,11 +110,22 @@ export function CostCenterManager() {
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
   
-  const { data: transactions = [] } = useTransactions({
+  // Fetch expenses
+  const { data: expenseTransactions = [] } = useTransactions({
     type: "expense",
     startDate: format(monthStart, "yyyy-MM-dd"),
     endDate: format(monthEnd, "yyyy-MM-dd"),
   });
+  
+  // Fetch income for profit centers
+  const { data: incomeTransactions = [] } = useTransactions({
+    type: "income",
+    startDate: format(monthStart, "yyyy-MM-dd"),
+    endDate: format(monthEnd, "yyyy-MM-dd"),
+  });
+
+  // Combine for backward compatibility
+  const transactions = expenseTransactions;
 
   // Calculate collaborator salaries by cost center
   const collaboratorSalaryByCenter = useMemo(() => {
@@ -175,10 +187,14 @@ export function CostCenterManager() {
     const byCenter: Record<string, {
       center: CostCenterWithActual;
       transactions: typeof transactions;
+      incomeTransactions: typeof incomeTransactions;
       totalSpent: number;
+      totalIncome: number;
       salarySpent: number;
       collaborators: { name: string; salary: number }[];
       budgetUsed: number;
+      margin: number;
+      marginPercent: number;
     }> = {};
 
     // Initialize all centers
@@ -187,14 +203,18 @@ export function CostCenterManager() {
       byCenter[center.id] = {
         center,
         transactions: [],
+        incomeTransactions: [],
         totalSpent: 0,
+        totalIncome: 0,
         salarySpent: salaryData.total,
         collaborators: salaryData.collaborators,
         budgetUsed: 0,
+        margin: 0,
+        marginPercent: 0,
       };
     });
 
-    // Group transactions by center
+    // Group expense transactions by center
     transactions.forEach(t => {
       if (t.cost_center_id && byCenter[t.cost_center_id]) {
         byCenter[t.cost_center_id].transactions.push(t);
@@ -202,12 +222,25 @@ export function CostCenterManager() {
       }
     });
 
-    // Calculate budget usage (including salaries)
+    // Group income transactions by center
+    incomeTransactions.forEach(t => {
+      if (t.cost_center_id && byCenter[t.cost_center_id]) {
+        byCenter[t.cost_center_id].incomeTransactions.push(t);
+        byCenter[t.cost_center_id].totalIncome += Number(t.amount);
+      }
+    });
+
+    // Calculate budget usage and profitability
     Object.values(byCenter).forEach(item => {
       const totalWithSalary = item.totalSpent + item.salarySpent;
       if (item.center.budget_monthly && item.center.budget_monthly > 0) {
         item.budgetUsed = (totalWithSalary / item.center.budget_monthly) * 100;
       }
+      // Calculate margin (income - costs)
+      item.margin = item.totalIncome - totalWithSalary;
+      item.marginPercent = item.totalIncome > 0 
+        ? ((item.margin / item.totalIncome) * 100) 
+        : 0;
     });
 
     // Transactions without center
@@ -223,6 +256,8 @@ export function CostCenterManager() {
     const totalTransactionsSpent = Object.values(byCenter).reduce((acc, item) => acc + item.totalSpent, 0) + unassignedTotal;
     const totalSalarySpent = Object.values(byCenter).reduce((acc, item) => acc + item.salarySpent, 0) + unassignedSalaryTotal;
     const totalSpent = totalTransactionsSpent + totalSalarySpent;
+    const totalIncome = Object.values(byCenter).reduce((acc, item) => acc + item.totalIncome, 0);
+    const totalMargin = totalIncome - totalSpent;
     const overallUsage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
     return {
@@ -235,9 +270,11 @@ export function CostCenterManager() {
       totalSpent,
       totalTransactionsSpent,
       totalSalarySpent,
+      totalIncome,
+      totalMargin,
       overallUsage,
     };
-  }, [centersWithBudget, transactions, collaboratorSalaryByCenter, externalCollaborators]);
+  }, [centersWithBudget, transactions, incomeTransactions, collaboratorSalaryByCenter, externalCollaborators]);
 
   // Export to PDF
   const handleExportPDF = () => {
@@ -481,15 +518,50 @@ export function CostCenterManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-start gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <FolderTree className="w-5 h-5" />
-            Centros de Custo
+            {viewMode === 'cost' ? 'Centros de Custo' : viewMode === 'profit' ? 'Centros de Lucro' : 'Centros de Custo e Lucro'}
           </h3>
           <p className="text-sm text-muted-foreground">
-            Gerencie centros de custo e controle orçamentos
+            {viewMode === 'cost' 
+              ? 'Gerencie centros de custo e controle orçamentos' 
+              : viewMode === 'profit' 
+              ? 'Acompanhe receitas e rentabilidade por centro'
+              : 'Visão consolidada de custos e receitas'}
           </p>
+        </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+          <Button 
+            variant={viewMode === 'cost' ? 'secondary' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('cost')}
+            className="gap-1"
+          >
+            <TrendingDown className="w-3.5 h-3.5" />
+            Custo
+          </Button>
+          <Button 
+            variant={viewMode === 'profit' ? 'secondary' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('profit')}
+            className="gap-1"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Lucro
+          </Button>
+          <Button 
+            variant={viewMode === 'both' ? 'secondary' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('both')}
+            className="gap-1"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Ambos
+          </Button>
         </div>
         <div className="flex items-center gap-3">
           {/* Month Navigation */}
@@ -689,59 +761,138 @@ export function CostCenterManager() {
         costCenter={editingCenter}
       />
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
-              <FolderTree className="w-4 h-4" />
-              <span className="text-xs font-medium">Centros Ativos</span>
-            </div>
-            <p className="text-2xl font-bold">{centersWithBudget.length}</p>
-          </CardContent>
-        </Card>
+      {/* Summary Cards - Cost View */}
+      {(viewMode === 'cost' || viewMode === 'both') && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+                <FolderTree className="w-4 h-4" />
+                <span className="text-xs font-medium">Centros Ativos</span>
+              </div>
+              <p className="text-2xl font-bold">{centersWithBudget.length}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
-              <BarChart3 className="w-4 h-4" />
-              <span className="text-xs font-medium">Orçamento Total</span>
-            </div>
-            <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalBudget)}</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
+                <BarChart3 className="w-4 h-4" />
+                <span className="text-xs font-medium">Orçamento Total</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalBudget)}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
-              <TrendingDown className="w-4 h-4" />
-              <span className="text-xs font-medium">Total Gasto</span>
-            </div>
-            <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalSpent)}</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
+                <TrendingDown className="w-4 h-4" />
+                <span className="text-xs font-medium">Total Gasto</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalSpent)}</p>
+            </CardContent>
+          </Card>
 
-        <Card className={cn(
-          "bg-gradient-to-br border",
-          costCenterReport.overallUsage >= 100 
-            ? "from-rose-500/10 to-rose-500/5 border-rose-500/20"
-            : costCenterReport.overallUsage >= 80
-            ? "from-amber-500/10 to-amber-500/5 border-amber-500/20"
-            : "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20"
-        )}>
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className={cn(
-                "w-4 h-4",
-                costCenterReport.overallUsage >= 100 ? "text-rose-600" : costCenterReport.overallUsage >= 80 ? "text-amber-600" : "text-emerald-600"
-              )} />
-              <span className="text-xs font-medium">Execução</span>
-            </div>
-            <p className="text-2xl font-bold">{costCenterReport.overallUsage.toFixed(1)}%</p>
-            <Progress value={Math.min(costCenterReport.overallUsage, 100)} className="h-1 mt-2" />
-          </CardContent>
-        </Card>
-      </div>
+          <Card className={cn(
+            "bg-gradient-to-br border",
+            costCenterReport.overallUsage >= 100 
+              ? "from-rose-500/10 to-rose-500/5 border-rose-500/20"
+              : costCenterReport.overallUsage >= 80
+              ? "from-amber-500/10 to-amber-500/5 border-amber-500/20"
+              : "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20"
+          )}>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className={cn(
+                  "w-4 h-4",
+                  costCenterReport.overallUsage >= 100 ? "text-rose-600" : costCenterReport.overallUsage >= 80 ? "text-amber-600" : "text-emerald-600"
+                )} />
+                <span className="text-xs font-medium">Execução</span>
+              </div>
+              <p className="text-2xl font-bold">{costCenterReport.overallUsage.toFixed(1)}%</p>
+              <Progress value={Math.min(costCenterReport.overallUsage, 100)} className="h-1 mt-2" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Summary Cards - Profit View */}
+      {(viewMode === 'profit' || viewMode === 'both') && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-xs font-medium">Receita Total</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalIncome)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
+                <TrendingDown className="w-4 h-4" />
+                <span className="text-xs font-medium">Custos Totais</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalSpent)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className={cn(
+            "bg-gradient-to-br border",
+            costCenterReport.totalMargin >= 0 
+              ? "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20"
+              : "from-rose-500/10 to-rose-500/5 border-rose-500/20"
+          )}>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                {costCenterReport.totalMargin >= 0 ? (
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-rose-600" />
+                )}
+                <span className="text-xs font-medium">Margem</span>
+              </div>
+              <p className={cn(
+                "text-2xl font-bold",
+                costCenterReport.totalMargin >= 0 ? "text-emerald-600" : "text-rose-600"
+              )}>
+                {formatCurrency(costCenterReport.totalMargin)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className={cn(
+            "bg-gradient-to-br border",
+            costCenterReport.totalIncome > 0 && (costCenterReport.totalMargin / costCenterReport.totalIncome * 100) >= 20
+              ? "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20"
+              : costCenterReport.totalIncome > 0 && (costCenterReport.totalMargin / costCenterReport.totalIncome * 100) >= 0
+              ? "from-amber-500/10 to-amber-500/5 border-amber-500/20"
+              : "from-rose-500/10 to-rose-500/5 border-rose-500/20"
+          )}>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <BarChart3 className={cn(
+                  "w-4 h-4",
+                  costCenterReport.totalIncome > 0 && (costCenterReport.totalMargin / costCenterReport.totalIncome * 100) >= 20 
+                    ? "text-emerald-600" 
+                    : costCenterReport.totalIncome > 0 && (costCenterReport.totalMargin / costCenterReport.totalIncome * 100) >= 0
+                    ? "text-amber-600"
+                    : "text-rose-600"
+                )} />
+                <span className="text-xs font-medium">Margem %</span>
+              </div>
+              <p className="text-2xl font-bold">
+                {costCenterReport.totalIncome > 0 
+                  ? `${(costCenterReport.totalMargin / costCenterReport.totalIncome * 100).toFixed(1)}%`
+                  : '0%'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Distribution Chart */}
       <CostCenterDistributionChart
@@ -899,12 +1050,27 @@ export function CostCenterManager() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Centro de Custo</TableHead>
-                    <TableHead className="text-right">Orçamento</TableHead>
-                    <TableHead className="text-right">Despesas</TableHead>
-                    <TableHead className="text-right">Salários</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead className="text-right">% Execução</TableHead>
+                    {(viewMode === 'cost' || viewMode === 'both') && (
+                      <>
+                        <TableHead className="text-right">Orçamento</TableHead>
+                        <TableHead className="text-right">Despesas</TableHead>
+                        <TableHead className="text-right">Salários</TableHead>
+                        <TableHead className="text-right">Total Custo</TableHead>
+                      </>
+                    )}
+                    {(viewMode === 'profit' || viewMode === 'both') && (
+                      <>
+                        <TableHead className="text-right">Receita</TableHead>
+                        <TableHead className="text-right">Margem</TableHead>
+                        <TableHead className="text-right">Margem %</TableHead>
+                      </>
+                    )}
+                    {viewMode === 'cost' && (
+                      <>
+                        <TableHead className="text-right">Saldo</TableHead>
+                        <TableHead className="text-right">% Execução</TableHead>
+                      </>
+                    )}
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
@@ -916,6 +1082,9 @@ export function CostCenterManager() {
                     const status = item.center.budget_monthly && item.center.budget_monthly > 0
                       ? getBudgetStatus(item.budgetUsed)
                       : null;
+                    const profitStatus = item.margin >= 0 
+                      ? { color: "bg-emerald-500", status: item.marginPercent >= 20 ? "Saudável" : "Positivo" }
+                      : { color: "bg-rose-500", status: "Negativo" };
 
                     return (
                       <TableRow key={item.center.id}>
@@ -938,36 +1107,77 @@ export function CostCenterManager() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          {item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(item.totalSpent)}
-                        </TableCell>
-                        <TableCell className="text-right text-amber-600">
-                          {item.salarySpent > 0 ? formatCurrency(item.salarySpent) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(totalWithSalary)}
-                        </TableCell>
-                        <TableCell className={cn(
-                          "text-right font-medium",
-                          saldo >= 0 ? "text-emerald-600" : "text-rose-600"
-                        )}>
-                          {item.center.budget_monthly ? formatCurrency(saldo) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.center.budget_monthly && item.center.budget_monthly > 0 ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Progress value={Math.min(item.budgetUsed, 100)} className="w-16 h-2" />
-                              <span className="text-sm w-12">{item.budgetUsed.toFixed(1)}%</span>
-                            </div>
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
+                        
+                        {/* Cost columns */}
+                        {(viewMode === 'cost' || viewMode === 'both') && (
+                          <>
+                            <TableCell className="text-right">
+                              {item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(item.totalSpent)}
+                            </TableCell>
+                            <TableCell className="text-right text-amber-600">
+                              {item.salarySpent > 0 ? formatCurrency(item.salarySpent) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(totalWithSalary)}
+                            </TableCell>
+                          </>
+                        )}
+                        
+                        {/* Profit columns */}
+                        {(viewMode === 'profit' || viewMode === 'both') && (
+                          <>
+                            <TableCell className="text-right text-emerald-600">
+                              {item.totalIncome > 0 ? formatCurrency(item.totalIncome) : "-"}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right font-medium",
+                              item.margin >= 0 ? "text-emerald-600" : "text-rose-600"
+                            )}>
+                              {formatCurrency(item.margin)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right",
+                              item.marginPercent >= 20 ? "text-emerald-600" : item.marginPercent >= 0 ? "text-amber-600" : "text-rose-600"
+                            )}>
+                              {item.totalIncome > 0 ? `${item.marginPercent.toFixed(1)}%` : "-"}
+                            </TableCell>
+                          </>
+                        )}
+                        
+                        {viewMode === 'cost' && (
+                          <>
+                            <TableCell className={cn(
+                              "text-right font-medium",
+                              saldo >= 0 ? "text-emerald-600" : "text-rose-600"
+                            )}>
+                              {item.center.budget_monthly ? formatCurrency(saldo) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.center.budget_monthly && item.center.budget_monthly > 0 ? (
+                                <div className="flex items-center justify-end gap-2">
+                                  <Progress value={Math.min(item.budgetUsed, 100)} className="w-16 h-2" />
+                                  <span className="text-sm w-12">{item.budgetUsed.toFixed(1)}%</span>
+                                </div>
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                          </>
+                        )}
+                        
                         <TableCell className="text-center">
-                          {status ? (
+                          {viewMode === 'profit' ? (
+                            item.totalIncome > 0 ? (
+                              <Badge className={cn(profitStatus.color, "text-white")}>
+                                {profitStatus.status}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Sem receita</Badge>
+                            )
+                          ) : status ? (
                             <Badge className={cn(status.color, "text-white")}>
                               {status.status}
                             </Badge>
@@ -1004,18 +1214,33 @@ export function CostCenterManager() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">-</TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {formatCurrency(costCenterReport.unassignedTotal)}
-                      </TableCell>
-                      <TableCell className="text-right text-amber-600">
-                        {costCenterReport.unassignedSalaryTotal > 0 ? formatCurrency(costCenterReport.unassignedSalaryTotal) : "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-muted-foreground">
-                        {formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal)}
-                      </TableCell>
-                      <TableCell className="text-right">-</TableCell>
-                      <TableCell className="text-right">-</TableCell>
+                      {(viewMode === 'cost' || viewMode === 'both') && (
+                        <>
+                          <TableCell className="text-right">-</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {formatCurrency(costCenterReport.unassignedTotal)}
+                          </TableCell>
+                          <TableCell className="text-right text-amber-600">
+                            {costCenterReport.unassignedSalaryTotal > 0 ? formatCurrency(costCenterReport.unassignedSalaryTotal) : "-"}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-muted-foreground">
+                            {formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal)}
+                          </TableCell>
+                        </>
+                      )}
+                      {(viewMode === 'profit' || viewMode === 'both') && (
+                        <>
+                          <TableCell className="text-right">-</TableCell>
+                          <TableCell className="text-right">-</TableCell>
+                          <TableCell className="text-right">-</TableCell>
+                        </>
+                      )}
+                      {viewMode === 'cost' && (
+                        <>
+                          <TableCell className="text-right">-</TableCell>
+                          <TableCell className="text-right">-</TableCell>
+                        </>
+                      )}
                       <TableCell className="text-center">
                         <Badge variant="outline">Não classificado</Badge>
                       </TableCell>
@@ -1034,17 +1259,41 @@ export function CostCenterManager() {
                   {/* Total Row */}
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>TOTAL</TableCell>
-                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalBudget)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalTransactionsSpent)}</TableCell>
-                    <TableCell className="text-right text-amber-600">{formatCurrency(costCenterReport.totalSalarySpent)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalSpent)}</TableCell>
-                    <TableCell className={cn(
-                      "text-right",
-                      (costCenterReport.totalBudget - costCenterReport.totalSpent) >= 0 ? "text-emerald-600" : "text-rose-600"
-                    )}>
-                      {formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent)}
-                    </TableCell>
-                    <TableCell className="text-right">{costCenterReport.overallUsage.toFixed(1)}%</TableCell>
+                    {(viewMode === 'cost' || viewMode === 'both') && (
+                      <>
+                        <TableCell className="text-right">{formatCurrency(costCenterReport.totalBudget)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(costCenterReport.totalTransactionsSpent)}</TableCell>
+                        <TableCell className="text-right text-amber-600">{formatCurrency(costCenterReport.totalSalarySpent)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(costCenterReport.totalSpent)}</TableCell>
+                      </>
+                    )}
+                    {(viewMode === 'profit' || viewMode === 'both') && (
+                      <>
+                        <TableCell className="text-right text-emerald-600">{formatCurrency(costCenterReport.totalIncome)}</TableCell>
+                        <TableCell className={cn(
+                          "text-right",
+                          costCenterReport.totalMargin >= 0 ? "text-emerald-600" : "text-rose-600"
+                        )}>
+                          {formatCurrency(costCenterReport.totalMargin)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {costCenterReport.totalIncome > 0 
+                            ? `${(costCenterReport.totalMargin / costCenterReport.totalIncome * 100).toFixed(1)}%`
+                            : "-"}
+                        </TableCell>
+                      </>
+                    )}
+                    {viewMode === 'cost' && (
+                      <>
+                        <TableCell className={cn(
+                          "text-right",
+                          (costCenterReport.totalBudget - costCenterReport.totalSpent) >= 0 ? "text-emerald-600" : "text-rose-600"
+                        )}>
+                          {formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent)}
+                        </TableCell>
+                        <TableCell className="text-right">{costCenterReport.overallUsage.toFixed(1)}%</TableCell>
+                      </>
+                    )}
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                   </TableRow>
