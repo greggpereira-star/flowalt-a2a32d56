@@ -147,6 +147,87 @@ export default function SecurityAuditPage() {
               evidence = `${count || 0} support session audit entries found`;
               break;
             }
+            // BILLING TESTS
+            case 'BIL1': {
+              // Free plan blocks integrations - check entitlement
+              const { data } = await supabase
+                .from('plan_entitlements')
+                .select('enabled')
+                .eq('plan_key', 'free')
+                .eq('entitlement_key', 'integrations_access')
+                .maybeSingle();
+              const blocked = data?.enabled === false;
+              status = blocked ? 'pass' : 'fail';
+              evidence = blocked ? 'Free plan has integrations_access=false' : 'Free plan should block integrations!';
+              risk = blocked ? 'low' : 'critical';
+              break;
+            }
+            case 'BIL2': {
+              // Pro plan allows integrations but not webhook_replay
+              const { data: integrationsData } = await supabase
+                .from('plan_entitlements')
+                .select('enabled')
+                .eq('plan_key', 'pro')
+                .eq('entitlement_key', 'integrations_access')
+                .maybeSingle();
+              const { data: replayData } = await supabase
+                .from('plan_entitlements')
+                .select('enabled')
+                .eq('plan_key', 'pro')
+                .eq('entitlement_key', 'webhook_replay')
+                .maybeSingle();
+              const correct = integrationsData?.enabled === true && replayData?.enabled === false;
+              status = correct ? 'pass' : 'fail';
+              evidence = correct 
+                ? 'Pro: integrations=true, webhook_replay=false' 
+                : `Pro: integrations=${integrationsData?.enabled}, webhook_replay=${replayData?.enabled}`;
+              risk = correct ? 'low' : 'medium';
+              break;
+            }
+            case 'BIL3': {
+              // Enterprise plan has all entitlements enabled
+              const { data, count } = await supabase
+                .from('plan_entitlements')
+                .select('entitlement_key, enabled', { count: 'exact' })
+                .eq('plan_key', 'enterprise')
+                .eq('enabled', true);
+              const allEnabled = (count || 0) >= 10; // Should have many enabled entitlements
+              status = allEnabled ? 'pass' : 'fail';
+              evidence = `Enterprise has ${count} enabled entitlements`;
+              risk = allEnabled ? 'low' : 'medium';
+              break;
+            }
+            case 'BIL4': {
+              // Entitlement blocks are logged - check table exists and has structure
+              const { data, error } = await supabase
+                .from('entitlement_audit')
+                .select('id, workspace_id, entitlement_key, action, reason_code')
+                .limit(1);
+              const tableWorks = !error;
+              status = tableWorks ? 'pass' : 'fail';
+              evidence = tableWorks 
+                ? 'entitlement_audit table accessible with correct schema' 
+                : `Error: ${error?.message}`;
+              risk = tableWorks ? 'low' : 'critical';
+              break;
+            }
+            case 'BIL5': {
+              // Check enforce functions exist - verify via RPC
+              const { data, error } = await supabase.rpc('check_entitlement_with_log', {
+                p_workspace_id: '00000000-0000-0000-0000-000000000000',
+                p_entitlement_key: 'test_nonexistent',
+                p_action: null
+              });
+              // Should return ENTITLEMENT_NOT_FOUND, not crash
+              const result = data as unknown as { reason_code?: string } | null;
+              const works = result?.reason_code === 'ENTITLEMENT_NOT_FOUND';
+              status = works ? 'pass' : 'fail';
+              evidence = works 
+                ? 'check_entitlement_with_log returns proper reason_code' 
+                : `Unexpected response: ${JSON.stringify(data)}`;
+              risk = works ? 'low' : 'medium';
+              break;
+            }
             default:
               // For tests that need manual verification or specific setup
               status = 'pending';
