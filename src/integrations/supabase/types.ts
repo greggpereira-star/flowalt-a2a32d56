@@ -8591,6 +8591,10 @@ export type Database = {
           reset_at: string
         }[]
       }
+      check_saved_views_limit: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       compute_daily_snapshot: {
         Args: { p_workspace_id: string }
         Returns: Json
