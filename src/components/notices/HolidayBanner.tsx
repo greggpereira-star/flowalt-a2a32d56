@@ -1,40 +1,60 @@
 import React from 'react';
-import { getActiveHolidayInWindow, getCurrentHoliday } from '@/lib/holidayUtils';
+import { getActiveHolidayInWindow, getCurrentHoliday, getActiveSeasonInWindow, isSeasonStart } from '@/lib/holidayUtils';
 import { NewYearBanner } from './NewYearBanner';
 import { ChristmasBanner } from './ChristmasBanner';
 import { EasterBanner } from './EasterBanner';
+import { CarnivalBanner } from './CarnivalBanner';
+import { SeasonBanner } from './SeasonBanner';
 import { NewYearModal } from './NewYearModal';
 import { ChristmasModal } from './ChristmasModal';
 import { EasterModal } from './EasterModal';
+import { CarnivalModal } from './CarnivalModal';
+import { SeasonModal } from './SeasonModal';
 import { useHolidayEffects } from '@/hooks/useHolidayEffects';
 
 export const HolidayBanner: React.FC = () => {
   const activeHoliday = getActiveHolidayInWindow();
   const isExactHoliday = getCurrentHoliday();
+  const activeSeason = getActiveSeasonInWindow();
   
-  // Only show modal on exact holiday date
-  const { showModal, setShowModal } = useHolidayEffects({ 
+  const { showModal: showHolidayModal, setShowModal: setShowHolidayModal } = useHolidayEffects({ 
     holiday: activeHoliday || 'new_year',
     enabled: !!isExactHoliday
   });
 
-  if (!activeHoliday) return null;
+  const { showModal: showSeasonModal, setShowModal: setShowSeasonModal } = useHolidayEffects({ 
+    holiday: activeSeason || 'spring',
+    enabled: activeSeason ? isSeasonStart(activeSeason) : false
+  });
 
   return (
     <>
+      {/* Holiday Banners */}
       {activeHoliday === 'new_year' && <NewYearBanner />}
       {activeHoliday === 'christmas' && <ChristmasBanner />}
       {activeHoliday === 'easter' && <EasterBanner />}
+      {activeHoliday === 'carnival' && <CarnivalBanner />}
 
-      {/* Auto-show modal on exact holiday */}
+      {/* Season Banners */}
+      {!activeHoliday && activeSeason && <SeasonBanner season={activeSeason} />}
+
+      {/* Holiday Modals */}
       {isExactHoliday === 'new_year' && (
-        <NewYearModal open={showModal} onOpenChange={setShowModal} />
+        <NewYearModal open={showHolidayModal} onOpenChange={setShowHolidayModal} />
       )}
       {isExactHoliday === 'christmas' && (
-        <ChristmasModal open={showModal} onOpenChange={setShowModal} />
+        <ChristmasModal open={showHolidayModal} onOpenChange={setShowHolidayModal} />
       )}
       {isExactHoliday === 'easter' && (
-        <EasterModal open={showModal} onOpenChange={setShowModal} />
+        <EasterModal open={showHolidayModal} onOpenChange={setShowHolidayModal} />
+      )}
+      {isExactHoliday === 'carnival' && (
+        <CarnivalModal open={showHolidayModal} onOpenChange={setShowHolidayModal} />
+      )}
+
+      {/* Season Modals */}
+      {!isExactHoliday && activeSeason && isSeasonStart(activeSeason) && (
+        <SeasonModal season={activeSeason} open={showSeasonModal} onOpenChange={setShowSeasonModal} />
       )}
     </>
   );

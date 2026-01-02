@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { HolidayType, wasHolidayModalShown, markHolidayModalShown } from '@/lib/holidayUtils';
+import { HolidayType, SeasonType, CelebrationEventType, wasHolidayModalShown, markHolidayModalShown } from '@/lib/holidayUtils';
 
 interface UseHolidayEffectsOptions {
-  holiday: HolidayType;
+  holiday: CelebrationEventType;
   enabled?: boolean;
 }
 
@@ -60,7 +60,6 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
 
     frame();
 
-    // Big burst
     setTimeout(() => {
       confetti({
         particleCount: 100,
@@ -101,7 +100,6 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
 
     frame();
 
-    // Festive burst
     setTimeout(() => {
       confetti({
         particleCount: 60,
@@ -117,7 +115,6 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
 
     const pastelColors = ['#FFB6C1', '#DDA0DD', '#B0E0E6', '#98FB98', '#FAFAD2', '#FFE4B5'];
 
-    // Egg-shaped burst pattern
     confetti({
       particleCount: 80,
       spread: 60,
@@ -127,7 +124,6 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
       scalar: 1.5,
     });
 
-    // Side bursts
     setTimeout(() => {
       confetti({
         particleCount: 40,
@@ -144,6 +140,225 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
         colors: pastelColors,
       });
     }, 200);
+  }, [prefersReducedMotion]);
+
+  const fireCarnivalConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const carnivalColors = ['#9333ea', '#eab308', '#22c55e', '#3b82f6', '#f43f5e', '#ff0080'];
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 70,
+        origin: { x: 0, y: 0.7 },
+        colors: carnivalColors,
+      });
+      
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 70,
+        origin: { x: 1, y: 0.7 },
+        colors: carnivalColors,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    // Big colorful burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 150,
+        spread: 120,
+        origin: { y: 0.5 },
+        colors: carnivalColors,
+        shapes: ['circle', 'square'],
+      });
+    }, 500);
+
+    // Side bursts
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        angle: 45,
+        spread: 50,
+        origin: { x: 0.1, y: 0.5 },
+        colors: carnivalColors,
+      });
+      confetti({
+        particleCount: 50,
+        angle: 135,
+        spread: 50,
+        origin: { x: 0.9, y: 0.5 },
+        colors: carnivalColors,
+      });
+    }, 800);
+  }, [prefersReducedMotion]);
+
+  const fireSpringConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const springColors = ['#FFB6C1', '#98FB98', '#FAFAD2', '#FFD700', '#87CEEB'];
+
+    // Flower petals effect
+    confetti({
+      particleCount: 100,
+      spread: 100,
+      origin: { y: 0.4 },
+      colors: springColors,
+      shapes: ['circle'],
+      gravity: 0.5,
+      scalar: 1.2,
+      drift: 0.5,
+    });
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 60,
+        angle: 60,
+        spread: 60,
+        origin: { x: 0.2, y: 0.5 },
+        colors: ['#FFB6C1', '#FF69B4'],
+      });
+      confetti({
+        particleCount: 60,
+        angle: 120,
+        spread: 60,
+        origin: { x: 0.8, y: 0.5 },
+        colors: ['#98FB98', '#90EE90'],
+      });
+    }, 300);
+  }, [prefersReducedMotion]);
+
+  const fireSummerConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const summerColors = ['#FFD700', '#FFA500', '#FF6347', '#87CEEB', '#00CED1'];
+
+    // Sun rays effect
+    const duration = 2500;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: Math.random() * 360,
+        spread: 30,
+        origin: { x: 0.5, y: 0.3 },
+        colors: summerColors,
+        startVelocity: 20,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 180,
+        origin: { y: 0.4 },
+        colors: summerColors,
+      });
+    }, 400);
+  }, [prefersReducedMotion]);
+
+  const fireAutumnConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const autumnColors = ['#D2691E', '#CD853F', '#DEB887', '#8B4513', '#A0522D', '#F4A460'];
+
+    // Falling leaves effect
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        startVelocity: 5,
+        ticks: 300,
+        origin: {
+          x: Math.random(),
+          y: 0,
+        },
+        colors: autumnColors,
+        shapes: ['circle'],
+        gravity: 0.4,
+        scalar: 1.5,
+        drift: Math.random() * 2 - 1,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.5 },
+        colors: autumnColors,
+        shapes: ['circle'],
+      });
+    }, 500);
+  }, [prefersReducedMotion]);
+
+  const fireWinterConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const winterColors = ['#FFFFFF', '#E0F2FE', '#BAE6FD', '#7DD3FC', '#38BDF8'];
+
+    // Snowflakes effect
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        startVelocity: 0,
+        ticks: 300,
+        origin: {
+          x: Math.random(),
+          y: 0,
+        },
+        colors: winterColors,
+        shapes: ['circle'],
+        gravity: 0.2,
+        scalar: 1.3,
+        drift: Math.random() - 0.5,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 70,
+        spread: 90,
+        origin: { y: 0.5 },
+        colors: winterColors,
+        shapes: ['circle'],
+        scalar: 1.5,
+      });
+    }, 400);
   }, [prefersReducedMotion]);
 
   const fireMiniEffect = useCallback(() => {
@@ -182,6 +397,49 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
           shapes: ['circle'],
         });
         break;
+      case 'carnival':
+        confetti({
+          particleCount: 25 * intensity,
+          spread: 60 + intensity * 10,
+          origin: { y: 0.6 },
+          colors: ['#9333ea', '#eab308', '#22c55e', '#3b82f6', '#f43f5e'],
+        });
+        break;
+      case 'spring':
+        confetti({
+          particleCount: 15 * intensity,
+          spread: 50,
+          origin: { y: 0.6 },
+          colors: ['#FFB6C1', '#98FB98', '#FAFAD2'],
+          gravity: 0.6,
+        });
+        break;
+      case 'summer':
+        confetti({
+          particleCount: 20 * intensity,
+          spread: 60,
+          origin: { y: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#87CEEB'],
+        });
+        break;
+      case 'autumn':
+        confetti({
+          particleCount: 15 * intensity,
+          spread: 40,
+          origin: { y: 0.5 },
+          colors: ['#D2691E', '#CD853F', '#8B4513'],
+          gravity: 0.5,
+        });
+        break;
+      case 'winter':
+        confetti({
+          particleCount: 12 * intensity,
+          startVelocity: 5,
+          origin: { x: Math.random(), y: 0 },
+          colors: ['#FFFFFF', '#E0F2FE', '#BAE6FD'],
+          gravity: 0.3,
+        });
+        break;
     }
   }, [holiday, clickCount, prefersReducedMotion]);
 
@@ -196,8 +454,23 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
       case 'easter':
         fireEasterConfetti();
         break;
+      case 'carnival':
+        fireCarnivalConfetti();
+        break;
+      case 'spring':
+        fireSpringConfetti();
+        break;
+      case 'summer':
+        fireSummerConfetti();
+        break;
+      case 'autumn':
+        fireAutumnConfetti();
+        break;
+      case 'winter':
+        fireWinterConfetti();
+        break;
     }
-  }, [holiday, fireNewYearFireworks, fireChristmasSnow, fireEasterConfetti]);
+  }, [holiday, fireNewYearFireworks, fireChristmasSnow, fireEasterConfetti, fireCarnivalConfetti, fireSpringConfetti, fireSummerConfetti, fireAutumnConfetti, fireWinterConfetti]);
 
   const closeModal = useCallback(() => {
     markHolidayModalShown(holiday);
@@ -220,6 +493,11 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
     fireNewYearFireworks,
     fireChristmasSnow,
     fireEasterConfetti,
+    fireCarnivalConfetti,
+    fireSpringConfetti,
+    fireSummerConfetti,
+    fireAutumnConfetti,
+    fireWinterConfetti,
     fireMiniEffect,
     fireCelebration,
     handleCelebrate,
