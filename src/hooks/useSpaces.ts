@@ -110,10 +110,30 @@ export const useCreateSpace = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spaces'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['workspace-usage'] });
       toast.success('Espaço criado com sucesso');
     },
-    onError: () => {
-      toast.error('Erro ao criar espaço');
+    onError: (error: Error) => {
+      // Parse entitlement-related errors for friendly messages
+      const errorMessage = error.message || '';
+      
+      if (errorMessage.includes('ENTITLEMENT_BLOCKED') || errorMessage.includes('Limite de espaços')) {
+        toast.error('Limite de espaços atingido', {
+          description: 'Faça upgrade do plano para criar mais espaços.',
+          action: {
+            label: 'Ver planos',
+            onClick: () => window.location.href = '/settings?tab=billing',
+          },
+        });
+      } else if (errorMessage.includes('PLAN_LIMIT')) {
+        toast.error('Limite do plano atingido', {
+          description: 'Você atingiu o limite de espaços do seu plano atual.',
+        });
+      } else {
+        toast.error('Erro ao criar espaço', {
+          description: errorMessage,
+        });
+      }
     },
   });
 };
