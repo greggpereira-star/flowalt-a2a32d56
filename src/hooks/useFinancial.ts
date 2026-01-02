@@ -23,6 +23,7 @@ export interface Transaction {
   collaborator_id: string | null;
   client_id: string | null;
   card_id: string | null;
+  cost_center_id: string | null;
   type: "income" | "expense" | "transfer";
   status: "pending" | "paid" | "cancelled" | "overdue";
   description: string;
@@ -178,6 +179,7 @@ export function useCreateTransaction() {
       collaborator_id?: string;
       client_id?: string;
       card_id?: string;
+      cost_center_id?: string;
       status?: "pending" | "paid" | "cancelled" | "overdue";
       paid_date?: string;
       recurrence?: "none" | "monthly" | "yearly";
