@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
+import { sendWorkspaceInviteEmail, fetchUserProfile } from '@/hooks/useEmailNotifications';
 
 export interface WorkspaceInvite {
   id: string;
@@ -49,6 +51,7 @@ export function useWorkspaceInvites() {
 export function useCreateWorkspaceInvite() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
@@ -63,9 +66,28 @@ export function useCreateWorkspaceInvite() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
-      toast.success('Convite enviado com sucesso');
+      
+      // Enviar email de notificação
+      try {
+        const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
+        
+        await sendWorkspaceInviteEmail({
+          email: variables.email,
+          workspace_id: currentWorkspace!.id,
+          workspace_name: currentWorkspace!.name,
+          inviter_name: inviterProfile?.name || 'Administrador',
+          role: variables.role,
+          token: data?.token || '',
+          expires_in: '7 dias',
+        });
+        
+        toast.success('Convite enviado por email!');
+      } catch (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+        toast.success('Convite criado! (email não enviado)');
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Erro ao enviar convite');
