@@ -73,13 +73,18 @@ export function useTransactions(filters?: {
 }) {
   const { currentWorkspace } = useWorkspace();
 
-  // Realtime subscription para transações
+  // Realtime subscription para transações - invalida todas as queries financeiras
   useRealtimeSubscription({
     table: 'transactions',
     filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
     queryKeys: [
       ['transactions', currentWorkspace?.id || ''],
+      ['transactions', currentWorkspace?.id || '', filters],
       ['financial-summary', currentWorkspace?.id || ''],
+      ['financial-kpis', currentWorkspace?.id || ''],
+      ['cashflow-projection', currentWorkspace?.id || ''],
+      ['aging-report', currentWorkspace?.id || ''],
+      ['cost-centers-with-budget', currentWorkspace?.id || ''],
     ],
     enabled: !!currentWorkspace?.id,
   });
@@ -199,7 +204,13 @@ export function useCreateTransaction() {
       return data;
     },
     onSuccess: () => {
+      // Invalidar todas as queries financeiras para refletir o novo lançamento
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["cashflow-projection"] });
+      queryClient.invalidateQueries({ queryKey: ["aging-report"] });
+      queryClient.invalidateQueries({ queryKey: ["cost-centers-with-budget"] });
       toast({ title: "Lançamento criado com sucesso" });
     },
     onError: (error) => {
@@ -225,7 +236,13 @@ export function useUpdateTransaction() {
       return data;
     },
     onSuccess: () => {
+      // Invalidar todas as queries financeiras
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["cashflow-projection"] });
+      queryClient.invalidateQueries({ queryKey: ["aging-report"] });
+      queryClient.invalidateQueries({ queryKey: ["cost-centers-with-budget"] });
       toast({ title: "Lançamento atualizado" });
     },
     onError: (error) => {
@@ -248,7 +265,13 @@ export function useDeleteTransaction() {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidar todas as queries financeiras
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["cashflow-projection"] });
+      queryClient.invalidateQueries({ queryKey: ["aging-report"] });
+      queryClient.invalidateQueries({ queryKey: ["cost-centers-with-budget"] });
       toast({ title: "Lançamento excluído" });
     },
     onError: (error) => {

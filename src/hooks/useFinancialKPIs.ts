@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { startOfMonth, endOfMonth, subMonths, addMonths, format, differenceInDays } from "date-fns";
 
 export interface TaxBreakdown {
@@ -76,6 +77,18 @@ export function useFinancialKPIs(selectedMonth?: Date) {
   const periodEnd = endOfMonth(targetMonth);
   const prevPeriodStart = startOfMonth(subMonths(targetMonth, 1));
   const prevPeriodEnd = endOfMonth(subMonths(targetMonth, 1));
+
+  // Realtime subscription para atualizar KPIs quando transações mudam
+  useRealtimeSubscription({
+    table: 'transactions',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ['financial-kpis', currentWorkspace?.id || '', format(targetMonth, "yyyy-MM")],
+      ['cashflow-projection', currentWorkspace?.id || ''],
+      ['aging-report', currentWorkspace?.id || ''],
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ["financial-kpis", currentWorkspace?.id, format(targetMonth, "yyyy-MM")],
@@ -313,6 +326,16 @@ export function useFinancialKPIs(selectedMonth?: Date) {
 
 export function useCashFlowProjection(months: number = 12) {
   const { currentWorkspace } = useWorkspace();
+
+  // Realtime subscription para atualizar projeção quando transações mudam
+  useRealtimeSubscription({
+    table: 'transactions',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ['cashflow-projection', currentWorkspace?.id || '', months],
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ["cashflow-projection", currentWorkspace?.id, months],
