@@ -218,79 +218,113 @@ function tryParseAsNFe(xmlDoc: Document): ParsedNFe | null {
 }
 
 function parseNFeXMLContent(xmlDoc: Document): ParsedNFe {
-  // NFe namespace handling
-  const getElement = (parent: Element | Document, tagName: string): string => {
-    const el = parent.getElementsByTagName(tagName)[0];
+  type DomParent = Document | Element | null | undefined;
+
+  const getAll = (parent: DomParent, tagName: string): Element[] => {
+    if (!parent) return [];
+
+    const byTag = Array.from(parent.getElementsByTagName(tagName) as unknown as Iterable<Element>);
+    if (byTag.length > 0) return byTag;
+
+    // Fallback for XMLs that use namespaces/prefixes: match by localName
+    const all = Array.from(parent.getElementsByTagName("*") as unknown as Iterable<Element>);
+    return all.filter((el) => (el as any).localName === tagName);
+  };
+
+  const getFirst = (parent: DomParent, tagName: string): Element | null => getAll(parent, tagName)[0] ?? null;
+
+  const getText = (parent: DomParent, tagName: string): string => {
+    const el = getFirst(parent, tagName);
     return el?.textContent?.trim() || "";
   };
 
-  const getNumber = (parent: Element | Document, tagName: string): number => {
-    const value = getElement(parent, tagName);
+  const getNumber = (parent: DomParent, tagName: string): number => {
+    const value = getText(parent, tagName);
     return parseFloat(value) || 0;
   };
 
-  // Basic info
-  const infNFe = xmlDoc.getElementsByTagName("infNFe")[0] || xmlDoc.documentElement;
-  const ide = xmlDoc.getElementsByTagName("ide")[0];
-  const emit = xmlDoc.getElementsByTagName("emit")[0];
-  const dest = xmlDoc.getElementsByTagName("dest")[0];
-  const total = xmlDoc.getElementsByTagName("total")[0];
-  const ICMSTot = xmlDoc.getElementsByTagName("ICMSTot")[0];
+  const infNFe = getFirst(xmlDoc, "infNFe") ?? xmlDoc.documentElement;
+  const ide = getFirst(xmlDoc, "ide");
+  const emit = getFirst(xmlDoc, "emit");
+  const dest = getFirst(xmlDoc, "dest");
+  const ICMSTot = getFirst(xmlDoc, "ICMSTot");
 
-  // Parse items
+  // Items
   const items: ParsedNFe["items"] = [];
-  const detElements = xmlDoc.getElementsByTagName("det");
-  for (let i = 0; i < detElements.length; i++) {
-    const det = detElements[i];
-    const prod = det.getElementsByTagName("prod")[0];
-    if (prod) {
-      items.push({
-        description: getElement(prod, "xProd"),
-        quantity: getNumber(prod, "qCom"),
-        unitValue: getNumber(prod, "vUnCom"),
-        totalValue: getNumber(prod, "vProd"),
-      });
-    }
+  const detElements = getAll(xmlDoc, "det");
+  for (const det of detElements) {
+    const prod = getFirst(det, "prod");
+    if (!prod) continue;
+
+    items.push({
+      description: getText(prod, "xProd"),
+      quantity: getNumber(prod, "qCom"),
+      unitValue: getNumber(prod, "vUnCom"),
+      totalValue: getNumber(prod, "vProd"),
+    });
   }
 
-  // Extract access key from infNFe Id attribute
-  const accessKey = infNFe?.getAttribute("Id")?.replace("NFe", "") || "";
+  // Access key
+  const accessKey =
+    (infNFe as Element)?.getAttribute?.("Id")?.replace("NFe", "") ||
+    getText(xmlDoc, "chNFe") ||
+    getText(xmlDoc, "ChaveNFe") ||
+    "";
 
-  // Parse dates
-  const dhEmi = getElement(ide, "dhEmi") || getElement(ide, "dEmi");
+  // Dates
+  const dhEmi = getText(ide, "dhEmi") || getText(ide, "dEmi") || getText(xmlDoc, "dhEmi") || getText(xmlDoc, "dEmi");
   const issueDate = dhEmi ? dhEmi.split("T")[0] : new Date().toISOString().split("T")[0];
 
-  // Parse due date from billing
-  const cobr = xmlDoc.getElementsByTagName("cobr")[0];
-  const dup = cobr?.getElementsByTagName("dup")[0];
-  const dueDate = dup ? getElement(dup, "dVenc") : undefined;
+  const cobr = getFirst(xmlDoc, "cobr");
+  const dup = getFirst(cobr, "dup");
+  const dueDate = dup ? (getText(dup, "dVenc") || undefined) : undefined;
+
+  // Core identifiers
+  const invoiceNumber = getText(ide, "nNF") || getText(xmlDoc, "nNF");
+  const series = getText(ide, "serie") || getText(xmlDoc, "serie") || "1";
+
+  if (!invoiceNumber) {
+    // Try the fallback parser before giving up
+    const fallback = tryParseAsNFe(xmlDoc);
+    if (fallback) return fallback;
+    throw new Error("XML de NF-e inválido: não encontrei o número da nota (nNF).");
+  }
+
+  // Values
+  const itemsTotal = items.reduce((acc, i) => acc + (Number(i.totalValue) || 0), 0);
+
+  const vNF = getNumber(ICMSTot, "vNF") || itemsTotal;
+  const vDesc = getNumber(ICMSTot, "vDesc");
+  const vTotTrib = getNumber(ICMSTot, "vTotTrib");
+
+  const taxes = {
+    icms: getNumber(ICMSTot, "vICMS") || undefined,
+    pis: getNumber(ICMSTot, "vPIS") || undefined,
+    cofins: getNumber(ICMSTot, "vCOFINS") || undefined,
+    ipi: getNumber(ICMSTot, "vIPI") || undefined,
+  };
 
   return {
-    invoiceNumber: getElement(ide, "nNF"),
-    series: getElement(ide, "serie"),
+    invoiceNumber,
+    series,
     accessKey,
     issueDate,
     dueDate,
-    grossAmount: getNumber(ICMSTot, "vNF"),
-    netAmount: getNumber(ICMSTot, "vNF") - getNumber(ICMSTot, "vDesc"),
-    taxAmount: getNumber(ICMSTot, "vTotTrib"),
-    taxes: {
-      icms: getNumber(ICMSTot, "vICMS"),
-      pis: getNumber(ICMSTot, "vPIS"),
-      cofins: getNumber(ICMSTot, "vCOFINS"),
-      ipi: getNumber(ICMSTot, "vIPI"),
-    },
+    grossAmount: vNF,
+    netAmount: vNF - vDesc,
+    taxAmount: vTotTrib || Object.values(taxes).reduce((acc, v) => acc + (v || 0), 0),
+    taxes,
     emitter: {
-      name: getElement(emit, "xNome"),
-      document: getElement(emit, "CNPJ") || getElement(emit, "CPF"),
-      email: getElement(emit, "email"),
+      name: getText(emit, "xNome"),
+      document: getText(emit, "CNPJ") || getText(emit, "CPF"),
+      email: getText(emit, "email"),
     },
     recipient: {
-      name: getElement(dest, "xNome"),
-      document: getElement(dest, "CNPJ") || getElement(dest, "CPF"),
-      email: getElement(dest, "email"),
+      name: getText(dest, "xNome"),
+      document: getText(dest, "CNPJ") || getText(dest, "CPF"),
+      email: getText(dest, "email"),
     },
-    description: items.map(i => i.description).join(", ").substring(0, 500),
+    description: (items.map((i) => i.description).join(", ") || "NF-e").substring(0, 500),
     items,
     invoiceType: "nfe",
   };
