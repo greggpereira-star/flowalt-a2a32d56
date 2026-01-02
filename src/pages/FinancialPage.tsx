@@ -17,6 +17,7 @@ import { DREReport } from "@/components/financial/DREReport";
 import { FinancialAlertsPanel } from "@/components/financial/FinancialAlertsPanel";
 import { BankReconciliationPanel } from "@/components/financial/BankReconciliationPanel";
 import { CashFlowForecastChart } from "@/components/financial/CashFlowForecastChart";
+import { CashFlowPendingPanel } from "@/components/financial/CashFlowPendingPanel";
 import { FinancialAuditPanel } from "@/components/financial/FinancialAuditPanel";
 import { ProjectProfitabilityPanel } from "@/components/financial/ProjectProfitabilityPanel";
 import { TaxSettingsPanel } from "@/components/financial/TaxSettingsPanel";
@@ -211,28 +212,7 @@ export default function FinancialPage() {
                   <TabsContent value="cashflow" className="mt-0 animate-in fade-in-50 duration-300">
                     <div className="space-y-6">
                       <CashFlowForecastChart />
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <h3 className="text-base font-medium">Receitas Previstas</h3>
-                          </div>
-                          <TransactionList 
-                            filters={{ type: "income", status: "pending" }} 
-                            onEdit={handleEditTransaction}
-                          />
-                        </div>
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-rose-500" />
-                            <h3 className="text-base font-medium">Despesas Previstas</h3>
-                          </div>
-                          <TransactionList 
-                            filters={{ type: "expense", status: "pending" }} 
-                            onEdit={handleEditTransaction}
-                          />
-                        </div>
-                      </div>
+                      <CashFlowPendingPanel onEdit={handleEditTransaction} />
                     </div>
                   </TabsContent>
 
