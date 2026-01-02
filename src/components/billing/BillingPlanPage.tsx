@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { 
   Sparkles, Building2, Crown, Users, FolderKanban, Database, 
   Key, Webhook, Check, X, AlertCircle, CreditCard, ExternalLink,
-  Shield, Clock, Settings
+  Shield, Clock, Settings, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
