@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useWorkspacePlan, useEntitlements, useWorkspaceUsage, PlanTier } from '@/hooks/useWorkspacePlan';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -8,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 import { 
   Sparkles, Building2, Crown, Users, FolderKanban, Database, 
   Key, Webhook, Check, X, AlertCircle, CreditCard, ExternalLink,
@@ -109,6 +112,7 @@ const UsageItem: React.FC<UsageItemProps> = ({ label, used, limit, icon: Icon })
 };
 
 export const BillingPlanPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const { currentWorkspace, currentRole } = useWorkspace();
   const { isAdmin } = usePermissions();
   const { data: plan, isLoading: loadingPlan } = useWorkspacePlan();
@@ -118,6 +122,29 @@ export const BillingPlanPage: React.FC = () => {
 
   const isOwner = currentRole === 'owner';
   const canManageBilling = isOwner || isAdmin;
+
+  const upgradePlan = useMutation({
+    mutationFn: async (tier: PlanTier) => {
+      if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
+      const { error } = await supabase.rpc('upgrade_workspace_plan', {
+        p_workspace_id: currentWorkspace.id,
+        p_new_tier: tier,
+        p_provider: 'manual',
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success('Plano atualizado com sucesso');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['workspace-plan', currentWorkspace?.id] }),
+        queryClient.invalidateQueries({ queryKey: ['workspace-entitlements', currentWorkspace?.id] }),
+        queryClient.invalidateQueries({ queryKey: ['workspace-usage', currentWorkspace?.id] }),
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error?.message ? `Erro ao atualizar plano: ${error.message}` : 'Erro ao atualizar plano');
+    },
+  });
 
   if (loadingPlan || loadingEntitlements) {
     return (
@@ -199,13 +226,30 @@ export const BillingPlanPage: React.FC = () => {
           {canManageBilling && currentTier !== 'enterprise' && (
             <div className="flex gap-2 pt-4">
               {currentTier === 'free' && (
-                <Button className="gap-2">
-                  <Crown className="h-4 w-4" />
+                <Button
+                  className="gap-2"
+                  onClick={() => upgradePlan.mutate('pro')}
+                  disabled={upgradePlan.isPending}
+                >
+                  {upgradePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
                   Fazer upgrade para Pro
                 </Button>
               )}
-              <Button variant="outline" className="gap-2">
-                <Building2 className="h-4 w-4" />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  if (currentTier === 'free') {
+                    toast.message('Upgrade para Enterprise', {
+                      description: 'Entre em contato com vendas para ativar o plano Enterprise.',
+                    });
+                    return;
+                  }
+                  upgradePlan.mutate('enterprise');
+                }}
+                disabled={upgradePlan.isPending}
+              >
+                {upgradePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
                 {currentTier === 'free' ? 'Falar com vendas' : 'Upgrade para Enterprise'}
               </Button>
             </div>
