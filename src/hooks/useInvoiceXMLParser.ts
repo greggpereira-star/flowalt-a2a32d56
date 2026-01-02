@@ -51,24 +51,170 @@ export function parseNFeXML(xmlContent: string): ParsedNFe | null {
     // Check for parsing errors
     const parseError = xmlDoc.querySelector("parsererror");
     if (parseError) {
+      console.error("XML parse error:", parseError.textContent);
       throw new Error("XML inválido");
     }
 
-    // Detect NFe vs NFSe
-    const isNFSe = xmlDoc.querySelector("CompNfse, Nfse, InfNfse") !== null;
-    const isNFe = xmlDoc.querySelector("NFe, infNFe, nfeProc") !== null;
+    // Debug: Log the root element to understand the XML structure
+    console.log("XML root element:", xmlDoc.documentElement?.tagName);
+    console.log("XML namespaces:", xmlDoc.documentElement?.getAttribute("xmlns"));
 
-    if (isNFSe) {
+    // More comprehensive detection for NFe formats
+    // Check for NFe by looking for common elements across different formats
+    const hasNFeElements = 
+      xmlDoc.getElementsByTagName("infNFe").length > 0 ||
+      xmlDoc.getElementsByTagName("NFe").length > 0 ||
+      xmlDoc.getElementsByTagName("nfeProc").length > 0 ||
+      xmlDoc.querySelector("[Id*='NFe']") !== null ||
+      xmlDoc.documentElement?.tagName?.includes("NFe") ||
+      xmlDoc.documentElement?.tagName?.includes("nfeProc") ||
+      // Check for elements that are unique to NFe
+      xmlDoc.getElementsByTagName("ide").length > 0 ||
+      xmlDoc.getElementsByTagName("emit").length > 0 ||
+      xmlDoc.getElementsByTagName("dest").length > 0;
+
+    // Check for NFSe formats
+    const hasNFSeElements = 
+      xmlDoc.getElementsByTagName("CompNfse").length > 0 ||
+      xmlDoc.getElementsByTagName("Nfse").length > 0 ||
+      xmlDoc.getElementsByTagName("InfNfse").length > 0 ||
+      xmlDoc.getElementsByTagName("ListaNfse").length > 0 ||
+      xmlDoc.getElementsByTagName("ConsultarNfseResposta").length > 0 ||
+      // Check for elements unique to NFSe
+      xmlDoc.getElementsByTagName("Prestador").length > 0 ||
+      xmlDoc.getElementsByTagName("Tomador").length > 0 ||
+      xmlDoc.getElementsByTagName("TomadorServico").length > 0;
+
+    console.log("Has NFe elements:", hasNFeElements, "Has NFSe elements:", hasNFSeElements);
+
+    if (hasNFSeElements && !hasNFeElements) {
       return parseNFSeXML(xmlDoc);
-    } else if (isNFe) {
+    } else if (hasNFeElements) {
       return parseNFeXMLContent(xmlDoc);
     }
 
-    throw new Error("Formato de XML não reconhecido");
+    // If we still can't detect, try to parse as NFe anyway (most common)
+    console.log("Could not detect XML type, attempting NFe parse...");
+    const nfeResult = tryParseAsNFe(xmlDoc);
+    if (nfeResult) {
+      return nfeResult;
+    }
+
+    throw new Error("Formato de XML não reconhecido. Verifique se é um XML de NF-e ou NFS-e válido.");
   } catch (error) {
     console.error("Error parsing XML:", error);
+    throw error;
+  }
+}
+
+// Fallback NFe parser that tries to extract data even from non-standard formats
+function tryParseAsNFe(xmlDoc: Document): ParsedNFe | null {
+  const getElementText = (tagNames: string[]): string => {
+    for (const tagName of tagNames) {
+      const elements = xmlDoc.getElementsByTagName(tagName);
+      if (elements.length > 0 && elements[0].textContent) {
+        return elements[0].textContent.trim();
+      }
+    }
+    return "";
+  };
+
+  const getNumber = (tagNames: string[]): number => {
+    const value = getElementText(tagNames);
+    return parseFloat(value) || 0;
+  };
+
+  // Try to extract essential data
+  const invoiceNumber = getElementText(["nNF", "Numero", "NumeroNfse", "numero"]);
+  const series = getElementText(["serie", "Serie"]) || "1";
+  
+  if (!invoiceNumber) {
     return null;
   }
+
+  // Extract dates
+  const dhEmi = getElementText(["dhEmi", "dEmi", "DataEmissao", "dataEmissao"]);
+  const issueDate = dhEmi ? dhEmi.split("T")[0] : new Date().toISOString().split("T")[0];
+  const dueDate = getElementText(["dVenc", "DataVencimento"]) || undefined;
+
+  // Extract values
+  const grossAmount = getNumber(["vNF", "ValorServicos", "valorTotal", "ValorLiquidoNfse"]) || 
+                      getNumber(["vProd", "vTotTrib"]);
+  
+  // Extract emitter info
+  const emitterName = getElementText(["xNome", "RazaoSocial", "razaoSocial"]);
+  const emitterDoc = getElementText(["CNPJ", "CPF", "Cnpj", "cnpj"]);
+
+  // Extract recipient info - look in dest element specifically
+  const dest = xmlDoc.getElementsByTagName("dest")[0];
+  let recipientName = "";
+  let recipientDoc = "";
+  if (dest) {
+    recipientName = dest.getElementsByTagName("xNome")[0]?.textContent?.trim() || "";
+    recipientDoc = dest.getElementsByTagName("CNPJ")[0]?.textContent?.trim() || 
+                   dest.getElementsByTagName("CPF")[0]?.textContent?.trim() || "";
+  }
+  if (!recipientName) {
+    recipientName = getElementText(["xNome", "RazaoSocial"]);
+    recipientDoc = getElementText(["CNPJ", "CPF"]);
+  }
+
+  // Extract access key
+  const infNFe = xmlDoc.getElementsByTagName("infNFe")[0];
+  let accessKey = infNFe?.getAttribute("Id")?.replace("NFe", "") || "";
+  if (!accessKey) {
+    accessKey = getElementText(["chNFe", "ChaveNFe", "chaveAcesso"]);
+  }
+
+  // Extract items
+  const items: ParsedNFe["items"] = [];
+  const detElements = xmlDoc.getElementsByTagName("det");
+  for (let i = 0; i < detElements.length; i++) {
+    const det = detElements[i];
+    const prod = det.getElementsByTagName("prod")[0];
+    if (prod) {
+      items.push({
+        description: prod.getElementsByTagName("xProd")[0]?.textContent?.trim() || "",
+        quantity: parseFloat(prod.getElementsByTagName("qCom")[0]?.textContent || "1") || 1,
+        unitValue: parseFloat(prod.getElementsByTagName("vUnCom")[0]?.textContent || "0") || 0,
+        totalValue: parseFloat(prod.getElementsByTagName("vProd")[0]?.textContent || "0") || 0,
+      });
+    }
+  }
+
+  // Extract taxes
+  const ICMSTot = xmlDoc.getElementsByTagName("ICMSTot")[0];
+  const taxes = ICMSTot ? {
+    icms: parseFloat(ICMSTot.getElementsByTagName("vICMS")[0]?.textContent || "0") || 0,
+    pis: parseFloat(ICMSTot.getElementsByTagName("vPIS")[0]?.textContent || "0") || 0,
+    cofins: parseFloat(ICMSTot.getElementsByTagName("vCOFINS")[0]?.textContent || "0") || 0,
+    ipi: parseFloat(ICMSTot.getElementsByTagName("vIPI")[0]?.textContent || "0") || 0,
+  } : {};
+
+  const taxAmount = Object.values(taxes).reduce((a, b) => a + b, 0);
+
+  return {
+    invoiceNumber,
+    series,
+    accessKey,
+    issueDate,
+    dueDate,
+    grossAmount: grossAmount || items.reduce((acc, i) => acc + i.totalValue, 0),
+    netAmount: grossAmount || items.reduce((acc, i) => acc + i.totalValue, 0),
+    taxAmount,
+    taxes,
+    emitter: {
+      name: emitterName,
+      document: emitterDoc,
+    },
+    recipient: {
+      name: recipientName,
+      document: recipientDoc,
+    },
+    description: items.map(i => i.description).join(", ").substring(0, 500),
+    items,
+    invoiceType: "nfe",
+  };
 }
 
 function parseNFeXMLContent(xmlDoc: Document): ParsedNFe {
