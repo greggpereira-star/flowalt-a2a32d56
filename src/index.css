@@ -500,29 +500,36 @@
    Holiday Celebration Animations
    ======================================== */
 
-/* Snow falling animation */
-@keyframes snow-fall {
+/* Snow falling animation - enhanced with drift and spin */
+@keyframes snowfall {
   0% {
-    transform: translateY(-10px) translateX(0) rotate(0deg);
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  5% {
     opacity: 1;
   }
   25% {
-    transform: translateY(25vh) translateX(10px) rotate(90deg);
+    transform: translateY(25vh) translateX(calc(var(--drift, 0px) * 0.3)) rotate(calc(var(--spin, 0deg) * 0.25));
   }
   50% {
-    transform: translateY(50vh) translateX(-10px) rotate(180deg);
+    transform: translateY(50vh) translateX(calc(var(--drift, 0px) * -0.2)) rotate(calc(var(--spin, 0deg) * 0.5));
   }
   75% {
-    transform: translateY(75vh) translateX(15px) rotate(270deg);
+    transform: translateY(75vh) translateX(calc(var(--drift, 0px) * 0.4)) rotate(calc(var(--spin, 0deg) * 0.75));
+  }
+  95% {
+    opacity: 0.8;
   }
   100% {
-    transform: translateY(100vh) translateX(-5px) rotate(360deg);
-    opacity: 0.3;
+    transform: translateY(105vh) translateX(var(--drift, 0px)) rotate(var(--spin, 0deg));
+    opacity: 0;
   }
 }
 
+/* Legacy class for compatibility */
 .animate-snow-fall {
-  animation: snow-fall linear infinite;
+  animation: snowfall 10s linear infinite;
 }
 
 /* Twinkling stars animation */
