@@ -38,6 +38,7 @@ export interface NoticeConfirmation {
   confirmed_at: string;
   user_email?: string;
   user_name?: string;
+  avatar_url?: string;
 }
 
 export interface UserBirthday {
@@ -127,7 +128,7 @@ export function useNoticeConfirmations(noticeId: string) {
     queryFn: async () => {
       if (!noticeId) return [];
       
-      // Get confirmations with user info from workspace_members
+      // Get confirmations
       const { data: reads, error: readsError } = await (supabase as any)
         .from('notice_reads')
         .select('id, notice_id, user_id, read_at, confirmed_at')
@@ -138,25 +139,29 @@ export function useNoticeConfirmations(noticeId: string) {
       
       if (!reads || reads.length === 0) return [];
 
-      // Get user emails from workspace_members
+      // Get user info from profiles table
       const userIds = reads.map((r: any) => r.user_id);
-      const { data: members, error: membersError } = await (supabase as any)
-        .from('workspace_members')
-        .select('user_id, user_email')
-        .eq('workspace_id', currentWorkspace?.id)
-        .in('user_id', userIds);
+      const { data: profiles, error: profilesError } = await (supabase as any)
+        .from('profiles')
+        .select('id, email, full_name, avatar_url')
+        .in('id', userIds);
       
-      if (membersError) throw membersError;
+      if (profilesError) throw profilesError;
 
-      const memberMap = new Map((members || []).map((m: any) => [m.user_id, m.user_email]));
+      const profileMap = new Map((profiles || []).map((p: { id: string; email: string; full_name: string | null; avatar_url: string | null }) => [p.id, p]));
 
-      return reads.map((r: any) => ({
-        id: r.id,
-        notice_id: r.notice_id,
-        user_id: r.user_id,
-        confirmed_at: r.confirmed_at,
-        user_email: memberMap.get(r.user_id) || 'Usuário desconhecido',
-      })) as NoticeConfirmation[];
+      return reads.map((r: any) => {
+        const profile = profileMap.get(r.user_id) as { email: string; full_name: string | null; avatar_url: string | null } | undefined;
+        return {
+          id: r.id,
+          notice_id: r.notice_id,
+          user_id: r.user_id,
+          confirmed_at: r.confirmed_at,
+          user_email: profile?.email || 'Usuário desconhecido',
+          user_name: profile?.full_name || null,
+          avatar_url: profile?.avatar_url || null,
+        };
+      }) as NoticeConfirmation[];
     },
     enabled: !!noticeId && !!currentWorkspace?.id,
   });

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -565,12 +565,18 @@ const ConfirmationsSheet: React.FC<{
                   {confirmations.map((conf) => (
                     <div key={conf.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                       <Avatar className="h-10 w-10">
+                        {conf.avatar_url ? (
+                          <AvatarImage src={conf.avatar_url} alt={conf.user_name || conf.user_email} />
+                        ) : null}
                         <AvatarFallback className="bg-green-500/10 text-green-600">
-                          {conf.user_email?.charAt(0).toUpperCase() || '?'}
+                          {(conf.user_name || conf.user_email)?.charAt(0).toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{conf.user_email}</p>
+                        <p className="text-sm font-medium truncate">{conf.user_name || conf.user_email}</p>
+                        {conf.user_name && (
+                          <p className="text-xs text-muted-foreground truncate">{conf.user_email}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Confirmou em {format(new Date(conf.confirmed_at), "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
                         </p>
