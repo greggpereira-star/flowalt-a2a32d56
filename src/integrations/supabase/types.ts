@@ -700,6 +700,69 @@ export type Database = {
           },
         ]
       }
+      base_calendar_events: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          event_date: string
+          generate_notice: boolean | null
+          id: string
+          is_national: boolean | null
+          notice_days_before: number | null
+          recurrence: string | null
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_date: string
+          generate_notice?: boolean | null
+          id?: string
+          is_national?: boolean | null
+          notice_days_before?: number | null
+          recurrence?: string | null
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          generate_notice?: boolean | null
+          id?: string
+          is_national?: boolean | null
+          notice_days_before?: number | null
+          recurrence?: string | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_calendar_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "base_calendar_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_automations: {
         Row: {
           action_config: Json
@@ -5021,6 +5084,122 @@ export type Database = {
           },
         ]
       }
+      notice_reads: {
+        Row: {
+          confirmed_at: string | null
+          id: string
+          ip_address: unknown
+          notice_id: string
+          read_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          id?: string
+          ip_address?: unknown
+          notice_id: string
+          read_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          id?: string
+          ip_address?: unknown
+          notice_id?: string
+          read_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notice_reads_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "notices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notices: {
+        Row: {
+          auto_generated: boolean | null
+          category: string
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          priority: string
+          requires_confirmation: boolean | null
+          source_id: string | null
+          source_type: string | null
+          starts_at: string | null
+          status: string
+          target_roles: string[] | null
+          target_spaces: string[] | null
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          auto_generated?: boolean | null
+          category?: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          priority?: string
+          requires_confirmation?: boolean | null
+          source_id?: string | null
+          source_type?: string | null
+          starts_at?: string | null
+          status?: string
+          target_roles?: string[] | null
+          target_spaces?: string[] | null
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          auto_generated?: boolean | null
+          category?: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          priority?: string
+          requires_confirmation?: boolean | null
+          source_id?: string | null
+          source_type?: string | null
+          starts_at?: string | null
+          status?: string
+          target_roles?: string[] | null
+          target_spaces?: string[] | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "notices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -6422,6 +6601,48 @@ export type Database = {
           },
           {
             foreignKeyName: "user_badges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_birthdays: {
+        Row: {
+          birth_date: string
+          created_at: string | null
+          updated_at: string | null
+          user_id: string
+          visibility: string
+          workspace_id: string
+        }
+        Insert: {
+          birth_date: string
+          created_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          visibility?: string
+          workspace_id: string
+        }
+        Update: {
+          birth_date?: string
+          created_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visibility?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_birthdays_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_birthdays_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
