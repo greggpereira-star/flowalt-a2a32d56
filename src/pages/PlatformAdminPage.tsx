@@ -26,9 +26,11 @@ import {
   Search,
   Eye,
   RefreshCw,
-  Crown
+  Crown,
+  Settings2
 } from 'lucide-react';
 import { PlanManagementPanel } from '@/components/settings/PlanManagementPanel';
+import { EntitlementOverridesPanel } from '@/components/settings/EntitlementOverridesPanel';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -314,6 +316,10 @@ export default function PlatformAdminPage() {
               <Crown className="h-4 w-4" />
               Planos
             </TabsTrigger>
+            <TabsTrigger value="entitlements" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Entitlements
+            </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="h-4 w-4" />
               Auditoria
@@ -479,6 +485,16 @@ export default function PlatformAdminPage() {
               })) || []}
               isLoading={loadingWorkspaces}
               onRefresh={() => queryClient.invalidateQueries({ queryKey: ['all-workspaces'] })}
+            />
+          </TabsContent>
+
+          <TabsContent value="entitlements" className="mt-4">
+            <EntitlementOverridesPanel 
+              workspaces={workspaces?.map(ws => ({
+                id: ws.id,
+                name: ws.name,
+                plan_tier: ws.plan_tier,
+              })) || []}
             />
           </TabsContent>
 
