@@ -44,6 +44,7 @@ import { ClientReportTab } from './ClientReportTab';
 import { ClientPoliciesTab } from './ClientPoliciesTab';
 import { ContractSimulatorTab } from './ContractSimulatorTab';
 import { ClientTasksTab } from './ClientTasksTab';
+import { ClientLogoUpload } from './ClientLogoUpload';
 
 interface ClientCardSheetProps {
   clientId: string | null;
@@ -176,15 +177,13 @@ const IdentityTab: React.FC<{
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="logo_url">URL do Logo</Label>
-          <Input
-            id="logo_url"
-            value={formData.logo_url || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
-            placeholder="https://..."
-          />
-        </div>
+        <ClientLogoUpload
+          currentLogoUrl={formData.logo_url}
+          clientColor={formData.color}
+          clientName={formData.name || client.name}
+          onUpload={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+          onRemove={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+        />
       </div>
 
       {/* Links importantes */}
