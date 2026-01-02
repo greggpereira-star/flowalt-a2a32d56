@@ -1,3 +1,12 @@
 export { NoticesCenter } from './NoticesCenter';
 export { BirthdayBanner } from './BirthdayBanner';
 export { BirthdaySettings } from './BirthdaySettings';
+export { HolidayBanner } from './HolidayBanner';
+export { NewYearBanner } from './NewYearBanner';
+export { NewYearModal } from './NewYearModal';
+export { ChristmasBanner } from './ChristmasBanner';
+export { ChristmasModal } from './ChristmasModal';
+export { EasterBanner } from './EasterBanner';
+export { EasterModal } from './EasterModal';
+export { SnowEffect } from './SnowEffect';
+export { FireworksEffect } from './FireworksEffect';
