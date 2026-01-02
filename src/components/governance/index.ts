@@ -17,3 +17,6 @@ export {
   VisibilityIcon, 
   type VisibilityLevel 
 } from './VisibilityIndicator';
+export { AccessImpactSummary } from './AccessImpactSummary';
+export { MemberAccessDiagnosticSheet } from './MemberAccessDiagnosticSheet';
+export { DestructiveActionGuard, type DestructiveMode } from './DestructiveActionGuard';

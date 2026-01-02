@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { MemberAccessDiagnosticSheet } from '@/components/governance/MemberAccessDiagnosticSheet';
 import { 
   Users, 
   MoreVertical, 
@@ -35,6 +36,7 @@ import {
   User,
   UserMinus,
   ChevronUp,
+  Search,
 } from 'lucide-react';
 import type { AppRole } from '@/lib/supabase';
 
@@ -53,13 +55,20 @@ const ASSIGNABLE_ROLES: AppRole[] = ['admin', 'coordinator', 'finance', 'member'
 export function WorkspaceMembersPanel() {
   const { user } = useAuth();
   const { data: members, isLoading } = useWorkspaceMembers();
-  const { canManageWorkspace, isOwner } = usePermissions();
+  const { canManageWorkspace, isOwner, isAdmin } = usePermissions();
   const changeMemberRole = useChangeMemberRole();
   const promoteToOwner = usePromoteToOwner();
   const removeMember = useRemoveWorkspaceMember();
 
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmPromote, setConfirmPromote] = useState<string | null>(null);
+  const [diagnosticMember, setDiagnosticMember] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    role: AppRole;
+    avatarUrl?: string | null;
+  } | null>(null);
 
   const handleRoleChange = async (userId: string, newRole: AppRole) => {
     await changeMemberRole.mutateAsync({ userId, newRole });
@@ -163,7 +172,7 @@ export function WorkspaceMembersPanel() {
                       {roleConfig.label}
                     </Badge>
 
-                    {(canEditMember || canPromote) && (
+                    {(canEditMember || canPromote || isAdmin || isOwner) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -171,6 +180,25 @@ export function WorkspaceMembersPanel() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {/* Diagnose access - Admin/Owner only */}
+                          {(isAdmin || isOwner) && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => setDiagnosticMember({
+                                  id: member.user_id,
+                                  name: member.profile?.full_name || member.profile?.email || '',
+                                  email: member.profile?.email || '',
+                                  role: member.role || 'member',
+                                  avatarUrl: member.profile?.avatar_url,
+                                })}
+                              >
+                                <Search className="h-4 w-4 mr-2" />
+                                Diagnosticar acesso
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+
                           {canEditMember && (
                             <>
                               {ASSIGNABLE_ROLES.map((role) => {
@@ -265,6 +293,13 @@ export function WorkspaceMembersPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Access Diagnostic Sheet */}
+      <MemberAccessDiagnosticSheet
+        open={!!diagnosticMember}
+        onOpenChange={(open) => !open && setDiagnosticMember(null)}
+        member={diagnosticMember}
+      />
     </>
   );
 }
