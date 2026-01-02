@@ -554,14 +554,17 @@ export function CostCenterManager() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Centro de Custo Pai</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === "none" ? "" : value)} 
+                          value={field.value || "none"}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Nenhum (raiz)" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Nenhum (raiz)</SelectItem>
+                            <SelectItem value="none">Nenhum (raiz)</SelectItem>
                             {costCenters.map((cc) => (
                               <SelectItem key={cc.id} value={cc.id}>
                                 {cc.code ? `${cc.code} - ` : ""}{cc.name}
