@@ -9,11 +9,12 @@ interface SnowflakeProps {
   animationDuration: number;
   delay: number;
   opacity: number;
+  blur: number;
 }
 
-const Snowflake: React.FC<SnowflakeProps> = ({ size, left, animationDuration, delay, opacity }) => (
+const Snowflake: React.FC<SnowflakeProps> = ({ size, left, animationDuration, delay, opacity, blur }) => (
   <div
-    className="absolute top-0 rounded-full bg-white pointer-events-none animate-snow-fall"
+    className="absolute top-0 rounded-full pointer-events-none animate-snow-fall"
     style={{
       width: size,
       height: size,
@@ -21,9 +22,31 @@ const Snowflake: React.FC<SnowflakeProps> = ({ size, left, animationDuration, de
       animationDuration: `${animationDuration}s`,
       animationDelay: `${delay}s`,
       opacity,
-      boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+      filter: `blur(${blur}px)`,
+      background: 'linear-gradient(135deg, #a8d4ff 0%, #e8f4ff 50%, #cce5ff 100%)',
+      boxShadow: `
+        0 0 ${size}px rgba(100, 180, 255, 0.6),
+        0 0 ${size * 2}px rgba(100, 180, 255, 0.3),
+        inset 0 0 ${size / 2}px rgba(255, 255, 255, 0.8)
+      `,
     }}
   />
+);
+
+// Additional crystalline snowflake
+const CrystalSnowflake: React.FC<{ left: number; delay: number; duration: number }> = ({ left, delay, duration }) => (
+  <div
+    className="absolute top-0 pointer-events-none animate-snow-fall text-blue-300/70"
+    style={{
+      left: `${left}%`,
+      animationDuration: `${duration}s`,
+      animationDelay: `${delay}s`,
+      fontSize: `${Math.random() * 12 + 10}px`,
+      textShadow: '0 0 8px rgba(100, 180, 255, 0.8), 0 0 16px rgba(100, 180, 255, 0.4)',
+    }}
+  >
+    ❄
+  </div>
 );
 
 interface SnowEffectProps {
@@ -44,14 +67,25 @@ export const SnowEffect: React.FC<SnowEffectProps> = ({
   }, []);
 
   const snowflakes = useMemo(() => {
-    const count = intensity * 15; // 15, 30, or 45 snowflakes
+    const count = intensity * 12;
     return Array.from({ length: count }, (_, i) => ({
       id: i,
-      size: Math.random() * 8 + 4, // 4-12px
+      size: Math.random() * 10 + 6,
       left: Math.random() * 100,
-      animationDuration: Math.random() * 5 + 8, // 8-13s
+      animationDuration: Math.random() * 5 + 8,
       delay: Math.random() * 5,
-      opacity: Math.random() * 0.5 + 0.5,
+      opacity: Math.random() * 0.4 + 0.6,
+      blur: Math.random() * 0.5,
+    }));
+  }, [intensity]);
+
+  const crystalFlakes = useMemo(() => {
+    const count = intensity * 5;
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 8,
+      duration: Math.random() * 6 + 10,
     }));
   }, [intensity]);
 
@@ -59,15 +93,22 @@ export const SnowEffect: React.FC<SnowEffectProps> = ({
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      {/* Subtle blue overlay for winter atmosphere */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-blue-500/10 pointer-events-none" />
+      
       {snowflakes.map((flake) => (
         <Snowflake key={flake.id} {...flake} />
+      ))}
+      
+      {crystalFlakes.map((flake) => (
+        <CrystalSnowflake key={`crystal-${flake.id}`} {...flake} />
       ))}
       
       {/* Close button */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 right-4 pointer-events-auto bg-background/20 hover:bg-background/40 text-white"
+        className="absolute top-4 right-4 pointer-events-auto bg-background/80 hover:bg-background text-foreground shadow-md"
         onClick={() => setIsVisible(false)}
       >
         <X className="h-4 w-4" />
