@@ -5,6 +5,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WorkRadar } from '@/components/dashboard/WorkRadar';
 import { BirthdayBanner } from '@/components/notices/BirthdayBanner';
+import { HolidayBanner } from '@/components/notices/HolidayBanner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -180,6 +181,11 @@ const Index: React.FC = () => {
           <p className="text-muted-foreground">
             Aqui está o resumo do seu dia no {currentWorkspace?.name || 'workspace'}.
           </p>
+        </div>
+
+        {/* Holiday Celebrations */}
+        <div className="mb-6">
+          <HolidayBanner />
         </div>
 
         {/* Birthday Celebrations */}
