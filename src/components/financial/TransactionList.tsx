@@ -11,6 +11,8 @@ import {
   Clock,
   AlertCircle,
   Filter,
+  Loader2,
+  FolderTree,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCategories } from "@/hooks/useFinancial";
+import { useCostCenters } from "@/hooks/useCostCenters";
+import { toast } from "sonner";
 
 interface TransactionListProps {
   onEdit?: (transaction: any) => void;
@@ -47,8 +51,12 @@ interface TransactionListProps {
 
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
   const [filters, setFilters] = useState(initialFilters || {});
+  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
+  
   const { data: transactions = [], isLoading } = useTransactions(filters);
   const { data: categories = [] } = useCategories();
+  const { data: costCenters = [] } = useCostCenters();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
 
@@ -88,6 +96,34 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     }
   };
 
+  const handleAssignCostCenter = async (transactionId: string, costCenterId: string) => {
+    setAssigningCostCenter(transactionId);
+    try {
+      await updateTransaction.mutateAsync({
+        id: transactionId,
+        cost_center_id: costCenterId === "none" ? null : costCenterId,
+      });
+      toast.success("Centro de custo atualizado!");
+    } catch {
+      toast.error("Erro ao atualizar centro de custo");
+    } finally {
+      setAssigningCostCenter(null);
+    }
+  };
+
+  // Filter transactions by cost center
+  const filteredTransactions = transactions.filter((t) => {
+    if (costCenterFilter === "all") return true;
+    if (costCenterFilter === "unassigned") return !t.cost_center_id;
+    return t.cost_center_id === costCenterFilter;
+  });
+
+  // Get cost center name by id
+  const getCostCenterById = (id: string | null) => {
+    if (!id) return null;
+    return costCenters.find((cc) => cc.id === id);
+  };
+
   if (isLoading) {
     return <div className="text-muted-foreground p-4">Carregando...</div>;
   }
@@ -124,6 +160,30 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             <SelectItem value="overdue">Vencidos</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={costCenterFilter} onValueChange={setCostCenterFilter}>
+          <SelectTrigger className="w-[200px]">
+            <FolderTree className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Centro de Custo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Centros</SelectItem>
+            <SelectItem value="unassigned">
+              <span className="text-amber-600">⚠️ Sem Centro de Custo</span>
+            </SelectItem>
+            {costCenters.map((cc) => (
+              <SelectItem key={cc.id} value={cc.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: cc.color || "#3B82F6" }}
+                  />
+                  {cc.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-md border border-border">
@@ -133,6 +193,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
               <TableHead>Tipo</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Centro de Custo</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
@@ -140,66 +201,111 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum lançamento encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>
-                    {transaction.type === "income" ? (
-                      <ArrowUpCircle className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <ArrowDownCircle className="w-5 h-5 text-red-500" />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{transaction.description}</TableCell>
-                  <TableCell>
-                    {transaction.category?.name || (
-                      <span className="text-muted-foreground">Sem categoria</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell className={transaction.type === "income" ? "text-green-500" : "text-red-500"}>
-                    {transaction.type === "income" ? "+" : "-"}
-                    {formatCurrency(transaction.amount)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {transaction.status === "pending" && (
-                          <DropdownMenuItem onClick={() => handleMarkAsPaid(transaction.id)}>
-                            <Check className="w-4 h-4 mr-2" />
-                            Marcar como pago
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDelete(transaction.id)}
+              filteredTransactions.map((transaction) => {
+                const costCenter = getCostCenterById(transaction.cost_center_id);
+                
+                return (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      {transaction.type === "income" ? (
+                        <ArrowUpCircle className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <ArrowDownCircle className="w-5 h-5 text-red-500" />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell>
+                      {transaction.category?.name || (
+                        <span className="text-muted-foreground">Sem categoria</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={transaction.cost_center_id || "none"}
+                          onValueChange={(value) => handleAssignCostCenter(transaction.id, value)}
+                          disabled={assigningCostCenter === transaction.id}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                          <SelectTrigger className="h-8 text-xs w-[140px]">
+                            {assigningCostCenter === transaction.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : costCenter ? (
+                              <div className="flex items-center gap-1.5">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: costCenter.color || "#3B82F6" }}
+                                />
+                                <span className="truncate">{costCenter.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-amber-600">Não atribuído</span>
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">Nenhum</span>
+                            </SelectItem>
+                            {costCenters.map((cc) => (
+                              <SelectItem key={cc.id} value={cc.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: cc.color || "#3B82F6" }}
+                                  />
+                                  {cc.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell className={transaction.type === "income" ? "text-green-500" : "text-red-500"}>
+                      {transaction.type === "income" ? "+" : "-"}
+                      {formatCurrency(transaction.amount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {transaction.status === "pending" && (
+                            <DropdownMenuItem onClick={() => handleMarkAsPaid(transaction.id)}>
+                              <Check className="w-4 h-4 mr-2" />
+                              Marcar como pago
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete(transaction.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

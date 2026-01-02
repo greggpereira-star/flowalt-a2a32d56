@@ -22,6 +22,9 @@ export interface CostCenter {
   parent?: CostCenter;
   spent_monthly?: number;
   spent_yearly?: number;
+  // New profit center fields
+  center_type?: 'cost' | 'profit' | 'both';
+  revenue_target_monthly?: number;
 }
 
 export function useCostCenters() {

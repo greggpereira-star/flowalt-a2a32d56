@@ -185,41 +185,44 @@ export function useUpdateExternalCollaborator() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: ExternalCollaboratorInput & { id: string }) => {
-      // Get current salary to compare
+    mutationFn: async ({ id, ...input }: Partial<ExternalCollaboratorInput> & { id: string }) => {
+      // Get current data to compare salary
       const { data: current } = await supabase
         .from("external_collaborators")
         .select("base_salary")
         .eq("id", id)
         .single();
 
+      // Build update object with only defined fields
+      const updateData: Record<string, unknown> = {};
+      
+      if (input.full_name !== undefined) updateData.full_name = input.full_name;
+      if (input.cpf !== undefined) updateData.cpf = input.cpf || null;
+      if (input.rg !== undefined) updateData.rg = input.rg || null;
+      if (input.birth_date !== undefined) updateData.birth_date = input.birth_date || null;
+      if (input.hire_date !== undefined) updateData.hire_date = input.hire_date || null;
+      if (input.termination_date !== undefined) updateData.termination_date = input.termination_date || null;
+      if (input.contract_type !== undefined) updateData.contract_type = input.contract_type || "clt";
+      if (input.job_title !== undefined) updateData.job_title = input.job_title || null;
+      if (input.department !== undefined) updateData.department = input.department || null;
+      if (input.bank_name !== undefined) updateData.bank_name = input.bank_name || null;
+      if (input.bank_agency !== undefined) updateData.bank_agency = input.bank_agency || null;
+      if (input.bank_account !== undefined) updateData.bank_account = input.bank_account || null;
+      if (input.pix_key !== undefined) updateData.pix_key = input.pix_key || null;
+      if (input.base_salary !== undefined) updateData.base_salary = input.base_salary || 0;
+      if (input.weekly_hours !== undefined) updateData.weekly_hours = input.weekly_hours || 40;
+      if (input.cost_center_id !== undefined) updateData.cost_center_id = input.cost_center_id || null;
+      if (input.address !== undefined) updateData.address = input.address || {};
+      if (input.emergency_contact !== undefined) updateData.emergency_contact = input.emergency_contact || {};
+      if (input.documents !== undefined) updateData.documents = input.documents || [];
+      if (input.notes !== undefined) updateData.notes = input.notes || null;
+      if (input.phone !== undefined) updateData.phone = input.phone || null;
+      if (input.email !== undefined) updateData.email = input.email || null;
+      if (input.is_active !== undefined) updateData.is_active = input.is_active;
+
       const { data, error } = await supabase
         .from("external_collaborators")
-        .update({
-          full_name: input.full_name,
-          cpf: input.cpf || null,
-          rg: input.rg || null,
-          birth_date: input.birth_date || null,
-          hire_date: input.hire_date || null,
-          termination_date: input.termination_date || null,
-          contract_type: input.contract_type || "clt",
-          job_title: input.job_title || null,
-          department: input.department || null,
-          bank_name: input.bank_name || null,
-          bank_agency: input.bank_agency || null,
-          bank_account: input.bank_account || null,
-          pix_key: input.pix_key || null,
-          base_salary: input.base_salary || 0,
-          weekly_hours: input.weekly_hours || 40,
-          cost_center_id: input.cost_center_id || null,
-          address: input.address || {},
-          emergency_contact: input.emergency_contact || {},
-          documents: input.documents || [],
-          notes: input.notes || null,
-          phone: input.phone || null,
-          email: input.email || null,
-          is_active: input.is_active ?? true,
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -241,6 +244,7 @@ export function useUpdateExternalCollaborator() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["external-collaborators"] });
       queryClient.invalidateQueries({ queryKey: ["external-collaborator"] });
+      queryClient.invalidateQueries({ queryKey: ["cost-centers-with-budget"] });
       toast.success("Colaborador atualizado com sucesso!");
     },
     onError: (error) => {
