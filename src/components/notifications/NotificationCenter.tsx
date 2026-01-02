@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   badge_earned: <Award className="h-4 w-4 text-yellow-500" />,
   mention: <AtSign className="h-4 w-4 text-blue-500" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
+  workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
 };
 
 export function NotificationCenter() {

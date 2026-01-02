@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNotices, Notice } from '@/hooks/useNoticesModule';
+import { useMyWorkspaceInvites, PendingWorkspaceInvite } from '@/hooks/useMyWorkspaceInvites';
+import { useAcceptWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MandatoryNoticeModal } from './MandatoryNoticeModal';
-import { Bell, AlertTriangle, PartyPopper, Calendar, Info, Wrench, FileText, Check, X, Shield } from 'lucide-react';
+import { Bell, AlertTriangle, PartyPopper, Calendar, Info, Wrench, FileText, Check, X, Shield, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const categoryIcons: Record<Notice['category'], React.ReactNode> = {
@@ -109,8 +111,50 @@ const NoticeItem: React.FC<NoticeItemProps> = ({ notice, isRead, onMarkRead, onO
   );
 };
 
+interface PendingInviteItemProps {
+  invite: PendingWorkspaceInvite;
+  onAccept: () => void;
+  isAccepting: boolean;
+}
+
+const PendingInviteItem: React.FC<PendingInviteItemProps> = ({ invite, onAccept, isAccepting }) => {
+  return (
+    <div className="p-4 rounded-lg border-l-4 border-primary bg-primary/5 hover:bg-primary/10 transition-all">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-full bg-primary/20 text-primary">
+          <Building2 className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h4 className="font-medium">Convite para Workspace</h4>
+            <Badge variant="secondary" className="text-xs shrink-0">
+              Pendente
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Você foi convidado para o workspace <strong>"{invite.workspace_name}"</strong> como <strong>{invite.role}</strong>
+          </p>
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <span>Expira {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true, locale: ptBR })}</span>
+          </div>
+        </div>
+        <Button 
+          size="sm" 
+          onClick={onAccept}
+          disabled={isAccepting}
+          className="shrink-0"
+        >
+          {isAccepting ? 'Aceitando...' : 'Aceitar'}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const NoticesCenter: React.FC = () => {
   const { notices, unreadNotices, readNotices, markAsRead, confirmNotice, isLoading } = useNotices();
+  const { data: pendingInvites = [], isLoading: loadingInvites } = useMyWorkspaceInvites();
+  const acceptInvite = useAcceptWorkspaceInvite();
   const [open, setOpen] = useState(false);
   const [mandatoryNotice, setMandatoryNotice] = useState<Notice | null>(null);
 
@@ -133,23 +177,30 @@ export const NoticesCenter: React.FC = () => {
     }
   };
 
-  const unreadCount = unreadNotices.length;
+  const handleAcceptInvite = (token: string) => {
+    acceptInvite.mutate(token, {
+      onSuccess: () => setOpen(false),
+    });
+  };
+
+  const totalUnread = unreadNotices.length + pendingInvites.length;
   const hasPendingMandatory = unreadNotices.some(n => n.requires_confirmation);
+  const hasPendingInvites = pendingInvites.length > 0;
 
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
-            <Bell className={cn("h-5 w-5", hasPendingMandatory && "animate-bounce")} />
-            {unreadCount > 0 && (
+            <Bell className={cn("h-5 w-5", (hasPendingMandatory || hasPendingInvites) && "animate-bounce")} />
+            {totalUnread > 0 && (
               <span className={cn(
                 "absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs flex items-center justify-center animate-scale-in",
-                hasPendingMandatory 
+                hasPendingMandatory || hasPendingInvites
                   ? "bg-amber-500 text-white" 
                   : "bg-destructive text-destructive-foreground"
               )}>
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {totalUnread > 9 ? '9+' : totalUnread}
               </span>
             )}
           </Button>
@@ -159,24 +210,43 @@ export const NoticesCenter: React.FC = () => {
             <SheetTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
               Avisos e Comunicados
-              {unreadCount > 0 && (
-                <Badge variant="secondary">{unreadCount} não lidos</Badge>
+              {totalUnread > 0 && (
+                <Badge variant="secondary">{totalUnread} pendente{totalUnread > 1 ? 's' : ''}</Badge>
               )}
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-8rem)] mt-4 pr-4">
-            {isLoading ? (
+            {/* Convites Pendentes - Mostrar primeiro */}
+            {pendingInvites.length > 0 && (
+              <div className="space-y-3 mb-6">
+                <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Convites Pendentes
+                </h3>
+                {pendingInvites.map(invite => (
+                  <PendingInviteItem
+                    key={invite.id}
+                    invite={invite}
+                    onAccept={() => handleAcceptInvite(invite.token)}
+                    isAccepting={acceptInvite.isPending}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Avisos */}
+            {isLoading || loadingInvites ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
-            ) : notices.length === 0 ? (
+            ) : notices.length === 0 && pendingInvites.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">Nenhum aviso no momento</p>
               </div>
-            ) : (
+            ) : notices.length > 0 && (
               <div className="space-y-3">
                 {notices.map(notice => (
                   <NoticeItem

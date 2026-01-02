@@ -68,6 +68,35 @@ export function useCreateWorkspaceInvite() {
     },
     onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
+      queryClient.invalidateQueries({ queryKey: ['my-workspace-invites'] });
+      
+      // Criar notificação in-app para o usuário convidado (se já existe na plataforma)
+      try {
+        // Verificar se o usuário já existe na plataforma
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', variables.email)
+          .maybeSingle();
+        
+        if (existingProfile) {
+          // Criar notificação in-app
+          await supabase.from('notifications').insert({
+            user_id: existingProfile.id,
+            workspace_id: currentWorkspace!.id,
+            type: 'workspace_invite',
+            title: 'Novo convite de workspace',
+            message: `Você foi convidado para o workspace "${currentWorkspace!.name}"`,
+            metadata: {
+              workspace_name: currentWorkspace!.name,
+              role: variables.role,
+              invited_by: user?.email,
+            },
+          });
+        }
+      } catch (notifError) {
+        console.error('Erro ao criar notificação:', notifError);
+      }
       
       // Enviar email de notificação
       try {
