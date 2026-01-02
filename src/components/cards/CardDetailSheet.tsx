@@ -9,8 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { RichTextViewer } from '@/components/ui/rich-text-viewer';
-import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
