@@ -19,6 +19,7 @@ import { CreateFolderWithTemplateDialog } from '@/components/social-media/Create
 import { ApprovalsPendingView } from '@/components/social-media/ApprovalsPendingView';
 import { WeeklyChecklistView } from '@/components/social-media/WeeklyChecklistView';
 import { IdeasBankView } from '@/components/social-media/IdeasBankView';
+import { FiltersToolbar } from '@/components/filters';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
+import type { FilterQuery } from '@/hooks/useCardFilters';
 
 type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'approvals' | 'checklist' | 'ideas';
 
@@ -161,6 +163,7 @@ const SpacePage: React.FC = () => {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddInitialMode, setQuickAddInitialMode] = useState<'quick' | 'full'>('quick');
   const [demandFormOpen, setDemandFormOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterQuery>({});
 
   // Update view type and folder when active view changes
   useEffect(() => {
@@ -219,7 +222,7 @@ const SpacePage: React.FC = () => {
   // Apply view config filters
   const viewConfig = activeView?.view_config as Record<string, any> | undefined;
 
-  // Filter cards by search and view config (folder filtering is now done at query level)
+  // Filter cards by search, view config, and advanced filters
   const filteredCards = useMemo(() => {
     let result = cards || [];
 
@@ -229,7 +232,6 @@ const SpacePage: React.FC = () => {
         if (filter.field === 'status' && filter.operator === 'eq') {
           result = result.filter(card => card.status === filter.value);
         }
-        // Add more filter logic as needed
       });
     }
 
@@ -242,8 +244,49 @@ const SpacePage: React.FC = () => {
       );
     }
 
+    // Apply advanced filters from FiltersToolbar
+    if (advancedFilters.search) {
+      const q = advancedFilters.search.toLowerCase();
+      result = result.filter(card =>
+        card.title.toLowerCase().includes(q) ||
+        card.description?.toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.status?.card_status?.length) {
+      result = result.filter(card => advancedFilters.status!.card_status!.includes(card.status));
+    }
+
+    if (advancedFilters.priority?.urgency?.length) {
+      result = result.filter(card => advancedFilters.priority!.urgency!.includes(card.urgency as any));
+    }
+
+    if (advancedFilters.people?.assignee?.length) {
+      result = result.filter(card => card.owner_id && advancedFilters.people!.assignee!.includes(card.owner_id));
+    }
+
+    if (advancedFilters.context?.client_id?.length) {
+      result = result.filter(card => card.client_id && advancedFilters.context!.client_id!.includes(card.client_id));
+    }
+
+    if (advancedFilters.quality?.briefing_pending) {
+      result = result.filter(card => !card.briefing_completed);
+    }
+
+    if (advancedFilters.time?.due === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      result = result.filter(card => card.due_date?.startsWith(today));
+    } else if (advancedFilters.time?.due === 'overdue') {
+      const today = new Date().toISOString().split('T')[0];
+      result = result.filter(card => 
+        card.due_date && card.due_date < today && !['done', 'delivered', 'archived'].includes(card.status)
+      );
+    } else if (advancedFilters.time?.due === 'none') {
+      result = result.filter(card => !card.due_date);
+    }
+
     return result;
-  }, [cards, viewConfig, searchQuery]);
+  }, [cards, viewConfig, searchQuery, advancedFilters]);
 
   // Get view title
   const viewTitle = activeView?.name || space?.name || 'Espaço';
@@ -313,15 +356,22 @@ const SpacePage: React.FC = () => {
               {viewLoading && <Loader2 className="h-3 w-3 animate-spin" />}
             </div>
 
-            {/* Center: Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Buscar... (/)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 w-full text-sm bg-muted/50 border-0 focus-visible:ring-1"
+            {/* Center: Search + Filters */}
+            <div className="flex items-center gap-2 flex-1 max-w-xl">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Buscar... (/)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 w-full text-sm bg-muted/50 border-0 focus-visible:ring-1"
+                />
+              </div>
+              <FiltersToolbar
+                scopeType="space"
+                scopeId={spaceId}
+                onFiltersChange={setAdvancedFilters}
               />
             </div>
 
