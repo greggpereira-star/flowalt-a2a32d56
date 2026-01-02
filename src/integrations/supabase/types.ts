@@ -8643,6 +8643,18 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      log_entitlement_block: {
+        Args: {
+          p_action: string
+          p_current_value?: number
+          p_entitlement_key: string
+          p_limit_value?: number
+          p_metadata?: Json
+          p_reason_code: string
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       log_module_usage: {
         Args: {
           p_action: string
