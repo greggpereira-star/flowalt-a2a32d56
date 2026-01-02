@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface Notice {
   id: string;
@@ -122,6 +123,17 @@ export function useNotices() {
 
 export function useNoticeConfirmations(noticeId: string) {
   const { currentWorkspace } = useWorkspace();
+
+  // Realtime subscription para notice_reads (quando alguém confirma leitura)
+  useRealtimeSubscription({
+    table: 'notice_reads',
+    filter: noticeId ? `notice_id=eq.${noticeId}` : undefined,
+    queryKeys: [
+      ['notice-confirmations', noticeId],
+      ['notice-stats', noticeId],
+    ],
+    enabled: !!noticeId,
+  });
 
   return useQuery({
     queryKey: ['notice-confirmations', noticeId],

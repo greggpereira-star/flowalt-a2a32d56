@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface WorkspaceMember {
   id: string;
@@ -23,6 +24,22 @@ export interface WorkspaceMember {
 
 export const useWorkspaceMembers = () => {
   const { currentWorkspace } = useWorkspace();
+
+  // Realtime subscription para workspace_members
+  useRealtimeSubscription({
+    table: 'workspace_members',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [['workspace_members', currentWorkspace?.id || '']],
+    enabled: !!currentWorkspace?.id,
+  });
+
+  // Realtime subscription para user_roles (quando permissões mudam)
+  useRealtimeSubscription({
+    table: 'user_roles',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [['workspace_members', currentWorkspace?.id || '']],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ['workspace_members', currentWorkspace?.id],

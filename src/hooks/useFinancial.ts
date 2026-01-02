@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 
 export interface FinancialCategory {
   id: string;
@@ -71,6 +72,17 @@ export function useTransactions(filters?: {
   categoryId?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
+
+  // Realtime subscription para transações
+  useRealtimeSubscription({
+    table: 'transactions',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ['transactions', currentWorkspace?.id || ''],
+      ['financial-summary', currentWorkspace?.id || ''],
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ["transactions", currentWorkspace?.id, filters],

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface Checklist {
   id: string;
@@ -16,6 +17,14 @@ export interface Checklist {
 }
 
 export const useChecklists = (cardId: string | undefined) => {
+  // Realtime subscription para checklists do card
+  useRealtimeSubscription({
+    table: 'checklists',
+    filter: cardId ? `card_id=eq.${cardId}` : undefined,
+    queryKeys: [['checklists', cardId || '']],
+    enabled: !!cardId,
+  });
+
   return useQuery({
     queryKey: ['checklists', cardId],
     queryFn: async () => {
