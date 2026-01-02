@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { NoticesCenter } from '@/components/notices/NoticesCenter';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
@@ -53,9 +54,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
               cardId={cardId}
             />
           </div>
-          <div className="flex items-center gap-3 px-4">
+          <div className="flex items-center gap-2 px-4">
             <BadgeProgress compact />
             <Separator orientation="vertical" className="h-6" />
+            <NoticesCenter />
             <NotificationCenter />
           </div>
         </header>
