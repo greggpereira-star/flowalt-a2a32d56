@@ -2462,6 +2462,7 @@ export type Database = {
         Row: {
           budget_monthly: number | null
           budget_yearly: number | null
+          center_type: string | null
           code: string | null
           color: string | null
           created_at: string
@@ -2472,12 +2473,14 @@ export type Database = {
           name: string
           parent_id: string | null
           responsible_user_id: string | null
+          revenue_target_monthly: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           budget_monthly?: number | null
           budget_yearly?: number | null
+          center_type?: string | null
           code?: string | null
           color?: string | null
           created_at?: string
@@ -2488,12 +2491,14 @@ export type Database = {
           name: string
           parent_id?: string | null
           responsible_user_id?: string | null
+          revenue_target_monthly?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           budget_monthly?: number | null
           budget_yearly?: number | null
+          center_type?: string | null
           code?: string | null
           color?: string | null
           created_at?: string
@@ -2504,6 +2509,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           responsible_user_id?: string | null
+          revenue_target_monthly?: number | null
           updated_at?: string
           workspace_id?: string
         }
