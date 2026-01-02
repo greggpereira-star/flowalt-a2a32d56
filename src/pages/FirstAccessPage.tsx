@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMyWorkspaceInvites } from '@/hooks/useMyWorkspaceInvites';
+import { useAcceptWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
 import {
   Plus,
   Mail,
@@ -22,10 +25,14 @@ import {
   Briefcase,
   Check,
   LogOut,
+  Clock,
+  UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 type Step = 'choice' | 'create-form' | 'invite';
 
@@ -50,10 +57,13 @@ export default function FirstAccessPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { createWorkspace, refreshWorkspaces, workspaces, loading: workspaceLoading } = useWorkspace();
+  const { data: pendingInvites = [], isLoading: invitesLoading } = useMyWorkspaceInvites();
+  const acceptInvite = useAcceptWorkspaceInvite();
 
   const [step, setStep] = useState<Step>('choice');
   const [isCreating, setIsCreating] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [acceptingInviteId, setAcceptingInviteId] = useState<string | null>(null);
   
   // Formulário de criação
   const [workspaceName, setWorkspaceName] = useState('');
@@ -64,6 +74,19 @@ export default function FirstAccessPage() {
   
   // Formulário de convite
   const [inviteToken, setInviteToken] = useState('');
+
+  const handleAcceptPendingInvite = async (token: string, inviteId: string) => {
+    setAcceptingInviteId(inviteId);
+    try {
+      await acceptInvite.mutateAsync(token);
+      await refreshWorkspaces();
+      navigate('/');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao aceitar convite');
+    } finally {
+      setAcceptingInviteId(null);
+    }
+  };
 
   useEffect(() => {
     // Se o usuário já tem workspace, não faz sentido ficar preso no onboarding.
@@ -163,6 +186,68 @@ export default function FirstAccessPage() {
               Como você gostaria de começar?
             </p>
           </div>
+
+          {/* Pending Invites Section */}
+          {pendingInvites.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <UserPlus className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Você tem convites pendentes!</span>
+                <Badge variant="secondary" className="ml-auto">
+                  {pendingInvites.length}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {pendingInvites.map((invite) => {
+                  const expiresIn = formatDistanceToNow(new Date(invite.expires_at), { 
+                    addSuffix: true, 
+                    locale: ptBR 
+                  });
+                  const isAcceptingThis = acceptingInviteId === invite.id;
+                  
+                  return (
+                    <Card key={invite.id} className="border-primary/30 bg-primary/5">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{invite.workspace_name}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">
+                                {invite.role}
+                              </Badge>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Expira {expiresIn}
+                              </span>
+                            </div>
+                            {invite.inviter_name && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Convidado por {invite.inviter_name}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAcceptPendingInvite(invite.token, invite.id)}
+                            disabled={isAcceptingThis}
+                          >
+                            {isAcceptingThis ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Aceitar
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Options */}
           <div className="space-y-4">
