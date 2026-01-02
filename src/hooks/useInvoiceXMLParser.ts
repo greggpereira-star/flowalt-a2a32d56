@@ -59,45 +59,67 @@ export function parseNFeXML(xmlContent: string): ParsedNFe | null {
     console.log("XML root element:", xmlDoc.documentElement?.tagName);
     console.log("XML namespaces:", xmlDoc.documentElement?.getAttribute("xmlns"));
 
-    // More comprehensive detection for NFe formats
-    // Check for NFe by looking for common elements across different formats
-    const hasNFeElements = 
-      xmlDoc.getElementsByTagName("infNFe").length > 0 ||
-      xmlDoc.getElementsByTagName("NFe").length > 0 ||
-      xmlDoc.getElementsByTagName("nfeProc").length > 0 ||
+    // Detection (namespace-safe). Many NFSe XMLs use prefixes, so we must match by localName.
+    const rootLocalName = xmlDoc.documentElement?.localName || xmlDoc.documentElement?.tagName || "";
+    const rootNs =
+      xmlDoc.documentElement?.namespaceURI ||
+      xmlDoc.documentElement?.getAttribute("xmlns") ||
+      "";
+
+    const getAllByLocalName = (tagName: string): Element[] => {
+      const byTag = Array.from(xmlDoc.getElementsByTagName(tagName) as unknown as Iterable<Element>);
+      if (byTag.length > 0) return byTag;
+
+      const all = Array.from(xmlDoc.getElementsByTagName("*") as unknown as Iterable<Element>);
+      return all.filter((el) => (el as any).localName === tagName);
+    };
+
+    const hasAny = (tags: string[]) => tags.some((t) => getAllByLocalName(t).length > 0);
+
+    const isNFSeRoot = /nfse/i.test(rootLocalName) || /nfse/i.test(rootNs);
+
+    const hasNFeElements =
+      hasAny(["infNFe", "NFe", "nfeProc", "ide", "emit", "dest"]) ||
       xmlDoc.querySelector("[Id*='NFe']") !== null ||
-      xmlDoc.documentElement?.tagName?.includes("NFe") ||
-      xmlDoc.documentElement?.tagName?.includes("nfeProc") ||
-      // Check for elements that are unique to NFe
-      xmlDoc.getElementsByTagName("ide").length > 0 ||
-      xmlDoc.getElementsByTagName("emit").length > 0 ||
-      xmlDoc.getElementsByTagName("dest").length > 0;
+      /nfeproc/i.test(rootLocalName);
 
-    // Check for NFSe formats
-    const hasNFSeElements = 
-      xmlDoc.getElementsByTagName("CompNfse").length > 0 ||
-      xmlDoc.getElementsByTagName("Nfse").length > 0 ||
-      xmlDoc.getElementsByTagName("InfNfse").length > 0 ||
-      xmlDoc.getElementsByTagName("ListaNfse").length > 0 ||
-      xmlDoc.getElementsByTagName("ConsultarNfseResposta").length > 0 ||
-      // Check for elements unique to NFSe
-      xmlDoc.getElementsByTagName("Prestador").length > 0 ||
-      xmlDoc.getElementsByTagName("Tomador").length > 0 ||
-      xmlDoc.getElementsByTagName("TomadorServico").length > 0;
+    const hasNFSeElements =
+      hasAny([
+        "NFSe",
+        "Nfse",
+        "CompNfse",
+        "InfNfse",
+        "ListaNfse",
+        "ConsultarNfseResposta",
+        "Prestador",
+        "Tomador",
+        "TomadorServico",
+        "InfDeclaracaoPrestacaoServico",
+        "DeclaracaoPrestacaoServico",
+        "Rps",
+      ]);
 
-    console.log("Has NFe elements:", hasNFeElements, "Has NFSe elements:", hasNFSeElements);
+    console.log("Has NFe elements:", hasNFeElements, "Has NFSe elements:", hasNFSeElements, "Root:", rootLocalName);
 
-    if (hasNFSeElements && !hasNFeElements) {
+    if (isNFSeRoot || (hasNFSeElements && !hasNFeElements)) {
       return parseNFSeXML(xmlDoc);
-    } else if (hasNFeElements) {
+    }
+
+    if (hasNFeElements) {
       return parseNFeXMLContent(xmlDoc);
     }
 
-    // If we still can't detect, try to parse as NFe anyway (most common)
-    console.log("Could not detect XML type, attempting NFe parse...");
+    // If we still can't detect, try fallbacks.
+    console.log("Could not detect XML type, attempting fallback parses...");
+
     const nfeResult = tryParseAsNFe(xmlDoc);
-    if (nfeResult) {
-      return nfeResult;
+    if (nfeResult) return nfeResult;
+
+    // Last attempt: NFSe parser (may still succeed even if detection failed)
+    try {
+      return parseNFSeXML(xmlDoc);
+    } catch {
+      // ignore and throw below
     }
 
     throw new Error("Formato de XML não reconhecido. Verifique se é um XML de NF-e ou NFS-e válido.");
@@ -109,12 +131,21 @@ export function parseNFeXML(xmlContent: string): ParsedNFe | null {
 
 // Fallback NFe parser that tries to extract data even from non-standard formats
 function tryParseAsNFe(xmlDoc: Document): ParsedNFe | null {
+  const getAll = (tagName: string): Element[] => {
+    const byTag = Array.from(xmlDoc.getElementsByTagName(tagName) as unknown as Iterable<Element>);
+    if (byTag.length > 0) return byTag;
+
+    // Namespace-safe: match by localName
+    const all = Array.from(xmlDoc.getElementsByTagName("*") as unknown as Iterable<Element>);
+    return all.filter((el) => (el as any).localName === tagName);
+  };
+
+  const getFirst = (tagName: string): Element | null => getAll(tagName)[0] ?? null;
+
   const getElementText = (tagNames: string[]): string => {
     for (const tagName of tagNames) {
-      const elements = xmlDoc.getElementsByTagName(tagName);
-      if (elements.length > 0 && elements[0].textContent) {
-        return elements[0].textContent.trim();
-      }
+      const el = getFirst(tagName);
+      if (el?.textContent) return el.textContent.trim();
     }
     return "";
   };
@@ -127,7 +158,7 @@ function tryParseAsNFe(xmlDoc: Document): ParsedNFe | null {
   // Try to extract essential data
   const invoiceNumber = getElementText(["nNF", "Numero", "NumeroNfse", "numero"]);
   const series = getElementText(["serie", "Serie"]) || "1";
-  
+
   if (!invoiceNumber) {
     return null;
   }
@@ -138,30 +169,46 @@ function tryParseAsNFe(xmlDoc: Document): ParsedNFe | null {
   const dueDate = getElementText(["dVenc", "DataVencimento"]) || undefined;
 
   // Extract values
-  const grossAmount = getNumber(["vNF", "ValorServicos", "valorTotal", "ValorLiquidoNfse"]) || 
-                      getNumber(["vProd", "vTotTrib"]);
-  
+  const grossAmount =
+    getNumber(["vNF", "ValorServicos", "valorTotal", "ValorLiquidoNfse"]) ||
+    getNumber(["vProd", "vTotTrib"]);
+
   // Extract emitter info
   const emitterName = getElementText(["xNome", "RazaoSocial", "razaoSocial"]);
   const emitterDoc = getElementText(["CNPJ", "CPF", "Cnpj", "cnpj"]);
 
-  // Extract recipient info - look in dest element specifically
-  const dest = xmlDoc.getElementsByTagName("dest")[0];
+  // Extract recipient info - try dest first
+  const dest = getFirst("dest");
   let recipientName = "";
   let recipientDoc = "";
+
+  const getChildText = (parent: Element, tagName: string): string => {
+    const byTag = parent.getElementsByTagName(tagName);
+    if (byTag.length > 0 && byTag[0].textContent) return byTag[0].textContent.trim();
+
+    const all = Array.from(parent.getElementsByTagName("*") as unknown as Iterable<Element>);
+    const byLocal = all.find((el) => (el as any).localName === tagName);
+    return byLocal?.textContent?.trim() || "";
+  };
+
   if (dest) {
-    recipientName = dest.getElementsByTagName("xNome")[0]?.textContent?.trim() || "";
-    recipientDoc = dest.getElementsByTagName("CNPJ")[0]?.textContent?.trim() || 
-                   dest.getElementsByTagName("CPF")[0]?.textContent?.trim() || "";
+    recipientName = getChildText(dest, "xNome") || getChildText(dest, "RazaoSocial") || "";
+    recipientDoc =
+      getChildText(dest, "CNPJ") ||
+      getChildText(dest, "CPF") ||
+      getChildText(dest, "Cnpj") ||
+      getChildText(dest, "Cpf") ||
+      "";
   }
+
   if (!recipientName) {
     recipientName = getElementText(["xNome", "RazaoSocial"]);
     recipientDoc = getElementText(["CNPJ", "CPF"]);
   }
 
   // Extract access key
-  const infNFe = xmlDoc.getElementsByTagName("infNFe")[0];
-  let accessKey = infNFe?.getAttribute("Id")?.replace("NFe", "") || "";
+  const infNFe = getFirst("infNFe");
+  let accessKey = (infNFe as Element | null)?.getAttribute?.("Id")?.replace("NFe", "") || "";
   if (!accessKey) {
     accessKey = getElementText(["chNFe", "ChaveNFe", "chaveAcesso"]);
   }
@@ -331,66 +378,124 @@ function parseNFeXMLContent(xmlDoc: Document): ParsedNFe {
 }
 
 function parseNFSeXML(xmlDoc: Document): ParsedNFe {
-  const getElement = (parent: Element | Document, tagName: string): string => {
-    const el = parent.getElementsByTagName(tagName)[0];
-    return el?.textContent?.trim() || "";
+  type DomParent = Document | Element | null | undefined;
+
+  const getAll = (parent: DomParent, tagName: string): Element[] => {
+    if (!parent) return [];
+
+    const byTag = Array.from(parent.getElementsByTagName(tagName) as unknown as Iterable<Element>);
+    if (byTag.length > 0) return byTag;
+
+    // Namespace-safe: match by localName
+    const all = Array.from(parent.getElementsByTagName("*") as unknown as Iterable<Element>);
+    return all.filter((el) => (el as any).localName === tagName);
   };
 
-  const getNumber = (parent: Element | Document, tagName: string): number => {
-    const value = getElement(parent, tagName);
-    return parseFloat(value) || 0;
+  const getFirst = (parent: DomParent, tagName: string): Element | null => getAll(parent, tagName)[0] ?? null;
+
+  const getFirstAny = (parent: DomParent, tagNames: string[]): Element | null => {
+    for (const tag of tagNames) {
+      const el = getFirst(parent, tag);
+      if (el) return el;
+    }
+    return null;
   };
 
-  // NFSe structure varies by city, try common patterns
-  const infNfse = xmlDoc.getElementsByTagName("InfNfse")[0] || 
-                  xmlDoc.getElementsByTagName("Nfse")[0] || 
-                  xmlDoc.documentElement;
+  const getText = (parent: DomParent, tagName: string): string => getFirst(parent, tagName)?.textContent?.trim() || "";
 
-  const prestador = xmlDoc.getElementsByTagName("Prestador")[0] || 
-                    xmlDoc.getElementsByTagName("IdentificacaoPrestador")[0];
-  const tomador = xmlDoc.getElementsByTagName("Tomador")[0] ||
-                  xmlDoc.getElementsByTagName("TomadorServico")[0];
-  const servico = xmlDoc.getElementsByTagName("Servico")[0] ||
-                  xmlDoc.getElementsByTagName("ListaServicos")[0];
-  const valores = xmlDoc.getElementsByTagName("Valores")[0];
+  const getTextAny = (parent: DomParent, tagNames: string[]): string => {
+    for (const tag of tagNames) {
+      const v = getText(parent, tag);
+      if (v) return v;
+    }
+    return "";
+  };
 
-  const issueDate = getElement(infNfse, "DataEmissao") || 
-                    getElement(infNfse, "dhEmi") ||
-                    new Date().toISOString().split("T")[0];
+  const getNumberAny = (parent: DomParent, tagNames: string[]): number => {
+    const raw = getTextAny(parent, tagNames);
+    return parseFloat(raw) || 0;
+  };
+
+  // NFSe structure varies by city/provider
+  const infNfse = getFirstAny(xmlDoc, ["InfNfse", "Nfse", "NFSe", "infNfse"]) ?? xmlDoc.documentElement;
+  const prestador = getFirstAny(xmlDoc, ["Prestador", "IdentificacaoPrestador", "PrestadorServico"]);
+  const tomador = getFirstAny(xmlDoc, ["Tomador", "TomadorServico", "IdentificacaoTomador"]);
+  const servico = getFirstAny(xmlDoc, ["Servico", "ListaServicos", "DadosServico"]);
+  const valores =
+    getFirstAny(servico, ["Valores", "ValoresServico", "ValoresNfse"]) ??
+    getFirstAny(xmlDoc, ["Valores", "ValoresServico", "ValoresNfse"]);
+
+  const issueRaw =
+    getTextAny(infNfse, ["DataEmissao", "dhEmi", "dataEmissao", "Competencia"]) ||
+    getTextAny(xmlDoc, ["DataEmissao", "dhEmi", "Competencia"]);
+  const issueDate = (issueRaw || new Date().toISOString()).split("T")[0];
+
+  const invoiceNumber =
+    getTextAny(infNfse, ["Numero", "NumeroNfse", "numNfse", "numero"]) ||
+    getTextAny(xmlDoc, ["Numero", "NumeroNfse", "numNfse", "numero"]);
+
+  if (!invoiceNumber) {
+    throw new Error("XML de NFS-e inválido: não encontrei o número da nota (Numero).");
+  }
+
+  const series = getTextAny(infNfse, ["Serie", "serie"]) || "U";
+  const accessKey = getTextAny(infNfse, ["CodigoVerificacao", "codigoVerificacao", "CodigoVerificacaoNfse"]) || "";
+
+  const description = getTextAny(servico, ["Discriminacao", "Descricao", "descricao"]) || "NFS-e";
+
+  const grossAmount =
+    getNumberAny(valores, ["ValorServicos", "ValorBruto", "ValorServicosNfse"]) ||
+    getNumberAny(infNfse, ["ValorServicos"]) ||
+    getNumberAny(xmlDoc, ["ValorServicos"]);
+
+  const netAmount =
+    getNumberAny(valores, ["ValorLiquidoNfse", "ValorLiquido", "ValorServicos"]) ||
+    getNumberAny(infNfse, ["ValorLiquidoNfse"]) ||
+    grossAmount;
+
+  const iss = getNumberAny(valores, ["ValorIss", "ValorIssqn", "ValorISS"]);
+  const pis = getNumberAny(valores, ["ValorPis", "ValorPIS"]);
+  const cofins = getNumberAny(valores, ["ValorCofins", "ValorCOFINS"]);
+  const irrf = getNumberAny(valores, ["ValorIr", "ValorIRRF", "ValorIrrf"]);
+  const csll = getNumberAny(valores, ["ValorCsll", "ValorCSLL"]);
+
+  const taxAmount = iss + pis + cofins + irrf + csll;
 
   return {
-    invoiceNumber: getElement(infNfse, "Numero") || getElement(infNfse, "NumeroNfse"),
-    series: getElement(infNfse, "Serie") || "U",
-    accessKey: getElement(infNfse, "CodigoVerificacao") || "",
-    issueDate: issueDate.split("T")[0],
+    invoiceNumber,
+    series,
+    accessKey,
+    issueDate,
     dueDate: undefined,
-    grossAmount: getNumber(valores, "ValorServicos") || getNumber(valores, "ValorLiquidoNfse"),
-    netAmount: getNumber(valores, "ValorLiquidoNfse") || getNumber(valores, "ValorServicos"),
-    taxAmount: getNumber(valores, "ValorIss") + getNumber(valores, "ValorPis") + getNumber(valores, "ValorCofins"),
+    grossAmount: grossAmount || netAmount,
+    netAmount: netAmount || grossAmount,
+    taxAmount,
     taxes: {
-      iss: getNumber(valores, "ValorIss"),
-      pis: getNumber(valores, "ValorPis"),
-      cofins: getNumber(valores, "ValorCofins"),
-      irrf: getNumber(valores, "ValorIr"),
-      csll: getNumber(valores, "ValorCsll"),
+      iss: iss || undefined,
+      pis: pis || undefined,
+      cofins: cofins || undefined,
+      irrf: irrf || undefined,
+      csll: csll || undefined,
     },
     emitter: {
-      name: getElement(prestador, "RazaoSocial") || getElement(prestador, "Nome"),
-      document: getElement(prestador, "Cnpj") || getElement(prestador, "CpfCnpj"),
-      email: getElement(prestador, "Email"),
+      name: getTextAny(prestador, ["RazaoSocial", "Nome", "xNome"]),
+      document: getTextAny(prestador, ["Cnpj", "CNPJ", "CpfCnpj", "Cpf", "CPF"]),
+      email: getTextAny(prestador, ["Email", "email"]),
     },
     recipient: {
-      name: getElement(tomador, "RazaoSocial") || getElement(tomador, "Nome"),
-      document: getElement(tomador, "Cnpj") || getElement(tomador, "Cpf") || getElement(tomador, "CpfCnpj"),
-      email: getElement(tomador, "Email"),
+      name: getTextAny(tomador, ["RazaoSocial", "Nome", "xNome"]),
+      document: getTextAny(tomador, ["Cnpj", "CNPJ", "Cpf", "CPF", "CpfCnpj"]),
+      email: getTextAny(tomador, ["Email", "email"]),
     },
-    description: getElement(servico, "Discriminacao") || getElement(servico, "Descricao"),
-    items: [{
-      description: getElement(servico, "Discriminacao") || getElement(servico, "Descricao"),
-      quantity: 1,
-      unitValue: getNumber(valores, "ValorServicos"),
-      totalValue: getNumber(valores, "ValorServicos"),
-    }],
+    description: description.substring(0, 500),
+    items: [
+      {
+        description: description.substring(0, 500),
+        quantity: 1,
+        unitValue: netAmount || grossAmount,
+        totalValue: netAmount || grossAmount,
+      },
+    ],
     invoiceType: "nfse",
   };
 }
