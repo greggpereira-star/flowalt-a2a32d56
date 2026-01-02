@@ -9,16 +9,22 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNoticeConfirmations, useNoticeStats } from '@/hooks/useNoticesModule';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Send, Bell, AlertTriangle, PartyPopper, Calendar, Info, Wrench, FileText, 
-  Trash2, Edit, Eye, Clock, Users, CheckCircle2
+  Trash2, Edit, Eye, Clock, Users, CheckCircle2, Shield, ChevronRight,
+  UserCheck, Percent
 } from 'lucide-react';
 
 interface NoticeFormData {
@@ -62,6 +68,7 @@ export const NoticesManager: React.FC = () => {
     ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedNotice, setSelectedNotice] = useState<any | null>(null);
 
   // Fetch notices
   const { data: notices = [], isLoading } = useQuery({
@@ -89,6 +96,7 @@ export const NoticesManager: React.FC = () => {
         ...data,
         workspace_id: currentWorkspace.id,
         created_by: user.id,
+        status: 'active',
       };
 
       if (editingId) {
@@ -270,15 +278,40 @@ export const NoticesManager: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-8">
-                <Switch
-                  id="requires_confirmation"
-                  checked={formData.requires_confirmation}
-                  onCheckedChange={(v) => setFormData({ ...formData, requires_confirmation: v })}
-                />
-                <Label htmlFor="requires_confirmation">Requer confirmação de leitura</Label>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-amber-500" />
+                  Confirmação Obrigatória
+                </Label>
+                <div className="flex items-center gap-3 pt-2">
+                  <Switch
+                    id="requires_confirmation"
+                    checked={formData.requires_confirmation}
+                    onCheckedChange={(v) => setFormData({ ...formData, requires_confirmation: v })}
+                  />
+                  <Label htmlFor="requires_confirmation" className="text-sm text-muted-foreground">
+                    {formData.requires_confirmation ? 'Ativada' : 'Desativada'}
+                  </Label>
+                </div>
               </div>
             </div>
+
+            {formData.requires_confirmation && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-700 dark:text-amber-400">
+                      Confirmação obrigatória ativada
+                    </p>
+                    <p className="text-muted-foreground mt-1">
+                      O aviso aparecerá em tela cheia e só poderá ser fechado após o usuário confirmar a leitura. 
+                      Você poderá acompanhar quem já confirmou.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button type="submit" disabled={saveMutation.isPending}>
@@ -329,6 +362,7 @@ export const NoticesManager: React.FC = () => {
                         notice={notice}
                         onEdit={() => handleEdit(notice)}
                         onDelete={() => deleteMutation.mutate(notice.id)}
+                        onViewConfirmations={() => setSelectedNotice(notice)}
                       />
                     ))}
                   </div>
@@ -350,6 +384,7 @@ export const NoticesManager: React.FC = () => {
                         notice={notice}
                         onEdit={() => handleEdit(notice)}
                         onDelete={() => deleteMutation.mutate(notice.id)}
+                        onViewConfirmations={() => setSelectedNotice(notice)}
                         expired
                       />
                     ))}
@@ -360,6 +395,12 @@ export const NoticesManager: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Confirmations Sheet */}
+      <ConfirmationsSheet 
+        notice={selectedNotice} 
+        onClose={() => setSelectedNotice(null)} 
+      />
     </div>
   );
 };
@@ -368,28 +409,30 @@ const NoticeCard: React.FC<{
   notice: any;
   onEdit: () => void;
   onDelete: () => void;
+  onViewConfirmations: () => void;
   expired?: boolean;
-}> = ({ notice, onEdit, onDelete, expired }) => {
+}> = ({ notice, onEdit, onDelete, onViewConfirmations, expired }) => {
   const CategoryIcon = categoryOptions.find(c => c.value === notice.category)?.icon || Info;
   const priorityOption = priorityOptions.find(p => p.value === notice.priority);
+  const { data: stats } = useNoticeStats(notice.id);
 
   return (
-    <div className="p-4 border rounded-lg bg-card">
+    <div className="p-4 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1">
           <div className="p-2 rounded-full bg-muted">
             <CategoryIcon className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium truncate">{notice.title}</h4>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h4 className="font-medium">{notice.title}</h4>
               <Badge variant="outline" className="text-xs">
                 {categoryOptions.find(c => c.value === notice.category)?.label}
               </Badge>
               <div className={`w-2 h-2 rounded-full ${priorityOption?.color}`} />
               {notice.requires_confirmation && (
-                <Badge variant="secondary" className="text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600">
+                  <Shield className="h-3 w-3 mr-1" />
                   Confirmação
                 </Badge>
               )}
@@ -402,10 +445,32 @@ const NoticeCard: React.FC<{
                 <Calendar className="h-3 w-3" />
                 {format(new Date(notice.starts_at), "d MMM", { locale: ptBR })} - {format(new Date(notice.ends_at), "d MMM", { locale: ptBR })}
               </span>
+              
+              {notice.requires_confirmation && stats && (
+                <button 
+                  onClick={onViewConfirmations}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  <UserCheck className="h-3 w-3" />
+                  {stats.confirmations}/{stats.totalMembers} confirmaram ({stats.percentage}%)
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              )}
             </div>
+            
+            {notice.requires_confirmation && stats && (
+              <div className="mt-2">
+                <Progress value={stats.percentage} className="h-1.5" />
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-1">
+          {notice.requires_confirmation && (
+            <Button size="icon" variant="ghost" onClick={onViewConfirmations} className="h-8 w-8" title="Ver confirmações">
+              <Users className="h-4 w-4" />
+            </Button>
+          )}
           <Button size="icon" variant="ghost" onClick={onEdit} className="h-8 w-8">
             <Edit className="h-4 w-4" />
           </Button>
@@ -415,5 +480,112 @@ const NoticeCard: React.FC<{
         </div>
       </div>
     </div>
+  );
+};
+
+const ConfirmationsSheet: React.FC<{
+  notice: any | null;
+  onClose: () => void;
+}> = ({ notice, onClose }) => {
+  const { data: confirmations, isLoading } = useNoticeConfirmations(notice?.id || '');
+  const { data: stats } = useNoticeStats(notice?.id || '');
+
+  if (!notice) return null;
+
+  return (
+    <Sheet open={!!notice} onOpenChange={() => onClose()}>
+      <SheetContent className="w-full sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5" />
+            Confirmações de Leitura
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-6">
+          {/* Notice Info */}
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-medium mb-1">{notice.title}</h3>
+            <p className="text-sm text-muted-foreground line-clamp-2">{notice.content}</p>
+          </div>
+
+          {/* Stats */}
+          {stats && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold">{stats.totalMembers}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{stats.confirmations}</div>
+                <div className="text-xs text-muted-foreground">Confirmaram</div>
+              </div>
+              <div className="text-center p-4 bg-amber-500/10 rounded-lg">
+                <div className="text-2xl font-bold text-amber-600">{stats.totalMembers - stats.confirmations}</div>
+                <div className="text-xs text-muted-foreground">Pendentes</div>
+              </div>
+            </div>
+          )}
+
+          {/* Progress */}
+          {stats && (
+            <div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Progresso</span>
+                <span className="font-medium">{stats.percentage}%</span>
+              </div>
+              <Progress value={stats.percentage} className="h-2" />
+            </div>
+          )}
+
+          {/* Confirmations List */}
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              Quem confirmou ({confirmations?.length || 0})
+            </h4>
+            <ScrollArea className="h-[300px]">
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : confirmations && confirmations.length > 0 ? (
+                <div className="space-y-3 pr-4">
+                  {confirmations.map((conf) => (
+                    <div key={conf.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-green-500/10 text-green-600">
+                          {conf.user_email?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{conf.user_email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Confirmou em {format(new Date(conf.confirmed_at), "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma confirmação ainda</p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };

@@ -31,6 +31,15 @@ export interface NoticeRead {
   confirmed_at: string | null;
 }
 
+export interface NoticeConfirmation {
+  id: string;
+  notice_id: string;
+  user_id: string;
+  confirmed_at: string;
+  user_email?: string;
+  user_name?: string;
+}
+
 export interface UserBirthday {
   user_id: string;
   workspace_id: string;
@@ -92,16 +101,100 @@ export function useNotices() {
       if (!user?.id) throw new Error('Not authenticated');
       const { error } = await (supabase as any)
         .from('notice_reads')
-        .upsert({ notice_id: noticeId, user_id: user.id, confirmed_at: new Date().toISOString() }, { onConflict: 'notice_id,user_id' });
+        .upsert({ 
+          notice_id: noticeId, 
+          user_id: user.id, 
+          read_at: new Date().toISOString(),
+          confirmed_at: new Date().toISOString() 
+        }, { onConflict: 'notice_id,user_id' });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notice-reads'] });
+      queryClient.invalidateQueries({ queryKey: ['notice-confirmations'] });
       toast.success('Confirmação registrada');
     },
   });
 
   return { notices, unreadNotices, birthdayNotices, isLoading, markAsRead, confirmNotice, readNotices };
+}
+
+export function useNoticeConfirmations(noticeId: string) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['notice-confirmations', noticeId],
+    queryFn: async () => {
+      if (!noticeId) return [];
+      
+      // Get confirmations with user info from workspace_members
+      const { data: reads, error: readsError } = await (supabase as any)
+        .from('notice_reads')
+        .select('id, notice_id, user_id, read_at, confirmed_at')
+        .eq('notice_id', noticeId)
+        .not('confirmed_at', 'is', null);
+      
+      if (readsError) throw readsError;
+      
+      if (!reads || reads.length === 0) return [];
+
+      // Get user emails from workspace_members
+      const userIds = reads.map((r: any) => r.user_id);
+      const { data: members, error: membersError } = await (supabase as any)
+        .from('workspace_members')
+        .select('user_id, user_email')
+        .eq('workspace_id', currentWorkspace?.id)
+        .in('user_id', userIds);
+      
+      if (membersError) throw membersError;
+
+      const memberMap = new Map((members || []).map((m: any) => [m.user_id, m.user_email]));
+
+      return reads.map((r: any) => ({
+        id: r.id,
+        notice_id: r.notice_id,
+        user_id: r.user_id,
+        confirmed_at: r.confirmed_at,
+        user_email: memberMap.get(r.user_id) || 'Usuário desconhecido',
+      })) as NoticeConfirmation[];
+    },
+    enabled: !!noticeId && !!currentWorkspace?.id,
+  });
+}
+
+export function useNoticeStats(noticeId: string) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['notice-stats', noticeId],
+    queryFn: async () => {
+      if (!noticeId || !currentWorkspace?.id) return null;
+      
+      // Count total workspace members
+      const { count: totalMembers, error: membersError } = await (supabase as any)
+        .from('workspace_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id);
+      
+      if (membersError) throw membersError;
+
+      // Count confirmations for this notice
+      const { count: confirmations, error: confirmError } = await (supabase as any)
+        .from('notice_reads')
+        .select('*', { count: 'exact', head: true })
+        .eq('notice_id', noticeId)
+        .not('confirmed_at', 'is', null);
+      
+      if (confirmError) throw confirmError;
+
+      return {
+        totalMembers: totalMembers || 0,
+        confirmations: confirmations || 0,
+        percentage: totalMembers ? Math.round((confirmations || 0) / totalMembers * 100) : 0,
+      };
+    },
+    enabled: !!noticeId && !!currentWorkspace?.id,
+  });
 }
 
 export function useUserBirthday() {
