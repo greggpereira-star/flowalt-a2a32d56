@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Download,
   Eye,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +69,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCostCenters, useCostCentersWithBudget, useCreateCostCenter, useDeleteCostCenter, CostCenterWithActual } from "@/hooks/useCostCenters";
 import { useTransactions } from "@/hooks/useFinancial";
 import { cn } from "@/lib/utils";
+import { generatePDFReport, downloadPDF, ReportData } from "@/lib/pdfGenerator";
+import { useToast } from "@/hooks/use-toast";
 
 const costCenterSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -84,6 +88,8 @@ export function CostCenterManager() {
   const [open, setOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
   
   const { data: costCenters = [], isLoading: loadingCenters } = useCostCenters();
   const { data: centersWithBudget = [], isLoading: loadingBudget } = useCostCentersWithBudget();
@@ -119,6 +125,13 @@ export function CostCenterManager() {
     }).format(value);
   };
 
+  const formatCurrencyPlain = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
   const navigateMonth = (direction: number) => {
     setSelectedMonth(prev => {
       const newDate = new Date(prev);
@@ -127,8 +140,8 @@ export function CostCenterManager() {
     });
   };
 
-  // Calculate detailed report data
-  const reportData = useMemo(() => {
+  // Calculate detailed report data - MUST be before export functions
+  const costCenterReport = useMemo(() => {
     const byCenter: Record<string, {
       center: CostCenterWithActual;
       transactions: typeof transactions;
@@ -180,8 +193,178 @@ export function CostCenterManager() {
     };
   }, [centersWithBudget, transactions]);
 
+  // Export to PDF
+  const handleExportPDF = () => {
+    setIsExporting(true);
+    try {
+      const monthName = format(selectedMonth, "MMMM yyyy", { locale: ptBR });
+      
+      const pdfReport: ReportData = {
+        title: "Relatório de Centros de Custo",
+        subtitle: `Execução Orçamentária - ${monthName}`,
+        generatedAt: new Date(),
+        sections: [
+          {
+            title: "Resumo Geral",
+            type: "summary",
+            summary: [
+              { label: "Centros Ativos", value: centersWithBudget.length },
+              { label: "Orçamento Total", value: formatCurrency(costCenterReport.totalBudget) },
+              { label: "Total Gasto", value: formatCurrency(costCenterReport.totalSpent) },
+              { label: "Execução", value: `${costCenterReport.overallUsage.toFixed(1)}%` },
+            ],
+          },
+          {
+            title: "Detalhamento por Centro de Custo",
+            type: "table",
+            data: {
+              headers: ["Centro de Custo", "Código", "Orçamento", "Realizado", "Saldo", "% Execução", "Status"],
+              rows: [
+                ...costCenterReport.byCenter.map((item) => {
+                  const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
+                  const status = item.center.budget_monthly && item.center.budget_monthly > 0
+                    ? (item.budgetUsed >= 100 ? "Excedido" : item.budgetUsed >= 80 ? "Atenção" : "OK")
+                    : "N/A";
+                  
+                  return [
+                    item.center.name,
+                    item.center.code || "-",
+                    item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-",
+                    formatCurrency(item.totalSpent),
+                    item.center.budget_monthly ? formatCurrency(saldo) : "-",
+                    item.center.budget_monthly ? `${item.budgetUsed.toFixed(1)}%` : "-",
+                    status,
+                  ];
+                }),
+                ...(costCenterReport.unassigned.length > 0 ? [[
+                  "Sem Centro de Custo",
+                  "-",
+                  "-",
+                  formatCurrency(costCenterReport.unassignedTotal),
+                  "-",
+                  "-",
+                  "Não classificado",
+                ]] : []),
+                [
+                  "TOTAL",
+                  "",
+                  formatCurrency(costCenterReport.totalBudget),
+                  formatCurrency(costCenterReport.totalSpent),
+                  formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent),
+                  `${costCenterReport.overallUsage.toFixed(1)}%`,
+                  "",
+                ],
+              ],
+            },
+          },
+        ],
+      };
+
+      const doc = generatePDFReport(pdfReport);
+      downloadPDF(doc, `centros-custo-${format(selectedMonth, "yyyy-MM")}`);
+      
+      toast({
+        title: "PDF exportado",
+        description: "Relatório de centros de custo exportado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({
+        title: "Erro ao exportar",
+        description: "Não foi possível gerar o PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Export to Excel (CSV format for compatibility)
+  const handleExportExcel = () => {
+    setIsExporting(true);
+    try {
+      const monthName = format(selectedMonth, "MMMM yyyy", { locale: ptBR });
+      
+      // Build CSV content with BOM for Excel UTF-8 compatibility
+      const BOM = "\uFEFF";
+      const headers = ["Centro de Custo", "Código", "Orçamento", "Realizado", "Saldo", "% Execução", "Status"];
+      
+      const rows = costCenterReport.byCenter.map((item) => {
+        const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
+        const status = item.center.budget_monthly && item.center.budget_monthly > 0
+          ? (item.budgetUsed >= 100 ? "Excedido" : item.budgetUsed >= 80 ? "Atenção" : "OK")
+          : "N/A";
+        
+        return [
+          item.center.name,
+          item.center.code || "-",
+          item.center.budget_monthly ? formatCurrencyPlain(item.center.budget_monthly) : "-",
+          formatCurrencyPlain(item.totalSpent),
+          item.center.budget_monthly ? formatCurrencyPlain(saldo) : "-",
+          item.center.budget_monthly ? `${item.budgetUsed.toFixed(1)}%` : "-",
+          status,
+        ];
+      });
+
+      // Add unassigned row if exists
+      if (costCenterReport.unassigned.length > 0) {
+        rows.push([
+          "Sem Centro de Custo",
+          "-",
+          "-",
+          formatCurrencyPlain(costCenterReport.unassignedTotal),
+          "-",
+          "-",
+          "Não classificado",
+        ]);
+      }
+
+      // Add total row
+      rows.push([
+        "TOTAL",
+        "",
+        formatCurrencyPlain(costCenterReport.totalBudget),
+        formatCurrencyPlain(costCenterReport.totalSpent),
+        formatCurrencyPlain(costCenterReport.totalBudget - costCenterReport.totalSpent),
+        `${costCenterReport.overallUsage.toFixed(1)}%`,
+        "",
+      ]);
+
+      const csvContent = BOM + [
+        `Relatório de Centros de Custo - ${monthName}`,
+        "",
+        headers.join(";"),
+        ...rows.map(row => row.join(";")),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `centros-custo-${format(selectedMonth, "yyyy-MM")}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Excel exportado",
+        description: "Relatório exportado em formato CSV (compatível com Excel).",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar Excel:", error);
+      toast({
+        title: "Erro ao exportar",
+        description: "Não foi possível gerar o arquivo. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const selectedCenterData = selectedCenterId 
-    ? reportData.byCenter.find(d => d.center.id === selectedCenterId) 
+    ? costCenterReport.byCenter.find(d => d.center.id === selectedCenterId) 
     : null;
 
   const onSubmit = async (data: FormData) => {
@@ -424,7 +607,7 @@ export function CostCenterManager() {
               <BarChart3 className="w-4 h-4" />
               <span className="text-xs font-medium">Orçamento Total</span>
             </div>
-            <p className="text-2xl font-bold">{formatCurrency(reportData.totalBudget)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalBudget)}</p>
           </CardContent>
         </Card>
 
@@ -434,15 +617,15 @@ export function CostCenterManager() {
               <TrendingDown className="w-4 h-4" />
               <span className="text-xs font-medium">Total Gasto</span>
             </div>
-            <p className="text-2xl font-bold">{formatCurrency(reportData.totalSpent)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(costCenterReport.totalSpent)}</p>
           </CardContent>
         </Card>
 
         <Card className={cn(
           "bg-gradient-to-br border",
-          reportData.overallUsage >= 100 
+          costCenterReport.overallUsage >= 100 
             ? "from-rose-500/10 to-rose-500/5 border-rose-500/20"
-            : reportData.overallUsage >= 80
+            : costCenterReport.overallUsage >= 80
             ? "from-amber-500/10 to-amber-500/5 border-amber-500/20"
             : "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20"
         )}>
@@ -450,12 +633,12 @@ export function CostCenterManager() {
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className={cn(
                 "w-4 h-4",
-                reportData.overallUsage >= 100 ? "text-rose-600" : reportData.overallUsage >= 80 ? "text-amber-600" : "text-emerald-600"
+                costCenterReport.overallUsage >= 100 ? "text-rose-600" : costCenterReport.overallUsage >= 80 ? "text-amber-600" : "text-emerald-600"
               )} />
               <span className="text-xs font-medium">Execução</span>
             </div>
-            <p className="text-2xl font-bold">{reportData.overallUsage.toFixed(1)}%</p>
-            <Progress value={Math.min(reportData.overallUsage, 100)} className="h-1 mt-2" />
+            <p className="text-2xl font-bold">{costCenterReport.overallUsage.toFixed(1)}%</p>
+            <Progress value={Math.min(costCenterReport.overallUsage, 100)} className="h-1 mt-2" />
           </CardContent>
         </Card>
       </div>
@@ -571,11 +754,31 @@ export function CostCenterManager() {
         <TabsContent value="report" className="mt-4 space-y-6">
           {/* Summary Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Execução Orçamentária - {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
               </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportExcel}
+                  disabled={isExporting}
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -591,7 +794,7 @@ export function CostCenterManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reportData.byCenter.map((item) => {
+                  {costCenterReport.byCenter.map((item) => {
                     const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
                     const status = item.center.budget_monthly && item.center.budget_monthly > 0
                       ? getBudgetStatus(item.budgetUsed)
@@ -658,20 +861,20 @@ export function CostCenterManager() {
                   })}
                   
                   {/* Unassigned Row */}
-                  {reportData.unassigned.length > 0 && (
+                  {costCenterReport.unassigned.length > 0 && (
                     <TableRow className="bg-muted/30">
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-gray-400" />
                           <div>
                             <p className="font-medium text-muted-foreground">Sem Centro de Custo</p>
-                            <p className="text-xs text-muted-foreground">{reportData.unassigned.length} lançamentos</p>
+                            <p className="text-xs text-muted-foreground">{costCenterReport.unassigned.length} lançamentos</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">-</TableCell>
                       <TableCell className="text-right font-medium text-muted-foreground">
-                        {formatCurrency(reportData.unassignedTotal)}
+                        {formatCurrency(costCenterReport.unassignedTotal)}
                       </TableCell>
                       <TableCell className="text-right">-</TableCell>
                       <TableCell className="text-right">-</TableCell>
@@ -685,15 +888,15 @@ export function CostCenterManager() {
                   {/* Total Row */}
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>TOTAL</TableCell>
-                    <TableCell className="text-right">{formatCurrency(reportData.totalBudget)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(reportData.totalSpent)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalBudget)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalSpent)}</TableCell>
                     <TableCell className={cn(
                       "text-right",
-                      (reportData.totalBudget - reportData.totalSpent) >= 0 ? "text-emerald-600" : "text-rose-600"
+                      (costCenterReport.totalBudget - costCenterReport.totalSpent) >= 0 ? "text-emerald-600" : "text-rose-600"
                     )}>
-                      {formatCurrency(reportData.totalBudget - reportData.totalSpent)}
+                      {formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent)}
                     </TableCell>
-                    <TableCell className="text-right">{reportData.overallUsage.toFixed(1)}%</TableCell>
+                    <TableCell className="text-right">{costCenterReport.overallUsage.toFixed(1)}%</TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                   </TableRow>
