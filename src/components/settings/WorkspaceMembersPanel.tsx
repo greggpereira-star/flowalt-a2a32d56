@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MemberAccessDiagnosticSheet } from '@/components/governance/MemberAccessDiagnosticSheet';
+import { ExternalCollaboratorFormModal } from '@/components/financial/ExternalCollaboratorFormModal';
 import { 
   Users, 
   MoreVertical, 
@@ -37,6 +38,7 @@ import {
   UserMinus,
   ChevronUp,
   Search,
+  UserPlus,
 } from 'lucide-react';
 import type { AppRole } from '@/lib/supabase';
 
@@ -69,6 +71,7 @@ export function WorkspaceMembersPanel() {
     role: AppRole;
     avatarUrl?: string | null;
   } | null>(null);
+  const [showExternalCollaboratorModal, setShowExternalCollaboratorModal] = useState(false);
 
   const handleRoleChange = async (userId: string, newRole: AppRole) => {
     await changeMemberRole.mutateAsync({ userId, newRole });
@@ -120,14 +123,26 @@ export function WorkspaceMembersPanel() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle>Membros do Workspace</CardTitle>
-              <CardDescription>
-                {members?.length || 0} membro{members?.length !== 1 ? 's' : ''} ativo{members?.length !== 1 ? 's' : ''}
-              </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle>Membros do Workspace</CardTitle>
+                <CardDescription>
+                  {members?.length || 0} membro{members?.length !== 1 ? 's' : ''} ativo{members?.length !== 1 ? 's' : ''}
+                </CardDescription>
+              </div>
             </div>
+            {canManageWorkspace && (
+              <Button 
+                onClick={() => setShowExternalCollaboratorModal(true)}
+                size="sm"
+                className="gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Novo Colaborador Externo
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -299,6 +314,12 @@ export function WorkspaceMembersPanel() {
         open={!!diagnosticMember}
         onOpenChange={(open) => !open && setDiagnosticMember(null)}
         member={diagnosticMember}
+      />
+
+      {/* External Collaborator Modal */}
+      <ExternalCollaboratorFormModal
+        open={showExternalCollaboratorModal}
+        onOpenChange={setShowExternalCollaboratorModal}
       />
     </>
   );
