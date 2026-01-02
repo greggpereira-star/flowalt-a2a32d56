@@ -18,13 +18,14 @@ import { WorkspaceMembersPanel } from '@/components/settings/WorkspaceMembersPan
 import { WorkspaceInvitesPanel } from '@/components/settings/WorkspaceInvitesPanel';
 import { GovernancePanel } from '@/components/settings/GovernancePanel';
 import { SpaceAccessControl } from '@/components/settings/SpaceAccessControl';
+import { BirthdaySettings } from '@/components/notices/BirthdaySettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Zap, Monitor, PieChart, FileStack, Shield, Crown, Bell, 
   HeartPulse, Archive, GitBranch, ClipboardCheck, FolderKanban, Users, 
-  UserPlus, ShieldX, ArrowLeft, CreditCard
+  UserPlus, ShieldX, ArrowLeft, CreditCard, User
 } from 'lucide-react';
 import { BillingPlanPage } from '@/components/billing/BillingPlanPage';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,6 +33,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePageTracking } from '@/hooks/usePageTracking';
 
 const SETTINGS_TABS = new Set([
+  'profile',
   'members',
   'invites',
   'governance',
@@ -116,10 +118,10 @@ export default function SettingsPage() {
       return null; // Will trigger redirect in useEffect
     }
     
-    return tab && SETTINGS_TABS.has(tab) ? tab : 'onboarding';
+    return tab && SETTINGS_TABS.has(tab) ? tab : 'profile';
   }, [searchParams]);
 
-  const [activeTab, setActiveTab] = useState(initialTab || 'onboarding');
+  const [activeTab, setActiveTab] = useState(initialTab || 'profile');
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -176,6 +178,12 @@ export default function SettingsPage() {
         >
           <div className="flex justify-center px-4 md:px-8 lg:px-12">
             <TabsList className="grid grid-cols-4 sm:grid-cols-8 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-4xl w-full">
+              {/* User Profile - Always visible */}
+              <TabsTrigger value="profile" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <User className="h-5 w-5" />
+                <span className="text-xs font-medium">Perfil</span>
+              </TabsTrigger>
+              
               {/* Workspace Management - Admin only */}
               {canManageWorkspace && (
                 <>
@@ -265,6 +273,13 @@ export default function SettingsPage() {
               )}
             </TabsList>
           </div>
+
+          {/* User Profile */}
+          <TabsContent value="profile">
+            <div className="space-y-6">
+              <BirthdaySettings />
+            </div>
+          </TabsContent>
 
           {/* Workspace Management */}
           <TabsContent value="members">
