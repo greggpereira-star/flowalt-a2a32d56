@@ -8695,6 +8695,7 @@ export type Database = {
         Args: { p_folder_id: string; p_template_id: string }
         Returns: Json
       }
+      archive_old_notices: { Args: never; Returns: undefined }
       award_badge: {
         Args: {
           p_badge_type: string
@@ -8868,6 +8869,7 @@ export type Database = {
         Returns: boolean
       }
       fix_space_order: { Args: { p_workspace_id: string }; Returns: number }
+      generate_birthday_notices: { Args: never; Returns: undefined }
       generate_payroll: {
         Args: {
           p_collaborator_id?: string
