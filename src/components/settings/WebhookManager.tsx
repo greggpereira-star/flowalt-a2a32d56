@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWebhooks, useCreateWebhook, useUpdateWebhook, useDeleteWebhook, useWebhookDeliveries, useResendWebhook, WEBHOOK_EVENTS } from '@/hooks/useWebhooks';
+import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -15,6 +16,7 @@ import { Webhook, Plus, Trash2, RefreshCw, Eye, Copy, CheckCircle2, XCircle, Clo
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
 
 export function WebhookManager() {
   const { data: webhooks, isLoading } = useWebhooks();
@@ -23,6 +25,12 @@ export function WebhookManager() {
   const deleteWebhook = useDeleteWebhook();
   const resendWebhook = useResendWebhook();
   const { toast } = useToast();
+  const { data: plan } = useWorkspacePlan();
+  const { data: usage } = useWorkspaceUsage();
+
+  const webhooksUsed = usage?.webhooks_used || 0;
+  const webhooksLimit = plan?.webhooks_limit || 0;
+  const { canCreate: canCreateWebhook, status: limitStatus } = useLimitCheck(webhooksUsed, webhooksLimit);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newWebhookName, setNewWebhookName] = useState('');
@@ -87,7 +95,7 @@ export function WebhookManager() {
             </div>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" disabled={!canCreateWebhook}>
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Webhook
                 </Button>
@@ -96,8 +104,20 @@ export function WebhookManager() {
                 <DialogHeader>
                   <DialogTitle>Criar Webhook</DialogTitle>
                 </DialogHeader>
-                
-                <div className="space-y-4">
+
+                {/* LimitGuard inside dialog */}
+                {limitStatus !== 'ok' && (
+                  <LimitGuard
+                    resourceType="webhooks"
+                    resourceLabel="Webhooks"
+                    currentUsage={webhooksUsed}
+                    limit={webhooksLimit}
+                    planTier={plan?.plan_tier || 'free'}
+                    variant="inline"
+                  />
+                )}
+                {canCreateWebhook && (
+                  <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="webhook-name">Nome</Label>
                     <Input
@@ -143,7 +163,8 @@ export function WebhookManager() {
                   >
                     {createWebhook.isPending ? 'Criando...' : 'Criar Webhook'}
                   </Button>
-                </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>

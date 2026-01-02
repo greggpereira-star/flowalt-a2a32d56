@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
+import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
 
 const INVITE_ROLES: { value: AppRole; label: string }[] = [
   { value: 'admin', label: 'Administrador' },
@@ -68,11 +70,17 @@ export function WorkspaceInvitesPanel() {
   const createInvite = useCreateWorkspaceInvite();
   const revokeInvite = useRevokeWorkspaceInvite();
   const { canManageWorkspace } = usePermissions();
+  const { data: plan } = useWorkspacePlan();
+  const { data: usage } = useWorkspaceUsage();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AppRole>('member');
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
+
+  const seatsUsed = usage?.seats_used || 0;
+  const seatsLimit = plan?.seats_limit || 3;
+  const { canCreate: canInvite } = useLimitCheck(seatsUsed, seatsLimit);
 
   const handleCreateInvite = async () => {
     if (!email.trim()) return;
@@ -136,7 +144,7 @@ export function WorkspaceInvitesPanel() {
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" disabled={!canInvite}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Convidar
                 </Button>
@@ -149,53 +157,67 @@ export function WorkspaceInvitesPanel() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="nome@empresa.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+                {/* LimitGuard inside dialog */}
+                <LimitGuard
+                  resourceType="seats"
+                  resourceLabel="Membros"
+                  currentUsage={seatsUsed}
+                  limit={seatsLimit}
+                  planTier={plan?.plan_tier || 'free'}
+                  variant="inline"
+                />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Função</Label>
-                    <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INVITE_ROLES.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                {canInvite && (
+                  <>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="nome@empresa.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                        />
+                      </div>
 
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={handleCreateInvite} 
-                    disabled={!email.trim() || createInvite.isPending}
-                  >
-                    {createInvite.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      'Enviar Convite'
-                    )}
-                  </Button>
-                </DialogFooter>
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Função</Label>
+                        <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INVITE_ROLES.map((r) => (
+                              <SelectItem key={r.value} value={r.value}>
+                                {r.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleCreateInvite} 
+                        disabled={!email.trim() || createInvite.isPending}
+                      >
+                        {createInvite.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          'Enviar Convite'
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           </div>
