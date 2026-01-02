@@ -19,12 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AccessImpactSummary } from '@/components/governance/AccessImpactSummary';
 import { useCreateCard } from '@/hooks/useCards';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/utils';
-import { Loader2, Building2, BanknoteIcon } from 'lucide-react';
+import { Loader2, Building2, BanknoteIcon, Users } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { statusConfig, urgencyConfig } from './CardBadges';
 
@@ -244,6 +245,19 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Access Impact Summary - shows who will see the card */}
+            <div className="pt-2 border-t">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                <Users className="h-3.5 w-3.5" />
+                <span>Visibilidade do card</span>
+              </div>
+              <AccessImpactSummary
+                entityType="card"
+                targetVisibility="public"
+                showDetails={false}
+              />
             </div>
           </div>
 
