@@ -37,6 +37,13 @@ export default function AcceptInvitePage() {
 
   const checkInvite = async () => {
     try {
+      // Validar se o token é um UUID válido antes de consultar
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!token || !uuidRegex.test(token)) {
+        setStatus('not_found');
+        return;
+      }
+
       // Fetch invite info
       const { data: invite, error } = await supabase
         .from('workspace_invites')
@@ -47,7 +54,13 @@ export default function AcceptInvitePage() {
         .eq('token', token)
         .maybeSingle();
 
-      if (error || !invite) {
+      if (error) {
+        console.error('Error fetching invite:', error);
+        setStatus('not_found');
+        return;
+      }
+      
+      if (!invite) {
         setStatus('not_found');
         return;
       }
@@ -65,7 +78,7 @@ export default function AcceptInvitePage() {
       }
 
       // Check if revoked
-      if (invite.status === 'revoked') {
+      if (invite.status === 'revoked' || invite.revoked_at) {
         setStatus('not_found');
         return;
       }
