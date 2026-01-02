@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { WorkRadar } from '@/components/dashboard/WorkRadar';
 import { BirthdayBanner } from '@/components/notices/BirthdayBanner';
 import { HolidayBanner } from '@/components/notices/HolidayBanner';
+import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -182,6 +183,9 @@ const Index: React.FC = () => {
             Aqui está o resumo do seu dia no {currentWorkspace?.name || 'workspace'}.
           </p>
         </div>
+
+        {/* Demo de Celebrações - Remover após visualização */}
+        <HolidayCelebrationDemo />
 
         {/* Holiday Celebrations */}
         <div className="mb-6">
