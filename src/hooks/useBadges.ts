@@ -99,6 +99,27 @@ export const BADGE_DEFINITIONS: Record<string, Omit<Badge, 'id' | 'earnedAt'>> =
     icon: '🎂',
     color: 'bg-gradient-to-r from-amber-500 to-pink-500',
   },
+  new_year_celebrated: {
+    type: 'new_year_celebrated',
+    name: 'Ano Novo',
+    description: 'Celebrou o Ano Novo no FlowAlt',
+    icon: '🎆',
+    color: 'bg-gradient-to-r from-blue-600 to-purple-600',
+  },
+  christmas_celebrated: {
+    type: 'christmas_celebrated',
+    name: 'Natal',
+    description: 'Celebrou o Natal no FlowAlt',
+    icon: '🎄',
+    color: 'bg-gradient-to-r from-green-600 to-red-600',
+  },
+  easter_celebrated: {
+    type: 'easter_celebrated',
+    name: 'Páscoa',
+    description: 'Celebrou a Páscoa no FlowAlt',
+    icon: '🐰',
+    color: 'bg-gradient-to-r from-pink-400 to-purple-400',
+  },
 };
 
 export function useBadges() {
