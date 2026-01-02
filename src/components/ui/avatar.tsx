@@ -1,17 +1,35 @@
 import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
+import { Cake } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
+  isBirthday?: boolean;
+}
+
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
-    ref={ref}
-    className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}
-    {...props}
-  />
+  AvatarProps
+>(({ className, isBirthday, children, ...props }, ref) => (
+  <div className="relative inline-block">
+    <AvatarPrimitive.Root
+      ref={ref}
+      className={cn(
+        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+        isBirthday && "ring-2 ring-amber-400 ring-offset-2 ring-offset-background animate-pulse-glow",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </AvatarPrimitive.Root>
+    {isBirthday && (
+      <div className="absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-pink-500 shadow-lg animate-bounce-slow">
+        <Cake className="h-3 w-3 text-white" />
+      </div>
+    )}
+  </div>
 ));
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 

@@ -92,6 +92,13 @@ export const BADGE_DEFINITIONS: Record<string, Omit<Badge, 'id' | 'earnedAt'>> =
     icon: '🏗️',
     color: 'bg-amber-500',
   },
+  birthday_celebrated: {
+    type: 'birthday_celebrated',
+    name: 'Aniversariante',
+    description: 'Celebrou aniversário no FlowAlt',
+    icon: '🎂',
+    color: 'bg-gradient-to-r from-amber-500 to-pink-500',
+  },
 };
 
 export function useBadges() {
