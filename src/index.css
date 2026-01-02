@@ -446,6 +446,7 @@
   50% {
     opacity: 0.5;
     transform: scale(0.8);
+  }
 }
 
 @keyframes confetti-fall {
@@ -462,6 +463,55 @@
 .animate-confetti-fall {
   animation: confetti-fall linear infinite;
 }
+
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.animate-sway {
+  animation: sway 1s ease-in-out infinite;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(20deg);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up linear infinite;
+}
+
+@keyframes bat-fly {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  25% {
+    transform: translateX(25vw) translateY(-20px);
+  }
+  50% {
+    transform: translateX(50vw) translateY(10px);
+  }
+  75% {
+    transform: translateX(75vw) translateY(-15px);
+  }
+  100% {
+    transform: translateX(110vw) translateY(0);
+  }
+}
+
+.animate-bat-fly {
+  animation: bat-fly 6s linear infinite;
 }
 
 @keyframes gradient-shift {
