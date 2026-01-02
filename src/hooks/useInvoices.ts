@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 
 export interface Invoice {
   id: string;
@@ -44,6 +45,17 @@ export function useInvoices(filters?: {
   unlinked?: boolean;
 }) {
   const { currentWorkspace } = useWorkspace();
+
+  // Enable realtime updates for invoices
+  useRealtimeSubscription({
+    table: "invoices",
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ["invoices", currentWorkspace?.id, filters] as const,
+      ["invoice-summary", currentWorkspace?.id] as const,
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ["invoices", currentWorkspace?.id, filters],
