@@ -64,6 +64,13 @@ const CHECKLIST_TESTS = [
   { id: 'SEC1', checklist: 'SEC', test: 'Collaborator details (salary/CPF) restricted', layer: 'RLS' as const },
   { id: 'SEC2', checklist: 'SEC', test: 'API keys hash not exposed', layer: 'RLS' as const },
   { id: 'SEC3', checklist: 'SEC', test: 'Webhook secrets are masked', layer: 'RLS' as const },
+
+  // BILLING - Entitlements
+  { id: 'BIL1', checklist: 'BILLING', test: 'Free plan blocks /integrations access', layer: 'UI' as const },
+  { id: 'BIL2', checklist: 'BILLING', test: 'Pro plan allows integrations but not webhook_replay', layer: 'RLS' as const },
+  { id: 'BIL3', checklist: 'BILLING', test: 'Enterprise plan has all entitlements enabled', layer: 'RLS' as const },
+  { id: 'BIL4', checklist: 'BILLING', test: 'Entitlement blocks are logged to entitlement_audit', layer: 'API' as const },
+  { id: 'BIL5', checklist: 'BILLING', test: 'enforce_entitlement raises exception on blocked', layer: 'API' as const },
 ];
 
 export default function SecurityAuditPage() {
@@ -204,7 +211,7 @@ export default function SecurityAuditPage() {
     ? Math.round((results.filter(r => r.status === 'pass').length / results.length) * 100)
     : 0;
 
-  const checklists = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'SEC'];
+  const checklists = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'SEC', 'BILLING'];
 
   if (!isSuperAdmin && !permissions.isOwner) {
     return (
@@ -265,6 +272,7 @@ export default function SecurityAuditPage() {
           <TabsTrigger value="failed">Falhas</TabsTrigger>
           <TabsTrigger value="rls">RLS</TabsTrigger>
           <TabsTrigger value="api">API</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -396,6 +404,41 @@ export default function SecurityAuditPage() {
                   {(results.length > 0 ? results : CHECKLIST_TESTS.map(t => ({ 
                     ...t, status: 'pending' as const, evidence: '-', risk: 'low' as const 
                   }))).filter(r => r.layer === 'API').map(result => (
+                    <TableRow key={result.id}>
+                      <TableCell className="font-mono">{result.id}</TableCell>
+                      <TableCell>{getStatusIcon(result.status)}</TableCell>
+                      <TableCell>{result.test}</TableCell>
+                      <TableCell>{getRiskBadge(result.risk)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <Card>
+            <CardHeader>
+              <CardTitle>Testes de Billing/Entitlements</CardTitle>
+              <CardDescription>
+                Verifica enforcement de planos e limites
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Teste</TableHead>
+                    <TableHead>Risco</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(results.length > 0 ? results : CHECKLIST_TESTS.map(t => ({ 
+                    ...t, status: 'pending' as const, evidence: '-', risk: 'low' as const 
+                  }))).filter(r => r.checklist === 'BILLING').map(result => (
                     <TableRow key={result.id}>
                       <TableCell className="font-mono">{result.id}</TableCell>
                       <TableCell>{getStatusIcon(result.status)}</TableCell>
