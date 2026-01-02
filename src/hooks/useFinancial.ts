@@ -301,12 +301,14 @@ export function useFinancialSummary(month?: Date) {
 
       if (error) throw error;
 
-      const income = data
-        .filter(t => t.type === "income" && t.status === "paid")
+      const valid = data.filter(t => t.status !== "cancelled");
+
+      const income = valid
+        .filter(t => t.type === "income")
         .reduce((acc, t) => acc + Number(t.amount), 0);
 
-      const expenses = data
-        .filter(t => t.type === "expense" && t.status === "paid")
+      const expenses = valid
+        .filter(t => t.type === "expense")
         .reduce((acc, t) => acc + Number(t.amount), 0);
 
       const pending = data

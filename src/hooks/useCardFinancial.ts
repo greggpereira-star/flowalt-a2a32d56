@@ -46,13 +46,15 @@ export function useCardFinancialData(cardId: string | undefined) {
         });
       }
 
-      const totalIncome = transactions
-        ?.filter(t => t.type === "income" && t.status === "paid")
-        .reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+      const validTransactions = (transactions || []).filter(t => t.status !== "cancelled");
 
-      const totalExpenses = transactions
-        ?.filter(t => t.type === "expense" && t.status === "paid")
-        .reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+      const totalIncome = validTransactions
+        .filter(t => t.type === "income")
+        .reduce((acc, t) => acc + Number(t.amount), 0);
+
+      const totalExpenses = validTransactions
+        .filter(t => t.type === "expense")
+        .reduce((acc, t) => acc + Number(t.amount), 0);
 
       const totalHours = timeEntries?.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0) || 0;
 
@@ -137,12 +139,14 @@ export function useProjectProfitability() {
         const cardTransactions = transactions?.filter(t => t.card_id === card.id) || [];
         const cardTimeEntries = timeEntries?.filter(e => e.card_id === card.id) || [];
 
-        const income = cardTransactions
-          .filter(t => t.type === "income" && t.status === "paid")
+        const validCardTransactions = cardTransactions.filter(t => t.status !== "cancelled");
+
+        const income = validCardTransactions
+          .filter(t => t.type === "income")
           .reduce((acc, t) => acc + Number(t.amount), 0);
 
-        const expenses = cardTransactions
-          .filter(t => t.type === "expense" && t.status === "paid")
+        const expenses = validCardTransactions
+          .filter(t => t.type === "expense")
           .reduce((acc, t) => acc + Number(t.amount), 0);
 
         const hours = cardTimeEntries.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
@@ -235,12 +239,14 @@ export function useClientProfitability() {
           clientCardIds.includes(e.card_id)
         ) || [];
 
-        const income = clientTransactions
-          .filter(t => t.type === "income" && t.status === "paid")
+        const validClientTransactions = clientTransactions.filter(t => t.status !== "cancelled");
+
+        const income = validClientTransactions
+          .filter(t => t.type === "income")
           .reduce((acc, t) => acc + Number(t.amount), 0);
 
-        const expenses = clientTransactions
-          .filter(t => t.type === "expense" && t.status === "paid")
+        const expenses = validClientTransactions
+          .filter(t => t.type === "expense")
           .reduce((acc, t) => acc + Number(t.amount), 0);
 
         const hours = clientTimeEntries.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
