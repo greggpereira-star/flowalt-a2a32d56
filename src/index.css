@@ -495,3 +495,146 @@
 .delay-75 { animation-delay: 75ms; }
 .delay-150 { animation-delay: 150ms; }
 .delay-300 { animation-delay: 300ms; }
+
+/* ========================================
+   Holiday Celebration Animations
+   ======================================== */
+
+/* Snow falling animation */
+@keyframes snow-fall {
+  0% {
+    transform: translateY(-10px) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(25vh) translateX(10px) rotate(90deg);
+  }
+  50% {
+    transform: translateY(50vh) translateX(-10px) rotate(180deg);
+  }
+  75% {
+    transform: translateY(75vh) translateX(15px) rotate(270deg);
+  }
+  100% {
+    transform: translateY(100vh) translateX(-5px) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+.animate-snow-fall {
+  animation: snow-fall linear infinite;
+}
+
+/* Twinkling stars animation */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Christmas lights animation */
+@keyframes christmas-lights {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1.5);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.9);
+    filter: brightness(0.8);
+  }
+}
+
+.animate-christmas-lights {
+  animation: christmas-lights 1s ease-in-out infinite;
+}
+
+/* Floating animation for Easter eggs */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Egg wobble animation */
+@keyframes egg-wobble {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-3deg);
+  }
+}
+
+.animate-egg-wobble {
+  animation: egg-wobble 0.5s ease-in-out infinite;
+}
+
+/* Egg crack animation */
+@keyframes egg-crack {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  50% {
+    transform: scale(0.9) rotate(2deg);
+  }
+  75% {
+    transform: scale(1.15) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.animate-egg-crack {
+  animation: egg-crack 0.6s ease-out forwards;
+}
+
+/* Firework rise animation */
+@keyframes firework-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-200px);
+    opacity: 0;
+  }
+}
+
+.animate-firework-rise {
+  animation: firework-rise 0.5s ease-out forwards;
+}
