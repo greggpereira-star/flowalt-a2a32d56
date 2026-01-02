@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -20,6 +19,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
 
 interface CommentsPanelProps {
   cardId: string;
@@ -37,23 +38,23 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
   const [editContent, setEditContent] = useState('');
 
   const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+    if (isRichTextEmpty(newComment)) return;
 
     await createComment.mutateAsync({
       card_id: cardId,
-      content: newComment.trim(),
+      content: newComment,
     });
 
     setNewComment('');
   };
 
   const handleEdit = async (comment: Comment) => {
-    if (!editContent.trim()) return;
+    if (isRichTextEmpty(editContent)) return;
 
     await updateComment.mutateAsync({
       id: comment.id,
       card_id: cardId,
-      content: editContent.trim(),
+      content: editContent,
     });
 
     setEditingId(null);
@@ -98,26 +99,21 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
           <AvatarFallback className="text-xs">U</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-2">
-          <Textarea
+          <RichTextEditor
             placeholder="Escreva um comentário..."
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-[80px] resize-none"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
+            onChange={setNewComment}
+            minHeight="80px"
+            maxHeight="200px"
           />
           <div className="flex justify-between items-center">
             <p className="text-xs text-muted-foreground">
-              Ctrl + Enter para enviar
+              Use a barra de ferramentas para formatar
             </p>
             <Button
               size="sm"
               onClick={handleSubmit}
-              disabled={!newComment.trim() || createComment.isPending}
+              disabled={isRichTextEmpty(newComment) || createComment.isPending}
             >
               {createComment.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -174,17 +170,18 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
 
                   {isEditing ? (
                     <div className="mt-2 space-y-2">
-                      <Textarea
+                      <RichTextEditor
                         value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="min-h-[60px] resize-none"
+                        onChange={setEditContent}
+                        minHeight="60px"
+                        maxHeight="200px"
                         autoFocus
                       />
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           onClick={() => handleEdit(comment)}
-                          disabled={!editContent.trim() || updateComment.isPending}
+                          disabled={isRichTextEmpty(editContent) || updateComment.isPending}
                         >
                           Salvar
                         </Button>
@@ -201,9 +198,9 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm mt-1 whitespace-pre-wrap break-words">
-                      {comment.content}
-                    </p>
+                    <div className="mt-1">
+                      <RichTextViewer content={comment.content} />
+                    </div>
                   )}
                 </div>
 

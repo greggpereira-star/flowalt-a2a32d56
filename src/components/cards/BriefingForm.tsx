@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { extractPlainText, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
 
 export interface BriefingData {
   context: string;
@@ -50,8 +49,9 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({
       setValidationError(null);
     }
   };
-
-  const isBasicValid = data.context?.trim().length >= 10 && data.deliverables?.trim().length >= 10;
+  const contextText = extractPlainText(data.context);
+  const deliverablesText = extractPlainText(data.deliverables);
+  const isBasicValid = contextText.length >= 10 && deliverablesText.length >= 10;
 
   const handleValidateAndComplete = async () => {
     setIsValidating(true);
@@ -167,29 +167,28 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({
             Contexto do Projeto
             <span className="text-destructive">*</span>
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Descreva o contexto do projeto, objetivo principal e informações relevantes..."
             value={data.context || ''}
-            onChange={(e) => updateField('context', e.target.value)}
+            onChange={(v) => updateField('context', v)}
             disabled={disabled}
-            className={cn(
-              "min-h-[100px] text-sm",
-              validationError && !data.context?.trim() && "border-destructive"
-            )}
+            minHeight="80px"
+            maxHeight="200px"
           />
           <p className="text-[10px] text-muted-foreground">
-            Mínimo 10 caracteres • {data.context?.length || 0} caracteres
+            Mínimo 10 caracteres • {contextText.length} caracteres
           </p>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Público-Alvo</Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Quem é o público-alvo? Idade, interesses, comportamento..."
             value={data.target_audience || ''}
-            onChange={(e) => updateField('target_audience', e.target.value)}
+            onChange={(v) => updateField('target_audience', v)}
             disabled={disabled}
-            className="min-h-[80px] text-sm"
+            minHeight="60px"
+            maxHeight="150px"
           />
         </div>
 
@@ -198,52 +197,53 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({
             Entregáveis
             <span className="text-destructive">*</span>
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Liste o que precisa ser entregue: formatos, dimensões, quantidade..."
             value={data.deliverables || ''}
-            onChange={(e) => updateField('deliverables', e.target.value)}
+            onChange={(v) => updateField('deliverables', v)}
             disabled={disabled}
-            className={cn(
-              "min-h-[100px] text-sm",
-              validationError && !data.deliverables?.trim() && "border-destructive"
-            )}
+            minHeight="80px"
+            maxHeight="200px"
           />
           <p className="text-[10px] text-muted-foreground">
-            Mínimo 10 caracteres • {data.deliverables?.length || 0} caracteres
+            Mínimo 10 caracteres • {deliverablesText.length} caracteres
           </p>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Referências</Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Links, imagens de inspiração, exemplos de estilo..."
             value={data.references || ''}
-            onChange={(e) => updateField('references', e.target.value)}
+            onChange={(v) => updateField('references', v)}
             disabled={disabled}
-            className="min-h-[80px] text-sm"
+            minHeight="60px"
+            maxHeight="150px"
           />
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Observações de Prazo</Label>
-            <Textarea
+            <RichTextEditor
               placeholder="Urgências, feriados, eventos importantes..."
               value={data.deadline_notes || ''}
-              onChange={(e) => updateField('deadline_notes', e.target.value)}
+              onChange={(v) => updateField('deadline_notes', v)}
               disabled={disabled}
-              className="min-h-[60px] text-sm"
+              minHeight="60px"
+              maxHeight="120px"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Instruções Especiais</Label>
-            <Textarea
+            <RichTextEditor
               placeholder="Restrições, cores proibidas, tom de voz..."
               value={data.special_instructions || ''}
-              onChange={(e) => updateField('special_instructions', e.target.value)}
+              onChange={(v) => updateField('special_instructions', v)}
               disabled={disabled}
-              className="min-h-[60px] text-sm"
+              minHeight="60px"
+              maxHeight="120px"
             />
           </div>
         </div>
