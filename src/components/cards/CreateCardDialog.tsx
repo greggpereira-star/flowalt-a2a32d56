@@ -22,7 +22,6 @@ import {
 import { AccessImpactSummary } from '@/components/governance/AccessImpactSummary';
 import { useCreateCard } from '@/hooks/useCards';
 import { useClients } from '@/hooks/useClients';
-import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/utils';
 import { Loader2, Building2, BanknoteIcon, Users } from 'lucide-react';
@@ -47,25 +46,15 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const createCard = useCreateCard();
-  const { data: legacyClients } = useClients();
-  const { data: clientCards } = useClientCards();
+  const { data: clients } = useClients();
 
-  // Build combined clients list
+  // Use only clients from the clients table (not client_cards which has different schema)
   const allClients = useMemo(() => {
-    const clients: Array<{ id: string; name: string; color: string | null }> = [];
-    
-    legacyClients?.forEach(c => {
-      clients.push({ id: c.id, name: c.name, color: c.color });
-    });
-    
-    clientCards?.forEach(c => {
-      if (!clients.some(existing => existing.id === c.id)) {
-        clients.push({ id: c.id, name: c.name, color: c.color || null });
-      }
-    });
-    
-    return clients.sort((a, b) => a.name.localeCompare(b.name));
-  }, [legacyClients, clientCards]);
+    if (!clients) return [];
+    return clients
+      .map(c => ({ id: c.id, name: c.name, color: c.color }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
