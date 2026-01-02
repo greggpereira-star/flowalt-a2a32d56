@@ -3164,6 +3164,72 @@ export type Database = {
           },
         ]
       }
+      email_notifications_log: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notification_type: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_version: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_version?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_version?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "email_notifications_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entitlement_audit: {
         Row: {
           action: string
@@ -6745,6 +6811,45 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          notify_authentication: boolean
+          notify_cards: boolean
+          notify_gamification: boolean
+          notify_governance: boolean
+          notify_system: boolean
+          notify_workspace: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notify_authentication?: boolean
+          notify_cards?: boolean
+          notify_gamification?: boolean
+          notify_governance?: boolean
+          notify_system?: boolean
+          notify_workspace?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notify_authentication?: boolean
+          notify_cards?: boolean
+          notify_gamification?: boolean
+          notify_governance?: boolean
+          notify_system?: boolean
+          notify_workspace?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           actions_count: Json | null
@@ -9163,6 +9268,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      user_wants_notification: {
+        Args: { p_category: string; p_user_id: string }
+        Returns: boolean
       }
       validate_api_key: {
         Args: { api_key: string }
