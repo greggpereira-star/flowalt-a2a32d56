@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermissions";
 import { TransactionList } from "@/components/financial/TransactionList";
 import { TransactionForm } from "@/components/financial/TransactionForm";
+import { TransactionEditModal } from "@/components/financial/TransactionEditModal";
 import { AdvancedFinancialDashboard } from "@/components/financial/AdvancedFinancialDashboard";
 import { CollaboratorManager } from "@/components/financial/CollaboratorManager";
 import { InvoiceList } from "@/components/financial/InvoiceList";
@@ -25,6 +26,7 @@ import { OFXImporter } from "@/components/financial/OFXImporter";
 import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { Transaction } from "@/hooks/useFinancial";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -50,10 +52,15 @@ export default function FinancialPage() {
   usePageTracking('financial');
   const { logFinancialAccess } = useAccessLogging();
   const { canViewSalaries } = usePermissions();
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     logFinancialAccess('dashboard_view');
   }, [logFinancialAccess]);
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+  };
   
   return (
     <PermissionGuard permission="canViewFinancial">
@@ -175,7 +182,7 @@ export default function FinancialPage() {
                   </TabsContent>
 
                   <TabsContent value="transactions" className="mt-0 animate-in fade-in-50 duration-300">
-                    <TransactionList />
+                    <TransactionList onEdit={handleEditTransaction} />
                   </TabsContent>
 
                   <TabsContent value="invoices" className="mt-0 animate-in fade-in-50 duration-300">
@@ -266,6 +273,13 @@ export default function FinancialPage() {
             </div>
           </div>
         </div>
+
+        {/* Transaction Edit Modal */}
+        <TransactionEditModal
+          open={!!editingTransaction}
+          onOpenChange={(open) => !open && setEditingTransaction(null)}
+          transaction={editingTransaction}
+        />
       </AppLayout>
     </PermissionGuard>
   );
