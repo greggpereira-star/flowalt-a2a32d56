@@ -65,12 +65,14 @@ export function FinancialDashboard() {
       return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
     });
 
-    const income = monthTransactions
-      .filter(t => t.type === "income" && t.status === "paid")
+    const valid = monthTransactions.filter(t => t.status !== "cancelled");
+
+    const income = valid
+      .filter(t => t.type === "income")
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
-    const expenses = monthTransactions
-      .filter(t => t.type === "expense" && t.status === "paid")
+    const expenses = valid
+      .filter(t => t.type === "expense")
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
     return {

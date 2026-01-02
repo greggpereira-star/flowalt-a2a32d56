@@ -149,12 +149,13 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const prev = prevTransactions || [];
       const pending = pendingTransactions || [];
 
-      // Calculate core metrics
-      const paidIncome = transactions.filter(t => t.type === "income" && t.status === "paid");
-      const paidExpenses = transactions.filter(t => t.type === "expense" && t.status === "paid");
-      
-      const revenue = paidIncome.reduce((acc, t) => acc + Number(t.amount), 0);
-      const expenses = paidExpenses.reduce((acc, t) => acc + Number(t.amount), 0);
+      // Calculate core metrics (competência): considera paid + pending + overdue (exclui cancelled)
+      const validTransactions = transactions.filter(t => t.status !== "cancelled");
+      const incomeTransactions = validTransactions.filter(t => t.type === "income");
+      const expenseTransactions = validTransactions.filter(t => t.type === "expense");
+
+      const revenue = incomeTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
+      const expenses = expenseTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
       const netProfit = revenue - expenses;
       const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
@@ -220,9 +221,10 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const payrollTotal = (payrollData || []).reduce((acc, p) => acc + Number(p.total_cost || 0), 0);
       const payrollCount = (payrollData || []).length;
 
-      // Previous period metrics for growth
-      const prevRevenue = prev.filter(t => t.type === "income" && t.status === "paid").reduce((acc, t) => acc + Number(t.amount), 0);
-      const prevExpenses = prev.filter(t => t.type === "expense" && t.status === "paid").reduce((acc, t) => acc + Number(t.amount), 0);
+      // Previous period metrics for growth (mesma regra de competência)
+      const prevValid = prev.filter(t => t.status !== "cancelled");
+      const prevRevenue = prevValid.filter(t => t.type === "income").reduce((acc, t) => acc + Number(t.amount), 0);
+      const prevExpenses = prevValid.filter(t => t.type === "expense").reduce((acc, t) => acc + Number(t.amount), 0);
       const prevProfit = prevRevenue - prevExpenses;
 
       const revenueGrowth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
@@ -270,6 +272,8 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const budgetVariance = budgetPlanned > 0 ? ((budgetPlanned - budgetRealized) / budgetPlanned) * 100 : 0;
 
       // Averages
+      const paidIncome = transactions.filter(t => t.type === "income" && t.status === "paid");
+      const paidExpenses = transactions.filter(t => t.type === "expense" && t.status === "paid");
       const avgTicket = paidIncome.length > 0 ? revenue / paidIncome.length : 0;
       
       // Average payment time (for paid expenses)
@@ -291,6 +295,13 @@ export function useFinancialKPIs(selectedMonth?: Date) {
             return acc + differenceInDays(paid, due);
           }, 0) / receivedWithDates.length
         : 0;
+
+      const overdueCount = transactions.filter(t => {
+        if (t.status === "cancelled") return false;
+        if (t.status === "overdue") return true;
+        if (t.status !== "pending") return false;
+        return new Date(t.due_date) < today;
+      }).length;
 
       return {
         revenue,
@@ -314,7 +325,7 @@ export function useFinancialKPIs(selectedMonth?: Date) {
         avgPaymentTime,
         avgReceivableTime,
         totalTransactions: transactions.length,
-        overdueCount: transactions.filter(t => t.status === "overdue").length,
+        overdueCount,
         pendingCount: transactions.filter(t => t.status === "pending").length,
         payrollTotal,
         payrollCount,
