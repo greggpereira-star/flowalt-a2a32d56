@@ -8961,6 +8961,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      expire_old_invites: { Args: never; Returns: undefined }
       fix_space_order: { Args: { p_workspace_id: string }; Returns: number }
       generate_birthday_notices: { Args: never; Returns: undefined }
       generate_payroll: {

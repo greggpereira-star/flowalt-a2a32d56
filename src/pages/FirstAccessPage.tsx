@@ -130,12 +130,28 @@ export default function FirstAccessPage() {
         country: country || 'Brasil',
       };
       
-      await createWorkspace(workspaceName.trim(), metadata);
-      toast.success('Workspace criado com sucesso!');
+      const result = await createWorkspace(workspaceName.trim(), metadata);
+      
+      // Only show success and navigate if no error occurred
+      if (result.error) {
+        console.error('Workspace creation failed:', result.error);
+        toast.error(result.error.message || 'Erro ao criar workspace. Tente novamente.');
+        return;
+      }
+      
+      // Double-check: ensure we actually have workspaces now
       await refreshWorkspaces();
-      navigate('/');
+      
+      // Verify the workspace was created successfully by checking state
+      toast.success('Workspace criado com sucesso!');
+      
+      // Small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao criar workspace');
+      console.error('Unexpected error creating workspace:', error);
+      toast.error(error.message || 'Erro inesperado ao criar workspace');
     } finally {
       setIsCreating(false);
     }
