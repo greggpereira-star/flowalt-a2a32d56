@@ -8672,6 +8672,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      is_workspace_member_for_folder: {
+        Args: { p_folder_id: string; p_user_id: string }
+        Returns: boolean
+      }
       log_entitlement_block: {
         Args: {
           p_action: string
