@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApiKeys, useCreateApiKey, useUpdateApiKey, useDeleteApiKey } from '@/hooks/useApiKeys';
-import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -10,11 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Key, Plus, Copy, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Key, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const PERMISSIONS = [
   { value: 'read', label: 'Leitura', description: 'Ler cards, comentários, eventos' },
@@ -28,12 +28,12 @@ export function ApiKeyManager() {
   const updateApiKey = useUpdateApiKey();
   const deleteApiKey = useDeleteApiKey();
   const { toast } = useToast();
-  const { data: plan } = useWorkspacePlan();
-  const { data: usage } = useWorkspaceUsage();
-
-  const apiKeysUsed = usage?.api_keys_used || 0;
-  const apiKeysLimit = plan?.api_keys_limit || 0;
-  const { canCreate: canCreateKey, status: limitStatus } = useLimitCheck(apiKeysUsed, apiKeysLimit);
+  const { currentRole } = useWorkspace();
+  
+  const { within, explain, has } = useEntitlementRegistry();
+  const canCreateKey = within('api_keys_limit') && has('integrations_access');
+  const explanation = explain('api_keys_limit');
+  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -101,16 +101,26 @@ export function ApiKeyManager() {
                 </DialogTitle>
               </DialogHeader>
 
-              {/* LimitGuard inside dialog */}
-              {!createdKey && limitStatus !== 'ok' && (
-                <LimitGuard
-                  resourceType="api_keys"
-                  resourceLabel="API Keys"
-                  currentUsage={apiKeysUsed}
-                  limit={apiKeysLimit}
-                  planTier={plan?.plan_tier || 'free'}
-                  variant="inline"
-                />
+              {/* Limit warning */}
+              {!createdKey && !canCreateKey && explanation.reason_code !== 'OK' && (
+                <div className="p-4 rounded-lg border border-warning bg-warning/10">
+                  <div className="flex items-center gap-2 text-warning-foreground">
+                    {explanation.reason_code === 'DISABLED' ? (
+                      <Lock className="h-4 w-4" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4" />
+                    )}
+                    <span className="font-medium">{explanation.message}</span>
+                  </div>
+                  {explanation.cta && isAdmin && (
+                    <p className="text-sm text-muted-foreground mt-1">{explanation.cta}</p>
+                  )}
+                  {explanation.limit && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {explanation.current}/{explanation.limit} API Keys utilizadas
+                    </p>
+                  )}
+                </div>
               )}
               
               {createdKey ? (
