@@ -72,6 +72,7 @@ export function useCreateWorkspaceInvite() {
       // Enviar email de notificação
       try {
         const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
+        const inviteData = data as { token?: string } | null;
         
         await sendWorkspaceInviteEmail({
           email: variables.email,
@@ -79,7 +80,7 @@ export function useCreateWorkspaceInvite() {
           workspace_name: currentWorkspace!.name,
           inviter_name: inviterProfile?.name || 'Administrador',
           role: variables.role,
-          token: data?.token || '',
+          token: inviteData?.token || '',
           expires_in: '7 dias',
         });
         
