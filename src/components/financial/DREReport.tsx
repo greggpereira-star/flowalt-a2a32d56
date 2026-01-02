@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import { useGenerateDRE } from "@/hooks/useFinancialReports";
 import { useTransactions } from "@/hooks/useFinancial";
 import { useTaxSettings, useLocalTaxCalculation } from "@/hooks/useTaxSettings";
@@ -307,6 +309,18 @@ export function DREReport() {
 
   return (
     <div className="space-y-6">
+      {/* Tax regime warning */}
+      {!taxSettings && (
+        <Alert variant="default" className="border-amber-500/50 bg-amber-500/5">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-600">Regime Fiscal não configurado</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Os valores de impostos exibidos são <strong>estimativas padrão</strong> (Simples Nacional 6%). 
+            Configure o regime tributário em "Config. Fiscal" para cálculos precisos.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

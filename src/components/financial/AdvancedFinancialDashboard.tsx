@@ -10,6 +10,7 @@ import { BudgetVsRealizedChart } from "./BudgetVsRealizedChart";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
 import { DDADashboardWidget } from "./DDADashboardWidget";
 import { DDAAlerts } from "./DDAAlerts";
+import { TaxRegimeBanner } from "./TaxRegimeBanner";
 import { useFinancialKPIs } from "@/hooks/useFinancialKPIs";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -27,6 +28,9 @@ export function AdvancedFinancialDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Tax Regime Warning Banner */}
+      <TaxRegimeBanner />
+      
       {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
         <div>
