@@ -16,6 +16,7 @@ import { DraggableCard } from './DraggableCard';
 import { DragOverlayCard } from './DragOverlayCard';
 import { CardContextMenu } from './CardContextMenu';
 import { TransitionBlockedModal } from './TransitionBlockedModal';
+import { DestructiveActionGuard } from '@/components/governance/DestructiveActionGuard';
 import { statusConfig } from './CardBadges';
 import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -197,6 +198,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     targetStatus: CardStatus;
     validation: TransitionValidationResult;
   } | null>(null);
+
+  // Delete confirmation state (GOX)
+  const [deleteTarget, setDeleteTarget] = useState<Card | null>(null);
 
   // DnD sensors
   const sensors = useSensors(
@@ -463,9 +467,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }
   };
 
-  const handleDelete = async (card: Card) => {
+  const handleDelete = (card: Card) => {
+    setDeleteTarget(card);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteCard.mutateAsync(card.id);
+      await deleteCard.mutateAsync(deleteTarget.id);
       toast({ title: 'Card arquivado' });
     } catch (error) {
       toast({
@@ -604,6 +613,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         onForceTransition={handleForceTransition}
         onFixGate={handleFixGate}
         canForce={canForceTransition}
+      />
+
+      {/* Delete Confirmation (GOX) */}
+      <DestructiveActionGuard
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        entityType="card"
+        entityId={deleteTarget?.id || ''}
+        entityName={deleteTarget?.title || ''}
+        createdBy={deleteTarget?.created_by}
+        hasHistory={true}
+        forceMode="archive"
+        onConfirm={confirmDelete}
       />
     </>
   );

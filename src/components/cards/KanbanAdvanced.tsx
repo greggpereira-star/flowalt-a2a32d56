@@ -16,6 +16,7 @@ import { DraggableCard } from './DraggableCard';
 import { DragOverlayCard } from './DragOverlayCard';
 import { CardContextMenu } from './CardContextMenu';
 import { statusConfig } from './CardBadges';
+import { DestructiveActionGuard } from '@/components/governance/DestructiveActionGuard';
 import { KanbanQuickFilters, applyQuickFilter } from './KanbanQuickFilters';
 import { KanbanColumnMetrics } from './KanbanColumnMetrics';
 import { KanbanInlineQuickAdd } from './KanbanInlineQuickAdd';
@@ -188,6 +189,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
 
   // Quick add state per column
   const [quickAddColumn, setQuickAddColumn] = useState<CardStatus | null>(null);
+
+  // Delete confirmation state (GOX)
+  const [deleteTarget, setDeleteTarget] = useState<Card | null>(null);
 
   // DnD sensors
   const sensors = useSensors(
@@ -405,9 +409,14 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     }
   };
 
-  const handleDelete = async (card: Card) => {
+  const handleDelete = (card: Card) => {
+    setDeleteTarget(card);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteCard.mutateAsync(card.id);
+      await deleteCard.mutateAsync(deleteTarget.id);
       toast({ title: 'Card arquivado' });
     } catch (error) {
       toast({ title: 'Erro ao arquivar', variant: 'destructive' });
@@ -1050,6 +1059,19 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation (GOX) */}
+        <DestructiveActionGuard
+          open={!!deleteTarget}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          entityType="card"
+          entityId={deleteTarget?.id || ''}
+          entityName={deleteTarget?.title || ''}
+          createdBy={deleteTarget?.created_by}
+          hasHistory={true}
+          forceMode="archive"
+          onConfirm={confirmDelete}
+        />
       </div>
     </DndContext>
   );
