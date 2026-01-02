@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWebhooks, useCreateWebhook, useUpdateWebhook, useDeleteWebhook, useWebhookDeliveries, useResendWebhook, WEBHOOK_EVENTS } from '@/hooks/useWebhooks';
-import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,11 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Webhook, Plus, Trash2, RefreshCw, Eye, Copy, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Webhook, Plus, Trash2, RefreshCw, Eye, Copy, CheckCircle2, XCircle, Clock, AlertTriangle, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export function WebhookManager() {
   const { data: webhooks, isLoading } = useWebhooks();
@@ -25,12 +25,12 @@ export function WebhookManager() {
   const deleteWebhook = useDeleteWebhook();
   const resendWebhook = useResendWebhook();
   const { toast } = useToast();
-  const { data: plan } = useWorkspacePlan();
-  const { data: usage } = useWorkspaceUsage();
-
-  const webhooksUsed = usage?.webhooks_used || 0;
-  const webhooksLimit = plan?.webhooks_limit || 0;
-  const { canCreate: canCreateWebhook, status: limitStatus } = useLimitCheck(webhooksUsed, webhooksLimit);
+  const { currentRole } = useWorkspace();
+  
+  const { within, explain, has } = useEntitlementRegistry();
+  const canCreateWebhook = within('webhooks_limit') && has('integrations_access');
+  const explanation = explain('webhooks_limit');
+  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newWebhookName, setNewWebhookName] = useState('');
@@ -105,16 +105,26 @@ export function WebhookManager() {
                   <DialogTitle>Criar Webhook</DialogTitle>
                 </DialogHeader>
 
-                {/* LimitGuard inside dialog */}
-                {limitStatus !== 'ok' && (
-                  <LimitGuard
-                    resourceType="webhooks"
-                    resourceLabel="Webhooks"
-                    currentUsage={webhooksUsed}
-                    limit={webhooksLimit}
-                    planTier={plan?.plan_tier || 'free'}
-                    variant="inline"
-                  />
+                {/* Limit warning */}
+                {!canCreateWebhook && explanation.reason_code !== 'OK' && (
+                  <div className="p-4 rounded-lg border border-warning bg-warning/10">
+                    <div className="flex items-center gap-2 text-warning-foreground">
+                      {explanation.reason_code === 'DISABLED' ? (
+                        <Lock className="h-4 w-4" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">{explanation.message}</span>
+                    </div>
+                    {explanation.cta && isAdmin && (
+                      <p className="text-sm text-muted-foreground mt-1">{explanation.cta}</p>
+                    )}
+                    {explanation.limit && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {explanation.current}/{explanation.limit} Webhooks utilizados
+                      </p>
+                    )}
+                  </div>
                 )}
                 {canCreateWebhook && (
                   <div className="space-y-4">

@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IconPicker } from './IconPicker';
 import { SpaceTemplatePreview } from './SpaceTemplatePreview';
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, Eye, AlertTriangle, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   SPACE_TEMPLATES, 
@@ -20,8 +20,8 @@ import {
   type SpaceTemplate,
   templateHasStructure,
 } from '@/lib/spaceTemplates';
-import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
-import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface CreateSpaceDialogProps {
   open: boolean;
@@ -56,12 +56,11 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
   const [icon, setIcon] = useState('folder');
   const [color, setColor] = useState('#6366f1');
 
-  const { data: plan } = useWorkspacePlan();
-  const { data: usage } = useWorkspaceUsage();
-
-  const spacesUsed = usage?.spaces_used || 0;
-  const spacesLimit = plan?.spaces_limit || 3;
-  const { canCreate: canCreateSpace, status: limitStatus } = useLimitCheck(spacesUsed, spacesLimit);
+  const { currentRole } = useWorkspace();
+  const { within, explain } = useEntitlementRegistry();
+  const canCreateSpace = within('spaces_limit');
+  const explanation = explain('spaces_limit');
+  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
 
   const template = SPACE_TEMPLATES[selectedType];
   const hasStructure = templateHasStructure(selectedType);
@@ -163,16 +162,26 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
         {/* Step 1: Template Selection */}
         {step === 1 && (
           <div className="space-y-4">
-            {/* LimitGuard warning/block */}
-            {limitStatus !== 'ok' && (
-              <LimitGuard
-                resourceType="spaces"
-                resourceLabel="Espaços"
-                currentUsage={spacesUsed}
-                limit={spacesLimit}
-                planTier={plan?.plan_tier || 'free'}
-                variant="inline"
-              />
+            {/* Limit warning */}
+            {!canCreateSpace && explanation.reason_code !== 'OK' && (
+              <div className="p-4 rounded-lg border border-warning bg-warning/10">
+                <div className="flex items-center gap-2 text-warning-foreground">
+                  {explanation.reason_code === 'DISABLED' ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4" />
+                  )}
+                  <span className="font-medium">{explanation.message}</span>
+                </div>
+                {explanation.cta && isAdmin && (
+                  <p className="text-sm text-muted-foreground mt-1">{explanation.cta}</p>
+                )}
+                {explanation.limit && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {explanation.current}/{explanation.limit} Espaços utilizados
+                  </p>
+                )}
+              </div>
             )}
 
             {canCreateSpace && (

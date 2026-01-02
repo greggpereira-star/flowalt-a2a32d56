@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,12 +43,14 @@ import {
   Loader2,
   Copy,
   Trash2,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
-import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const INVITE_ROLES: { value: AppRole; label: string }[] = [
   { value: 'admin', label: 'Administrador' },
@@ -70,17 +72,17 @@ export function WorkspaceInvitesPanel() {
   const createInvite = useCreateWorkspaceInvite();
   const revokeInvite = useRevokeWorkspaceInvite();
   const { canManageWorkspace } = usePermissions();
-  const { data: plan } = useWorkspacePlan();
-  const { data: usage } = useWorkspaceUsage();
+  const { currentRole } = useWorkspace();
+  
+  const { within, explain } = useEntitlementRegistry();
+  const canInvite = within('members_limit');
+  const explanation = explain('members_limit');
+  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AppRole>('member');
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
-
-  const seatsUsed = usage?.seats_used || 0;
-  const seatsLimit = plan?.seats_limit || 3;
-  const { canCreate: canInvite } = useLimitCheck(seatsUsed, seatsLimit);
 
   const handleCreateInvite = async () => {
     if (!email.trim()) return;
@@ -157,15 +159,27 @@ export function WorkspaceInvitesPanel() {
                   </DialogDescription>
                 </DialogHeader>
 
-                {/* LimitGuard inside dialog */}
-                <LimitGuard
-                  resourceType="seats"
-                  resourceLabel="Membros"
-                  currentUsage={seatsUsed}
-                  limit={seatsLimit}
-                  planTier={plan?.plan_tier || 'free'}
-                  variant="inline"
-                />
+                {/* Limit warning */}
+                {!canInvite && explanation.reason_code !== 'OK' && (
+                  <div className="p-4 rounded-lg border border-warning bg-warning/10">
+                    <div className="flex items-center gap-2 text-warning-foreground">
+                      {explanation.reason_code === 'DISABLED' ? (
+                        <Lock className="h-4 w-4" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">{explanation.message}</span>
+                    </div>
+                    {explanation.cta && isAdmin && (
+                      <p className="text-sm text-muted-foreground mt-1">{explanation.cta}</p>
+                    )}
+                    {explanation.limit && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {explanation.current}/{explanation.limit} Membros utilizados
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {canInvite && (
                   <>
