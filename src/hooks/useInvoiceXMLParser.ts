@@ -42,6 +42,27 @@ export interface ParsedNFe {
   invoiceType: 'nfe' | 'nfse' | 'nfce';
 }
 
+// Structured error for better debugging
+interface XMLParseError extends Error {
+  code: string;
+  details?: {
+    rootElement?: string;
+    namespace?: string;
+    detectedType?: string;
+  };
+}
+
+function createParseError(
+  message: string,
+  code: string,
+  details?: XMLParseError["details"]
+): XMLParseError {
+  const error = new Error(message) as XMLParseError;
+  error.code = code;
+  error.details = details;
+  return error;
+}
+
 // Parse NFe XML content
 export function parseNFeXML(xmlContent: string): ParsedNFe | null {
   try {
@@ -52,19 +73,20 @@ export function parseNFeXML(xmlContent: string): ParsedNFe | null {
     const parseError = xmlDoc.querySelector("parsererror");
     if (parseError) {
       console.error("XML parse error:", parseError.textContent);
-      throw new Error("XML inválido");
+      throw createParseError("XML inválido - não foi possível interpretar o conteúdo", "XML_PARSE_ERROR");
     }
 
-    // Debug: Log the root element to understand the XML structure
-    console.log("XML root element:", xmlDoc.documentElement?.tagName);
-    console.log("XML namespaces:", xmlDoc.documentElement?.getAttribute("xmlns"));
+    const rootLocalName = xmlDoc.documentElement?.localName || xmlDoc.documentElement?.tagName || "";
+    const rootNs = xmlDoc.documentElement?.namespaceURI || xmlDoc.documentElement?.getAttribute("xmlns") || "";
+
+    // Structured debug logging
+    console.log("[XML Parser] Analyzing file:", {
+      rootElement: rootLocalName,
+      namespace: rootNs,
+      childCount: xmlDoc.documentElement?.children?.length || 0,
+    });
 
     // Detection (namespace-safe). Many NFSe XMLs use prefixes, so we must match by localName.
-    const rootLocalName = xmlDoc.documentElement?.localName || xmlDoc.documentElement?.tagName || "";
-    const rootNs =
-      xmlDoc.documentElement?.namespaceURI ||
-      xmlDoc.documentElement?.getAttribute("xmlns") ||
-      "";
 
     const getAllByLocalName = (tagName: string): Element[] => {
       const byTag = Array.from(xmlDoc.getElementsByTagName(tagName) as unknown as Iterable<Element>);
@@ -99,32 +121,43 @@ export function parseNFeXML(xmlContent: string): ParsedNFe | null {
         "Rps",
       ]);
 
-    console.log("Has NFe elements:", hasNFeElements, "Has NFSe elements:", hasNFSeElements, "Root:", rootLocalName);
+    console.log("[XML Parser] Detection results:", { hasNFeElements, hasNFSeElements, isNFSeRoot, rootLocalName });
 
     if (isNFSeRoot || (hasNFSeElements && !hasNFeElements)) {
+      console.log("[XML Parser] Detected as NFSe");
       return parseNFSeXML(xmlDoc);
     }
 
     if (hasNFeElements) {
+      console.log("[XML Parser] Detected as NFe");
       return parseNFeXMLContent(xmlDoc);
     }
 
     // If we still can't detect, try fallbacks.
-    console.log("Could not detect XML type, attempting fallback parses...");
+    console.log("[XML Parser] Could not detect XML type, attempting fallback parses...");
 
     const nfeResult = tryParseAsNFe(xmlDoc);
-    if (nfeResult) return nfeResult;
+    if (nfeResult) {
+      console.log("[XML Parser] Fallback NFe parse succeeded");
+      return nfeResult;
+    }
 
     // Last attempt: NFSe parser (may still succeed even if detection failed)
     try {
-      return parseNFSeXML(xmlDoc);
+      const nfseResult = parseNFSeXML(xmlDoc);
+      console.log("[XML Parser] Fallback NFSe parse succeeded");
+      return nfseResult;
     } catch {
       // ignore and throw below
     }
 
-    throw new Error("Formato de XML não reconhecido. Verifique se é um XML de NF-e ou NFS-e válido.");
+    throw createParseError(
+      "Formato de XML não reconhecido. Verifique se é um XML de NF-e ou NFS-e válido.",
+      "XML_FORMAT_NOT_SUPPORTED",
+      { rootElement: rootLocalName, namespace: rootNs, detectedType: "unknown" }
+    );
   } catch (error) {
-    console.error("Error parsing XML:", error);
+    console.error("[XML Parser] Error:", error);
     throw error;
   }
 }
@@ -607,9 +640,14 @@ export function useXMLFileParser() {
     const parsed: ParsedNFe[] = [];
     const parseErrors: string[] = [];
 
+    console.log(`[XML Import] Starting to parse ${files.length} file(s)`);
+
     for (const file of Array.from(files)) {
+      const startTime = performance.now();
+      
       if (!file.name.toLowerCase().endsWith(".xml")) {
         parseErrors.push(`${file.name}: Não é um arquivo XML`);
+        console.log(`[XML Import] Skipped ${file.name}: not an XML file`);
         continue;
       }
 
@@ -619,13 +657,25 @@ export function useXMLFileParser() {
         
         if (result) {
           parsed.push(result);
+          const duration = Math.round(performance.now() - startTime);
+          console.log(`[XML Import] ✓ Parsed ${file.name} successfully`, {
+            type: result.invoiceType,
+            number: result.invoiceNumber,
+            amount: result.grossAmount,
+            durationMs: duration,
+          });
         } else {
           parseErrors.push(`${file.name}: Não foi possível parsear o XML`);
+          console.log(`[XML Import] ✗ Failed to parse ${file.name}: no result returned`);
         }
       } catch (error) {
-        parseErrors.push(`${file.name}: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+        const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+        parseErrors.push(`${file.name}: ${errorMessage}`);
+        console.error(`[XML Import] ✗ Error parsing ${file.name}:`, error);
       }
     }
+
+    console.log(`[XML Import] Completed: ${parsed.length} success, ${parseErrors.length} errors`);
 
     setParsedInvoices(parsed);
     setErrors(parseErrors);
