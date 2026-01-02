@@ -65,14 +65,14 @@ export function InvoiceList({ onEdit, onLinkTransaction }: InvoiceListProps) {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "issued":
+      case "emitida":
         return <Badge className="bg-green-500/20 text-green-500 border-green-500/30"><CheckCircle className="w-3 h-3 mr-1" /> Emitida</Badge>;
-      case "pending":
+      case "pendente":
         return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
-      case "cancelled":
+      case "cancelada":
         return <Badge className="bg-red-500/20 text-red-500 border-red-500/30"><AlertCircle className="w-3 h-3 mr-1" /> Cancelada</Badge>;
-      case "draft":
-        return <Badge variant="secondary">Rascunho</Badge>;
+      case "substituida":
+        return <Badge variant="secondary">Substituída</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -136,9 +136,10 @@ export function InvoiceList({ onEdit, onLinkTransaction }: InvoiceListProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="issued">Emitidas</SelectItem>
-            <SelectItem value="pending">Pendentes</SelectItem>
-            <SelectItem value="cancelled">Canceladas</SelectItem>
+            <SelectItem value="emitida">Emitidas</SelectItem>
+            <SelectItem value="pendente">Pendentes</SelectItem>
+            <SelectItem value="cancelada">Canceladas</SelectItem>
+            <SelectItem value="substituida">Substituídas</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -236,13 +237,16 @@ export function InvoiceList({ onEdit, onLinkTransaction }: InvoiceListProps) {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onEdit?.(invoice)}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(invoice.id)}
+                          disabled={deleteInvoice.isPending}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Excluir
