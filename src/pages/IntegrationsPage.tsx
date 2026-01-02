@@ -19,7 +19,8 @@ import { PredictiveSyncPanel } from '@/components/settings/PredictiveSyncPanel';
 import { FeatureFlagsManager } from '@/components/settings/FeatureFlagsManager';
 import { AuditLogsPanel } from '@/components/settings/AuditLogsPanel';
 import { IntegrationsPaywall } from '@/components/billing/IntegrationsPaywall';
-import { PlanGate } from '@/components/billing/PlanGate';
+import { EntitlementGate } from '@/components/billing/EntitlementGate';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,6 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePageTracking } from '@/hooks/usePageTracking';
-import { useHasEntitlement } from '@/hooks/useWorkspacePlan';
-
 const INTEGRATION_TABS = new Set([
   'api-keys',
   'webhooks',
@@ -83,9 +82,9 @@ export default function IntegrationsPage() {
   const { canManageApiKeys, canManageWebhooks, isAdmin, isCoordinator } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Check entitlement for integrations
-  const hasIntegrationsEntitlement = useHasEntitlement('integrations.enabled');
-  const hasWebhookReplayEntitlement = useHasEntitlement('webhooks.replay');
+  // Check entitlement for integrations using the registry
+  const { has } = useEntitlementRegistry();
+  const hasIntegrationsEntitlement = has('integrations_access');
 
   // Permission check: Owner, Admin, or Coordinator
   const hasAccess = isAdmin || isCoordinator;
@@ -246,9 +245,9 @@ export default function IntegrationsPage() {
             <WebhookHealthScore />
           </TabsContent>
           <TabsContent value="webhook-dlq">
-            <PlanGate featureKey="webhooks.replay" requiredTier="enterprise">
+            <EntitlementGate entitlementKey="webhook_replay" mode="paywall">
               <WebhookReplayPanel />
-            </PlanGate>
+            </EntitlementGate>
           </TabsContent>
           <TabsContent value="webhook-monitor">
             <WebhookDashboard />
