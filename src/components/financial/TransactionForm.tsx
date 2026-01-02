@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCreateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
 import { useClients } from "@/hooks/useClients";
+import { useCostCenters } from "@/hooks/useCostCenters";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
@@ -47,6 +48,7 @@ const transactionSchema = z.object({
   due_date: z.date(),
   category_id: z.string().optional(),
   client_id: z.string().optional(),
+  cost_center_id: z.string().optional(),
   status: z.enum(["pending", "paid"]).optional(),
   recurrence: z.enum(["none", "monthly", "yearly"]).optional(),
   total_installments: z.string().optional(),
@@ -66,6 +68,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const createTransaction = useCreateTransaction();
   const { data: categories = [] } = useCategories();
   const { data: clients = [] } = useClients();
+  const { data: costCenters = [] } = useCostCenters();
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -76,6 +79,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       due_date: transaction?.due_date ? new Date(transaction.due_date) : new Date(),
       category_id: transaction?.category_id || "",
       client_id: transaction?.client_id || "",
+      cost_center_id: (transaction as any)?.cost_center_id || "",
       status: transaction?.status === "paid" ? "paid" : "pending",
       recurrence: transaction?.recurrence || "none",
       total_installments: transaction?.total_installments?.toString() || "",
@@ -97,6 +101,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       due_date: data.due_date.toISOString().split("T")[0],
       category_id: data.category_id || undefined,
       client_id: data.client_id || undefined,
+      cost_center_id: data.cost_center_id || undefined,
       status: data.status,
       recurrence: data.recurrence,
       total_installments: data.total_installments ? parseInt(data.total_installments) : undefined,
@@ -272,6 +277,38 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
                 )}
               />
             </div>
+
+            {/* Centro de Custo */}
+            <FormField
+              control={form.control}
+              name="cost_center_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Centro de Custo</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {costCenters.map((cc) => (
+                        <SelectItem key={cc.id} value={cc.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: cc.color || '#3B82F6' }} 
+                            />
+                            {cc.code ? `${cc.code} - ` : ""}{cc.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
