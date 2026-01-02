@@ -169,6 +169,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const createWorkspace = async (name: string, metadata?: WorkspaceMetadata): Promise<{ error: Error | null; workspace?: Workspace }> => {
     if (!user) return { error: new Error('User not authenticated') };
 
+    const workspaceId = generateUuid();
+    let memberCreated = false;
+    let roleCreated = false;
+
     try {
       const slug =
         name
@@ -178,11 +182,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '')
           .substring(0, 50) + '-' + Date.now().toString(36);
-
-      // IMPORTANT: Don't request RETURNING/representation here.
-      // The workspaces SELECT policy depends on workspace_members, which doesn't exist yet,
-      // so asking for the inserted row can fail with RLS.
-      const workspaceId = generateUuid();
 
       // Incluir metadata nas settings do workspace
       const workspaceSettings = metadata ? {
@@ -201,8 +200,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           settings: workspaceSettings as Json,
         });
 
-      if (workspaceError) throw workspaceError;
+      if (workspaceError) {
+        console.error('Error creating workspace:', workspaceError);
+        throw new Error(`Erro ao criar workspace: ${workspaceError.message}`);
+      }
 
+      // CRITICAL: Member insert must succeed for the workspace to be usable
       const { error: memberError } = await supabase
         .from('workspace_members')
         .insert({
@@ -210,10 +213,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           user_id: user.id,
           function_title: 'Proprietário',
           is_active: true,
-          can_view_financials: true, // Proprietário deve ter acesso financeiro
+          can_view_financials: true,
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Error creating workspace member:', memberError);
+        // Rollback: delete the workspace since member creation failed
+        await supabase.from('workspaces').delete().eq('id', workspaceId);
+        throw new Error(`Erro ao associar usuário ao workspace: ${memberError.message}`);
+      }
+      memberCreated = true;
 
       const { error: roleError } = await supabase
         .from('user_roles')
@@ -223,12 +232,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           role: 'owner',
         });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('Error creating user role:', roleError);
+        // Rollback: delete member and workspace
+        await supabase.from('workspace_members').delete().eq('workspace_id', workspaceId).eq('user_id', user.id);
+        await supabase.from('workspaces').delete().eq('id', workspaceId);
+        throw new Error(`Erro ao criar permissões: ${roleError.message}`);
+      }
+      roleCreated = true;
 
-      // NÃO criar espaços automaticamente - workspace começa vazio
-      // O usuário decide conscientemente quais espaços criar
-
-      // Create default financial categories (necessário para o financeiro funcionar)
+      // Create default financial categories (non-critical, just log errors)
       const defaultCategories: Array<{
         workspace_id: string;
         name: string;
@@ -252,7 +265,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ];
 
       const { error: categoriesError } = await supabase.from('financial_categories').insert(defaultCategories);
-
       if (categoriesError) console.error('Error creating default categories:', categoriesError);
 
       // Now that membership exists, reading the workspace row is allowed by policy.
@@ -262,7 +274,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('id', workspaceId)
         .maybeSingle();
 
-      if (createdWorkspaceError) throw createdWorkspaceError;
+      if (createdWorkspaceError) {
+        console.error('Error fetching created workspace:', createdWorkspaceError);
+      }
 
       const fallbackWorkspace: Workspace = {
         id: workspaceId,
@@ -273,11 +287,22 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         settings: {} as Json,
       };
 
+      // Refresh workspaces list and set as current
       await fetchWorkspaces();
       setCurrentWorkspace(createdWorkspace ?? fallbackWorkspace);
 
       return { error: null, workspace: createdWorkspace ?? fallbackWorkspace };
     } catch (error) {
+      // If we partially created resources, try to clean up
+      if (!memberCreated || !roleCreated) {
+        try {
+          await supabase.from('user_roles').delete().eq('workspace_id', workspaceId).eq('user_id', user.id);
+          await supabase.from('workspace_members').delete().eq('workspace_id', workspaceId).eq('user_id', user.id);
+          await supabase.from('workspaces').delete().eq('id', workspaceId);
+        } catch (cleanupError) {
+          console.error('Error during cleanup:', cleanupError);
+        }
+      }
       return { error: error as Error };
     }
   };
