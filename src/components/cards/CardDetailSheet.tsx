@@ -6,9 +6,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -877,13 +877,24 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <FileText className="h-3.5 w-3.5" />
                       Descrição
                     </label>
-                    <Textarea
+                    <RichTextEditor
                       placeholder="Adicione uma descrição detalhada para este card..."
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      onBlur={() => description !== card.description && handleSave({ description })}
-                      className="min-h-[120px] resize-none text-sm leading-relaxed"
+                      onChange={setDescription}
+                      minHeight="100px"
+                      maxHeight="250px"
                     />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => description !== card.description && handleSave({ description })}
+                        disabled={description === card.description}
+                      >
+                        Salvar descrição
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Social Media Custom Fields */}

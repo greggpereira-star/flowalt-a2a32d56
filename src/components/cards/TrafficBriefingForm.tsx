@@ -1,7 +1,6 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Target, DollarSign, Users, Calendar } from 'lucide-react';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 export interface TrafficBriefingData {
   objective: string;
@@ -165,12 +165,13 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Descrição do Público</Label>
-            <Textarea
+            <RichTextEditor
               placeholder="Descreva o público ideal para esta campanha..."
               value={data.audience_description || ''}
-              onChange={(e) => updateField('audience_description', e.target.value)}
+              onChange={(v) => updateField('audience_description', v)}
               disabled={disabled}
-              className="min-h-[60px]"
+              minHeight="60px"
+              maxHeight="150px"
             />
           </div>
 
@@ -217,22 +218,24 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Interesses</Label>
-              <Textarea
+              <RichTextEditor
                 placeholder="Ex: Moda, Tecnologia, Esportes..."
                 value={data.audience_interests || ''}
-                onChange={(e) => updateField('audience_interests', e.target.value)}
+                onChange={(v) => updateField('audience_interests', v)}
                 disabled={disabled}
-                className="min-h-[60px]"
+                minHeight="60px"
+                maxHeight="150px"
               />
             </div>
             <div className="space-y-2">
               <Label>Localizações</Label>
-              <Textarea
+              <RichTextEditor
                 placeholder="Ex: São Paulo, Rio de Janeiro, Brasil..."
                 value={data.audience_locations || ''}
-                onChange={(e) => updateField('audience_locations', e.target.value)}
+                onChange={(v) => updateField('audience_locations', v)}
                 disabled={disabled}
-                className="min-h-[60px]"
+                minHeight="60px"
+                maxHeight="150px"
               />
             </div>
           </div>
@@ -248,12 +251,13 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>KPIs Esperados</Label>
-              <Textarea
+              <RichTextEditor
                 placeholder="Ex: CPC < R$2, CTR > 1%, ROAS > 3..."
                 value={data.kpis || ''}
-                onChange={(e) => updateField('kpis', e.target.value)}
+                onChange={(v) => updateField('kpis', v)}
                 disabled={disabled}
-                className="min-h-[60px]"
+                minHeight="60px"
+                maxHeight="150px"
               />
             </div>
             <div className="space-y-2">
@@ -279,12 +283,13 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
 
           <div className="space-y-2">
             <Label>Observações Adicionais</Label>
-            <Textarea
+            <RichTextEditor
               placeholder="Informações extras para o gestor de tráfego..."
               value={data.additional_notes || ''}
-              onChange={(e) => updateField('additional_notes', e.target.value)}
+              onChange={(v) => updateField('additional_notes', v)}
               disabled={disabled}
-              className="min-h-[60px]"
+              minHeight="60px"
+              maxHeight="150px"
             />
           </div>
         </CardContent>
