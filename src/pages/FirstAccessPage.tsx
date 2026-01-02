@@ -135,7 +135,21 @@ export default function FirstAccessPage() {
       // Only show success and navigate if no error occurred
       if (result.error) {
         console.error('Workspace creation failed:', result.error);
-        toast.error(result.error.message || 'Erro ao criar workspace. Tente novamente.');
+        
+        // Parse entitlement errors for friendly messages
+        const errorMessage = result.error.message || '';
+        
+        if (errorMessage.includes('ENTITLEMENT_BLOCKED')) {
+          toast.error('Não foi possível criar o workspace', {
+            description: 'Houve um problema com as permissões. Entre em contato com o suporte.',
+          });
+        } else if (errorMessage.includes('row-level security')) {
+          toast.error('Erro de permissão', {
+            description: 'Sua sessão pode ter expirado. Tente fazer login novamente.',
+          });
+        } else {
+          toast.error(errorMessage || 'Erro ao criar workspace. Tente novamente.');
+        }
         return;
       }
       
@@ -143,7 +157,9 @@ export default function FirstAccessPage() {
       await refreshWorkspaces();
       
       // Verify the workspace was created successfully by checking state
-      toast.success('Workspace criado com sucesso!');
+      toast.success('Workspace criado com sucesso!', {
+        description: 'Agora você pode começar a criar seus espaços de trabalho.',
+      });
       
       // Small delay to ensure state is updated before navigation
       setTimeout(() => {
@@ -151,7 +167,16 @@ export default function FirstAccessPage() {
       }, 100);
     } catch (error: any) {
       console.error('Unexpected error creating workspace:', error);
-      toast.error(error.message || 'Erro inesperado ao criar workspace');
+      
+      // Parse error for better UX
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('ENTITLEMENT_BLOCKED')) {
+        toast.error('Limite do plano atingido', {
+          description: 'Entre em contato com o suporte para resolver este problema.',
+        });
+      } else {
+        toast.error(errorMessage || 'Erro inesperado ao criar workspace');
+      }
     } finally {
       setIsCreating(false);
     }
