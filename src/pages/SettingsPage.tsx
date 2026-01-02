@@ -19,13 +19,15 @@ import { WorkspaceInvitesPanel } from '@/components/settings/WorkspaceInvitesPan
 import { GovernancePanel } from '@/components/settings/GovernancePanel';
 import { SpaceAccessControl } from '@/components/settings/SpaceAccessControl';
 import { BirthdaySettings } from '@/components/notices/BirthdaySettings';
+import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
+import { NoticesManager } from '@/components/notices/NoticesManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Zap, Monitor, PieChart, FileStack, Shield, Crown, Bell, 
   HeartPulse, Archive, GitBranch, ClipboardCheck, FolderKanban, Users, 
-  UserPlus, ShieldX, ArrowLeft, CreditCard, User
+  UserPlus, ShieldX, ArrowLeft, CreditCard, User, PartyPopper, Megaphone
 } from 'lucide-react';
 import { BillingPlanPage } from '@/components/billing/BillingPlanPage';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -51,6 +53,8 @@ const SETTINGS_TABS = new Set([
   'system',
   'usage',
   'super-admin',
+  'celebrations',
+  'notices',
 ]);
 
 // Redirects for old integration tabs -> new /integrations page
@@ -233,6 +237,18 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <span className="text-xs font-medium">Push</span>
               </TabsTrigger>
+              <TabsTrigger value="celebrations" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <PartyPopper className="h-5 w-5" />
+                <span className="text-xs font-medium">Celebrações</span>
+              </TabsTrigger>
+              
+              {/* Admin: Notices Manager */}
+              {canManageWorkspace && (
+                <TabsTrigger value="notices" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                  <Megaphone className="h-5 w-5" />
+                  <span className="text-xs font-medium">Avisos</span>
+                </TabsTrigger>
+              )}
               
               {/* System - Admin only */}
               {canManageWorkspace && (
@@ -315,6 +331,12 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="push">
             <PushNotificationSettings />
+          </TabsContent>
+          <TabsContent value="celebrations">
+            <HolidayCelebrationDemo />
+          </TabsContent>
+          <TabsContent value="notices">
+            <NoticesManager />
           </TabsContent>
 
           {/* System */}

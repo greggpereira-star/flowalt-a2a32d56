@@ -184,9 +184,6 @@ const Index: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo de Celebrações - Remover após visualização */}
-        <HolidayCelebrationDemo />
-
         {/* Holiday Celebrations */}
         <div className="mb-6">
           <HolidayBanner />
