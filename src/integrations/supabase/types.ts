@@ -3101,6 +3101,105 @@ export type Database = {
           },
         ]
       }
+      entitlement_audit: {
+        Row: {
+          action: string
+          created_at: string
+          current_value: number | null
+          entitlement_key: string
+          id: string
+          limit_value: number | null
+          metadata: Json | null
+          reason_code: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          current_value?: number | null
+          entitlement_key: string
+          id?: string
+          limit_value?: number | null
+          metadata?: Json | null
+          reason_code: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          current_value?: number | null
+          entitlement_key?: string
+          id?: string
+          limit_value?: number | null
+          metadata?: Json | null
+          reason_code?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "entitlement_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entitlement_registry: {
+        Row: {
+          category: string
+          created_at: string
+          default_enabled: boolean
+          default_limit: number | null
+          description: string | null
+          enforcement_scope: string
+          key: string
+          name: string
+          type: string
+          ui_visibility: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_limit?: number | null
+          description?: string | null
+          enforcement_scope?: string
+          key: string
+          name: string
+          type?: string
+          ui_visibility?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_limit?: number | null
+          description?: string | null
+          enforcement_scope?: string
+          key?: string
+          name?: string
+          type?: string
+          ui_visibility?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_participants: {
         Row: {
           created_at: string
@@ -4970,6 +5069,54 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_entitlements: {
+        Row: {
+          config: Json | null
+          created_at: string
+          enabled: boolean
+          entitlement_key: string
+          id: string
+          limit_value: number | null
+          plan_key: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          enabled?: boolean
+          entitlement_key: string
+          id?: string
+          limit_value?: number | null
+          plan_key: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          enabled?: boolean
+          entitlement_key?: string
+          id?: string
+          limit_value?: number | null
+          plan_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "entitlement_registry"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "plan_entitlements_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "workspace_entitlements_effective"
+            referencedColumns: ["entitlement_key"]
           },
         ]
       }
@@ -6980,6 +7127,74 @@ export type Database = {
           },
         ]
       }
+      workspace_entitlement_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled_override: boolean | null
+          entitlement_key: string
+          expires_at: string | null
+          id: string
+          limit_override: number | null
+          reason: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled_override?: boolean | null
+          entitlement_key: string
+          expires_at?: string | null
+          id?: string
+          limit_override?: number | null
+          reason: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled_override?: boolean | null
+          entitlement_key?: string
+          expires_at?: string | null
+          id?: string
+          limit_override?: number | null
+          reason?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_entitlement_overrides_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "entitlement_registry"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "workspace_entitlement_overrides_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "workspace_entitlements_effective"
+            referencedColumns: ["entitlement_key"]
+          },
+          {
+            foreignKeyName: "workspace_entitlement_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_entitlement_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_entitlements: {
         Row: {
           created_at: string
@@ -8090,6 +8305,41 @@ export type Database = {
           },
         ]
       }
+      workspace_entitlements_effective: {
+        Row: {
+          category: string | null
+          description: string | null
+          enabled: boolean | null
+          enforcement_scope: string | null
+          entitlement_key: string | null
+          limit_value: number | null
+          name: string | null
+          override_expires_at: string | null
+          override_reason: string | null
+          plan_key: string | null
+          source: string | null
+          type: string | null
+          ui_visibility: string | null
+          unit: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_workspace_invite:
@@ -8239,6 +8489,16 @@ export type Database = {
         }
         Returns: string
       }
+      enforce_entitlement: {
+        Args: {
+          p_action?: string
+          p_current_value?: number
+          p_entitlement_key: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: boolean
+      }
       fix_space_order: { Args: { p_workspace_id: string }; Returns: number }
       generate_payroll: {
         Args: {
@@ -8336,7 +8596,7 @@ export type Database = {
         Returns: boolean
       }
       has_entitlement: {
-        Args: { p_key: string; p_workspace_id: string }
+        Args: { p_entitlement_key: string; p_workspace_id: string }
         Returns: boolean
       }
       has_finance_access: {
@@ -8457,6 +8717,10 @@ export type Database = {
         Args: { p_items: Json; p_reason?: string; p_workspace_id: string }
         Returns: Json
       }
+      resolve_entitlement: {
+        Args: { p_entitlement_key: string; p_workspace_id: string }
+        Returns: Json
+      }
       revoke_workspace_invite: { Args: { p_invite_id: string }; Returns: Json }
       run_subscription_check_job: { Args: never; Returns: undefined }
       run_warranty_check_job: { Args: never; Returns: undefined }
@@ -8512,10 +8776,23 @@ export type Database = {
         Args: { p_item_id: string; p_quantity?: number; p_unit_id?: string }
         Returns: Json
       }
-      within_limit: {
-        Args: { p_increment?: number; p_metric: string; p_workspace_id: string }
-        Returns: boolean
-      }
+      within_limit:
+        | {
+            Args: {
+              p_current_value?: number
+              p_entitlement_key: string
+              p_workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_increment?: number
+              p_metric: string
+              p_workspace_id: string
+            }
+            Returns: boolean
+          }
     }
     Enums: {
       alert_severity_level: "low" | "medium" | "high" | "critical"
