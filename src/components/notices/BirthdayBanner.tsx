@@ -1,88 +1,54 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNotices } from '@/hooks/useNoticesModule';
-import { X, PartyPopper, Cake } from 'lucide-react';
+import { X, PartyPopper, Cake, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-// Confetti particle component
-const Confetti: React.FC<{ delay: number; left: number }> = ({ delay, left }) => {
-  const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff9ff3', '#ffeaa7'];
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  
-  return (
-    <div
-      className="absolute w-2 h-2 rounded-sm animate-confetti pointer-events-none"
-      style={{
-        left: `${left}%`,
-        backgroundColor: color,
-        animationDelay: `${delay}s`,
-        transform: `rotate(${Math.random() * 360}deg)`,
-      }}
-    />
-  );
-};
-
-// Balloon component
-const Balloon: React.FC<{ left: number; delay: number; color: string }> = ({ left, delay, color }) => (
-  <div
-    className="absolute bottom-0 animate-float-up pointer-events-none"
-    style={{ left: `${left}%`, animationDelay: `${delay}s` }}
-  >
-    <div
-      className="w-6 h-8 rounded-full opacity-80"
-      style={{ backgroundColor: color }}
-    />
-    <div className="w-px h-12 bg-muted-foreground/30 mx-auto" />
-  </div>
-);
+import { useBirthdayEffects } from '@/hooks/useBirthdayEffects';
+import { BirthdayCelebrationModal } from './BirthdayCelebrationModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const BirthdayBanner: React.FC = () => {
+  const { user } = useAuth();
   const { birthdayNotices, markAsRead } = useNotices();
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const [showEffects, setShowEffects] = useState(false);
-
-  // Check for reduced motion preference
-  const prefersReducedMotion = typeof window !== 'undefined' 
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-    : false;
+  const [showModal, setShowModal] = useState(true);
+  
+  const {
+    fireMiniConfetti,
+    shouldShowModal,
+    clickCount,
+    prefersReducedMotion,
+  } = useBirthdayEffects({ enabled: true });
 
   const activeBirthdays = birthdayNotices.filter(n => !dismissed.includes(n.id));
 
-  useEffect(() => {
-    // Show effects only once per session
-    if (activeBirthdays.length > 0 && !prefersReducedMotion) {
-      const sessionKey = `birthday-effects-${new Date().toDateString()}`;
-      if (!sessionStorage.getItem(sessionKey)) {
-        setShowEffects(true);
-        sessionStorage.setItem(sessionKey, 'shown');
-        // Auto-hide effects after 5 seconds
-        const timer = setTimeout(() => setShowEffects(false), 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [activeBirthdays.length, prefersReducedMotion]);
+  // Check if today is the current user's birthday
+  const isMyBirthday = activeBirthdays.some(notice => 
+    notice.source_id === user?.id
+  );
 
   const handleDismiss = useCallback((noticeId: string) => {
     setDismissed(prev => [...prev, noticeId]);
     markAsRead.mutate(noticeId);
   }, [markAsRead]);
 
+  const handleBannerClick = useCallback(() => {
+    if (!prefersReducedMotion) {
+      fireMiniConfetti();
+    }
+  }, [fireMiniConfetti, prefersReducedMotion]);
+
   if (activeBirthdays.length === 0) return null;
 
   return (
     <>
-      {/* Confetti Effect */}
-      {showEffects && (
-        <div className="fixed inset-x-0 top-0 h-screen overflow-hidden pointer-events-none z-50">
-          {Array.from({ length: 30 }).map((_, i) => (
-            <Confetti key={i} delay={Math.random() * 2} left={Math.random() * 100} />
-          ))}
-          {/* Balloons */}
-          <Balloon left={5} delay={0} color="#ff6b6b" />
-          <Balloon left={15} delay={0.5} color="#ffd93d" />
-          <Balloon left={85} delay={0.3} color="#6bcb77" />
-          <Balloon left={95} delay={0.8} color="#4d96ff" />
-        </div>
+      {/* Birthday Celebration Modal - only for the birthday person */}
+      {isMyBirthday && shouldShowModal && (
+        <BirthdayCelebrationModal
+          open={showModal}
+          onOpenChange={setShowModal}
+          userName={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Você'}
+        />
       )}
 
       {/* Birthday Banners */}
@@ -90,19 +56,38 @@ export const BirthdayBanner: React.FC = () => {
         {activeBirthdays.map(notice => (
           <div
             key={notice.id}
+            onClick={handleBannerClick}
             className={cn(
-              'relative overflow-hidden rounded-lg border border-pink-200 dark:border-pink-800',
-              'bg-gradient-to-r from-pink-50 via-amber-50 to-pink-50',
-              'dark:from-pink-950/30 dark:via-amber-950/30 dark:to-pink-950/30',
-              'p-4 animate-fade-in'
+              'relative overflow-hidden rounded-lg border',
+              'border-amber-200 dark:border-amber-800',
+              'bg-gradient-to-r from-amber-50 via-pink-50 to-purple-50',
+              'dark:from-amber-950/40 dark:via-pink-950/40 dark:to-purple-950/40',
+              'p-4 animate-fade-in cursor-pointer',
+              'transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/10',
+              'hover:scale-[1.01]',
+              // Birthday glow effect
+              isMyBirthday && 'ring-2 ring-amber-400/50 shadow-lg shadow-amber-400/20'
             )}
           >
+            {/* Sparkle decorations */}
+            {!prefersReducedMotion && (
+              <>
+                <Sparkles className="absolute top-2 right-12 h-4 w-4 text-amber-400 animate-pulse" />
+                <Sparkles className="absolute bottom-2 left-12 h-3 w-3 text-pink-400 animate-pulse delay-300" />
+              </>
+            )}
+
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/50">
-                <Cake className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+              <div className={cn(
+                'flex items-center justify-center w-12 h-12 rounded-full',
+                'bg-gradient-to-br from-amber-100 to-pink-100',
+                'dark:from-amber-900/50 dark:to-pink-900/50',
+                isMyBirthday && 'animate-pulse-glow'
+              )}>
+                <Cake className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-foreground flex items-center gap-2">
+                <p className="font-semibold text-foreground flex items-center gap-2">
                   <PartyPopper className="h-4 w-4 text-amber-500" />
                   {notice.title}
                   <PartyPopper className="h-4 w-4 text-amber-500 scale-x-[-1]" />
@@ -110,12 +95,26 @@ export const BirthdayBanner: React.FC = () => {
                 {notice.content && (
                   <p className="text-sm text-muted-foreground">{notice.content}</p>
                 )}
+                {/* Easter egg hint */}
+                {clickCount > 0 && clickCount < 5 && (
+                  <p className="text-xs text-amber-500 mt-1 animate-fade-in">
+                    🎉 Continue clicando para mais confetes! ({5 - clickCount} restantes)
+                  </p>
+                )}
+                {clickCount >= 5 && (
+                  <p className="text-xs text-pink-500 mt-1 animate-fade-in">
+                    🎊 Máximo de confetes desbloqueado! 🎊
+                  </p>
+                )}
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => handleDismiss(notice.id)}
+                className="h-8 w-8 shrink-0 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDismiss(notice.id);
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -126,42 +125,3 @@ export const BirthdayBanner: React.FC = () => {
     </>
   );
 };
-
-// Add required CSS animations to index.css
-export const birthdayAnimationsCSS = `
-@keyframes confetti {
-  0% {
-    transform: translateY(-10px) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh) rotate(720deg);
-    opacity: 0;
-  }
-}
-
-@keyframes float-up {
-  0% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100px);
-    opacity: 0;
-  }
-}
-
-.animate-confetti {
-  animation: confetti 3s ease-out forwards;
-}
-
-.animate-float-up {
-  animation: float-up 4s ease-out forwards;
-}
-`;
