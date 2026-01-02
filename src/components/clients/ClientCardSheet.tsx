@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useClientCard, useUpdateClientCard, useClientFinancials, useUpdateClientFinancials, ClientCard, ClientFinancials, ClientStatus } from '@/hooks/useClientCards';
+import { useClientCard, useUpdateClientCard, useDeleteClientCard, useClientFinancials, useUpdateClientFinancials, ClientCard, ClientFinancials, ClientStatus } from '@/hooks/useClientCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -701,13 +701,16 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
 }) => {
   const { data: client, isLoading } = useClientCard(clientId || undefined);
   const updateClient = useUpdateClientCard();
+  const deleteClient = useDeleteClientCard();
   const { data: members } = useWorkspaceMembers();
   const { canViewClientFinancials, isCoordinator, isAdmin, isOwner } = usePermissions();
   
   const [formData, setFormData] = useState<Partial<ClientCard>>({});
   const [activeTab, setActiveTab] = useState('identity');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const canEditFinancials = canViewClientFinancials || isCoordinator || isAdmin || isOwner;
+  const canDelete = isAdmin || isOwner;
 
   useEffect(() => {
     if (client) {
@@ -718,6 +721,16 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const handleSave = () => {
     if (client?.id && formData) {
       updateClient.mutate({ id: client.id, ...formData });
+    }
+  };
+
+  const handleDelete = () => {
+    if (client?.id) {
+      deleteClient.mutate(client.id, {
+        onSuccess: () => {
+          onOpenChange(false);
+        }
+      });
     }
   };
 
@@ -756,16 +769,57 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Badge className={cn('text-xs', statusConfig[client.status].color)}>
-                    {statusConfig[client.status].label}
-                  </Badge>
-                  <Badge variant="outline" className={cn('text-xs gap-1', stateConfig?.color)}>
-                    <StateIcon className="h-3 w-3" />
-                    {stateConfig?.label}
-                  </Badge>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge className={cn('text-xs', statusConfig[client.status].color)}>
+                      {statusConfig[client.status].label}
+                    </Badge>
+                    <Badge variant="outline" className={cn('text-xs gap-1', stateConfig?.color)}>
+                      <StateIcon className="h-3 w-3" />
+                      {stateConfig?.label}
+                    </Badge>
+                  </div>
+                  {canDelete && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
+
+              {/* Delete Confirmation */}
+              {showDeleteConfirm && (
+                <div className="mt-3 p-3 rounded-lg border border-destructive/50 bg-destructive/5">
+                  <p className="text-sm text-destructive font-medium mb-2">
+                    Excluir cliente "{client.name}"?
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Esta ação não pode ser desfeita. Todos os dados do cliente serão removidos.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={deleteClient.isPending}
+                    >
+                      {deleteClient.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+                    </Button>
+                  </div>
+                </div>
+              )}
               
               {/* Health Score Bar */}
               <div className="mt-4">
