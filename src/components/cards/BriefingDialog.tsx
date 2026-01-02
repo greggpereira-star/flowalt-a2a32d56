@@ -7,8 +7,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +25,8 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { BriefingData } from './BriefingForm';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 
 interface ValidationResult {
   isValid: boolean;
@@ -164,15 +164,17 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const isStepComplete = useCallback((stepIndex: number): boolean => {
     const step = STEPS[stepIndex];
     const value = getFieldValue(step.field);
+    const plainText = extractPlainText(value);
     if (step.required) {
-      return value.trim().length >= (step.minLength || 1);
+      return plainText.length >= (step.minLength || 1);
     }
-    return value.trim().length > 0;
+    return plainText.length > 0;
   }, [getFieldValue]);
 
   const requiredStepsComplete = STEPS.filter(s => s.required).every((step) => {
     const value = getFieldValue(step.field);
-    return value.trim().length >= (step.minLength || 1);
+    const plainText = extractPlainText(value);
+    return plainText.length >= (step.minLength || 1);
   });
 
   const filledSteps = STEPS.filter((_, idx) => isStepComplete(idx)).length;
@@ -313,18 +315,13 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
             {/* Input Area */}
             <div className="space-y-2">
-              <Textarea
+              <RichTextEditor
                 value={getFieldValue(currentStepData.field)}
-                onChange={(e) => updateField(currentStepData.field, e.target.value)}
+                onChange={(v) => updateField(currentStepData.field, v)}
                 placeholder={currentStepData.placeholder}
                 disabled={disabled}
-                className={cn(
-                  'min-h-[140px] sm:min-h-[180px] text-sm resize-none',
-                  currentStepData.required && 
-                  validationError && 
-                  getFieldValue(currentStepData.field).trim().length < (currentStepData.minLength || 1) && 
-                  'border-destructive'
-                )}
+                minHeight="140px"
+                maxHeight="250px"
               />
               
               {/* Tip & Counter */}
@@ -336,11 +333,11 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                 {currentStepData.minLength && (
                   <p className={cn(
                     'text-[10px] sm:text-xs flex-shrink-0',
-                    getFieldValue(currentStepData.field).length >= currentStepData.minLength
+                    extractPlainText(getFieldValue(currentStepData.field)).length >= currentStepData.minLength
                       ? 'text-success'
                       : 'text-muted-foreground'
                   )}>
-                    {getFieldValue(currentStepData.field).length} caracteres
+                    {extractPlainText(getFieldValue(currentStepData.field)).length} caracteres
                   </p>
                 )}
               </div>
