@@ -7,7 +7,7 @@ export interface Notification {
   id: string;
   user_id: string;
   workspace_id: string;
-  type: 'webhook_failure' | 'card_overdue' | 'mention' | 'assignment' | 'badge_earned';
+  type: 'webhook_failure' | 'card_overdue' | 'mention' | 'assignment' | 'badge_earned' | 'workspace_invite';
   title: string;
   message: string;
   metadata: Record<string, unknown>;
