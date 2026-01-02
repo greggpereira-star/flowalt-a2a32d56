@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { UpgradeImpactSimulator } from './UpgradeImpactSimulator';
 
 const tierConfig: Record<PlanTier, { 
   icon: React.ElementType; 
@@ -314,51 +315,8 @@ export const BillingPlanPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Plan Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparar Planos</CardTitle>
-          <CardDescription>
-            Veja o que cada plano oferece
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            {(['free', 'pro', 'enterprise'] as PlanTier[]).map((tier) => {
-              const config = tierConfig[tier];
-              const Icon = config.icon;
-              const isCurrent = tier === currentTier;
-
-              return (
-                <div 
-                  key={tier} 
-                  className={`p-4 rounded-lg border ${isCurrent ? 'border-primary bg-primary/5' : 'border-border'}`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={`p-2 rounded-lg ${config.color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{config.label}</h4>
-                      {isCurrent && (
-                        <Badge variant="outline" className="text-xs">Atual</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <ul className="space-y-1.5 text-sm">
-                    {planFeatures[tier].map((feature, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-muted-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Upgrade Simulator */}
+      <UpgradeImpactSimulator />
 
       {/* Warning for non-admin */}
       {!canManageBilling && (
