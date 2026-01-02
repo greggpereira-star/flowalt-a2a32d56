@@ -525,34 +525,34 @@ const ContractTab: React.FC<{
 
       <div className="space-y-2">
         <Label htmlFor="agreed_deliverables">Entregas Acordadas</Label>
-        <Textarea
-          id="agreed_deliverables"
+        <RichTextEditor
           value={formData.agreed_deliverables || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, agreed_deliverables: e.target.value }))}
+          onChange={(v) => setFormData(prev => ({ ...prev, agreed_deliverables: v }))}
           placeholder="Liste as entregas acordadas em contrato..."
-          rows={3}
+          minHeight="80px"
+          maxHeight="200px"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="scope_limits">Limites de Escopo</Label>
-        <Textarea
-          id="scope_limits"
+        <RichTextEditor
           value={formData.scope_limits || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, scope_limits: e.target.value }))}
+          onChange={(v) => setFormData(prev => ({ ...prev, scope_limits: v }))}
           placeholder="O que NÃO está incluído no contrato..."
-          rows={3}
+          minHeight="80px"
+          maxHeight="200px"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="contract_notes">Observações Contratuais</Label>
-        <Textarea
-          id="contract_notes"
+        <RichTextEditor
           value={formData.contract_notes || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, contract_notes: e.target.value }))}
+          onChange={(v) => setFormData(prev => ({ ...prev, contract_notes: v }))}
           placeholder="Outras observações importantes..."
-          rows={3}
+          minHeight="80px"
+          maxHeight="200px"
         />
       </div>
     </div>
