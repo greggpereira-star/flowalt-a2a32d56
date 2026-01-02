@@ -36,6 +36,7 @@ import {
   useExternalCollaborator,
   ExternalCollaboratorInput,
 } from "@/hooks/useExternalCollaborators";
+import { useCostCenters } from "@/hooks/useCostCenters";
 
 const formSchema = z.object({
   full_name: z.string().min(2, "Nome é obrigatório"),
@@ -47,6 +48,7 @@ const formSchema = z.object({
   contract_type: z.string().optional(),
   job_title: z.string().optional(),
   department: z.string().optional(),
+  cost_center_id: z.string().optional(),
   bank_name: z.string().optional(),
   bank_agency: z.string().optional(),
   bank_account: z.string().optional(),
@@ -86,6 +88,7 @@ export function ExternalCollaboratorFormModal({
   );
   const createCollaborator = useCreateExternalCollaborator();
   const updateCollaborator = useUpdateExternalCollaborator();
+  const { data: costCenters = [] } = useCostCenters();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -99,6 +102,7 @@ export function ExternalCollaboratorFormModal({
       contract_type: "clt",
       job_title: "",
       department: "",
+      cost_center_id: "",
       bank_name: "",
       bank_agency: "",
       bank_account: "",
@@ -134,6 +138,7 @@ export function ExternalCollaboratorFormModal({
         contract_type: collaborator.contract_type || "clt",
         job_title: collaborator.job_title || "",
         department: collaborator.department || "",
+        cost_center_id: collaborator.cost_center_id || "",
         bank_name: collaborator.bank_name || "",
         bank_agency: collaborator.bank_agency || "",
         bank_account: collaborator.bank_account || "",
@@ -165,6 +170,7 @@ export function ExternalCollaboratorFormModal({
         contract_type: "clt",
         job_title: "",
         department: "",
+        cost_center_id: "",
         bank_name: "",
         bank_agency: "",
         bank_account: "",
@@ -204,6 +210,7 @@ export function ExternalCollaboratorFormModal({
       contract_type: data.contract_type || "clt",
       job_title: data.job_title || undefined,
       department: data.department || undefined,
+      cost_center_id: data.cost_center_id || null,
       bank_name: data.bank_name || undefined,
       bank_agency: data.bank_agency || undefined,
       bank_account: data.bank_account || undefined,
@@ -530,23 +537,54 @@ export function ExternalCollaboratorFormModal({
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="base_salary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Salário Base</FormLabel>
-                        <FormControl>
-                          <CurrencyInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="R$ 0,00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="base_salary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Salário Base</FormLabel>
+                          <FormControl>
+                            <CurrencyInput
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="R$ 0,00"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="cost_center_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Centro de Custo</FormLabel>
+                          <Select
+                            onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Nenhum</SelectItem>
+                              {costCenters.map((cc) => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.code ? `${cc.code} - ` : ""}{cc.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}

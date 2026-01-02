@@ -21,6 +21,7 @@ export interface ExternalCollaborator {
   pix_key: string | null;
   base_salary: number | null;
   weekly_hours: number | null;
+  cost_center_id: string | null;
   address: {
     street?: string;
     number?: string;
@@ -64,6 +65,7 @@ export interface ExternalCollaboratorInput {
   pix_key?: string;
   base_salary?: number;
   weekly_hours?: number;
+  cost_center_id?: string | null;
   address?: ExternalCollaborator["address"];
   emergency_contact?: ExternalCollaborator["emergency_contact"];
   documents?: ExternalCollaborator["documents"];
@@ -142,6 +144,7 @@ export function useCreateExternalCollaborator() {
           pix_key: input.pix_key || null,
           base_salary: input.base_salary || 0,
           weekly_hours: input.weekly_hours || 40,
+          cost_center_id: input.cost_center_id || null,
           address: input.address || {},
           emergency_contact: input.emergency_contact || {},
           documents: input.documents || [],
@@ -208,6 +211,7 @@ export function useUpdateExternalCollaborator() {
           pix_key: input.pix_key || null,
           base_salary: input.base_salary || 0,
           weekly_hours: input.weekly_hours || 40,
+          cost_center_id: input.cost_center_id || null,
           address: input.address || {},
           emergency_contact: input.emergency_contact || {},
           documents: input.documents || [],

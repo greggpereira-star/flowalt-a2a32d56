@@ -15,6 +15,7 @@ export interface CostCenter {
   budget_monthly: number;
   budget_yearly: number;
   is_active: boolean;
+  responsible_user_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -181,6 +182,7 @@ export function useCreateCostCenter() {
       parent_id?: string;
       budget_monthly?: number;
       budget_yearly?: number;
+      responsible_user_id?: string | null;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
