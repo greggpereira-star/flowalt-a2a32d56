@@ -8420,6 +8420,18 @@ export type Database = {
           next_level_score: number
         }[]
       }
+      can_access_folder: {
+        Args: { _folder_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_access_space: {
+        Args: { _space_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_delete_checklist: {
+        Args: { _checklist_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_receive_card_notification: {
         Args: { _card_id: string; _user_id: string }
         Returns: boolean
@@ -8635,6 +8647,10 @@ export type Database = {
         Args: { p_space_type: string; p_workspace_id: string }
         Returns: number
       }
+      is_card_member: {
+        Args: { _card_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_folder_member: {
         Args: { _folder_id: string; _user_id: string }
         Returns: boolean
@@ -8643,6 +8659,7 @@ export type Database = {
         Args: { _folder_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin_with_session: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
