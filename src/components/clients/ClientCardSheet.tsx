@@ -749,10 +749,11 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
         ) : client ? (
           <>
             {/* Header fixo */}
-            <SheetHeader className="p-6 pb-4 border-b flex-shrink-0">
-              <div className="flex items-center gap-3">
+            <SheetHeader className="p-6 border-b flex-shrink-0 space-y-0">
+              {/* Top row - Avatar, Name, Status badges */}
+              <div className="flex items-start gap-4">
                 <div 
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md"
+                  className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0"
                   style={{ backgroundColor: client.color || '#6366f1' }}
                 >
                   {client.logo_url ? (
@@ -761,72 +762,33 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     client.name.charAt(0).toUpperCase()
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <SheetTitle className="text-xl truncate">{client.name}</SheetTitle>
-                  <div className="flex items-center gap-2 mt-1">
-                    {client.segment && (
-                      <span className="text-sm text-muted-foreground">{client.segment}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge className={cn('text-xs', statusConfig[client.status].color)}>
-                      {statusConfig[client.status].label}
-                    </Badge>
-                    <Badge variant="outline" className={cn('text-xs gap-1', stateConfig?.color)}>
-                      <StateIcon className="h-3 w-3" />
-                      {stateConfig?.label}
-                    </Badge>
-                  </div>
-                  {canDelete && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                
+                <div className="flex-1 min-w-0 pt-1">
+                  <SheetTitle className="text-xl font-semibold truncate mb-1">
+                    {client.name}
+                  </SheetTitle>
+                  {client.segment && (
+                    <span className="text-sm text-muted-foreground">{client.segment}</span>
                   )}
+                </div>
+
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <Badge className={cn('text-xs px-3 py-1', statusConfig[client.status].color)}>
+                    {statusConfig[client.status].label}
+                  </Badge>
+                  <Badge variant="outline" className={cn('text-xs gap-1.5 px-2.5 py-1', stateConfig?.color)}>
+                    <StateIcon className="h-3 w-3" />
+                    {stateConfig?.label}
+                  </Badge>
                 </div>
               </div>
 
-              {/* Delete Confirmation */}
-              {showDeleteConfirm && (
-                <div className="mt-3 p-3 rounded-lg border border-destructive/50 bg-destructive/5">
-                  <p className="text-sm text-destructive font-medium mb-2">
-                    Excluir cliente "{client.name}"?
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Esta ação não pode ser desfeita. Todos os dados do cliente serão removidos.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setShowDeleteConfirm(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={handleDelete}
-                      disabled={deleteClient.isPending}
-                    >
-                      {deleteClient.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
               {/* Health Score Bar */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-muted-foreground">Health Score</span>
+              <div className="mt-5 pt-4 border-t border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Health Score</span>
                   <span className={cn(
-                    'text-sm font-semibold',
+                    'text-sm font-bold',
                     client.health_score >= 80 ? 'text-green-600' :
                     client.health_score >= 60 ? 'text-amber-600' :
                     client.health_score >= 40 ? 'text-orange-600' : 'text-red-600'
@@ -834,10 +796,10 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     {client.health_score}/100
                   </span>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                   <div 
                     className={cn(
-                      'h-full rounded-full transition-all',
+                      'h-full rounded-full transition-all duration-500',
                       client.health_score >= 80 ? 'bg-green-500' :
                       client.health_score >= 60 ? 'bg-amber-500' :
                       client.health_score >= 40 ? 'bg-orange-500' : 'bg-red-500'
@@ -846,6 +808,51 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Actions row - separated for clarity */}
+              {canDelete && (
+                <div className="mt-4 pt-3 border-t border-border/50">
+                  {!showDeleteConfirm ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir cliente
+                    </Button>
+                  ) : (
+                    <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                      <p className="text-sm text-destructive font-medium mb-1">
+                        Excluir cliente "{client.name}"?
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Esta ação não pode ser desfeita. Todos os dados do cliente serão removidos.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8"
+                          onClick={() => setShowDeleteConfirm(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          className="h-8"
+                          onClick={handleDelete}
+                          disabled={deleteClient.isPending}
+                        >
+                          {deleteClient.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </SheetHeader>
 
             {/* Tabs com scroll */}
