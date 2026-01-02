@@ -9038,6 +9038,7 @@ export type Database = {
           version: number
         }[]
       }
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       get_workspace_plan: {
         Args: { p_workspace_id: string }
         Returns: {
