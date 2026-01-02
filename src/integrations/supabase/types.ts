@@ -8717,6 +8717,10 @@ export type Database = {
         Args: { p_items: Json; p_reason?: string; p_workspace_id: string }
         Returns: Json
       }
+      request_webhook_replay: {
+        Args: { p_delivery_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       resolve_entitlement: {
         Args: { p_entitlement_key: string; p_workspace_id: string }
         Returns: Json
