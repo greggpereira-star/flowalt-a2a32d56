@@ -322,7 +322,6 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
 
     const winterColors = ['#FFFFFF', '#E0F2FE', '#BAE6FD', '#7DD3FC', '#38BDF8'];
 
-    // Snowflakes effect
     const duration = 3000;
     const animationEnd = Date.now() + duration;
 
@@ -359,6 +358,123 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
         scalar: 1.5,
       });
     }, 400);
+  }, [prefersReducedMotion]);
+
+  const fireFestaJuninaConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const juninaColors = ['#ea580c', '#eab308', '#dc2626', '#16a34a', '#7c3aed'];
+
+    // Bonfire sparks effect
+    const duration = 2500;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 4,
+        angle: Math.random() * 60 + 60,
+        spread: 40,
+        origin: { x: 0.5, y: 0.8 },
+        colors: ['#f97316', '#fbbf24', '#ef4444'],
+        startVelocity: 25,
+        gravity: 0.8,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { y: 0.5 },
+        colors: juninaColors,
+      });
+    }, 500);
+  }, [prefersReducedMotion]);
+
+  const fireValentinesConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const loveColors = ['#ec4899', '#f43f5e', '#ef4444', '#fb7185', '#fda4af'];
+
+    // Hearts floating up
+    const duration = 2500;
+    const animationEnd = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 90,
+        spread: 60,
+        origin: { x: Math.random(), y: 1 },
+        colors: loveColors,
+        shapes: ['circle'],
+        gravity: -0.2,
+        drift: Math.random() - 0.5,
+        scalar: 1.5,
+      });
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 120,
+        origin: { y: 0.5 },
+        colors: loveColors,
+        shapes: ['circle'],
+      });
+    }, 400);
+  }, [prefersReducedMotion]);
+
+  const fireHalloweenConfetti = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    const spookyColors = ['#f97316', '#7c3aed', '#1f2937', '#22c55e', '#ffffff'];
+
+    // Spooky effect
+    confetti({
+      particleCount: 80,
+      spread: 100,
+      origin: { y: 0.5 },
+      colors: spookyColors,
+    });
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 40,
+        angle: 60,
+        spread: 50,
+        origin: { x: 0, y: 0.6 },
+        colors: ['#f97316', '#7c3aed'],
+      });
+      confetti({
+        particleCount: 40,
+        angle: 120,
+        spread: 50,
+        origin: { x: 1, y: 0.6 },
+        colors: ['#f97316', '#7c3aed'],
+      });
+    }, 300);
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 60,
+        spread: 80,
+        origin: { y: 0.4 },
+        colors: spookyColors,
+      });
+    }, 600);
   }, [prefersReducedMotion]);
 
   const fireMiniEffect = useCallback(() => {
@@ -440,37 +556,48 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
           gravity: 0.3,
         });
         break;
+      case 'festa_junina':
+        confetti({
+          particleCount: 20 * intensity,
+          spread: 50,
+          origin: { y: 0.7 },
+          colors: ['#ea580c', '#eab308', '#dc2626'],
+        });
+        break;
+      case 'valentines':
+        confetti({
+          particleCount: 15 * intensity,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#ec4899', '#f43f5e', '#ef4444'],
+        });
+        break;
+      case 'halloween':
+        confetti({
+          particleCount: 18 * intensity,
+          spread: 50,
+          origin: { y: 0.6 },
+          colors: ['#f97316', '#7c3aed', '#1f2937'],
+        });
+        break;
     }
   }, [holiday, clickCount, prefersReducedMotion]);
 
   const fireCelebration = useCallback(() => {
     switch (holiday) {
-      case 'new_year':
-        fireNewYearFireworks();
-        break;
-      case 'christmas':
-        fireChristmasSnow();
-        break;
-      case 'easter':
-        fireEasterConfetti();
-        break;
-      case 'carnival':
-        fireCarnivalConfetti();
-        break;
-      case 'spring':
-        fireSpringConfetti();
-        break;
-      case 'summer':
-        fireSummerConfetti();
-        break;
-      case 'autumn':
-        fireAutumnConfetti();
-        break;
-      case 'winter':
-        fireWinterConfetti();
-        break;
+      case 'new_year': fireNewYearFireworks(); break;
+      case 'christmas': fireChristmasSnow(); break;
+      case 'easter': fireEasterConfetti(); break;
+      case 'carnival': fireCarnivalConfetti(); break;
+      case 'spring': fireSpringConfetti(); break;
+      case 'summer': fireSummerConfetti(); break;
+      case 'autumn': fireAutumnConfetti(); break;
+      case 'winter': fireWinterConfetti(); break;
+      case 'festa_junina': fireFestaJuninaConfetti(); break;
+      case 'valentines': fireValentinesConfetti(); break;
+      case 'halloween': fireHalloweenConfetti(); break;
     }
-  }, [holiday, fireNewYearFireworks, fireChristmasSnow, fireEasterConfetti, fireCarnivalConfetti, fireSpringConfetti, fireSummerConfetti, fireAutumnConfetti, fireWinterConfetti]);
+  }, [holiday, fireNewYearFireworks, fireChristmasSnow, fireEasterConfetti, fireCarnivalConfetti, fireSpringConfetti, fireSummerConfetti, fireAutumnConfetti, fireWinterConfetti, fireFestaJuninaConfetti, fireValentinesConfetti, fireHalloweenConfetti]);
 
   const closeModal = useCallback(() => {
     markHolidayModalShown(holiday);
@@ -498,6 +625,9 @@ export function useHolidayEffects({ holiday, enabled = true }: UseHolidayEffects
     fireSummerConfetti,
     fireAutumnConfetti,
     fireWinterConfetti,
+    fireFestaJuninaConfetti,
+    fireValentinesConfetti,
+    fireHalloweenConfetti,
     fireMiniEffect,
     fireCelebration,
     handleCelebrate,

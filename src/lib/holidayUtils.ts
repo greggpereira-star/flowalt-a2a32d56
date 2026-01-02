@@ -1,4 +1,4 @@
-export type HolidayType = 'new_year' | 'christmas' | 'easter' | 'carnival';
+export type HolidayType = 'new_year' | 'christmas' | 'easter' | 'carnival' | 'festa_junina' | 'valentines' | 'halloween';
 export type SeasonType = 'spring' | 'summer' | 'autumn' | 'winter';
 export type CelebrationEventType = HolidayType | SeasonType;
 
@@ -177,15 +177,22 @@ export function isHolidayToday(holiday: HolidayType): boolean {
     }
     case 'carnival': {
       const carnival = calculateCarnivalDate(year);
-      // Carnival is celebrated from Saturday to Tuesday (4 days)
       const carnivalStart = new Date(carnival);
-      carnivalStart.setDate(carnival.getDate() - 2); // Saturday before
+      carnivalStart.setDate(carnival.getDate() - 2);
       const carnivalEnd = new Date(carnival);
-      carnivalEnd.setDate(carnival.getDate() + 1); // Wednesday (Ash Wednesday)
+      carnivalEnd.setDate(carnival.getDate() + 1);
       
       const todayTime = today.getTime();
       return todayTime >= carnivalStart.getTime() && todayTime <= carnivalEnd.getTime();
     }
+    case 'festa_junina':
+      // Festa Junina main days: June 12-29 (with peak on 13, 24, 29)
+      return month === 5 && day >= 12 && day <= 29;
+    case 'valentines':
+      // Dia dos Namorados in Brazil: June 12
+      return month === 5 && day === 12;
+    case 'halloween':
+      return month === 9 && day === 31;
     default:
       return false;
   }
@@ -199,6 +206,9 @@ export function getCurrentHoliday(): HolidayType | null {
   if (isHolidayToday('christmas')) return 'christmas';
   if (isHolidayToday('easter')) return 'easter';
   if (isHolidayToday('carnival')) return 'carnival';
+  if (isHolidayToday('valentines')) return 'valentines';
+  if (isHolidayToday('festa_junina')) return 'festa_junina';
+  if (isHolidayToday('halloween')) return 'halloween';
   return null;
 }
 
@@ -214,7 +224,6 @@ export function isInHolidayWindow(holiday: HolidayType): boolean {
   switch (holiday) {
     case 'new_year':
       holidayDate = new Date(year, 0, 1);
-      // Also check Dec 31 of previous year
       const newYearsEve = new Date(year, 11, 31);
       const jan2 = new Date(year, 0, 2);
       if (today >= newYearsEve || today <= jan2) return true;
@@ -227,14 +236,31 @@ export function isInHolidayWindow(holiday: HolidayType): boolean {
       break;
     case 'carnival': {
       const carnival = calculateCarnivalDate(year);
-      // Extended window for Carnival (Friday before to Wednesday after)
       const carnivalStart = new Date(carnival);
-      carnivalStart.setDate(carnival.getDate() - 4); // Friday before
+      carnivalStart.setDate(carnival.getDate() - 4);
       const carnivalEnd = new Date(carnival);
-      carnivalEnd.setDate(carnival.getDate() + 1); // Wednesday (Ash Wednesday)
+      carnivalEnd.setDate(carnival.getDate() + 1);
       
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       return todayStart >= carnivalStart && todayStart <= carnivalEnd;
+    }
+    case 'valentines':
+      // Dia dos Namorados: June 11-13
+      holidayDate = new Date(year, 5, 12);
+      break;
+    case 'festa_junina': {
+      // Festa Junina: June 10 to June 30
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const juninaStart = new Date(year, 5, 10);
+      const juninaEnd = new Date(year, 5, 30);
+      return todayStart >= juninaStart && todayStart <= juninaEnd;
+    }
+    case 'halloween': {
+      // Halloween: October 29-31
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const halloweenStart = new Date(year, 9, 29);
+      const halloweenEnd = new Date(year, 9, 31);
+      return todayStart >= halloweenStart && todayStart <= halloweenEnd;
     }
     default:
       return false;
@@ -261,6 +287,9 @@ export function getActiveHolidayInWindow(): HolidayType | null {
   if (isInHolidayWindow('christmas')) return 'christmas';
   if (isInHolidayWindow('easter')) return 'easter';
   if (isInHolidayWindow('carnival')) return 'carnival';
+  if (isInHolidayWindow('valentines')) return 'valentines';
+  if (isInHolidayWindow('festa_junina')) return 'festa_junina';
+  if (isInHolidayWindow('halloween')) return 'halloween';
   return null;
 }
 
@@ -316,6 +345,42 @@ export function getHolidayConfig(event: CelebrationEventType): HolidayConfig {
         accent: 'hsl(160, 80%, 45%)',
       },
       gradient: 'from-purple-600 via-yellow-400 to-green-500',
+    },
+    festa_junina: {
+      type: 'festa_junina',
+      name: 'Festa Junina',
+      message: 'Arraiá! Vamos dançar quadrilha e comer quentão!',
+      icon: '🌽',
+      colors: {
+        primary: 'hsl(30, 90%, 50%)',
+        secondary: 'hsl(45, 100%, 50%)',
+        accent: 'hsl(0, 70%, 50%)',
+      },
+      gradient: 'from-orange-500 via-yellow-500 to-red-500',
+    },
+    valentines: {
+      type: 'valentines',
+      name: 'Dia dos Namorados',
+      message: 'Feliz Dia dos Namorados! Celebre o amor!',
+      icon: '💕',
+      colors: {
+        primary: 'hsl(340, 80%, 60%)',
+        secondary: 'hsl(0, 80%, 65%)',
+        accent: 'hsl(320, 70%, 70%)',
+      },
+      gradient: 'from-pink-500 via-rose-500 to-red-400',
+    },
+    halloween: {
+      type: 'halloween',
+      name: 'Halloween',
+      message: 'Gostosuras ou travessuras? Feliz Halloween!',
+      icon: '🎃',
+      colors: {
+        primary: 'hsl(25, 95%, 55%)',
+        secondary: 'hsl(270, 80%, 30%)',
+        accent: 'hsl(120, 60%, 35%)',
+      },
+      gradient: 'from-orange-500 via-purple-900 to-black',
     },
     spring: {
       type: 'spring',
