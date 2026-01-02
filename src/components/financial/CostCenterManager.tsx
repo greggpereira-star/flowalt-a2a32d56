@@ -76,6 +76,8 @@ import { useToast } from "@/hooks/use-toast";
 import { CostCenterEditModal } from "./CostCenterEditModal";
 import { CostCenterDistributionChart } from "./CostCenterDistributionChart";
 import { UnassignedItemsPanel } from "./UnassignedItemsPanel";
+import { BudgetAlertsPanel } from "./BudgetAlertsPanel";
+import { CostCenterDrilldown } from "./CostCenterDrilldown";
 
 const costCenterSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -94,6 +96,7 @@ export function CostCenterManager() {
   const [open, setOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
+  const [drilldownCenterId, setDrilldownCenterId] = useState<string | null>(null);
   const [editingCenter, setEditingCenter] = useState<CostCenter | null>(null);
   const [showUnassignedModal, setShowUnassignedModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -464,6 +467,10 @@ export function CostCenterManager() {
     ? costCenterReport.byCenter.find(d => d.center.id === selectedCenterId) 
     : null;
 
+  const drilldownCenterData = drilldownCenterId 
+    ? costCenterReport.byCenter.find(d => d.center.id === drilldownCenterId) 
+    : null;
+
   const onSubmit = async (data: FormData) => {
     try {
       await createCostCenter.mutateAsync({
@@ -576,6 +583,9 @@ export function CostCenterManager() {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
+          
+          {/* Budget Alerts */}
+          <BudgetAlertsPanel selectedMonth={selectedMonth} />
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -1189,7 +1199,8 @@ export function CostCenterManager() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => setSelectedCenterId(item.center.id)}
+                            onClick={() => setDrilldownCenterId(item.center.id)}
+                            title="Ver detalhes"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -1396,6 +1407,18 @@ export function CostCenterManager() {
         collaborators={costCenterReport.unassignedCollaborators}
         totalTransactions={costCenterReport.unassignedTotal}
         totalSalaries={costCenterReport.unassignedSalaryTotal}
+      />
+
+      {/* Cost Center Drilldown */}
+      <CostCenterDrilldown
+        open={!!drilldownCenterId}
+        onOpenChange={(open) => !open && setDrilldownCenterId(null)}
+        center={drilldownCenterData?.center || null}
+        transactions={drilldownCenterData?.transactions || []}
+        incomeTransactions={drilldownCenterData?.incomeTransactions || []}
+        salarySpent={drilldownCenterData?.salarySpent || 0}
+        collaborators={drilldownCenterData?.collaborators || []}
+        selectedMonth={selectedMonth}
       />
     </div>
   );
