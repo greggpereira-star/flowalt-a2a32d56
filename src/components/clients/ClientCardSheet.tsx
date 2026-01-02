@@ -680,12 +680,12 @@ const FinancialTab: React.FC<{
 
       <div className="space-y-2">
         <Label htmlFor="financial_notes">Observações Financeiras</Label>
-        <Textarea
-          id="financial_notes"
+        <RichTextEditor
           value={formData.financial_notes || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, financial_notes: e.target.value }))}
+          onChange={(v) => setFormData(prev => ({ ...prev, financial_notes: v }))}
           placeholder="Notas sobre faturamento, ajustes, etc..."
-          rows={3}
+          minHeight="80px"
+          maxHeight="200px"
         />
       </div>
 
