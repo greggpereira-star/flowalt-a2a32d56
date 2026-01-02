@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Settings2, Plus, Trash2, Calendar, Loader2, Search, ShieldCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings2, Plus, Trash2, Calendar, Loader2, Search, ShieldCheck, FileWarning } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -75,6 +76,23 @@ export function EntitlementOverridesPanel({ workspaces }: EntitlementOverridesPa
         .from('workspace_entitlement_overrides')
         .select('*')
         .eq('workspace_id', selectedWorkspace);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedWorkspace,
+  });
+
+  // Fetch entitlement audit logs for selected workspace
+  const { data: auditLogs, isLoading: loadingAudit } = useQuery({
+    queryKey: ['entitlement-audit', selectedWorkspace],
+    queryFn: async () => {
+      if (!selectedWorkspace) return [];
+      const { data, error } = await supabase
+        .from('entitlement_audit')
+        .select('*')
+        .eq('workspace_id', selectedWorkspace)
+        .order('created_at', { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data;
     },
@@ -199,30 +217,37 @@ export function EntitlementOverridesPanel({ workspaces }: EntitlementOverridesPa
       </Card>
 
       {selectedWorkspace && (
-        <>
-          {/* Effective Entitlements */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Entitlements Efetivos</CardTitle>
-                <CardDescription>
-                  Workspace: {selectedWorkspaceName}
-                </CardDescription>
-              </div>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Novo Override
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Override</DialogTitle>
-                    <DialogDescription>
-                      Configure um override para {selectedWorkspaceName}
-                    </DialogDescription>
-                  </DialogHeader>
+        <Tabs defaultValue="entitlements">
+          <TabsList className="mb-4">
+            <TabsTrigger value="entitlements">Entitlements Efetivos</TabsTrigger>
+            <TabsTrigger value="overrides">Overrides Ativos</TabsTrigger>
+            <TabsTrigger value="audit">Logs de Bloqueio</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="entitlements">
+            {/* Effective Entitlements */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Entitlements Efetivos</CardTitle>
+                  <CardDescription>
+                    Workspace: {selectedWorkspaceName}
+                  </CardDescription>
+                </div>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Novo Override
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Criar Override</DialogTitle>
+                      <DialogDescription>
+                        Configure um override para {selectedWorkspaceName}
+                      </DialogDescription>
+                    </DialogHeader>
 
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -375,70 +400,138 @@ export function EntitlementOverridesPanel({ workspaces }: EntitlementOverridesPa
                 </ScrollArea>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </TabsContent>
 
-          {/* Active Overrides */}
-          {overrides && overrides.length > 0 && (
+          <TabsContent value="overrides">
+            {/* Active Overrides */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5" />
-                  Overrides Ativos ({overrides.length})
+                  Overrides Ativos ({overrides?.length || 0})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entitlement</TableHead>
-                      <TableHead>Habilitado</TableHead>
-                      <TableHead>Limite</TableHead>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead>Expira</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {overrides.map((override: any) => (
-                      <TableRow key={override.id}>
-                        <TableCell className="font-mono text-sm">{override.entitlement_key}</TableCell>
-                        <TableCell>
-                          {override.enabled_override ? (
-                            <Badge variant="default" className="bg-green-500">Sim</Badge>
-                          ) : (
-                            <Badge variant="destructive">Não</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>{override.limit_override ?? '-'}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{override.reason}</TableCell>
-                        <TableCell>
-                          {override.expires_at ? (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(override.expires_at), 'dd/MM/yyyy', { locale: ptBR })}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Nunca</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => deleteOverrideMutation.mutate(override.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                {overrides && overrides.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Entitlement</TableHead>
+                        <TableHead>Habilitado</TableHead>
+                        <TableHead>Limite</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead>Expira</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {overrides.map((override: any) => (
+                        <TableRow key={override.id}>
+                          <TableCell className="font-mono text-sm">{override.entitlement_key}</TableCell>
+                          <TableCell>
+                            {override.enabled_override ? (
+                              <Badge variant="default" className="bg-green-500">Sim</Badge>
+                            ) : (
+                              <Badge variant="destructive">Não</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{override.limit_override ?? '-'}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{override.reason}</TableCell>
+                          <TableCell>
+                            {override.expires_at ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(override.expires_at), 'dd/MM/yyyy', { locale: ptBR })}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Nunca</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => deleteOverrideMutation.mutate(override.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum override ativo
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
-        </>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            {/* Entitlement Audit Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileWarning className="h-5 w-5" />
+                  Logs de Bloqueio
+                </CardTitle>
+                <CardDescription>
+                  Histórico de bloqueios por entitlements
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingAudit ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : auditLogs && auditLogs.length > 0 ? (
+                  <ScrollArea className="h-[400px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Entitlement</TableHead>
+                          <TableHead>Ação</TableHead>
+                          <TableHead>Motivo</TableHead>
+                          <TableHead>Atual</TableHead>
+                          <TableHead>Limite</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {auditLogs.map((log: any) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-sm">
+                              {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">{log.entitlement_key}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.action}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={log.reason_code === 'PLAN_LIMIT' ? 'default' : 'destructive'}>
+                                {log.reason_code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{log.current_value ?? '-'}</TableCell>
+                            <TableCell>{log.limit_value ?? '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum bloqueio registrado
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
