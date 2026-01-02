@@ -37,8 +37,7 @@ export function useMyWorkspaceInvites() {
           token,
           expires_at,
           created_at,
-          workspaces:workspace_id (name),
-          profiles:invited_by (name)
+          workspaces:workspace_id (name)
         `)
         .eq('email', userEmail)
         .eq('status', 'pending')
@@ -60,7 +59,7 @@ export function useMyWorkspaceInvites() {
         expires_at: invite.expires_at,
         created_at: invite.created_at,
         workspace_name: invite.workspaces?.name || 'Workspace',
-        inviter_name: invite.profiles?.name || null,
+        inviter_name: null,
       })) as PendingWorkspaceInvite[];
     },
     enabled: !!userEmail,
