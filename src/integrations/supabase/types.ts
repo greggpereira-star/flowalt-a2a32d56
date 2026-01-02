@@ -8603,6 +8603,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      has_billing_access: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       has_entitlement: {
         Args: { p_entitlement_key: string; p_workspace_id: string }
         Returns: boolean
