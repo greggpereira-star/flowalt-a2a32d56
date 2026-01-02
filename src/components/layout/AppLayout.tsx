@@ -7,6 +7,7 @@ import { NotificationCenter } from '@/components/notifications/NotificationCente
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
+import { OverLimitBanner } from '@/components/billing/OverLimitBanner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
     <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
       <AppSidebar />
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
+        {/* Over Limit Banner - Global */}
+        <OverLimitBanner />
+
         {/* Header */}
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2 px-4">

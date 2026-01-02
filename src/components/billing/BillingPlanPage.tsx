@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWorkspacePlan, useEntitlements, useWorkspaceUsage, PlanTier } from '@/hooks/useWorkspacePlan';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -11,11 +11,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Sparkles, Building2, Crown, Users, FolderKanban, Database, 
   Key, Webhook, Check, X, AlertCircle, CreditCard, ExternalLink,
-  Shield, Clock
+  Shield, Clock, Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UpgradeImpactSimulator } from './UpgradeImpactSimulator';
+import { ManageUsageModal } from './ManageUsageModal';
 
 const tierConfig: Record<PlanTier, { 
   icon: React.ElementType; 
@@ -113,6 +114,7 @@ export const BillingPlanPage: React.FC = () => {
   const { data: plan, isLoading: loadingPlan } = useWorkspacePlan();
   const { data: entitlements, isLoading: loadingEntitlements } = useEntitlements();
   const { data: usage, isLoading: loadingUsage } = useWorkspaceUsage();
+  const [showManageUsage, setShowManageUsage] = useState(false);
 
   const isOwner = currentRole === 'owner';
   const canManageBilling = isOwner || isAdmin;
@@ -222,13 +224,23 @@ export const BillingPlanPage: React.FC = () => {
       {/* Usage & Limits */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Uso e Limites
-          </CardTitle>
-          <CardDescription>
-            Consumo atual do workspace em relação aos limites do plano
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Uso e Limites
+              </CardTitle>
+              <CardDescription>
+                Consumo atual do workspace em relação aos limites do plano
+              </CardDescription>
+            </div>
+            {canManageBilling && (
+              <Button variant="outline" size="sm" onClick={() => setShowManageUsage(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Gerenciar
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <UsageItem 
@@ -329,6 +341,9 @@ export const BillingPlanPage: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Manage Usage Modal */}
+      <ManageUsageModal open={showManageUsage} onOpenChange={setShowManageUsage} />
     </div>
   );
 };
