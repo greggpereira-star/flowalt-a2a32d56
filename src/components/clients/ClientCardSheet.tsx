@@ -7,8 +7,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,52 +231,52 @@ const OnboardingTab: React.FC<{
   <div className="space-y-4">
     <div className="space-y-2">
       <Label htmlFor="about_client">Quem é o cliente</Label>
-      <Textarea
-        id="about_client"
+      <RichTextEditor
         value={formData.about_client || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, about_client: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, about_client: v }))}
         placeholder="Descreva quem é esse cliente, sua história, contexto..."
-        rows={3}
+        minHeight="80px"
+        maxHeight="200px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="objectives">Objetivos</Label>
-      <Textarea
-        id="objectives"
+      <RichTextEditor
         value={formData.objectives || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, objectives: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, objectives: v }))}
         placeholder="Quais são os objetivos do cliente conosco?"
-        rows={3}
+        minHeight="80px"
+        maxHeight="200px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="target_audience">Público-alvo</Label>
-      <Textarea
-        id="target_audience"
+      <RichTextEditor
         value={formData.target_audience || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, target_audience: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, target_audience: v }))}
         placeholder="Quem é o público-alvo do cliente?"
-        rows={2}
+        minHeight="60px"
+        maxHeight="150px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="challenges">Desafios</Label>
-      <Textarea
-        id="challenges"
+      <RichTextEditor
         value={formData.challenges || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, challenges: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, challenges: v }))}
         placeholder="Quais são os principais desafios?"
-        rows={2}
+        minHeight="60px"
+        maxHeight="150px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="competitors">Concorrentes</Label>
-      <Textarea
-        id="competitors"
+      <RichTextEditor
         value={formData.competitors || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, competitors: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, competitors: v }))}
         placeholder="Quem são os concorrentes?"
-        rows={2}
+        minHeight="60px"
+        maxHeight="150px"
       />
     </div>
     <div className="space-y-2">
@@ -293,32 +298,32 @@ const BrandingTab: React.FC<{
   <div className="space-y-4">
     <div className="space-y-2">
       <Label htmlFor="positioning">Posicionamento</Label>
-      <Textarea
-        id="positioning"
+      <RichTextEditor
         value={formData.positioning || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, positioning: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, positioning: v }))}
         placeholder="Como a marca se posiciona no mercado?"
-        rows={3}
+        minHeight="80px"
+        maxHeight="200px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="personality">Personalidade da Marca</Label>
-      <Textarea
-        id="personality"
+      <RichTextEditor
         value={formData.personality || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, personality: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, personality: v }))}
         placeholder="Quais são os traços de personalidade da marca?"
-        rows={3}
+        minHeight="80px"
+        maxHeight="200px"
       />
     </div>
     <div className="space-y-2">
       <Label htmlFor="visual_guidelines">Diretrizes Visuais</Label>
-      <Textarea
-        id="visual_guidelines"
+      <RichTextEditor
         value={formData.visual_guidelines || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, visual_guidelines: e.target.value }))}
+        onChange={(v) => setFormData(prev => ({ ...prev, visual_guidelines: v }))}
         placeholder="Cores, tipografia, elementos visuais..."
-        rows={3}
+        minHeight="80px"
+        maxHeight="200px"
       />
     </div>
     <Card className="border-dashed">
@@ -366,11 +371,12 @@ const VoiceTab: React.FC<{
           <CardDescription>Valores e essência da marca</CardDescription>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <RichTextEditor
             value={formData.brand_essence || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, brand_essence: e.target.value }))}
+            onChange={(v) => setFormData(prev => ({ ...prev, brand_essence: v }))}
             placeholder="O que a marca É em sua essência?"
-            rows={2}
+            minHeight="60px"
+            maxHeight="150px"
           />
         </CardContent>
       </Card>
@@ -384,11 +390,12 @@ const VoiceTab: React.FC<{
           <CardDescription>O que a marca oferece</CardDescription>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <RichTextEditor
             value={formData.products_services || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, products_services: e.target.value }))}
+            onChange={(v) => setFormData(prev => ({ ...prev, products_services: v }))}
             placeholder="Quais produtos ou serviços oferece?"
-            rows={2}
+            minHeight="60px"
+            maxHeight="150px"
           />
         </CardContent>
       </Card>
@@ -438,11 +445,12 @@ const VoiceTab: React.FC<{
 
           <div className="space-y-2">
             <Label>Restrições de Linguagem</Label>
-            <Textarea
+            <RichTextEditor
               value={formData.language_restrictions || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, language_restrictions: e.target.value }))}
+              onChange={(v) => setFormData(prev => ({ ...prev, language_restrictions: v }))}
               placeholder="Palavras ou expressões que não devem ser usadas..."
-              rows={2}
+              minHeight="60px"
+              maxHeight="150px"
             />
           </div>
         </CardContent>
