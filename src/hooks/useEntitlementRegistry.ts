@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useWorkspacePlan, useWorkspaceUsage } from './useWorkspacePlan';
@@ -32,6 +32,15 @@ export interface EntitlementExplanation {
   cta?: string;
   limit?: number | null;
   current?: number;
+  remaining?: number;
+}
+
+export interface EntitlementCheckResult {
+  allowed: boolean;
+  reason_code: ReasonCode;
+  message?: string;
+  current_value?: number;
+  limit_value?: number;
   remaining?: number;
 }
 
@@ -151,6 +160,38 @@ export const useEntitlementRegistry = () => {
     };
   };
 
+  // Check entitlement with server-side logging (for actions that should be logged)
+  const checkWithLog = async (
+    key: string,
+    action: string
+  ): Promise<EntitlementCheckResult> => {
+    if (!currentWorkspace?.id) {
+      return {
+        allowed: false,
+        reason_code: 'NO_PLAN',
+        message: 'Workspace não encontrado',
+      };
+    }
+
+    const { data, error } = await supabase.rpc('check_entitlement_with_log', {
+      p_workspace_id: currentWorkspace.id,
+      p_entitlement_key: key,
+      p_action: action,
+    });
+
+    if (error) {
+      console.error('Error checking entitlement:', error);
+      return {
+        allowed: false,
+        reason_code: 'ENTITLEMENT_NOT_FOUND',
+        message: error.message,
+      };
+    }
+
+    const result = data as unknown as EntitlementCheckResult;
+    return result;
+  };
+
   return {
     entitlements,
     isLoading,
@@ -165,6 +206,7 @@ export const useEntitlementRegistry = () => {
     within,
     explain,
     getEntitlement,
+    checkWithLog,
   };
 };
 

@@ -8436,6 +8436,14 @@ export type Database = {
         }
         Returns: Json
       }
+      check_entitlement_with_log: {
+        Args: {
+          p_action?: string
+          p_entitlement_key: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           p_api_key_id: string
