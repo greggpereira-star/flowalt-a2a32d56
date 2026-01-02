@@ -93,6 +93,7 @@ export function CostCenterManager() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
   const [editingCenter, setEditingCenter] = useState<CostCenter | null>(null);
+  const [showUnassignedModal, setShowUnassignedModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
   
@@ -1002,7 +1003,15 @@ export function CostCenterManager() {
                       <TableCell className="text-center">
                         <Badge variant="outline">Não classificado</Badge>
                       </TableCell>
-                      <TableCell></TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowUnassignedModal(true)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   )}
 
@@ -1111,6 +1120,122 @@ export function CostCenterManager() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Unassigned Items Modal */}
+      <Dialog open={showUnassignedModal} onOpenChange={setShowUnassignedModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-gray-400" />
+              Itens Sem Centro de Custo
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Lançamentos</p>
+                  <p className="text-lg font-bold">{costCenterReport.unassigned.length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Colaboradores</p>
+                  <p className="text-lg font-bold">{costCenterReport.unassignedCollaborators.length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Unassigned Collaborators */}
+            {costCenterReport.unassignedCollaborators.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  👤 Colaboradores sem Centro de Custo ({costCenterReport.unassignedCollaborators.length})
+                </h4>
+                <div className="text-xs text-muted-foreground mb-2">
+                  💡 Para corrigir: vá em Colaboradores → Externos → Editar → selecione o Centro de Custo
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Cargo</TableHead>
+                      <TableHead className="text-right">Salário</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {costCenterReport.unassignedCollaborators.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">{c.full_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {c.job_title || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-amber-600">
+                          {formatCurrency(c.base_salary || 0)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Unassigned Transactions */}
+            {costCenterReport.unassigned.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  📋 Lançamentos sem Centro de Custo ({costCenterReport.unassigned.length})
+                </h4>
+                <div className="text-xs text-muted-foreground mb-2">
+                  💡 Para corrigir: vá em Lançamentos → Editar → selecione o Centro de Custo
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {costCenterReport.unassigned.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-sm">
+                          {format(new Date(t.due_date), "dd/MM/yyyy")}
+                        </TableCell>
+                        <TableCell>{t.description}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {t.category?.name || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(Number(t.amount))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {costCenterReport.unassigned.length === 0 && costCenterReport.unassignedCollaborators.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum item sem centro de custo
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
