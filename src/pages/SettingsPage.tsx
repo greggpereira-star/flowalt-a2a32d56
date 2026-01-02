@@ -9,6 +9,7 @@ import { UsageAnalyticsDashboard } from '@/components/analytics/UsageAnalyticsDa
 import { TemplateManager } from '@/components/templates/TemplateManager';
 import { SuperAdminDashboard } from '@/components/settings/SuperAdminDashboard';
 import { PushNotificationSettings } from '@/components/settings/PushNotificationSettings';
+import { NotificationPreferencesPanel } from '@/components/settings/NotificationPreferencesPanel';
 import { HealthCheckPanel } from '@/components/settings/HealthCheckPanel';
 import { ConfigBackupPanel } from '@/components/settings/ConfigBackupPanel';
 import { WorkflowBuilder } from '@/components/workflow/WorkflowBuilder';
@@ -27,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Zap, Monitor, PieChart, FileStack, Shield, Crown, Bell, 
   HeartPulse, Archive, GitBranch, ClipboardCheck, FolderKanban, Users, 
-  UserPlus, ShieldX, ArrowLeft, CreditCard, User, PartyPopper, Megaphone
+  UserPlus, ShieldX, ArrowLeft, CreditCard, User, PartyPopper, Megaphone, Mail
 } from 'lucide-react';
 import { BillingPlanPage } from '@/components/billing/BillingPlanPage';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -48,6 +49,7 @@ const SETTINGS_TABS = new Set([
   'automations',
   'templates',
   'push',
+  'email-notifications',
   'health',
   'backup',
   'system',
@@ -237,6 +239,10 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <span className="text-xs font-medium">Push</span>
               </TabsTrigger>
+              <TabsTrigger value="email-notifications" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Mail className="h-5 w-5" />
+                <span className="text-xs font-medium">E-mails</span>
+              </TabsTrigger>
               <TabsTrigger value="celebrations" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
                 <PartyPopper className="h-5 w-5" />
                 <span className="text-xs font-medium">Celebrações</span>
@@ -331,6 +337,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="push">
             <PushNotificationSettings />
+          </TabsContent>
+          <TabsContent value="email-notifications">
+            <NotificationPreferencesPanel />
           </TabsContent>
           <TabsContent value="celebrations">
             <HolidayCelebrationDemo />
