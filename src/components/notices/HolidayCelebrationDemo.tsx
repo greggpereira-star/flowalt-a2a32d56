@@ -9,7 +9,9 @@ import { ChristmasModal } from './ChristmasModal';
 import { EasterModal } from './EasterModal';
 import { SnowEffect } from './SnowEffect';
 import { FireworksEffect } from './FireworksEffect';
-import { PartyPopper, TreePine, Egg, Snowflake, Sparkles } from 'lucide-react';
+import { AuroraBorealisEffect } from './AuroraBorealisEffect';
+import { SpringEffect } from './SpringEffect';
+import { PartyPopper, TreePine, Egg, Snowflake, Sparkles, Sun, Gift, Flower2 } from 'lucide-react';
 
 export const HolidayCelebrationDemo: React.FC = () => {
   const [showNewYearModal, setShowNewYearModal] = useState(false);
@@ -17,6 +19,8 @@ export const HolidayCelebrationDemo: React.FC = () => {
   const [showEasterModal, setShowEasterModal] = useState(false);
   const [showSnow, setShowSnow] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
+  const [showAurora, setShowAurora] = useState(false);
+  const [showSpring, setShowSpring] = useState(false);
 
   return (
     <div className="p-6 space-y-8">
@@ -35,20 +39,38 @@ export const HolidayCelebrationDemo: React.FC = () => {
             Efeitos Visuais
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-4">
+        <CardContent className="flex flex-wrap gap-4">
           <Button 
             variant={showSnow ? "default" : "outline"}
             onClick={() => setShowSnow(!showSnow)}
+            className={showSnow ? "bg-gradient-to-r from-green-600 to-red-600" : ""}
           >
-            <Snowflake className="w-4 h-4 mr-2" />
-            {showSnow ? 'Parar Neve' : 'Ativar Neve'}
+            <Gift className="w-4 h-4 mr-2" />
+            {showSnow ? 'Parar Neve + Presentes' : 'Neve de Natal'}
           </Button>
           <Button 
             variant={showFireworks ? "default" : "outline"}
             onClick={() => setShowFireworks(!showFireworks)}
+            className={showFireworks ? "bg-gradient-to-r from-yellow-500 to-orange-500" : ""}
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            {showFireworks ? 'Parar Fogos' : 'Ativar Fogos'}
+            {showFireworks ? 'Parar Fogos' : 'Fogos de Artifício'}
+          </Button>
+          <Button 
+            variant={showAurora ? "default" : "outline"}
+            onClick={() => setShowAurora(!showAurora)}
+            className={showAurora ? "bg-gradient-to-r from-blue-600 to-purple-600" : ""}
+          >
+            <Sun className="w-4 h-4 mr-2" />
+            {showAurora ? 'Parar Aurora' : 'Aurora Boreal'}
+          </Button>
+          <Button 
+            variant={showSpring ? "default" : "outline"}
+            onClick={() => setShowSpring(!showSpring)}
+            className={showSpring ? "bg-gradient-to-r from-pink-400 to-purple-400" : ""}
+          >
+            <Flower2 className="w-4 h-4 mr-2" />
+            {showSpring ? 'Parar Primavera' : 'Pétalas + Borboletas'}
           </Button>
         </CardContent>
       </Card>
@@ -107,6 +129,13 @@ export const HolidayCelebrationDemo: React.FC = () => {
             <li>• <strong>Páscoa:</strong> Dia anterior, dia da Páscoa e dia seguinte (data variável)</li>
           </ul>
           
+          <h3 className="font-semibold mt-4 mb-2">✨ Efeitos Visuais por Feriado</h3>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• <strong>Natal:</strong> Cristais de gelo azulados + Presentes coloridos caindo</li>
+            <li>• <strong>Ano Novo:</strong> Fogos de artifício + Aurora boreal</li>
+            <li>• <strong>Páscoa:</strong> Pétalas de flor + Borboletas voando</li>
+          </ul>
+          
           <h3 className="font-semibold mt-4 mb-2">🏆 Badges Desbloqueáveis</h3>
           <div className="flex gap-4 text-2xl">
             <span title="Ano Novo">🎆</span>
@@ -124,6 +153,8 @@ export const HolidayCelebrationDemo: React.FC = () => {
       {/* Effects */}
       {showSnow && <SnowEffect intensity={3} />}
       {showFireworks && <FireworksEffect duration={30} />}
+      {showAurora && <AuroraBorealisEffect intensity={2} />}
+      {showSpring && <SpringEffect intensity={3} />}
     </div>
   );
 };

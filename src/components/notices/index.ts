@@ -10,3 +10,5 @@ export { EasterBanner } from './EasterBanner';
 export { EasterModal } from './EasterModal';
 export { SnowEffect } from './SnowEffect';
 export { FireworksEffect } from './FireworksEffect';
+export { AuroraBorealisEffect } from './AuroraBorealisEffect';
+export { SpringEffect } from './SpringEffect';
