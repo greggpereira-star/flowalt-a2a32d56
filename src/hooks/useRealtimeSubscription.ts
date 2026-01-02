@@ -5,12 +5,14 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type PostgresEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
+type QueryKey = readonly unknown[];
+
 interface RealtimeSubscriptionOptions {
   table: string;
   schema?: string;
   event?: PostgresEvent;
   filter?: string;
-  queryKeys: string[][];
+  queryKeys: QueryKey[];
   enabled?: boolean;
   onPayload?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;
 }

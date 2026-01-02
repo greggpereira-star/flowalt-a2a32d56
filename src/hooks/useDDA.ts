@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 import type { Json } from '@/integrations/supabase/types';
 
@@ -75,6 +76,17 @@ export function useDDABoletos(filters?: {
   endDate?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
+
+  // Enable realtime updates for dda_boletos
+  useRealtimeSubscription({
+    table: 'dda_boletos',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ['dda-boletos', currentWorkspace?.id, filters],
+      ['dda-sync-status', currentWorkspace?.id],
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ['dda-boletos', currentWorkspace?.id, filters],

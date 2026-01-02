@@ -355,17 +355,31 @@ export function DDAPanel() {
       </div>
 
       {/* Integration Status */}
+      {/* Info Card - DDA Limitation Notice */}
+      <Card className="border-blue-500/50 bg-blue-500/5">
+        <CardContent className="flex items-center gap-4 py-4">
+          <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-blue-700">Sobre o DDA - Débito Direto Autorizado</p>
+            <p className="text-sm text-muted-foreground">
+              O DDA tradicional é um serviço bancário que precisa ser contratado diretamente com seu banco. 
+              <strong> Aqui você pode cadastrar boletos manualmente</strong> e vincular pagamentos do extrato bancário para controle de contas a pagar.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {syncStatus?.is_configured ? (
         <Card className="border-green-500/50 bg-green-500/5">
           <CardContent className="flex items-center gap-4 py-4">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <div className="flex-1">
-              <p className="font-medium text-green-700">Pluggy conectado e ativo</p>
+              <p className="font-medium text-green-700">Pluggy conectado - Extrato Disponível</p>
               <p className="text-sm text-muted-foreground">
-                {syncStatus.last_sync 
-                  ? `Última sincronização: ${format(new Date(syncStatus.last_sync.synced_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
-                  : 'Nenhuma sincronização realizada ainda. Clique em "Sincronizar" para buscar boletos.'
-                }
+                Use o extrato bancário para identificar e vincular pagamentos de boletos.
+                {syncStatus.last_sync && (
+                  <> Última sincronização: {format(new Date(syncStatus.last_sync.synced_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>
+                )}
               </p>
             </div>
             <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/30">
@@ -375,13 +389,13 @@ export function DDAPanel() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-warning/50 bg-warning/5">
+        <Card className="border-muted">
           <CardContent className="flex items-center gap-4 py-4">
-            <AlertTriangle className="w-5 h-5 text-warning" />
+            <Building2 className="w-5 h-5 text-muted-foreground" />
             <div className="flex-1">
-              <p className="font-medium">Pluggy não configurado</p>
+              <p className="font-medium">Integração Bancária (Opcional)</p>
               <p className="text-sm text-muted-foreground">
-                Não há integração Pluggy ativa para o workspace atual{currentWorkspace?.name ? ` (${currentWorkspace.name})` : ''}. Configure em Configurações → Conectores.
+                Conecte o Pluggy para importar transações do extrato e facilitar a conciliação de boletos pagos.
               </p>
             </div>
             <Button variant="outline" size="sm" asChild>
