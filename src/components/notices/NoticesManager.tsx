@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -26,6 +25,8 @@ import {
   Trash2, Edit, Eye, Clock, Users, CheckCircle2, Shield, ChevronRight,
   UserCheck, Percent
 } from 'lucide-react';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
 
 interface NoticeFormData {
   title: string;
@@ -248,12 +249,12 @@ export const NoticesManager: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="content">Conteúdo</Label>
-              <Textarea
-                id="content"
+              <RichTextEditor
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                onChange={(v) => setFormData({ ...formData, content: v })}
                 placeholder="Descrição detalhada do aviso..."
-                rows={4}
+                minHeight="100px"
+                maxHeight="300px"
               />
             </div>
 
@@ -437,8 +438,10 @@ const NoticeCard: React.FC<{
                 </Badge>
               )}
             </div>
-            {notice.content && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{notice.content}</p>
+            {notice.content && !isRichTextEmpty(notice.content) && (
+              <div className="text-sm text-muted-foreground line-clamp-2">
+                <RichTextViewer content={notice.content} />
+              </div>
             )}
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">

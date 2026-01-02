@@ -12,6 +12,7 @@ import {
   AlertTriangle, Info, PartyPopper, Calendar, Wrench, FileText, 
   CheckCircle2, Clock, Shield
 } from 'lucide-react';
+import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
 
 interface MandatoryNoticeModalProps {
   notice: Notice;
@@ -113,9 +114,9 @@ export const MandatoryNoticeModal: React.FC<MandatoryNoticeModalProps> = ({
         {/* Content */}
         <ScrollArea className="max-h-[50vh]">
           <div className="p-6">
-            {notice.content ? (
+            {notice.content && !isRichTextEmpty(notice.content) ? (
               <div className="prose prose-sm max-w-none text-foreground">
-                <p className="whitespace-pre-wrap leading-relaxed">{notice.content}</p>
+                <RichTextViewer content={notice.content} />
               </div>
             ) : (
               <p className="text-muted-foreground italic">
