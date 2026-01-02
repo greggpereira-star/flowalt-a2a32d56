@@ -214,18 +214,59 @@ export function InvoiceXMLImporter() {
           </div>
         )}
 
-        {/* Parse Errors */}
+        {/* Parse Errors - Enhanced UX */}
         {errors.length > 0 && (
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-destructive mb-2">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">Erros ao processar:</span>
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-destructive mb-2">
+                  {errors.length === 1 ? "Erro ao processar arquivo" : `${errors.length} erros ao processar`}
+                </div>
+                <ul className="text-sm space-y-2">
+                  {errors.map((error, i) => {
+                    // Parse error message to extract file name and error type
+                    const colonIndex = error.indexOf(":");
+                    const fileName = colonIndex > 0 ? error.substring(0, colonIndex) : "Arquivo";
+                    const errorMessage = colonIndex > 0 ? error.substring(colonIndex + 1).trim() : error;
+                    
+                    // Provide helpful hints based on error type
+                    let hint = "";
+                    if (errorMessage.includes("não reconhecido") || errorMessage.includes("NF-e") || errorMessage.includes("NFS-e")) {
+                      hint = "Verifique se o arquivo é um XML válido de Nota Fiscal Eletrônica.";
+                    } else if (errorMessage.includes("namespace") || errorMessage.includes("getElementsByTagName")) {
+                      hint = "O formato do XML pode não ser compatível. Entre em contato com o suporte.";
+                    } else if (errorMessage.includes("número da nota") || errorMessage.includes("nNF") || errorMessage.includes("Numero")) {
+                      hint = "O XML não contém o número da nota fiscal. Verifique se o arquivo está completo.";
+                    }
+
+                    return (
+                      <li key={i} className="bg-background/50 rounded-md p-2 border border-destructive/10">
+                        <div className="flex items-start gap-2">
+                          <XCircle className="w-4 h-4 text-destructive/70 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-destructive/90 truncate" title={fileName}>
+                              {fileName}
+                            </div>
+                            <div className="text-muted-foreground text-xs mt-0.5">
+                              {errorMessage}
+                            </div>
+                            {hint && (
+                              <div className="text-muted-foreground/70 text-xs mt-1 italic">
+                                💡 {hint}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Formatos suportados: NF-e (modelo 55), NFS-e (diversos padrões municipais), NFC-e
+                </p>
+              </div>
             </div>
-            <ul className="text-sm text-destructive/80 space-y-1">
-              {errors.map((error, i) => (
-                <li key={i}>• {error}</li>
-              ))}
-            </ul>
           </div>
         )}
 
