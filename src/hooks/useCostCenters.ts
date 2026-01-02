@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { toast } from "sonner";
 
 export interface CostCenter {
@@ -110,6 +111,16 @@ export function useCostCentersWithBudget() {
   const { currentWorkspace } = useWorkspace();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
+
+  // Realtime subscription para atualizar quando transações mudam
+  useRealtimeSubscription({
+    table: 'transactions',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [
+      ['cost-centers-with-budget', currentWorkspace?.id || ''],
+    ],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ["cost-centers-with-budget", currentWorkspace?.id],
