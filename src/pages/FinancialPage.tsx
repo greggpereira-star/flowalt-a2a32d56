@@ -10,6 +10,7 @@ import { AdvancedFinancialDashboard } from "@/components/financial/AdvancedFinan
 import { CollaboratorManager } from "@/components/financial/CollaboratorManager";
 import { InvoiceList } from "@/components/financial/InvoiceList";
 import { InvoiceForm } from "@/components/financial/InvoiceForm";
+import { InvoiceEditModal } from "@/components/financial/InvoiceEditModal";
 import { InvoiceXMLImporter } from "@/components/financial/InvoiceXMLImporter";
 import { CostCenterManager } from "@/components/financial/CostCenterManager";
 import { DREReport } from "@/components/financial/DREReport";
@@ -27,6 +28,7 @@ import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Transaction } from "@/hooks/useFinancial";
+import { Invoice } from "@/hooks/useInvoices";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -53,6 +55,7 @@ export default function FinancialPage() {
   const { logFinancialAccess } = useAccessLogging();
   const { canViewSalaries } = usePermissions();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     logFinancialAccess('dashboard_view');
@@ -60,6 +63,10 @@ export default function FinancialPage() {
 
   const handleEditTransaction = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
   };
   
   return (
@@ -186,7 +193,7 @@ export default function FinancialPage() {
                   </TabsContent>
 
                   <TabsContent value="invoices" className="mt-0 animate-in fade-in-50 duration-300">
-                    <InvoiceList />
+                    <InvoiceList onEdit={handleEditInvoice} />
                   </TabsContent>
 
                   <TabsContent value="reconciliation" className="mt-0 animate-in fade-in-50 duration-300">
@@ -210,14 +217,20 @@ export default function FinancialPage() {
                             <div className="w-2 h-2 rounded-full bg-emerald-500" />
                             <h3 className="text-base font-medium">Receitas Previstas</h3>
                           </div>
-                          <TransactionList filters={{ type: "income", status: "pending" }} />
+                          <TransactionList 
+                            filters={{ type: "income", status: "pending" }} 
+                            onEdit={handleEditTransaction}
+                          />
                         </div>
                         <div className="space-y-4">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-rose-500" />
                             <h3 className="text-base font-medium">Despesas Previstas</h3>
                           </div>
-                          <TransactionList filters={{ type: "expense", status: "pending" }} />
+                          <TransactionList 
+                            filters={{ type: "expense", status: "pending" }} 
+                            onEdit={handleEditTransaction}
+                          />
                         </div>
                       </div>
                     </div>
@@ -279,6 +292,13 @@ export default function FinancialPage() {
           open={!!editingTransaction}
           onOpenChange={(open) => !open && setEditingTransaction(null)}
           transaction={editingTransaction}
+        />
+
+        {/* Invoice Edit Modal */}
+        <InvoiceEditModal
+          open={!!editingInvoice}
+          onOpenChange={(open) => !open && setEditingInvoice(null)}
+          invoice={editingInvoice}
         />
       </AppLayout>
     </PermissionGuard>

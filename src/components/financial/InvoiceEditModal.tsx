@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, FileText } from "lucide-react";
+import { CalendarIcon, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -36,7 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useCreateInvoice, Invoice } from "@/hooks/useInvoices";
+import { useUpdateInvoice, Invoice } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
 import { useTransactions } from "@/hooks/useFinancial";
 
@@ -45,7 +44,6 @@ const invoiceSchema = z.object({
   invoice_type: z.enum(["nfse", "nfe", "nfce"]),
   invoice_series: z.string().optional(),
   issue_date: z.date(),
-  due_date: z.date().optional(),
   recipient_name: z.string().optional(),
   recipient_document: z.string().optional(),
   recipient_email: z.string().email().optional().or(z.literal("")),
@@ -60,43 +58,66 @@ const invoiceSchema = z.object({
 
 type FormData = z.infer<typeof invoiceSchema>;
 
-interface InvoiceFormProps {
-  invoice?: Invoice;
-  onSuccess?: () => void;
+interface InvoiceEditModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoice: Invoice | null;
 }
 
-export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
-  const [open, setOpen] = useState(false);
-  const createInvoice = useCreateInvoice();
+export function InvoiceEditModal({ open, onOpenChange, invoice }: InvoiceEditModalProps) {
+  const updateInvoice = useUpdateInvoice();
   const { data: clients = [] } = useClients();
   const { data: transactions = [] } = useTransactions({ status: "paid" });
 
   const form = useForm<FormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      invoice_number: invoice?.invoice_number || "",
-      invoice_type: (invoice?.invoice_type as any) || "nfse",
-      invoice_series: invoice?.invoice_series || "",
-      issue_date: invoice?.issue_date ? new Date(invoice.issue_date) : new Date(),
-      due_date: invoice?.due_date ? new Date(invoice.due_date) : undefined,
-      recipient_name: invoice?.recipient_name || "",
-      recipient_document: invoice?.recipient_document || "",
-      recipient_email: invoice?.recipient_email || "",
-      gross_amount: invoice?.gross_amount?.toString() || "",
-      tax_amount: invoice?.tax_amount?.toString() || "0",
-      service_code: invoice?.service_code || "",
-      description: invoice?.description || "",
-      status: (invoice?.status as any) || "pendente",
-      client_id: invoice?.client_id || "",
-      transaction_id: invoice?.transaction_id || "",
+      invoice_number: "",
+      invoice_type: "nfse",
+      invoice_series: "",
+      issue_date: new Date(),
+      recipient_name: "",
+      recipient_document: "",
+      recipient_email: "",
+      gross_amount: "",
+      tax_amount: "0",
+      service_code: "",
+      description: "",
+      status: "pendente",
+      client_id: "",
+      transaction_id: "",
     },
   });
 
+  useEffect(() => {
+    if (invoice) {
+      form.reset({
+        invoice_number: invoice.invoice_number || "",
+        invoice_type: (invoice.invoice_type as any) || "nfse",
+        invoice_series: invoice.invoice_series || "",
+        issue_date: invoice.issue_date ? new Date(invoice.issue_date) : new Date(),
+        recipient_name: invoice.recipient_name || "",
+        recipient_document: invoice.recipient_document || "",
+        recipient_email: invoice.recipient_email || "",
+        gross_amount: invoice.gross_amount?.toString() || "",
+        tax_amount: invoice.tax_amount?.toString() || "0",
+        service_code: invoice.service_code || "",
+        description: invoice.description || "",
+        status: (invoice.status as any) || "pendente",
+        client_id: invoice.client_id || "",
+        transaction_id: invoice.transaction_id || "",
+      });
+    }
+  }, [invoice, form]);
+
   const onSubmit = async (data: FormData) => {
+    if (!invoice) return;
+
     const grossAmount = parseFloat(data.gross_amount.replace(/[^\d,.-]/g, "").replace(",", "."));
     const taxAmount = data.tax_amount ? parseFloat(data.tax_amount.replace(/[^\d,.-]/g, "").replace(",", ".")) : 0;
 
-    await createInvoice.mutateAsync({
+    await updateInvoice.mutateAsync({
+      id: invoice.id,
       invoice_number: data.invoice_number,
       invoice_type: data.invoice_type,
       invoice_series: data.invoice_series || null,
@@ -114,24 +135,16 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       transaction_id: data.transaction_id || null,
     });
 
-    form.reset();
-    setOpen(false);
-    onSuccess?.();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Nota Fiscal
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            {invoice ? "Editar" : "Nova"} Nota Fiscal
+            Editar Nota Fiscal
           </DialogTitle>
         </DialogHeader>
 
@@ -158,7 +171,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -227,7 +240,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -297,13 +310,14 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cliente Vinculado</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
                           {clients.map((client) => (
                             <SelectItem key={client.id} value={client.id}>
                               {client.name}
@@ -399,13 +413,14 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vincular a Transação</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Opcional - vincular a um lançamento" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {transactions.map((tx) => (
                         <SelectItem key={tx.id} value={tx.id}>
                           {tx.description} - R$ {tx.amount.toFixed(2)}
@@ -419,11 +434,11 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createInvoice.isPending}>
-                {createInvoice.isPending ? "Salvando..." : "Salvar"}
+              <Button type="submit" disabled={updateInvoice.isPending}>
+                {updateInvoice.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </div>
           </form>

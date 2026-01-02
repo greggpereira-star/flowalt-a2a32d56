@@ -289,13 +289,16 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                               Marcar como pago
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
+                          {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => handleDelete(transaction.id)}
+                            disabled={deleteTransaction.isPending}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir
