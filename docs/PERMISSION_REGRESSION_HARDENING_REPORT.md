@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-Comprehensive security audit of Flowalt's permission system. **4 critical issues fixed**, all RLS policies validated, and security audit page enhanced.
+Comprehensive security audit of Flowalt's permission system. **5 critical/medium issues fixed**, all RLS policies validated, UI guards aligned with RLS.
 
 ---
 
@@ -27,10 +27,22 @@ Comprehensive security audit of Flowalt's permission system. **4 critical issues
 - **Cause:** No centralized function for card access validation (deep link protection)
 - **Fix:** Created SECURITY DEFINER function checking visibility + membership
 
-### 4. LOW: Enhanced Entitlement Audit
+### 4. MEDIUM: Fixed ClientCardSheet Financial Access
+- **Severity:** MEDIUM
+- **Cause:** `canEditFinancials` incorrectly included `isCoordinator`
+- **Fix:** Removed coordinator from financial access check
+- **File:** `src/components/clients/ClientCardSheet.tsx`
+
+### 5. LOW: Enhanced Entitlement Audit
 - **Severity:** LOW
 - **Cause:** Missing `check_entitlement_with_log` function
 - **Fix:** Created function with proper logging to `entitlement_audit`
+
+### 6. LOW: Protected Collaborators Tab (Salary Data)
+- **Severity:** LOW
+- **Cause:** Collaborators tab visible to all financial roles
+- **Fix:** Restricted to `canViewSalaries` (Owner only)
+- **File:** `src/pages/FinancialPage.tsx`
 
 ---
 
@@ -44,6 +56,15 @@ Comprehensive security audit of Flowalt's permission system. **4 critical issues
 | `can_access_card` | Deep link protection for restricted cards | DEFINER |
 | `revoke_workspace_invite` | Proper invite revocation with audit | DEFINER |
 | `check_entitlement_with_log` | Entitlement checking with audit logging | DEFINER |
+
+---
+
+## UI Guard Fixes
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `ClientCardSheet.tsx` | Coordinator had financial access | Removed `isCoordinator` from `canEditFinancials` |
+| `FinancialPage.tsx` | Collaborators tab visible to all | Restricted to `canViewSalaries` |
 
 ---
 
@@ -74,6 +95,7 @@ Comprehensive security audit of Flowalt's permission system. **4 critical issues
 | Invoices | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
 | Salary/Contract | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Collaborator Payroll | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Client Financials | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 
 *Members can view if they are card_members
 
@@ -82,6 +104,8 @@ Comprehensive security audit of Flowalt's permission system. **4 critical issues
 ## Files Modified
 
 - `src/pages/SecurityAuditPage.tsx` - Enhanced audit runner
+- `src/pages/FinancialPage.tsx` - Protected Collaborators tab
+- `src/components/clients/ClientCardSheet.tsx` - Fixed financial access
 - `supabase/migrations/*_permission_hardening_v2.sql` - Security functions
 
 ## Next Steps

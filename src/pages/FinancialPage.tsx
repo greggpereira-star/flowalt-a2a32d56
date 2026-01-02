@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissions } from "@/hooks/usePermissions";
 import { TransactionList } from "@/components/financial/TransactionList";
 import { TransactionForm } from "@/components/financial/TransactionForm";
 import { AdvancedFinancialDashboard } from "@/components/financial/AdvancedFinancialDashboard";
@@ -48,6 +49,7 @@ import { useAccessLogging } from '@/hooks/useAccessLogging';
 export default function FinancialPage() {
   usePageTracking('financial');
   const { logFinancialAccess } = useAccessLogging();
+  const { canViewSalaries } = usePermissions();
 
   useEffect(() => {
     logFinancialAccess('dashboard_view');
@@ -126,10 +128,12 @@ export default function FinancialPage() {
                     <PieChart className="w-4 h-4" />
                     <span>Rentabilidade</span>
                   </TabsTrigger>
-                  <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>Colaboradores</span>
-                  </TabsTrigger>
+                  {canViewSalaries && (
+                    <TabsTrigger value="collaborators" variant="wrap" className="gap-2">
+                      <Users className="w-4 h-4" />
+                      <span>Colaboradores</span>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="tax-guides" variant="wrap" className="gap-2">
                     <FileCheck className="w-4 h-4" />
                     <span>Guias Fiscais</span>
@@ -224,9 +228,11 @@ export default function FinancialPage() {
                     <ProjectProfitabilityPanel />
                   </TabsContent>
 
-                  <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
-                    <CollaboratorManager />
-                  </TabsContent>
+                  {canViewSalaries && (
+                    <TabsContent value="collaborators" className="mt-0 animate-in fade-in-50 duration-300">
+                      <CollaboratorManager />
+                    </TabsContent>
+                  )}
 
                   <TabsContent value="tax-guides" className="mt-0 animate-in fade-in-50 duration-300">
                     <TaxGuidesPanel />
