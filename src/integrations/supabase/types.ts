@@ -7246,6 +7246,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
+          revoked_at: string | null
           role: Database["public"]["Enums"]["app_role"]
           status: string
           token: string
@@ -7260,6 +7261,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
+          revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           token?: string
@@ -7274,6 +7276,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
+          revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           token?: string
@@ -8420,6 +8423,10 @@ export type Database = {
           next_level_score: number
         }[]
       }
+      can_access_card: {
+        Args: { p_card_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_access_folder: {
         Args: { _folder_id: string; _user_id: string }
         Returns: boolean
@@ -8432,8 +8439,16 @@ export type Database = {
         Args: { _checklist_id: string; _user_id: string }
         Returns: boolean
       }
+      can_manage_financial: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       can_receive_card_notification: {
         Args: { _card_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_financial: {
+        Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
       can_view_sensitive_financial: {
