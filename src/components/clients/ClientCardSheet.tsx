@@ -702,13 +702,14 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const updateClient = useUpdateClientCard();
   const deleteClient = useDeleteClientCard();
   const { data: members } = useWorkspaceMembers();
-  const { canViewClientFinancials, isCoordinator, isAdmin, isOwner } = usePermissions();
+  const { canViewClientFinancials, isAdmin, isOwner } = usePermissions();
   
   const [formData, setFormData] = useState<Partial<ClientCard>>({});
   const [activeTab, setActiveTab] = useState('identity');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const canEditFinancials = canViewClientFinancials || isCoordinator || isAdmin || isOwner;
+  // Per blueprint: only Owner + Finance can view/edit client financials (NOT coordinator)
+  const canEditFinancials = canViewClientFinancials;
   const canDelete = isAdmin || isOwner;
 
   useEffect(() => {

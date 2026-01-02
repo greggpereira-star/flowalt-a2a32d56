@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -198,8 +199,9 @@ const CoordinationPage: React.FC = () => {
   }
 
   return (
-    <AppLayout>
-      <div className="p-6 space-y-6">
+    <PermissionGuard permission="canViewCoordination">
+      <AppLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -467,7 +469,8 @@ const CoordinationPage: React.FC = () => {
         open={!!selectedCardId}
         onOpenChange={(open) => !open && setSelectedCardId(null)}
       />
-    </AppLayout>
+      </AppLayout>
+    </PermissionGuard>
   );
 };
 
