@@ -9,6 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -45,6 +50,8 @@ import {
   Trash2,
   AlertTriangle,
   Lock,
+  ChevronDown,
+  History,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -297,37 +304,48 @@ export function WorkspaceInvitesPanel() {
             </div>
           )}
 
-          {/* Past invites */}
+          {/* Past invites - Collapsible */}
           {pastInvites.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">
-                Histórico ({pastInvites.length})
-              </h4>
-              {pastInvites.slice(0, 5).map((invite) => {
-                const status = STATUS_CONFIG[invite.status];
-                const StatusIcon = status.icon;
-                const createdAt = formatDistanceToNow(new Date(invite.created_at), { 
-                  addSuffix: true, 
-                  locale: ptBR 
-                });
-
-                return (
-                  <div
-                    key={invite.id}
-                    className="flex items-center gap-3 p-2 rounded-lg opacity-60"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{invite.email}</p>
-                      <p className="text-xs text-muted-foreground">{createdAt}</p>
-                    </div>
-                    <Badge variant={status.variant} className="gap-1 text-xs">
-                      <StatusIcon className="h-3 w-3" />
-                      {status.label}
-                    </Badge>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between text-muted-foreground hover:text-foreground"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    <span>Histórico de convites ({pastInvites.length})</span>
                   </div>
-                );
-              })}
-            </div>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                {pastInvites.map((invite) => {
+                  const status = STATUS_CONFIG[invite.status];
+                  const StatusIcon = status.icon;
+                  const createdAt = formatDistanceToNow(new Date(invite.created_at), { 
+                    addSuffix: true, 
+                    locale: ptBR 
+                  });
+
+                  return (
+                    <div
+                      key={invite.id}
+                      className="flex items-center gap-3 p-2 rounded-lg opacity-60 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{invite.email}</p>
+                        <p className="text-xs text-muted-foreground">{createdAt}</p>
+                      </div>
+                      <Badge variant={status.variant} className="gap-1 text-xs">
+                        <StatusIcon className="h-3 w-3" />
+                        {status.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
           {invites?.length === 0 && (
