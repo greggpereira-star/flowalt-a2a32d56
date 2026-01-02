@@ -36,6 +36,7 @@ import {
   MapPin,
   Link2,
   Loader2,
+  Cake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -49,6 +50,7 @@ import {
 import { useCards } from '@/hooks/useCards';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useNotices } from '@/hooks/useNoticesModule';
 import {
   format,
   startOfMonth,
@@ -92,6 +94,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const { data: events, isLoading } = useEvents(calendarStart, calendarEnd);
   const { data: spaces } = useSpaces();
   const { data: members } = useWorkspaceMembers();
+  const { birthdayNotices } = useNotices();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
@@ -115,14 +118,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   }, [calendarStart, calendarEnd]);
 
   const eventsByDay = useMemo(() => {
-    const map = new Map<string, Event[]>();
+    const map = new Map<string, (Event | { id: string; title: string; isBirthday: true })[]>();
     events?.forEach(event => {
       const dateKey = format(parseISO(event.start_time), 'yyyy-MM-dd');
       const existing = map.get(dateKey) || [];
       map.set(dateKey, [...existing, event]);
     });
+    // Add birthday notices to calendar
+    birthdayNotices.forEach(notice => {
+      const dateKey = format(parseISO(notice.starts_at), 'yyyy-MM-dd');
+      const existing = map.get(dateKey) || [];
+      map.set(dateKey, [...existing, { id: notice.id, title: notice.title, isBirthday: true }]);
+    });
     return map;
-  }, [events]);
+  }, [events, birthdayNotices]);
 
   const resetForm = () => {
     setFormData({
@@ -318,16 +327,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   </div>
                   <div className="space-y-1">
                     {dayEvents.slice(0, 3).map(event => {
-                      const config = EVENT_TYPE_CONFIG[event.event_type];
+                      // Check if it's a birthday notice
+                      if ('isBirthday' in event && event.isBirthday) {
+                        return (
+                          <div
+                            key={event.id}
+                            className="text-xs px-1.5 py-0.5 rounded truncate text-white cursor-default bg-pink-500 flex items-center gap-1"
+                          >
+                            <Cake className="h-3 w-3" />
+                            {event.title.replace('🎉 ', '').replace('!', '')}
+                          </div>
+                        );
+                      }
+                      
+                      const config = EVENT_TYPE_CONFIG[(event as Event).event_type];
                       return (
                         <div
                           key={event.id}
                           className={cn(
                             'text-xs px-1.5 py-0.5 rounded truncate text-white cursor-pointer hover:opacity-80',
-                            event.color ? '' : config.color
+                            (event as Event).color ? '' : config.color
                           )}
-                          style={event.color ? { backgroundColor: event.color } : undefined}
-                          onClick={(e) => handleEventClick(event, e)}
+                          style={(event as Event).color ? { backgroundColor: (event as Event).color } : undefined}
+                          onClick={(e) => handleEventClick(event as Event, e)}
                         >
                           {event.title}
                         </div>
