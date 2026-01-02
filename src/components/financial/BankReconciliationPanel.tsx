@@ -105,6 +105,48 @@ export function BankReconciliationPanel() {
     enabled: !!currentWorkspace?.id,
   });
 
+  // Helper to log audit trail for reconciliation actions
+  const logReconciliationAudit = async (
+    action: "reconcile" | "unreconcile" | "ignore",
+    entityId: string,
+    oldData: unknown,
+    newData: unknown
+  ) => {
+    if (!currentWorkspace?.id) return;
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user?.id) return;
+
+      const changedFields =
+        typeof oldData === "object" &&
+        oldData !== null &&
+        typeof newData === "object" &&
+        newData !== null
+          ? Object.keys(newData as object).filter(
+              (key) =>
+                (oldData as Record<string, unknown>)[key] !==
+                (newData as Record<string, unknown>)[key]
+            )
+          : [];
+
+      await supabase.from("financial_audit_trail").insert([
+        {
+          workspace_id: currentWorkspace.id,
+          entity_type: "bank_reconciliation",
+          entity_id: entityId,
+          action,
+          user_id: userData.user.id,
+          old_data: oldData as null,
+          new_data: newData as null,
+          changes: { action, changed_fields: changedFields } as null,
+        },
+      ]);
+    } catch (error) {
+      console.error("Failed to log audit trail:", error);
+    }
+  };
+
   const reconcileMutation = useMutation({
     mutationFn: async ({
       reconciliationId,
@@ -115,20 +157,38 @@ export function BankReconciliationPanel() {
       transactionId?: string;
       invoiceId?: string;
     }) => {
+      // Get current state for audit
+      const { data: currentState } = await supabase
+        .from("bank_reconciliations")
+        .select("*")
+        .eq("id", reconciliationId)
+        .single();
+
+      const newData = {
+        status: "reconciled",
+        transaction_id: transactionId || null,
+        invoice_id: invoiceId || null,
+        reconciled_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from("bank_reconciliations")
-        .update({
-          status: "reconciled",
-          transaction_id: transactionId || null,
-          invoice_id: invoiceId || null,
-          reconciled_at: new Date().toISOString(),
-        })
+        .update(newData)
         .eq("id", reconciliationId);
 
       if (error) throw error;
+
+      // Log audit trail
+      await logReconciliationAudit(
+        "reconcile",
+        reconciliationId,
+        currentState || {},
+        newData
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bank-reconciliations"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-audit-trail"] });
       toast.success("Conciliação realizada com sucesso");
       setMatchDialogOpen(false);
       setSelectedItem(null);
@@ -140,35 +200,69 @@ export function BankReconciliationPanel() {
 
   const unreconcileMutation = useMutation({
     mutationFn: async (reconciliationId: string) => {
+      // Get current state for audit
+      const { data: currentState } = await supabase
+        .from("bank_reconciliations")
+        .select("*")
+        .eq("id", reconciliationId)
+        .single();
+
+      const newData = {
+        status: "pending",
+        transaction_id: null,
+        invoice_id: null,
+        reconciled_at: null,
+      };
+
       const { error } = await supabase
         .from("bank_reconciliations")
-        .update({
-          status: "pending",
-          transaction_id: null,
-          invoice_id: null,
-          reconciled_at: null,
-        })
+        .update(newData)
         .eq("id", reconciliationId);
 
       if (error) throw error;
+
+      // Log audit trail
+      await logReconciliationAudit(
+        "unreconcile",
+        reconciliationId,
+        currentState || {},
+        newData
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bank-reconciliations"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-audit-trail"] });
       toast.success("Conciliação desfeita");
     },
   });
 
   const ignoreMutation = useMutation({
     mutationFn: async (reconciliationId: string) => {
+      // Get current state for audit
+      const { data: currentState } = await supabase
+        .from("bank_reconciliations")
+        .select("*")
+        .eq("id", reconciliationId)
+        .single();
+
       const { error } = await supabase
         .from("bank_reconciliations")
         .update({ status: "ignored" })
         .eq("id", reconciliationId);
 
       if (error) throw error;
+
+      // Log audit trail
+      await logReconciliationAudit(
+        "ignore",
+        reconciliationId,
+        currentState || {},
+        { status: "ignored" }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bank-reconciliations"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-audit-trail"] });
       toast.success("Item ignorado");
     },
   });
