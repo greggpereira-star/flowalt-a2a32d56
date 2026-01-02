@@ -228,7 +228,7 @@ export function useImportInvoiceXML() {
       // Check if invoice already exists
       const { data: existing } = await supabase
         .from("invoices")
-        .select("id")
+        .select("id, transaction_id")
         .eq("workspace_id", currentWorkspace.id)
         .eq("invoice_number", parsedNFe.invoiceNumber)
         .eq("invoice_type", parsedNFe.invoiceType)
@@ -238,6 +238,29 @@ export function useImportInvoiceXML() {
         throw new Error(`Nota fiscal ${parsedNFe.invoiceNumber} já cadastrada`);
       }
 
+      // Determine transaction type based on who is emitter vs recipient
+      // If we're the emitter (selling), it's income. If we're recipient (buying), it's expense.
+      // Default to expense (we're receiving the invoice/buying)
+      const transactionType: 'income' | 'expense' = 'expense';
+
+      // Create the transaction first
+      const { data: transaction, error: txError } = await supabase
+        .from("transactions")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          type: transactionType,
+          amount: parsedNFe.grossAmount,
+          description: `NF ${parsedNFe.invoiceType.toUpperCase()} ${parsedNFe.invoiceNumber} - ${parsedNFe.description}`.substring(0, 500),
+          due_date: parsedNFe.dueDate || parsedNFe.issueDate,
+          status: "pending",
+          created_by: userData.user?.id,
+        })
+        .select()
+        .single();
+
+      if (txError) throw txError;
+
+      // Now create the invoice linked to the transaction
       const { data, error } = await supabase
         .from("invoices")
         .insert({
@@ -259,6 +282,7 @@ export function useImportInvoiceXML() {
           status: "emitida",
           source: "xml_import",
           created_by: userData.user?.id,
+          transaction_id: transaction.id,
           metadata: {
             emitter: parsedNFe.emitter,
             items: parsedNFe.items,
@@ -267,12 +291,19 @@ export function useImportInvoiceXML() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Rollback transaction if invoice insert fails
+        await supabase.from("transactions").delete().eq("id", transaction.id);
+        throw error;
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      toast.success("Nota fiscal importada com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      toast.success("Nota fiscal importada com sucesso e lançamento criado");
     },
     onError: (error) => {
       toast.error("Erro ao importar nota fiscal", { description: error.message });
