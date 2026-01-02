@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApiKeys, useCreateApiKey, useUpdateApiKey, useDeleteApiKey } from '@/hooks/useApiKeys';
+import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,6 +14,7 @@ import { Key, Plus, Copy, Trash2, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
 
 const PERMISSIONS = [
   { value: 'read', label: 'Leitura', description: 'Ler cards, comentários, eventos' },
@@ -26,6 +28,12 @@ export function ApiKeyManager() {
   const updateApiKey = useUpdateApiKey();
   const deleteApiKey = useDeleteApiKey();
   const { toast } = useToast();
+  const { data: plan } = useWorkspacePlan();
+  const { data: usage } = useWorkspaceUsage();
+
+  const apiKeysUsed = usage?.api_keys_used || 0;
+  const apiKeysLimit = plan?.api_keys_limit || 0;
+  const { canCreate: canCreateKey, status: limitStatus } = useLimitCheck(apiKeysUsed, apiKeysLimit);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -81,7 +89,7 @@ export function ApiKeyManager() {
             }
           }}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" disabled={!canCreateKey}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova API Key
               </Button>
@@ -92,6 +100,18 @@ export function ApiKeyManager() {
                   {createdKey ? 'API Key Criada' : 'Criar API Key'}
                 </DialogTitle>
               </DialogHeader>
+
+              {/* LimitGuard inside dialog */}
+              {!createdKey && limitStatus !== 'ok' && (
+                <LimitGuard
+                  resourceType="api_keys"
+                  resourceLabel="API Keys"
+                  currentUsage={apiKeysUsed}
+                  limit={apiKeysLimit}
+                  planTier={plan?.plan_tier || 'free'}
+                  variant="inline"
+                />
+              )}
               
               {createdKey ? (
                 <div className="space-y-4">
@@ -125,7 +145,7 @@ export function ApiKeyManager() {
                     Fechar
                   </Button>
                 </div>
-              ) : (
+              ) : canCreateKey ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="key-name">Nome</Label>
@@ -166,7 +186,7 @@ export function ApiKeyManager() {
                     {createApiKey.isPending ? 'Criando...' : 'Criar API Key'}
                   </Button>
                 </div>
-              )}
+              ) : null}
             </DialogContent>
           </Dialog>
         </div>

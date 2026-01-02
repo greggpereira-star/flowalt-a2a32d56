@@ -20,6 +20,8 @@ import {
   type SpaceTemplate,
   templateHasStructure,
 } from '@/lib/spaceTemplates';
+import { useWorkspacePlan, useWorkspaceUsage } from '@/hooks/useWorkspacePlan';
+import { LimitGuard, useLimitCheck } from '@/components/billing/LimitGuard';
 
 interface CreateSpaceDialogProps {
   open: boolean;
@@ -53,6 +55,13 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('folder');
   const [color, setColor] = useState('#6366f1');
+
+  const { data: plan } = useWorkspacePlan();
+  const { data: usage } = useWorkspaceUsage();
+
+  const spacesUsed = usage?.spaces_used || 0;
+  const spacesLimit = plan?.spaces_limit || 3;
+  const { canCreate: canCreateSpace, status: limitStatus } = useLimitCheck(spacesUsed, spacesLimit);
 
   const template = SPACE_TEMPLATES[selectedType];
   const hasStructure = templateHasStructure(selectedType);
@@ -154,53 +163,67 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
         {/* Step 1: Template Selection */}
         {step === 1 && (
           <div className="space-y-4">
-            <RadioGroup
-              value={selectedType}
-              onValueChange={(value) => handleTypeChange(value as SpaceTemplateType)}
-              className="grid gap-3"
-            >
-              {Object.entries(SPACE_TEMPLATES).map(([type, config]) => {
-                const Icon = config.icon;
-                const isSelected = selectedType === type;
+            {/* LimitGuard warning/block */}
+            {limitStatus !== 'ok' && (
+              <LimitGuard
+                resourceType="spaces"
+                resourceLabel="Espaços"
+                currentUsage={spacesUsed}
+                limit={spacesLimit}
+                planTier={plan?.plan_tier || 'free'}
+                variant="inline"
+              />
+            )}
 
-                return (
-                  <label
-                    key={type}
-                    className={cn(
-                      'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                    )}
-                  >
-                    <RadioGroupItem value={type} className="mt-1" />
-                    <div
-                      className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${config.defaultColor}20` }}
+            {canCreateSpace && (
+              <RadioGroup
+                value={selectedType}
+                onValueChange={(value) => handleTypeChange(value as SpaceTemplateType)}
+                className="grid gap-3"
+              >
+                {Object.entries(SPACE_TEMPLATES).map(([type, config]) => {
+                  const Icon = config.icon;
+                  const isSelected = selectedType === type;
+
+                  return (
+                    <label
+                      key={type}
+                      className={cn(
+                        'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      )}
                     >
-                      <Icon className="w-5 h-5" style={{ color: config.defaultColor }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{config.name}</span>
-                        {config.badge && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
-                            <Sparkles className="w-3 h-3" />
-                            {config.badge}
-                          </span>
-                        )}
+                      <RadioGroupItem value={type} className="mt-1" />
+                      <div
+                        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${config.defaultColor}20` }}
+                      >
+                        <Icon className="w-5 h-5" style={{ color: config.defaultColor }} />
                       </div>
-                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                        {config.description}
-                      </p>
-                    </div>
-                  </label>
-                );
-              })}
-            </RadioGroup>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{config.name}</span>
+                          {config.badge && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                              <Sparkles className="w-3 h-3" />
+                              {config.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                          {config.description}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            )}
 
             <div className="flex justify-end pt-2">
-              <Button onClick={handleNext}>
+              <Button onClick={handleNext} disabled={!canCreateSpace}>
                 {hasStructure ? (
                   <>
                     <Eye className="w-4 h-4 mr-2" />
