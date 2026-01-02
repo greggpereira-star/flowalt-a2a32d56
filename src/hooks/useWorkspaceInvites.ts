@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
 import { sendWorkspaceInviteEmail, fetchUserProfile } from '@/hooks/useEmailNotifications';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface WorkspaceInvite {
   id: string;
@@ -26,6 +27,14 @@ export interface WorkspaceInvite {
  */
 export function useWorkspaceInvites() {
   const { currentWorkspace } = useWorkspace();
+
+  // Realtime subscription para workspace_invites
+  useRealtimeSubscription({
+    table: 'workspace_invites',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [['workspace-invites', currentWorkspace?.id || '']],
+    enabled: !!currentWorkspace?.id,
+  });
 
   return useQuery({
     queryKey: ['workspace-invites', currentWorkspace?.id],

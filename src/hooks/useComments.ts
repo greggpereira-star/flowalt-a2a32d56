@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface Comment {
   id: string;
@@ -20,6 +21,14 @@ export interface Comment {
 }
 
 export const useComments = (cardId: string | undefined) => {
+  // Realtime subscription para comments do card
+  useRealtimeSubscription({
+    table: 'comments',
+    filter: cardId ? `card_id=eq.${cardId}` : undefined,
+    queryKeys: [['comments', cardId || '']],
+    enabled: !!cardId,
+  });
+
   return useQuery({
     queryKey: ['comments', cardId],
     queryFn: async () => {

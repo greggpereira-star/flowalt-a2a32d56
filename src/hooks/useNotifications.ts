@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface Notification {
   id: string;
@@ -19,6 +20,14 @@ export function useNotifications() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+
+  // Realtime subscription para notificações do usuário
+  useRealtimeSubscription({
+    table: 'notifications',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    queryKeys: [['notifications', user?.id || '', currentWorkspace?.id || '']],
+    enabled: !!user?.id,
+  });
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id, currentWorkspace?.id],
