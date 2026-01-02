@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { AccessImpactSummary } from '@/components/governance/AccessImpactSummary';
 import { useCreateCard } from '@/hooks/useCards';
-import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/utils';
 import { Loader2, Building2, BanknoteIcon, Users } from 'lucide-react';
@@ -46,15 +46,16 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const createCard = useCreateCard();
-  const { data: clients } = useClients();
+  const { data: clientCards } = useClientCards();
 
-  // Use only clients from the clients table (not client_cards which has different schema)
+  // Use client_cards as the source for clients (new system)
   const allClients = useMemo(() => {
-    if (!clients) return [];
-    return clients
+    if (!clientCards) return [];
+    return clientCards
+      .filter(c => c.status === 'active')
       .map(c => ({ id: c.id, name: c.name, color: c.color }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [clients]);
+  }, [clientCards]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
