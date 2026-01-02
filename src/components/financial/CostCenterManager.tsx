@@ -66,11 +66,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCostCenters, useCostCentersWithBudget, useCreateCostCenter, useDeleteCostCenter, CostCenterWithActual } from "@/hooks/useCostCenters";
+import { useCostCenters, useCostCentersWithBudget, useCreateCostCenter, useDeleteCostCenter, CostCenterWithActual, CostCenter } from "@/hooks/useCostCenters";
 import { useTransactions } from "@/hooks/useFinancial";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useExternalCollaborators } from "@/hooks/useExternalCollaborators";
 import { cn } from "@/lib/utils";
 import { generatePDFReport, downloadPDF, ReportData } from "@/lib/pdfGenerator";
 import { useToast } from "@/hooks/use-toast";
+import { CostCenterEditModal } from "./CostCenterEditModal";
 
 const costCenterSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -80,6 +83,7 @@ const costCenterSchema = z.object({
   budget_monthly: z.string().optional(),
   budget_yearly: z.string().optional(),
   parent_id: z.string().optional(),
+  responsible_user_id: z.string().optional(),
 });
 
 type FormData = z.infer<typeof costCenterSchema>;
@@ -88,13 +92,16 @@ export function CostCenterManager() {
   const [open, setOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
+  const [editingCenter, setEditingCenter] = useState<CostCenter | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
   
   const { data: costCenters = [], isLoading: loadingCenters } = useCostCenters();
   const { data: centersWithBudget = [], isLoading: loadingBudget } = useCostCentersWithBudget();
+  const { data: members = [] } = useWorkspaceMembers();
   const createCostCenter = useCreateCostCenter();
   const deleteCostCenter = useDeleteCostCenter();
+  const { data: externalCollaborators = [] } = useExternalCollaborators();
 
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
@@ -104,6 +111,25 @@ export function CostCenterManager() {
     startDate: format(monthStart, "yyyy-MM-dd"),
     endDate: format(monthEnd, "yyyy-MM-dd"),
   });
+
+  // Calculate collaborator salaries by cost center
+  const collaboratorSalaryByCenter = useMemo(() => {
+    const salaries: Record<string, { total: number; collaborators: { name: string; salary: number }[] }> = {};
+    
+    externalCollaborators
+      .filter(c => c.is_active && c.cost_center_id)
+      .forEach(c => {
+        const centerId = c.cost_center_id!;
+        if (!salaries[centerId]) {
+          salaries[centerId] = { total: 0, collaborators: [] };
+        }
+        const salary = c.base_salary || 0;
+        salaries[centerId].total += salary;
+        salaries[centerId].collaborators.push({ name: c.full_name, salary });
+      });
+    
+    return salaries;
+  }, [externalCollaborators]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(costCenterSchema),
@@ -115,6 +141,7 @@ export function CostCenterManager() {
       budget_monthly: "",
       budget_yearly: "",
       parent_id: "",
+      responsible_user_id: "",
     },
   });
 
@@ -146,15 +173,20 @@ export function CostCenterManager() {
       center: CostCenterWithActual;
       transactions: typeof transactions;
       totalSpent: number;
+      salarySpent: number;
+      collaborators: { name: string; salary: number }[];
       budgetUsed: number;
     }> = {};
 
     // Initialize all centers
     centersWithBudget.forEach(center => {
+      const salaryData = collaboratorSalaryByCenter[center.id] || { total: 0, collaborators: [] };
       byCenter[center.id] = {
         center,
         transactions: [],
         totalSpent: 0,
+        salarySpent: salaryData.total,
+        collaborators: salaryData.collaborators,
         budgetUsed: 0,
       };
     });
@@ -167,10 +199,11 @@ export function CostCenterManager() {
       }
     });
 
-    // Calculate budget usage
+    // Calculate budget usage (including salaries)
     Object.values(byCenter).forEach(item => {
+      const totalWithSalary = item.totalSpent + item.salarySpent;
       if (item.center.budget_monthly && item.center.budget_monthly > 0) {
-        item.budgetUsed = (item.totalSpent / item.center.budget_monthly) * 100;
+        item.budgetUsed = (totalWithSalary / item.center.budget_monthly) * 100;
       }
     });
 
@@ -178,20 +211,30 @@ export function CostCenterManager() {
     const unassigned = transactions.filter(t => !t.cost_center_id);
     const unassignedTotal = unassigned.reduce((acc, t) => acc + Number(t.amount), 0);
 
+    // Collaborators without center
+    const unassignedCollaborators = externalCollaborators.filter(c => c.is_active && !c.cost_center_id);
+    const unassignedSalaryTotal = unassignedCollaborators.reduce((acc, c) => acc + (c.base_salary || 0), 0);
+
     // Totals
     const totalBudget = centersWithBudget.reduce((acc, c) => acc + (c.budget_monthly || 0), 0);
-    const totalSpent = Object.values(byCenter).reduce((acc, item) => acc + item.totalSpent, 0) + unassignedTotal;
+    const totalTransactionsSpent = Object.values(byCenter).reduce((acc, item) => acc + item.totalSpent, 0) + unassignedTotal;
+    const totalSalarySpent = Object.values(byCenter).reduce((acc, item) => acc + item.salarySpent, 0) + unassignedSalaryTotal;
+    const totalSpent = totalTransactionsSpent + totalSalarySpent;
     const overallUsage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
     return {
-      byCenter: Object.values(byCenter).sort((a, b) => b.totalSpent - a.totalSpent),
+      byCenter: Object.values(byCenter).sort((a, b) => (b.totalSpent + b.salarySpent) - (a.totalSpent + a.salarySpent)),
       unassigned,
       unassignedTotal,
+      unassignedCollaborators,
+      unassignedSalaryTotal,
       totalBudget,
       totalSpent,
+      totalTransactionsSpent,
+      totalSalarySpent,
       overallUsage,
     };
-  }, [centersWithBudget, transactions]);
+  }, [centersWithBudget, transactions, collaboratorSalaryByCenter, externalCollaborators]);
 
   // Export to PDF
   const handleExportPDF = () => {
@@ -218,10 +261,11 @@ export function CostCenterManager() {
             title: "Detalhamento por Centro de Custo",
             type: "table",
             data: {
-              headers: ["Centro de Custo", "Código", "Orçamento", "Realizado", "Saldo", "% Execução", "Status"],
+              headers: ["Centro de Custo", "Código", "Orçamento", "Despesas", "Salários", "Total", "Saldo", "% Exec.", "Status"],
               rows: [
                 ...costCenterReport.byCenter.map((item) => {
-                  const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
+                  const totalWithSalary = item.totalSpent + item.salarySpent;
+                  const saldo = (item.center.budget_monthly || 0) - totalWithSalary;
                   const status = item.center.budget_monthly && item.center.budget_monthly > 0
                     ? (item.budgetUsed >= 100 ? "Excedido" : item.budgetUsed >= 80 ? "Atenção" : "OK")
                     : "N/A";
@@ -231,16 +275,20 @@ export function CostCenterManager() {
                     item.center.code || "-",
                     item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-",
                     formatCurrency(item.totalSpent),
+                    item.salarySpent > 0 ? formatCurrency(item.salarySpent) : "-",
+                    formatCurrency(totalWithSalary),
                     item.center.budget_monthly ? formatCurrency(saldo) : "-",
                     item.center.budget_monthly ? `${item.budgetUsed.toFixed(1)}%` : "-",
                     status,
                   ];
                 }),
-                ...(costCenterReport.unassigned.length > 0 ? [[
+                ...((costCenterReport.unassigned.length > 0 || costCenterReport.unassignedSalaryTotal > 0) ? [[
                   "Sem Centro de Custo",
                   "-",
                   "-",
                   formatCurrency(costCenterReport.unassignedTotal),
+                  costCenterReport.unassignedSalaryTotal > 0 ? formatCurrency(costCenterReport.unassignedSalaryTotal) : "-",
+                  formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal),
                   "-",
                   "-",
                   "Não classificado",
@@ -249,6 +297,8 @@ export function CostCenterManager() {
                   "TOTAL",
                   "",
                   formatCurrency(costCenterReport.totalBudget),
+                  formatCurrency(costCenterReport.totalTransactionsSpent),
+                  formatCurrency(costCenterReport.totalSalarySpent),
                   formatCurrency(costCenterReport.totalSpent),
                   formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent),
                   `${costCenterReport.overallUsage.toFixed(1)}%`,
@@ -287,10 +337,11 @@ export function CostCenterManager() {
       
       // Build CSV content with BOM for Excel UTF-8 compatibility
       const BOM = "\uFEFF";
-      const headers = ["Centro de Custo", "Código", "Orçamento", "Realizado", "Saldo", "% Execução", "Status"];
+      const headers = ["Centro de Custo", "Código", "Orçamento", "Despesas", "Salários", "Total", "Saldo", "% Execução", "Status"];
       
       const rows = costCenterReport.byCenter.map((item) => {
-        const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
+        const totalWithSalary = item.totalSpent + item.salarySpent;
+        const saldo = (item.center.budget_monthly || 0) - totalWithSalary;
         const status = item.center.budget_monthly && item.center.budget_monthly > 0
           ? (item.budgetUsed >= 100 ? "Excedido" : item.budgetUsed >= 80 ? "Atenção" : "OK")
           : "N/A";
@@ -300,6 +351,8 @@ export function CostCenterManager() {
           item.center.code || "-",
           item.center.budget_monthly ? formatCurrencyPlain(item.center.budget_monthly) : "-",
           formatCurrencyPlain(item.totalSpent),
+          item.salarySpent > 0 ? formatCurrencyPlain(item.salarySpent) : "-",
+          formatCurrencyPlain(totalWithSalary),
           item.center.budget_monthly ? formatCurrencyPlain(saldo) : "-",
           item.center.budget_monthly ? `${item.budgetUsed.toFixed(1)}%` : "-",
           status,
@@ -307,12 +360,14 @@ export function CostCenterManager() {
       });
 
       // Add unassigned row if exists
-      if (costCenterReport.unassigned.length > 0) {
+      if (costCenterReport.unassigned.length > 0 || costCenterReport.unassignedSalaryTotal > 0) {
         rows.push([
           "Sem Centro de Custo",
           "-",
           "-",
           formatCurrencyPlain(costCenterReport.unassignedTotal),
+          costCenterReport.unassignedSalaryTotal > 0 ? formatCurrencyPlain(costCenterReport.unassignedSalaryTotal) : "-",
+          formatCurrencyPlain(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal),
           "-",
           "-",
           "Não classificado",
@@ -324,6 +379,8 @@ export function CostCenterManager() {
         "TOTAL",
         "",
         formatCurrencyPlain(costCenterReport.totalBudget),
+        formatCurrencyPlain(costCenterReport.totalTransactionsSpent),
+        formatCurrencyPlain(costCenterReport.totalSalarySpent),
         formatCurrencyPlain(costCenterReport.totalSpent),
         formatCurrencyPlain(costCenterReport.totalBudget - costCenterReport.totalSpent),
         `${costCenterReport.overallUsage.toFixed(1)}%`,
@@ -377,6 +434,7 @@ export function CostCenterManager() {
         budget_monthly: data.budget_monthly ? parseCurrencyToNumber(data.budget_monthly) : 0,
         budget_yearly: data.budget_yearly ? parseCurrencyToNumber(data.budget_yearly) : 0,
         parent_id: data.parent_id || undefined,
+        responsible_user_id: data.responsible_user_id || null,
       });
 
       form.reset();
@@ -533,6 +591,35 @@ export function CostCenterManager() {
 
                   <FormField
                     control={form.control}
+                    name="responsible_user_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sócio Responsável</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === "none" ? "" : value)} 
+                          value={field.value || "none"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o responsável" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {members.map((member) => (
+                              <SelectItem key={member.user_id} value={member.user_id}>
+                                {member.profile?.full_name || member.profile?.email || "Usuário"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="color"
                     render={({ field }) => (
                       <FormItem>
@@ -591,6 +678,13 @@ export function CostCenterManager() {
           </Dialog>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <CostCenterEditModal
+        open={!!editingCenter}
+        onOpenChange={(open) => !open && setEditingCenter(null)}
+        costCenter={editingCenter}
+      />
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -699,7 +793,7 @@ export function CostCenterManager() {
                               <Eye className="w-4 h-4 mr-2" />
                               Ver Detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingCenter(center)}>
                               <Pencil className="w-4 h-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
@@ -789,7 +883,9 @@ export function CostCenterManager() {
                   <TableRow>
                     <TableHead>Centro de Custo</TableHead>
                     <TableHead className="text-right">Orçamento</TableHead>
-                    <TableHead className="text-right">Realizado</TableHead>
+                    <TableHead className="text-right">Despesas</TableHead>
+                    <TableHead className="text-right">Salários</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                     <TableHead className="text-right">% Execução</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -798,7 +894,8 @@ export function CostCenterManager() {
                 </TableHeader>
                 <TableBody>
                   {costCenterReport.byCenter.map((item) => {
-                    const saldo = (item.center.budget_monthly || 0) - item.totalSpent;
+                    const totalWithSalary = item.totalSpent + item.salarySpent;
+                    const saldo = (item.center.budget_monthly || 0) - totalWithSalary;
                     const status = item.center.budget_monthly && item.center.budget_monthly > 0
                       ? getBudgetStatus(item.budgetUsed)
                       : null;
@@ -816,14 +913,25 @@ export function CostCenterManager() {
                               {item.center.code && (
                                 <p className="text-xs text-muted-foreground">{item.center.code}</p>
                               )}
+                              {item.collaborators.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {item.collaborators.length} colaborador{item.collaborators.length > 1 ? "es" : ""}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
                           {item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-"}
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right">
                           {formatCurrency(item.totalSpent)}
+                        </TableCell>
+                        <TableCell className="text-right text-amber-600">
+                          {item.salarySpent > 0 ? formatCurrency(item.salarySpent) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(totalWithSalary)}
                         </TableCell>
                         <TableCell className={cn(
                           "text-right font-medium",
@@ -864,20 +972,30 @@ export function CostCenterManager() {
                   })}
                   
                   {/* Unassigned Row */}
-                  {costCenterReport.unassigned.length > 0 && (
+                  {(costCenterReport.unassigned.length > 0 || costCenterReport.unassignedSalaryTotal > 0) && (
                     <TableRow className="bg-muted/30">
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-gray-400" />
                           <div>
                             <p className="font-medium text-muted-foreground">Sem Centro de Custo</p>
-                            <p className="text-xs text-muted-foreground">{costCenterReport.unassigned.length} lançamentos</p>
+                            <p className="text-xs text-muted-foreground">
+                              {costCenterReport.unassigned.length} lançamentos
+                              {costCenterReport.unassignedCollaborators.length > 0 && 
+                                `, ${costCenterReport.unassignedCollaborators.length} colaboradores`}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">-</TableCell>
-                      <TableCell className="text-right font-medium text-muted-foreground">
+                      <TableCell className="text-right text-muted-foreground">
                         {formatCurrency(costCenterReport.unassignedTotal)}
+                      </TableCell>
+                      <TableCell className="text-right text-amber-600">
+                        {costCenterReport.unassignedSalaryTotal > 0 ? formatCurrency(costCenterReport.unassignedSalaryTotal) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-muted-foreground">
+                        {formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal)}
                       </TableCell>
                       <TableCell className="text-right">-</TableCell>
                       <TableCell className="text-right">-</TableCell>
@@ -892,6 +1010,8 @@ export function CostCenterManager() {
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>TOTAL</TableCell>
                     <TableCell className="text-right">{formatCurrency(costCenterReport.totalBudget)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(costCenterReport.totalTransactionsSpent)}</TableCell>
+                    <TableCell className="text-right text-amber-600">{formatCurrency(costCenterReport.totalSalarySpent)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(costCenterReport.totalSpent)}</TableCell>
                     <TableCell className={cn(
                       "text-right",

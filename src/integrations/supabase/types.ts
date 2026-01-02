@@ -2471,6 +2471,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           parent_id: string | null
+          responsible_user_id: string | null
           updated_at: string
           workspace_id: string
         }
@@ -2486,6 +2487,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           parent_id?: string | null
+          responsible_user_id?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -2501,6 +2503,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           parent_id?: string | null
+          responsible_user_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -3500,6 +3503,7 @@ export type Database = {
           base_salary: number | null
           birth_date: string | null
           contract_type: string | null
+          cost_center_id: string | null
           cpf: string | null
           created_at: string
           department: string | null
@@ -3528,6 +3532,7 @@ export type Database = {
           base_salary?: number | null
           birth_date?: string | null
           contract_type?: string | null
+          cost_center_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -3556,6 +3561,7 @@ export type Database = {
           base_salary?: number | null
           birth_date?: string | null
           contract_type?: string | null
+          cost_center_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -3577,6 +3583,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "external_collaborators_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "external_collaborators_workspace_id_fkey"
             columns: ["workspace_id"]
