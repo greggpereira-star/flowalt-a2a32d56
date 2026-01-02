@@ -6644,6 +6644,114 @@ export type Database = {
           },
         ]
       }
+      user_saved_views: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          query: Json
+          scope_id: string | null
+          scope_type: string
+          sort: Json | null
+          updated_at: string
+          user_id: string
+          view_mode: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          query?: Json
+          scope_id?: string | null
+          scope_type: string
+          sort?: Json | null
+          updated_at?: string
+          user_id: string
+          view_mode?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          query?: Json
+          scope_id?: string | null
+          scope_type?: string
+          sort?: Json | null
+          updated_at?: string
+          user_id?: string
+          view_mode?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_saved_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_view_last_state: {
+        Row: {
+          id: string
+          last_query: Json | null
+          last_used_at: string | null
+          last_view_mode: string | null
+          scope_id: string | null
+          scope_type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          last_query?: Json | null
+          last_used_at?: string | null
+          last_view_mode?: string | null
+          scope_id?: string | null
+          scope_type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          last_query?: Json | null
+          last_used_at?: string | null
+          last_view_mode?: string | null
+          scope_id?: string | null
+          scope_type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_view_last_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_view_last_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       view_templates: {
         Row: {
           created_at: string | null
