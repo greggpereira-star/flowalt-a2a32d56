@@ -11,11 +11,11 @@ interface BirthdayCelebrationModalProps {
   userName?: string;
 }
 
-export const BirthdayCelebrationModal: React.FC<BirthdayCelebrationModalProps> = ({
+export function BirthdayCelebrationModal({
   open,
   onOpenChange,
   userName = 'Você',
-}) => {
+}: BirthdayCelebrationModalProps) {
   const { fireCelebration, markModalShown, prefersReducedMotion } = useBirthdayEffects({ 
     enabled: true, 
     intensity: 'epic' 
@@ -136,4 +136,4 @@ export const BirthdayCelebrationModal: React.FC<BirthdayCelebrationModalProps> =
       </DialogContent>
     </Dialog>
   );
-};
+}
