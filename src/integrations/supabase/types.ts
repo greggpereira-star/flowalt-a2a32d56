@@ -9546,6 +9546,10 @@ export type Database = {
         }[]
       }
       get_user_email: { Args: { _user_id: string }; Returns: string }
+      get_user_role_in_workspace: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: string
+      }
       get_workspace_plan: {
         Args: { p_workspace_id: string }
         Returns: {
