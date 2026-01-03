@@ -55,6 +55,8 @@ import { cn } from '@/lib/utils';
 import { useCalendarPosts, type SocialPost, type SocialPlatform, type SocialContentType, type SocialPostStatus } from '@/hooks/useSocialPosts';
 import { CreateSocialPostDialog } from './CreateSocialPostDialog';
 import { SocialPostDetailSheet } from './SocialPostDetailSheet';
+import { EmptyPlatformState } from './EmptyPlatformState';
+import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 
 type ViewMode = 'month' | 'week';
 
@@ -110,6 +112,10 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  // Check for connected platforms
+  const { data: connectedPlatforms, isLoading: platformsLoading } = useSocialPlatforms();
+  const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -230,6 +236,15 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
       </TooltipProvider>
     );
   };
+
+  // Show empty state if no platforms connected
+  if (!platformsLoading && !hasConnectedPlatforms) {
+    return (
+      <div className="h-full flex items-center justify-center p-8">
+        <EmptyPlatformState context="calendar" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
