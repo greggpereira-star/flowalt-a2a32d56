@@ -172,30 +172,33 @@ export const useRefreshPlatformToken = () => {
 
   return useMutation({
     mutationFn: async (platformId: string) => {
-      // This would call an edge function to refresh the OAuth token
-      // For now, we just update the last_sync_at
-      const { data, error } = await supabase
-        .from('social_platforms')
-        .update({
-          last_sync_at: new Date().toISOString(),
-          connection_status: 'connected',
-          last_error: null,
-        })
-        .eq('id', platformId)
-        .select()
-        .single();
+      // Call the real token refresh edge function
+      const { data, error } = await supabase.functions.invoke('social-token-refresh', {
+        body: { platform_id: platformId },
+      });
 
-      if (error) throw error;
-      return data as ConnectedPlatform;
+      if (error) throw new Error(error.message);
+      
+      if (!data.success) {
+        throw new Error(data.error_message || 'Failed to refresh token');
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
       queryClient.invalidateQueries({ queryKey: ['social-platforms-active'] });
-      toast.success('Token atualizado');
+      toast.success('Token atualizado com sucesso');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error refreshing token:', error);
-      toast.error('Erro ao atualizar token');
+      if (error.message?.includes('reauthorization')) {
+        toast.error('Reconexão necessária', {
+          description: 'O token expirou e precisa ser reautorizado.',
+        });
+      } else {
+        toast.error('Erro ao atualizar token');
+      }
     },
   });
 };
