@@ -283,42 +283,84 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
           </div>
         </DialogHeader>
 
-        {/* Step Navigation Pills - Fixed */}
-        <div className="flex-shrink-0 px-4 sm:px-6 py-2 sm:py-3 border-b bg-background">
-          <ScrollArea className="w-full">
-            <div className="flex gap-1 pb-1">
-              {STEPS.map((step, idx) => {
-                const Icon = step.icon;
-                const isActive = idx === currentStep;
-                const isComplete = isStepComplete(idx);
+        {/* Step Navigation Pills - Fixed with scroll indicators */}
+        <div className="flex-shrink-0 px-2 sm:px-4 py-2 sm:py-3 border-b bg-background">
+          <div className="relative flex items-center gap-1">
+            {/* Left scroll indicator */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0 rounded-full"
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
 
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => setCurrentStep(idx)}
-                    className={cn(
-                      'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap flex-shrink-0',
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : isComplete
-                          ? 'bg-success/10 text-success hover:bg-success/20'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    )}
-                  >
-                    {isComplete && !isActive ? (
-                      <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    ) : (
-                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    )}
-                    <span className="hidden xs:inline sm:inline">{step.title}</span>
-                    {step.required && !isComplete && (
-                      <span className="text-destructive">*</span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* Pills container with horizontal scroll */}
+            <div className="flex-1 overflow-hidden">
+              <div className="flex gap-1.5 justify-center">
+                {STEPS.map((step, idx) => {
+                  const Icon = step.icon;
+                  const isActive = idx === currentStep;
+                  const isComplete = isStepComplete(idx);
+
+                  return (
+                    <TooltipProvider key={step.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setCurrentStep(idx)}
+                            className={cn(
+                              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+                              isActive
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : isComplete
+                                  ? 'bg-success/10 text-success hover:bg-success/20 border border-success/20'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            )}
+                          >
+                            {isComplete && !isActive ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+                            ) : (
+                              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                            )}
+                            {/* Always show title, with min-width to prevent truncation */}
+                            <span className="min-w-0">{step.title}</span>
+                            {step.required && !isComplete && (
+                              <span className="text-destructive ml-0.5">*</span>
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[200px]">
+                          <p className="font-medium">{step.title}</p>
+                          <p className="text-xs text-muted-foreground">{step.subtitle}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
             </div>
-          </ScrollArea>
+
+            {/* Right scroll indicator */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0 rounded-full"
+              onClick={() => setCurrentStep(Math.min(STEPS.length - 1, currentStep + 1))}
+              disabled={currentStep === STEPS.length - 1}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Step counter for additional context */}
+          <div className="text-center mt-1.5">
+            <span className="text-[10px] text-muted-foreground">
+              Passo {currentStep + 1} de {STEPS.length}
+            </span>
+          </div>
         </div>
 
         {/* Validation Error - Fixed when visible */}
