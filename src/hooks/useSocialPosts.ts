@@ -13,11 +13,11 @@ export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
 export interface SocialPost {
   id: string;
   workspace_id: string;
-  card_id: string | null;
+  card_id: string; // Now required (NOT NULL in DB)
   client_id: string | null;
   caption: string | null;
   hashtags: string[];
-  media_urls: { url: string; type: 'image' | 'video'; order: number }[];
+  media_urls: unknown; // JSON type from DB
   first_comment: string | null;
   platform: SocialPlatform;
   content_type: SocialContentType;
@@ -45,6 +45,13 @@ export interface SocialPost {
   visibility: string;
   created_at: string;
   updated_at: string;
+  // New hardening fields
+  content_fingerprint: string | null;
+  last_error_code: string | null;
+  last_error_message: string | null;
+  job_id: string | null;
+  processing_started_at: string | null;
+  processing_completed_at: string | null;
 }
 
 export interface CreateSocialPostInput {
@@ -122,7 +129,7 @@ export const useSocialPosts = (filters?: {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as SocialPost[];
+      return (data || []) as unknown as SocialPost[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -141,7 +148,7 @@ export const useSocialPost = (postId: string | null) => {
         .single();
 
       if (error) throw error;
-      return data as SocialPost;
+      return data as unknown as SocialPost;
     },
     enabled: !!postId,
   });
@@ -192,7 +199,7 @@ export const useCreateSocialPost = () => {
         }
         throw error;
       }
-      return data as SocialPost;
+      return data as unknown as SocialPost;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
@@ -218,7 +225,7 @@ export const useUpdateSocialPost = () => {
         .single();
 
       if (error) throw error;
-      return data as SocialPost;
+      return data as unknown as SocialPost;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
@@ -271,7 +278,7 @@ export const useScheduleSocialPost = () => {
         .single();
 
       if (error) throw error;
-      return data as SocialPost;
+      return data as unknown as SocialPost;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
@@ -303,7 +310,7 @@ export const useApproveSocialPost = () => {
         .single();
 
       if (error) throw error;
-      return data as SocialPost;
+      return data as unknown as SocialPost;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });

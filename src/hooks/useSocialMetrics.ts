@@ -78,7 +78,7 @@ export const useSocialMetrics = (filters?: {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as SocialPost[];
+      return (data || []) as unknown as SocialPost[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -304,7 +304,8 @@ export const useTopPosts = (limit: number = 5, filters?: { clientId?: string; st
       if (error) throw error;
 
       // Sort by total engagement
-      const sorted = (data as SocialPost[]).sort((a, b) => {
+      const posts = (data || []) as unknown as SocialPost[];
+      const sorted = posts.sort((a, b) => {
         const engagementA = (a.metrics?.likes || 0) + (a.metrics?.comments || 0) + (a.metrics?.shares || 0);
         const engagementB = (b.metrics?.likes || 0) + (b.metrics?.comments || 0) + (b.metrics?.shares || 0);
         return engagementB - engagementA;
