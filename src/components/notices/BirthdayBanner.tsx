@@ -7,7 +7,7 @@ import { useBirthdayEffects } from '@/hooks/useBirthdayEffects';
 import { BirthdayCelebrationModal } from './BirthdayCelebrationModal';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const BirthdayBanner: React.FC = () => {
+export function BirthdayBanner() {
   const { user } = useAuth();
   const { birthdayNotices, markAsRead } = useNotices();
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -124,4 +124,4 @@ export const BirthdayBanner: React.FC = () => {
       </div>
     </>
   );
-};
+}
