@@ -33,19 +33,22 @@ import {
   CheckCircle2,
   Circle,
   Copy,
-  Download,
   Maximize2,
   Minimize2,
   ChevronDown,
   ChevronUp,
   Edit3,
   FileDown,
+  File,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RichTextViewer, isRichTextEmpty, extractPlainText } from '@/components/ui/rich-text-viewer';
 import type { BriefingData } from './BriefingForm';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BriefingSummarySheetProps {
   open: boolean;
@@ -177,6 +180,148 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
     onEditStep?.(stepIndex);
     onOpenChange(false);
   }, [onEditStep, onOpenChange]);
+
+  const handleExportPDF = useCallback(() => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let yPosition = 25;
+
+    // Helper to add new page if needed
+    const checkNewPage = (heightNeeded: number) => {
+      if (yPosition + heightNeeded > 270) {
+        doc.addPage();
+        yPosition = 25;
+        return true;
+      }
+      return false;
+    };
+
+    // Header
+    doc.setFillColor(99, 102, 241); // Primary color
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BRIEFING', margin, 20);
+    
+    if (cardTitle) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(cardTitle.substring(0, 60), margin, 30);
+    }
+
+    // Status badge
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    const statusText = isCompleted ? 'COMPLETO' : 'PENDENTE';
+    const statusWidth = doc.getTextWidth(statusText) + 10;
+    doc.setFillColor(isCompleted ? 34 : 234, isCompleted ? 197 : 179, isCompleted ? 94 : 8);
+    doc.roundedRect(pageWidth - margin - statusWidth, 15, statusWidth, 14, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(statusText, pageWidth - margin - statusWidth + 5, 24);
+
+    yPosition = 55;
+
+    // Summary stats
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Campos preenchidos: ${filledFields.length}/${totalFields}`, margin, yPosition);
+    doc.text(`Obrigatórios: ${requiredFilled.length}/${requiredFields.length}`, margin + 80, yPosition);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth - margin - 70, yPosition);
+    
+    yPosition += 15;
+
+    // Separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 15;
+
+    // Sections
+    FIELDS.forEach((field) => {
+      const content = data[field.key];
+      const isEmpty = isRichTextEmpty(content);
+      const plainText = extractPlainText(content);
+
+      checkNewPage(40);
+
+      // Section header
+      doc.setFillColor(isEmpty ? 245 : 239, isEmpty ? 245 : 246, isEmpty ? 245 : 255);
+      doc.roundedRect(margin, yPosition - 5, contentWidth, 20, 3, 3, 'F');
+      
+      doc.setTextColor(isEmpty ? 150 : 99, isEmpty ? 150 : 102, isEmpty ? 150 : 241);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(field.label + (field.required ? ' *' : ''), margin + 5, yPosition + 7);
+      
+      if (!isEmpty) {
+        doc.setTextColor(34, 197, 94);
+        doc.setFontSize(8);
+        doc.text('✓', pageWidth - margin - 10, yPosition + 7);
+      }
+      
+      yPosition += 25;
+
+      // Section content
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      if (isEmpty) {
+        doc.setTextColor(150, 150, 150);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Não preenchido', margin + 5, yPosition);
+        yPosition += 15;
+      } else {
+        // Split text into lines that fit the content width
+        const lines = doc.splitTextToSize(plainText, contentWidth - 10);
+        const lineHeight = 5;
+        
+        lines.forEach((line: string, idx: number) => {
+          if (idx < 20) { // Limit lines per section
+            checkNewPage(lineHeight + 5);
+            doc.text(line, margin + 5, yPosition);
+            yPosition += lineHeight;
+          }
+        });
+        
+        if (lines.length > 20) {
+          doc.setTextColor(150, 150, 150);
+          doc.text(`... (${lines.length - 20} linhas omitidas)`, margin + 5, yPosition);
+          yPosition += lineHeight;
+        }
+        
+        yPosition += 10;
+      }
+    });
+
+    // Footer on all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Página ${i} de ${totalPages}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+      doc.text(
+        'Flowalt - Briefing',
+        margin,
+        doc.internal.pageSize.getHeight() - 10
+      );
+    }
+
+    // Download
+    const fileName = `briefing${cardTitle ? `-${cardTitle.toLowerCase().replace(/\s+/g, '-').substring(0, 30)}` : ''}.pdf`;
+    doc.save(fileName);
+    toast.success('Briefing exportado como PDF');
+  }, [data, cardTitle, isCompleted, filledFields.length, totalFields, requiredFilled.length, requiredFields.length]);
 
   // Content component to reuse between Sheet and Dialog
   const SummaryContent = () => (
@@ -462,6 +607,17 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
             <FileDown className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Exportar .md</span>
             <span className="sm:hidden">.md</span>
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleExportPDF}
+            className="gap-1.5 h-8 text-xs sm:text-sm"
+            disabled={filledFields.length === 0}
+          >
+            <File className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
       </div>
