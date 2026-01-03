@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { SocialMediaTreeNav } from '@/components/social-media/SocialMediaTreeNav';
 import {
   LayoutDashboard,
@@ -75,7 +76,7 @@ const mainNavItems = [
 ];
 
 // Management items - will be filtered based on permissions
-const getManagementItems = (hasIntegrationAccess: boolean) => {
+const getManagementItems = (hasIntegrationAccess: boolean, hasSocialPublish: boolean) => {
   const items = [
     { icon: Users, label: 'Coordenação', path: '/coordination' },
     { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
@@ -84,6 +85,11 @@ const getManagementItems = (hasIntegrationAccess: boolean) => {
     { icon: Trophy, label: 'Ranking', path: '/gamification' },
     { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
   ];
+
+  // Show marketing if user has social_publish entitlement
+  if (hasSocialPublish) {
+    items.splice(2, 0, { icon: Share2, label: 'Marketing', path: '/marketing' });
+  }
   
   // Only show integrations link if user has access
   if (hasIntegrationAccess) {
@@ -100,10 +106,12 @@ export const AppSidebar: React.FC = () => {
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const { data: spaces, isLoading: spacesLoading } = useSpaces();
   const { isAdmin, isCoordinator } = usePermissions();
+  const { has } = useEntitlementRegistry();
   
   // Permission check: Owner, Admin, or Coordinator can access integrations
   const hasIntegrationAccess = isAdmin || isCoordinator;
-  const managementItems = getManagementItems(hasIntegrationAccess);
+  const hasSocialPublish = has('social_publish');
+  const managementItems = getManagementItems(hasIntegrationAccess, hasSocialPublish);
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')

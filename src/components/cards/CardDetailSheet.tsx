@@ -46,6 +46,9 @@ import { CardKitTab } from './CardKitTab';
 import { CardInvitePanel } from './CardInvitePanel';
 import { AccessDeniedState } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
+import { SocialPostButton } from '@/components/social-media/SocialPostButton';
+import { useSocialPostsByCard } from '@/hooks/useSocialPosts';
+import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import {
   CalendarIcon,
   FileText,
@@ -70,6 +73,7 @@ import {
   Package,
   Building2,
   BanknoteIcon,
+  Share2,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -132,9 +136,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { data: cardDependencies } = useCardDependencies(cardId || undefined);
   const { data: legacyClients } = useClients();
   const { data: clientCards } = useClientCards();
+  const { data: socialPosts } = useSocialPostsByCard(cardId);
+  const { has } = useEntitlementRegistry();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
   const updateCard = useUpdateCard();
+
+  const hasSocialPublish = has('social_publish');
+  const socialPostsCount = socialPosts?.length || 0;
 
   // Build combined clients list
   const allClients = useMemo(() => {
@@ -661,7 +670,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 </div>
                 
                 {/* Secondary Actions Row */}
-                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-4 gap-1.5">
+                <TabsList className="w-full h-auto bg-transparent p-0 grid grid-cols-5 gap-1.5">
                   <TabsTrigger
                     value="attachments"
                     className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
@@ -703,6 +712,25 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     </div>
                     <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Kit</span>
                   </TabsTrigger>
+                  {hasSocialPublish && (
+                    <TabsTrigger
+                      value="social"
+                      className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm relative
+                        data-[state=active]:bg-primary/10 data-[state=active]:border-primary/40 data-[state=active]:shadow-md data-[state=active]:shadow-primary/10
+                        hover:bg-background/80 hover:border-border hover:shadow-md hover:-translate-y-0.5
+                        transition-all duration-200 ease-out"
+                    >
+                      <div className="p-1 rounded-lg bg-muted/50 group-data-[state=active]:bg-primary/20 transition-colors">
+                        <Share2 className="h-4 w-4 group-data-[state=active]:text-primary" />
+                      </div>
+                      <span className="text-[11px] font-medium group-data-[state=active]:text-primary">Social</span>
+                      {socialPostsCount > 0 && (
+                        <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 h-5 min-w-5 text-[10px] px-1.5 shadow-sm border border-border/50">
+                          {socialPostsCount}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger
                     value="invites"
                     className="group flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm
@@ -1075,6 +1103,28 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 <TabsContent value="kit" className="m-0">
                   <CardKitTab cardId={card.id} />
                 </TabsContent>
+
+                {hasSocialPublish && (
+                  <TabsContent value="social" className="m-0 p-5">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium">Postagens Social Media</h3>
+                        <SocialPostButton cardId={card.id} clientId={card.client_id} />
+                      </div>
+                      {socialPostsCount > 0 ? (
+                        <div className="text-sm text-muted-foreground">
+                          {socialPostsCount} postagem(ns) vinculada(s) a este card
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>Nenhuma postagem criada</p>
+                          <p className="text-xs mt-1">Clique em "Gerar Postagem" para criar</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                )}
               </ScrollArea>
             </Tabs>
           </>
