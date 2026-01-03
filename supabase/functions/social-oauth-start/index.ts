@@ -166,6 +166,96 @@ serve(async (req) => {
     // Use authenticated user's ID
     const user_id = user.id;
 
+    // ===========================================
+    // ENTITLEMENTS CHECK - Server-side validation
+    // ===========================================
+    
+    // Check social_publish entitlement
+    const { data: publishEntitlement } = await supabase
+      .from('workspace_entitlements_effective')
+      .select('enabled, limit_value')
+      .eq('workspace_id', workspace_id)
+      .eq('entitlement_key', 'social_publish')
+      .maybeSingle();
+
+    if (!publishEntitlement?.enabled) {
+      console.log(`OAuth blocked for workspace ${workspace_id}: social_publish not enabled`);
+      
+      // Log blocked attempt
+      await supabase.from('domain_events').insert({
+        workspace_id,
+        event_type: 'social_oauth.blocked',
+        entity_type: 'social_platform',
+        entity_id: workspace_id,
+        payload: {
+          platform,
+          reason: 'PLAN_REQUIRED',
+          message: 'Entitlement social_publish not enabled',
+        },
+        actor_id: user_id,
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          error: 'PLAN_REQUIRED',
+          error_code: 'PLAN_REQUIRED',
+          message: 'Conectar redes sociais requer um plano PRO ou superior.',
+          requires_upgrade: true,
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check platform limit
+    const { data: limitEntitlement } = await supabase
+      .from('workspace_entitlements_effective')
+      .select('enabled, limit_value')
+      .eq('workspace_id', workspace_id)
+      .eq('entitlement_key', 'social_platforms_limit')
+      .maybeSingle();
+
+    if (limitEntitlement?.enabled && limitEntitlement.limit_value) {
+      const { count } = await supabase
+        .from('social_platforms')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspace_id)
+        .eq('is_active', true);
+
+      if (count !== null && count >= limitEntitlement.limit_value) {
+        console.log(`OAuth blocked for workspace ${workspace_id}: limit reached (${count}/${limitEntitlement.limit_value})`);
+        
+        await supabase.from('domain_events').insert({
+          workspace_id,
+          event_type: 'social_oauth.blocked',
+          entity_type: 'social_platform',
+          entity_id: workspace_id,
+          payload: {
+            platform,
+            reason: 'LIMIT_REACHED',
+            current_count: count,
+            limit: limitEntitlement.limit_value,
+          },
+          actor_id: user_id,
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            error: 'LIMIT_REACHED',
+            error_code: 'LIMIT_REACHED',
+            message: `Você atingiu o limite de ${limitEntitlement.limit_value} plataformas do seu plano.`,
+            requires_upgrade: true,
+            limit: limitEntitlement.limit_value,
+            current: count,
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // ===========================================
+    // PROVIDER CONFIG CHECK
+    // ===========================================
+
     const config = PLATFORM_CONFIGS[platform as Platform];
     if (!config) {
       return new Response(
@@ -177,10 +267,27 @@ serve(async (req) => {
     // Check if client credentials are configured
     const clientId = Deno.env.get(config.clientIdEnv);
     if (!clientId) {
+      console.log(`OAuth blocked for ${platform}: ${config.clientIdEnv} not configured`);
+      
+      // Log configuration missing event
+      await supabase.from('domain_events').insert({
+        workspace_id,
+        event_type: 'social_oauth.blocked',
+        entity_type: 'social_platform',
+        entity_id: workspace_id,
+        payload: {
+          platform,
+          reason: 'PROVIDER_NOT_CONFIGURED',
+          missing_secret: config.clientIdEnv,
+        },
+        actor_id: user_id,
+      });
+
       return new Response(
         JSON.stringify({ 
-          error: `Platform ${platform} not configured`,
-          message: `Missing ${config.clientIdEnv} secret. Please configure the platform credentials.`,
+          error: 'PROVIDER_NOT_CONFIGURED',
+          error_code: 'SECRETS_NOT_CONFIGURED',
+          message: `Esta integração está em configuração pelo administrador do sistema.`,
           requires_setup: true,
           setup_instructions: getSetupInstructions(platform as Platform),
         }),

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
@@ -28,13 +28,15 @@ import {
   ChevronDown,
   Settings,
   AlertTriangle,
+  Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social/gox-messages';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -214,6 +216,8 @@ export function PlatformConnectionWizard({
     asset_name: string;
     asset_meta: Record<string, unknown>;
   }>>([]);
+  const [requiresUpgrade, setRequiresUpgrade] = useState(false);
+  const [planLimit, setPlanLimit] = useState<number | null>(null);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
@@ -393,15 +397,29 @@ export function PlatformConnectionWizard({
       }
 
       // Handle application-level errors in response
-      if (data?.error) {
+      if (data?.error || data?.error_code) {
         console.log('OAuth response error:', data);
+        
+        // Map API error to GOX message
+        const goxCode = mapApiErrorToGox(data.error_code || data.error);
+        const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: false, platform: platformName });
+        
         if (data.requires_setup) {
           // Platform credentials not configured
           setRequiresSetup(true);
           setSetupInstructions(data.setup_instructions || []);
-          setErrorMessage(data.message || 'Plataforma não configurada. Entre em contato com o administrador.');
+          setErrorMessage(goxMessage.message);
+        } else if (data.requires_upgrade || data.error_code === 'PLAN_REQUIRED') {
+          // Plan upgrade required
+          setRequiresUpgrade(true);
+          setErrorMessage(goxMessage.message);
+        } else if (data.error_code === 'LIMIT_REACHED') {
+          // Platform limit reached
+          setRequiresUpgrade(true);
+          setPlanLimit(data.limit);
+          setErrorMessage(goxMessage.message);
         } else {
-          setErrorMessage(data.message || data.error || 'Erro ao iniciar autenticação');
+          setErrorMessage(data.message || goxMessage.message);
         }
         setConnectionStatus('error');
         setIsConnecting(false);
@@ -479,6 +497,8 @@ export function PlatformConnectionWizard({
     setErrorMessage(null);
     setRequiresSetup(false);
     setSetupInstructions([]);
+    setRequiresUpgrade(false);
+    setPlanLimit(null);
     onOpenChange(false);
   };
 
@@ -526,13 +546,46 @@ export function PlatformConnectionWizard({
       case 'auth':
         return (
           <div className="space-y-6">
-            {requiresSetup ? (
+            {requiresUpgrade ? (
+              // Plan upgrade required
+              <div className="space-y-4">
+                <div className="text-center py-4">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+                    <Crown className="h-8 w-8 text-amber-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Recurso Premium
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    {planLimit 
+                      ? `Você atingiu o limite de ${planLimit} plataformas do seu plano.`
+                      : 'Conectar redes sociais requer um plano PRO ou superior.'}
+                  </p>
+                </div>
+
+                <Alert className="bg-amber-50 border-amber-200">
+                  <Crown className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-800">Faça upgrade para continuar</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    Com o plano PRO você pode conectar múltiplas redes sociais e agendar publicações.
+                  </AlertDescription>
+                </Alert>
+
+                <Button asChild className="w-full" size="lg">
+                  <Link to="/settings?tab=plano">
+                    <Crown className="h-4 w-4 mr-2" />
+                    Ver Planos
+                  </Link>
+                </Button>
+              </div>
+            ) : requiresSetup ? (
               // Platform not configured - show setup instructions
               <div className="space-y-4">
-                <Alert variant="destructive" className="bg-amber-50 border-amber-200">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
-                    <strong>Configuração necessária:</strong> As credenciais do {platformName} ainda não foram configuradas.
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-800">Integração em configuração</AlertTitle>
+                  <AlertDescription className="text-blue-700">
+                    O administrador do sistema está configurando esta integração. Tente novamente em breve.
                   </AlertDescription>
                 </Alert>
 
@@ -541,7 +594,7 @@ export function PlatformConnectionWizard({
                     <Button variant="outline" className="w-full justify-between">
                       <span className="flex items-center gap-2">
                         <Settings className="h-4 w-4" />
-                        Como configurar o {platformName}
+                        Detalhes técnicos
                       </span>
                       <ChevronDown className={cn("h-4 w-4 transition-transform", instructionsOpen && "rotate-180")} />
                     </Button>
@@ -558,7 +611,7 @@ export function PlatformConnectionWizard({
                 </Collapsible>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Após configurar os secrets, tente novamente.
+                  Se você é administrador, acesse Platform Admin para configurar.
                 </p>
               </div>
             ) : (

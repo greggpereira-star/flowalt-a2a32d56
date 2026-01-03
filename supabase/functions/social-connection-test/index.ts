@@ -310,6 +310,29 @@ serve(async (req) => {
       );
     }
 
+    // ===========================================
+    // ENTITLEMENTS CHECK - Server-side validation
+    // ===========================================
+    const { data: publishEntitlement } = await supabase
+      .from('workspace_entitlements_effective')
+      .select('enabled')
+      .eq('workspace_id', platformData.workspace_id)
+      .eq('entitlement_key', 'social_publish')
+      .maybeSingle();
+
+    if (!publishEntitlement?.enabled) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error_code: 'PLAN_REQUIRED',
+          error_message: 'Social publish feature not enabled for this workspace',
+          gox_message: 'Conectar redes sociais requer um plano PRO ou superior.',
+          requires_upgrade: true,
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!platformData.access_token_encrypted) {
       return new Response(
         JSON.stringify({

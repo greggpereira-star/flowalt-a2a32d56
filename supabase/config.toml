@@ -59,3 +59,6 @@ verify_jwt = true
 
 [functions.social-smoke-test]
 verify_jwt = true
+
+[functions.social-provider-status]
+verify_jwt = true
