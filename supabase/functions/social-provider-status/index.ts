@@ -106,13 +106,31 @@ serve(async (req) => {
       );
     }
 
+    // Parse request body for optional platform filter
+    let platformFilter: Platform | null = null;
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body.platform && PROVIDER_CONFIGS[body.platform as Platform]) {
+          platformFilter = body.platform as Platform;
+        }
+      } catch {
+        // No body or invalid JSON, check all providers
+      }
+    }
+
     // Check encryption key
     const encryptionKeyConfigured = !!Deno.env.get('TOKEN_ENCRYPTION_KEY');
 
+    // Build provider list to check
+    const platformsToCheck = platformFilter 
+      ? { [platformFilter]: PROVIDER_CONFIGS[platformFilter] }
+      : PROVIDER_CONFIGS;
+
     // Check each provider
-    const providers: Record<Platform, ProviderStatus> = {} as Record<Platform, ProviderStatus>;
+    const providers: Record<string, ProviderStatus> = {};
     
-    for (const [platform, config] of Object.entries(PROVIDER_CONFIGS)) {
+    for (const [platform, config] of Object.entries(platformsToCheck)) {
       const clientId = Deno.env.get(config.clientIdEnv);
       const clientSecret = Deno.env.get(config.clientSecretEnv);
       
@@ -141,7 +159,6 @@ serve(async (req) => {
       }
 
       // Count active connections for this platform
-      // Map platform keys to database values
       const dbPlatforms = platform === 'meta' ? ['facebook', 'instagram'] : [platform];
       
       const { count } = await supabase
@@ -150,7 +167,7 @@ serve(async (req) => {
         .in('platform', dbPlatforms)
         .eq('is_active', true);
 
-      providers[platform as Platform] = {
+      providers[platform] = {
         status,
         missing,
         configured,
@@ -159,12 +176,15 @@ serve(async (req) => {
         portalUrl: config.portalUrl,
         activeConnections: count || 0,
       };
+
+      console.log(`Provider ${platform}: status=${status}, missing=${missing.join(',')}, configured=${configured.join(',')}`);
     }
 
     // Count total summary
-    const readyCount = Object.values(providers).filter(p => p.status === 'ready').length;
-    const partialCount = Object.values(providers).filter(p => p.status === 'partial').length;
-    const notConfiguredCount = Object.values(providers).filter(p => p.status === 'not_configured').length;
+    const allProviders = platformFilter ? providers : providers;
+    const readyCount = Object.values(allProviders).filter(p => p.status === 'ready').length;
+    const partialCount = Object.values(allProviders).filter(p => p.status === 'partial').length;
+    const notConfiguredCount = Object.values(allProviders).filter(p => p.status === 'not_configured').length;
 
     console.log(`Provider status check: ${readyCount} ready, ${partialCount} partial, ${notConfiguredCount} not configured`);
 
@@ -172,9 +192,10 @@ serve(async (req) => {
     await supabase.from('domain_events').insert({
       event_type: 'social.provider.status_checked',
       entity_type: 'system',
-      entity_id: 'provider-status',
+      entity_id: platformFilter || 'all-providers',
       payload: {
         checked_by: user.id,
+        platform_filter: platformFilter,
         encryption_configured: encryptionKeyConfigured,
         summary: { ready: readyCount, partial: partialCount, not_configured: notConfiguredCount },
       },
