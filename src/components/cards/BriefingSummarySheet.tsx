@@ -198,32 +198,46 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
       return false;
     };
 
-    // Header
+    // Header (dynamic height to avoid truncation)
+    const statusText = isCompleted ? 'COMPLETO' : 'PENDENTE';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const statusWidth = doc.getTextWidth(statusText) + 10;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    const titleLines = cardTitle
+      ? doc.splitTextToSize(
+          cardTitle,
+          Math.max(80, pageWidth - margin * 2 - statusWidth - 8)
+        )
+      : [];
+
+    const headerHeight = Math.max(40, 28 + (titleLines.length ? titleLines.length * 6 + 8 : 0));
+
     doc.setFillColor(99, 102, 241); // Primary color
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
+    doc.rect(0, 0, pageWidth, headerHeight, 'F');
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.text('BRIEFING', margin, 20);
-    
-    if (cardTitle) {
+
+    if (titleLines.length) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(cardTitle.substring(0, 60), margin, 30);
+      doc.text(titleLines, margin, 30);
     }
 
     // Status badge
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    const statusText = isCompleted ? 'COMPLETO' : 'PENDENTE';
-    const statusWidth = doc.getTextWidth(statusText) + 10;
     doc.setFillColor(isCompleted ? 34 : 234, isCompleted ? 197 : 179, isCompleted ? 94 : 8);
     doc.roundedRect(pageWidth - margin - statusWidth, 15, statusWidth, 14, 3, 3, 'F');
     doc.setTextColor(255, 255, 255);
     doc.text(statusText, pageWidth - margin - statusWidth + 5, 24);
 
-    yPosition = 55;
+    yPosition = headerHeight + 15;
 
     // Summary stats
     doc.setTextColor(100, 100, 100);
@@ -280,20 +294,12 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
         const lines = doc.splitTextToSize(plainText, contentWidth - 10);
         const lineHeight = 5;
         
-        lines.forEach((line: string, idx: number) => {
-          if (idx < 20) { // Limit lines per section
-            checkNewPage(lineHeight + 5);
-            doc.text(line, margin + 5, yPosition);
-            yPosition += lineHeight;
-          }
-        });
-        
-        if (lines.length > 20) {
-          doc.setTextColor(150, 150, 150);
-          doc.text(`... (${lines.length - 20} linhas omitidas)`, margin + 5, yPosition);
+        lines.forEach((line: string) => {
+          checkNewPage(lineHeight + 5);
+          doc.text(line, margin + 5, yPosition);
           yPosition += lineHeight;
-        }
-        
+        });
+
         yPosition += 10;
       }
     });
@@ -318,7 +324,7 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
     }
 
     // Download
-    const fileName = `briefing${cardTitle ? `-${cardTitle.toLowerCase().replace(/\s+/g, '-').substring(0, 30)}` : ''}.pdf`;
+    const fileName = `briefing${cardTitle ? `-${cardTitle.toLowerCase().replace(/\s+/g, '-')}` : ''}.pdf`;
     doc.save(fileName);
     toast.success('Briefing exportado como PDF');
   }, [data, cardTitle, isCompleted, filledFields.length, totalFields, requiredFilled.length, requiredFields.length]);
