@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   Calendar,
   Clock,
@@ -12,24 +14,28 @@ import {
   Plug,
   Sparkles,
   Lock,
+  Plus,
 } from 'lucide-react';
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
 import { PlatformConnector } from '@/components/social-media/PlatformConnector';
 import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
+import { PostComposer } from '@/components/social-media/PostComposer';
+import { PostList } from '@/components/social-media/PostList';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPosts } from '@/hooks/useSocialPosts';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
-import { useSocialMetrics, formatMetricNumber } from '@/hooks/useSocialMetrics';
+import { useSocialMetrics } from '@/hooks/useSocialMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
 
 export const MarketingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('calendar');
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const { has, isLoading: entitlementsLoading } = useEntitlementRegistry();
   const { data: scheduledPosts } = useSocialPosts({ status: 'scheduled' });
   const { data: publishedPosts } = useSocialPosts({ status: 'published' });
+  const { data: draftPosts } = useSocialPosts({ status: 'draft' });
   const { data: platforms } = useSocialPlatforms();
-  const { summary, isLoading: metricsLoading } = useSocialMetrics();
 
   const hasSocialPublish = has('social_publish');
   const hasSocialReports = has('social_reports');
@@ -70,7 +76,7 @@ export const MarketingPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats & Actions */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Clock className="h-4 w-4 text-blue-500" />
@@ -84,6 +90,10 @@ export const MarketingPage: React.FC = () => {
             <Plug className="h-4 w-4 text-purple-500" />
             <span className="text-sm font-medium">{activePlatforms.length} plataformas</span>
           </div>
+          <Button onClick={() => setIsComposerOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Post
+          </Button>
         </div>
       </div>
 
@@ -156,7 +166,7 @@ export const MarketingPage: React.FC = () => {
           <SocialCalendar />
         </TabsContent>
 
-        <TabsContent value="scheduled" className="flex-1 m-0 p-6">
+        <TabsContent value="scheduled" className="flex-1 m-0 p-6 overflow-auto">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -168,25 +178,15 @@ export const MarketingPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {scheduledPosts && scheduledPosts.length > 0 ? (
-                <div className="space-y-4">
-                  {/* List of scheduled posts */}
-                  <p className="text-sm text-muted-foreground">
-                    {scheduledPosts.length} postagem(ns) agendada(s)
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma postagem agendada</p>
-                  <p className="text-sm mt-1">Use o calendário para agendar suas publicações</p>
-                </div>
-              )}
+              <PostList 
+                posts={scheduledPosts || []} 
+                emptyMessage="Nenhuma postagem agendada. Use o calendário ou clique em 'Novo Post' para agendar."
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="published" className="flex-1 m-0 p-6">
+        <TabsContent value="published" className="flex-1 m-0 p-6 overflow-auto">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -198,18 +198,11 @@ export const MarketingPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {publishedPosts && publishedPosts.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    {publishedPosts.length} postagem(ns) publicada(s)
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma postagem publicada ainda</p>
-                </div>
-              )}
+              <PostList 
+                posts={publishedPosts || []} 
+                showActions={false}
+                emptyMessage="Nenhuma postagem publicada ainda"
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -274,6 +267,13 @@ export const MarketingPage: React.FC = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Post Composer Dialog */}
+      <Dialog open={isComposerOpen} onOpenChange={setIsComposerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <PostComposer onClose={() => setIsComposerOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
