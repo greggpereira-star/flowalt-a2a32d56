@@ -15,12 +15,14 @@ import {
   Sparkles,
   Lock,
   Plus,
+  Activity,
 } from 'lucide-react';
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
 import { PlatformConnector } from '@/components/social-media/PlatformConnector';
 import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
 import { PostComposer } from '@/components/social-media/PostComposer';
 import { PostList } from '@/components/social-media/PostList';
+import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPosts } from '@/hooks/useSocialPosts';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
@@ -159,6 +161,13 @@ export function MarketingPage() {
               <Plug className="h-4 w-4 mr-2" />
               Plataformas
             </TabsTrigger>
+            <TabsTrigger
+              value="jobs"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Jobs
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -213,6 +222,10 @@ export function MarketingPage() {
 
         <TabsContent value="platforms" className="flex-1 m-0 p-6 overflow-auto">
           <PlatformConnector />
+        </TabsContent>
+
+        <TabsContent value="jobs" className="flex-1 m-0 p-6 overflow-auto">
+          <SocialJobsPanel />
         </TabsContent>
 
         <TabsContent value="insights" className="flex-1 m-0 p-6">
@@ -276,6 +289,6 @@ export function MarketingPage() {
       </Dialog>
     </div>
   );
-};
+}
 
 export default MarketingPage;
