@@ -377,7 +377,6 @@ export function PlatformConnectionWizard({
         body: {
           platform: platformId,
           workspace_id: currentWorkspace.id,
-          user_id: user.id,
           return_url: window.location.pathname,
         },
       });

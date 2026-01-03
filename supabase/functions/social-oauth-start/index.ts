@@ -122,17 +122,49 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Validate JWT from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create client with user's token to validate auth
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired session. Please log in again." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use service role for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { platform, workspace_id, user_id, return_url } = await req.json();
+    const { platform, workspace_id, return_url } = await req.json();
 
-    if (!platform || !workspace_id || !user_id) {
+    if (!platform || !workspace_id) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: platform, workspace_id, user_id" }),
+        JSON.stringify({ error: "Missing required fields: platform, workspace_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Use authenticated user's ID
+    const user_id = user.id;
 
     const config = PLATFORM_CONFIGS[platform as Platform];
     if (!config) {
