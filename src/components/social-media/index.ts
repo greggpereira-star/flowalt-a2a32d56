@@ -5,8 +5,10 @@
 
 export { SocialCalendar } from './SocialCalendar';
 export { PlatformConnector } from './PlatformConnector';
+export { PlatformConnectionWizard } from './PlatformConnectionWizard';
 export { MetricsDashboard } from './MetricsDashboard';
 export { PostComposer } from './PostComposer';
 export { PostList } from './PostList';
 export { SocialAccessMessage, useSocialAccessCheck, type SocialBlockReason } from './SocialAccessMessage';
 export { SocialJobsPanel } from './SocialJobsPanel';
+export { EmptyPlatformState, EmptyStateInline } from './EmptyPlatformState';

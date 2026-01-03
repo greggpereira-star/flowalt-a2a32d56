@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { useSocialMetrics, useTopPosts, formatMetricNumber } from '@/hooks/useSocialMetrics';
 import { useClients } from '@/hooks/useClients';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
+import { EmptyPlatformState } from './EmptyPlatformState';
 import {
   BarChart,
   Bar,
@@ -93,13 +95,16 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon: Icon, trend
 
 type DateRange = '7d' | '30d' | '90d';
 
-export const MetricsDashboard: React.FC = () => {
+export function MetricsDashboard() {
   const { has } = useEntitlementRegistry();
   const { data: clients } = useClients();
+  const { data: connectedPlatforms, isLoading: platformsLoading } = useSocialPlatforms();
   
   const [dateRange, setDateRange] = useState<DateRange>('7d');
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
+
+  const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
 
   // Calculate date filters
   const getDateFilters = () => {
@@ -138,6 +143,11 @@ export const MetricsDashboard: React.FC = () => {
         <div />
       </EntitlementGate>
     );
+  }
+
+  // Show empty state if no platforms connected
+  if (!platformsLoading && !hasConnectedPlatforms) {
+    return <EmptyPlatformState context="metrics" />;
   }
 
   // Transform platform metrics for chart
@@ -361,4 +371,4 @@ export const MetricsDashboard: React.FC = () => {
       </Card>
     </div>
   );
-};
+}
