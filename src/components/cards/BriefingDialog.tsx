@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,12 @@ import {
   AlertCircle,
   Eye,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { BriefingData } from './BriefingForm';
@@ -127,6 +133,35 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+      
+      // Cmd/Ctrl + Shift + V to open summary
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        setShowSummary(true);
+      }
+      // Cmd/Ctrl + Enter to go next or complete
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !showSummary) {
+        e.preventDefault();
+        if (currentStep < STEPS.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, currentStep, showSummary]);
+
+  // Function to handle edit from summary
+  const handleEditFromSummary = useCallback((stepIndex: number) => {
+    setCurrentStep(stepIndex);
+    setShowSummary(false);
+  }, []);
   
   // Use local state for editing to prevent re-renders from parent
   const [localData, setLocalData] = useState<BriefingData>(data);
@@ -316,15 +351,15 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               <p className="text-xs sm:text-sm text-muted-foreground">{currentStepData.subtitle}</p>
             </div>
 
-            {/* Input Area */}
+            {/* Input Area - Increased height */}
             <div className="space-y-2">
               <RichTextEditor
                 value={getFieldValue(currentStepData.field)}
                 onChange={(v) => updateField(currentStepData.field, v)}
                 placeholder={currentStepData.placeholder}
                 disabled={disabled}
-                minHeight="140px"
-                maxHeight="250px"
+                minHeight="180px"
+                maxHeight="400px"
               />
               
               {/* Tip & Counter */}
@@ -361,16 +396,28 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               <span className="hidden sm:inline">Anterior</span>
             </Button>
             
-            {/* View Summary Button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowSummary(true)}
-              size="sm"
-              className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-            >
-              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Ver Resumo</span>
-            </Button>
+            {/* View Summary Button - Enhanced */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSummary(true)}
+                    size="sm"
+                    className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3 border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Ver Resumo</span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium ml-1">
+                      {filledSteps}/{STEPS.length}
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Ver briefing completo (Ctrl+Shift+V)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* Step indicator for mobile */}
@@ -431,6 +478,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
           data={localData}
           isCompleted={isCompleted}
           cardTitle={cardTitle}
+          onEditStep={handleEditFromSummary}
         />
       </DialogContent>
     </Dialog>
