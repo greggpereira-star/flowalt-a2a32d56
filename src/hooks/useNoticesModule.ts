@@ -84,8 +84,16 @@ export function useNotices() {
     enabled: !!user?.id,
   });
 
-  const unreadNotices = notices.filter(n => !readNotices.includes(n.id));
-  const birthdayNotices = notices.filter(n => n.category === 'birthday' && n.status === 'active');
+  const now = new Date();
+  
+  // Filter notices that haven't expired (ends_at is null or in the future)
+  const activeNotices = notices.filter(n => {
+    if (!n.ends_at) return true;
+    return new Date(n.ends_at) > now;
+  });
+  
+  const unreadNotices = activeNotices.filter(n => !readNotices.includes(n.id));
+  const birthdayNotices = activeNotices.filter(n => n.category === 'birthday' && n.status === 'active');
 
   const markAsRead = useMutation({
     mutationFn: async (noticeId: string) => {
