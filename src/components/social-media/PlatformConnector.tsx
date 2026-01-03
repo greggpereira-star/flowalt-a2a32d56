@@ -25,6 +25,7 @@ import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { PlatformConnectionWizard } from './PlatformConnectionWizard';
 import {
   Instagram,
   Facebook,
@@ -41,6 +42,8 @@ import {
   Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
 interface PlatformConfig {
   id: string;
@@ -102,7 +105,7 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
-export const PlatformConnector: React.FC = () => {
+export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
   const { has, limit } = useEntitlementRegistry();
   const queryClient = useQueryClient();
@@ -116,6 +119,9 @@ export const PlatformConnector: React.FC = () => {
     open: false,
     platform: null,
   });
+  
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
 
   const togglePlatform = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
@@ -169,7 +175,7 @@ export const PlatformConnector: React.FC = () => {
     }
   };
 
-  const handleConnect = async (platformId: string) => {
+  const handleConnect = (platformId: string, platformName: string) => {
     if (!canConnectMore) {
       toast.error('Limite de plataformas atingido', {
         description: 'Faça upgrade do seu plano para conectar mais plataformas.',
@@ -177,17 +183,9 @@ export const PlatformConnector: React.FC = () => {
       return;
     }
 
-    // For now, simulate OAuth flow with mock data
-    const mockAccountName = `${platformId}_account_${Date.now()}`;
-    const mockAccountId = `${Date.now()}`;
-
-    await connectPlatform.mutateAsync({
-      platform: platformId as any,
-      account_name: mockAccountName,
-      account_id: mockAccountId,
-    });
-
-    toast.success(`${PLATFORMS.find(p => p.id === platformId)?.name} conectado com sucesso!`);
+    // Open the wizard instead of mock connection
+    setSelectedPlatform({ id: platformId as PlatformId, name: platformName });
+    setWizardOpen(true);
   };
 
   const handleDisconnect = async () => {
@@ -311,7 +309,7 @@ export const PlatformConnector: React.FC = () => {
                   </div>
                 ) : (
                   <Button
-                    onClick={() => handleConnect(platform.id)}
+                    onClick={() => handleConnect(platform.id, platform.name)}
                     disabled={!canConnectMore || connectPlatform.isPending}
                     className="w-full"
                     variant={canConnectMore ? "default" : "secondary"}
@@ -349,6 +347,20 @@ export const PlatformConnector: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Platform Connection Wizard */}
+      {selectedPlatform && (
+        <PlatformConnectionWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          platformId={selectedPlatform.id}
+          platformName={selectedPlatform.name}
+          onSuccess={() => {
+            setSelectedPlatform(null);
+            queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
+          }}
+        />
+      )}
     </div>
   );
-};
+}

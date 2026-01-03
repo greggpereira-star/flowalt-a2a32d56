@@ -32,6 +32,10 @@ const routeNames: Record<string, { label: string; icon?: React.ReactNode }> = {
   '/gamification': { label: 'Gamificação' },
   '/analytics': { label: 'Análises' },
   '/settings': { label: 'Configurações' },
+  '/marketing': { label: 'Marketing', icon: <Layout className="h-3.5 w-3.5" /> },
+  '/clients': { label: 'Clientes' },
+  '/people-analytics': { label: 'People Analytics' },
+  '/integrations': { label: 'Integrações' },
 };
 
 interface DynamicBreadcrumbProps {
