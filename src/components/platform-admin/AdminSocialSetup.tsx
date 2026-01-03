@@ -204,15 +204,10 @@ export function AdminSocialSetup() {
   const { data: providerStatus, isLoading, refetch } = useQuery({
     queryKey: ['social-provider-status'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { data, error } = await supabase.functions.invoke('social-provider-status');
 
-      const response = await supabase.functions.invoke('social-provider-status', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (response.error) throw response.error;
-      return response.data as ProviderStatusResponse;
+      if (error) throw error;
+      return data as ProviderStatusResponse;
     },
   });
 
@@ -228,11 +223,7 @@ export function AdminSocialSetup() {
   const handleVerifyProvider = async (platform: Platform) => {
     setIsVerifying(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
       const response = await supabase.functions.invoke('social-provider-status', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
         body: { platform },
       });
 
