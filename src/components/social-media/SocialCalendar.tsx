@@ -102,7 +102,7 @@ interface SocialCalendarProps {
   onPostClick?: (post: SocialPost) => void;
 }
 
-export const SocialCalendar: React.FC<SocialCalendarProps> = ({ clientId, onPostClick }) => {
+export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [platformFilter, setPlatformFilter] = useState<SocialPlatform | 'all'>('all');
