@@ -223,11 +223,12 @@ serve(async (req) => {
       return createErrorRedirect('missing_params', 'Missing code or state parameter');
     }
 
-    // Validate state and get OAuth session
+    // Validate state and get OAuth session (check not used)
     const { data: oauthState, error: stateError } = await supabase
       .from('oauth_states')
       .select('*')
       .eq('state', state)
+      .is('used_at', null)
       .single();
 
     if (stateError || !oauthState) {
@@ -239,6 +240,18 @@ serve(async (req) => {
     if (new Date(oauthState.expires_at) < new Date()) {
       await supabase.from('oauth_states').delete().eq('state', state);
       return createErrorRedirect('expired', 'OAuth session expired');
+    }
+
+    // Mark state as used immediately to prevent replay attacks
+    const { error: markUsedError } = await supabase
+      .from('oauth_states')
+      .update({ used_at: new Date().toISOString() })
+      .eq('state', state)
+      .is('used_at', null);
+
+    if (markUsedError) {
+      console.error('Failed to mark state as used:', markUsedError);
+      return createErrorRedirect('replay_detected', 'State already used');
     }
 
     const platform = oauthState.platform as Platform;
