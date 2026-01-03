@@ -5919,6 +5919,76 @@ export type Database = {
           },
         ]
       }
+      social_jobs: {
+        Row: {
+          action: string
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          post_id: string | null
+          result: Json | null
+          started_at: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          post_id?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          post_id?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_jobs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_platforms: {
         Row: {
           access_token_encrypted: string | null
@@ -6067,8 +6137,9 @@ export type Database = {
           approved_by: string | null
           campaign_name: string | null
           caption: string | null
-          card_id: string | null
+          card_id: string
           client_id: string | null
+          content_fingerprint: string | null
           content_pillar: string | null
           content_type: string
           created_at: string | null
@@ -6079,6 +6150,9 @@ export type Database = {
           funnel_stage: string | null
           hashtags: string[] | null
           id: string
+          job_id: string | null
+          last_error_code: string | null
+          last_error_message: string | null
           max_retries: number | null
           media_urls: Json | null
           metrics: Json | null
@@ -6087,6 +6161,8 @@ export type Database = {
           platform: string
           platform_post_id: string | null
           platform_url: string | null
+          processing_completed_at: string | null
+          processing_started_at: string | null
           published_at: string | null
           retry_count: number | null
           scheduled_at: string | null
@@ -6103,8 +6179,9 @@ export type Database = {
           approved_by?: string | null
           campaign_name?: string | null
           caption?: string | null
-          card_id?: string | null
+          card_id: string
           client_id?: string | null
+          content_fingerprint?: string | null
           content_pillar?: string | null
           content_type: string
           created_at?: string | null
@@ -6115,6 +6192,9 @@ export type Database = {
           funnel_stage?: string | null
           hashtags?: string[] | null
           id?: string
+          job_id?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
           max_retries?: number | null
           media_urls?: Json | null
           metrics?: Json | null
@@ -6123,6 +6203,8 @@ export type Database = {
           platform: string
           platform_post_id?: string | null
           platform_url?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
           published_at?: string | null
           retry_count?: number | null
           scheduled_at?: string | null
@@ -6139,8 +6221,9 @@ export type Database = {
           approved_by?: string | null
           campaign_name?: string | null
           caption?: string | null
-          card_id?: string | null
+          card_id?: string
           client_id?: string | null
+          content_fingerprint?: string | null
           content_pillar?: string | null
           content_type?: string
           created_at?: string | null
@@ -6151,6 +6234,9 @@ export type Database = {
           funnel_stage?: string | null
           hashtags?: string[] | null
           id?: string
+          job_id?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
           max_retries?: number | null
           media_urls?: Json | null
           metrics?: Json | null
@@ -6159,6 +6245,8 @@ export type Database = {
           platform?: string
           platform_post_id?: string | null
           platform_url?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
           published_at?: string | null
           retry_count?: number | null
           scheduled_at?: string | null
@@ -9535,6 +9623,10 @@ export type Database = {
           stock_delta: number
         }[]
       }
+      get_or_create_marketing_card: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       get_unprocessed_events: {
         Args: { p_limit?: number; p_workspace_id: string }
         Returns: {
@@ -9609,6 +9701,10 @@ export type Database = {
       }
       has_salary_access: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      has_social_write_entitlement: {
+        Args: { p_workspace_id: string }
         Returns: boolean
       }
       initialize_space_custom_fields: {
