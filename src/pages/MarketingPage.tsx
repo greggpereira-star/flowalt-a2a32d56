@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Calendar,
@@ -12,18 +11,17 @@ import {
   FileText,
   Plug,
   Sparkles,
-  BarChart3,
   Lock,
-  Crown,
 } from 'lucide-react';
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
+import { PlatformConnector } from '@/components/social-media/PlatformConnector';
+import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPosts } from '@/hooks/useSocialPosts';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
-import { useSocialMetrics } from '@/hooks/useSocialMetrics';
+import { useSocialMetrics, formatMetricNumber } from '@/hooks/useSocialMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
-import { formatMetricNumber } from '@/hooks/useSocialMetrics';
 
 export const MarketingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('calendar');
@@ -144,6 +142,13 @@ export const MarketingPage: React.FC = () => {
               Relatórios
               {!hasSocialReports && <Lock className="h-3 w-3 ml-1" />}
             </TabsTrigger>
+            <TabsTrigger
+              value="platforms"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+            >
+              <Plug className="h-4 w-4 mr-2" />
+              Plataformas
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -209,41 +214,12 @@ export const MarketingPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="metrics" className="flex-1 m-0 p-6">
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{formatMetricNumber(summary.totalReach)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Alcance Total</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{formatMetricNumber(summary.totalImpressions)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Impressões</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{formatMetricNumber(summary.totalLikes)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Curtidas</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold">{summary.avgEngagementRate.toFixed(2)}%</p>
-                  <p className="text-sm text-muted-foreground mt-1">Taxa de Engajamento</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="metrics" className="flex-1 m-0 p-6 overflow-auto">
+          <MetricsDashboard />
+        </TabsContent>
+
+        <TabsContent value="platforms" className="flex-1 m-0 p-6 overflow-auto">
+          <PlatformConnector />
         </TabsContent>
 
         <TabsContent value="insights" className="flex-1 m-0 p-6">
