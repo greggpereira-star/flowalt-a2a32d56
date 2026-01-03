@@ -27,10 +27,12 @@ import {
   Eye,
   RefreshCw,
   Crown,
-  Settings2
+  Settings2,
+  Share2
 } from 'lucide-react';
 import { PlanManagementPanel } from '@/components/settings/PlanManagementPanel';
 import { EntitlementOverridesPanel } from '@/components/settings/EntitlementOverridesPanel';
+import { AdminSocialSetup } from '@/components/platform-admin/AdminSocialSetup';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -320,6 +322,10 @@ export default function PlatformAdminPage() {
               <Settings2 className="h-4 w-4" />
               Entitlements
             </TabsTrigger>
+            <TabsTrigger value="social" className="gap-2">
+              <Share2 className="h-4 w-4" />
+              Social OAuth
+            </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="h-4 w-4" />
               Auditoria
@@ -496,6 +502,10 @@ export default function PlatformAdminPage() {
                 plan_tier: ws.plan_tier,
               })) || []}
             />
+          </TabsContent>
+
+          <TabsContent value="social" className="mt-4">
+            <AdminSocialSetup />
           </TabsContent>
 
           <TabsContent value="audit" className="mt-4">

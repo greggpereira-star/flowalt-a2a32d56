@@ -65,6 +65,27 @@ serve(async (req) => {
       );
     }
 
+    // ===========================================
+    // ENTITLEMENTS CHECK - Server-side validation
+    // ===========================================
+    const { data: publishEntitlement } = await supabase
+      .from('workspace_entitlements_effective')
+      .select('enabled')
+      .eq('workspace_id', workspace_id)
+      .eq('entitlement_key', 'social_publish')
+      .maybeSingle();
+
+    if (!publishEntitlement?.enabled) {
+      return new Response(
+        JSON.stringify({ 
+          ok: false, 
+          error_code: 'PLAN_REQUIRED', 
+          error_message: 'Conectar redes sociais requer um plano PRO ou superior.' 
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Verify asset exists
     const { data: assetData, error: assetError } = await supabase
       .from('social_platform_assets')
