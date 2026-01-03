@@ -31,6 +31,7 @@ import AcceptInvitePage from "./pages/AcceptInvitePage";
 import FirstAccessPage from "./pages/FirstAccessPage";
 import PlatformAdminPage from "./pages/PlatformAdminPage";
 import SecurityAuditPage from "./pages/SecurityAuditPage";
+import MarketingPage from "./pages/MarketingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/clients" element={<AuthGuard><ClientsPage /></AuthGuard>} />
               <Route path="/clients/:clientId" element={<AuthGuard><ClientsPage /></AuthGuard>} />
               <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
+              <Route path="/marketing" element={<AuthGuard><MarketingPage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </WorkspaceProvider>
