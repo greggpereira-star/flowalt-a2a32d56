@@ -28,7 +28,7 @@ import { useSocialMetrics } from '@/hooks/useSocialMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
 
-export const MarketingPage: React.FC = () => {
+export function MarketingPage() {
   const [activeTab, setActiveTab] = useState('calendar');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const { has, isLoading: entitlementsLoading } = useEntitlementRegistry();

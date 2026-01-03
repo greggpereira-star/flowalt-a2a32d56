@@ -100,12 +100,12 @@ const funnelLabels: Record<string, string> = {
   bofu: 'Fundo do Funil',
 };
 
-export const SocialPostDetailSheet: React.FC<SocialPostDetailSheetProps> = ({
+export function SocialPostDetailSheet({
   post,
   open,
   onOpenChange,
   onEdit,
-}) => {
+}: SocialPostDetailSheetProps) {
   const deletePost = useDeleteSocialPost();
   const approvePost = useApproveSocialPost();
 
