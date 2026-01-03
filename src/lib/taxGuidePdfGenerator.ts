@@ -276,19 +276,26 @@ export const generateTaxGuidePDF = (data: TaxGuideData): jsPDF => {
     y += tableHeight + 10;
   }
 
-  // ============ AVISO IMPORTANTE ============
-  doc.setFillColor(255, 251, 235); // Amber-50
-  doc.setDrawColor(252, 211, 77); // Amber-300
-  doc.roundedRect(margin, y, contentWidth, 24, 2, 2, 'FD');
+  // ============ AVISO IMPORTANTE - DESTAQUE MÁXIMO ============
+  doc.setFillColor(254, 226, 226); // Red-100
+  doc.setDrawColor(220, 38, 38); // Red-600
+  doc.setLineWidth(0.8);
+  doc.roundedRect(margin, y, contentWidth, 32, 2, 2, 'FD');
+  doc.setLineWidth(0.2);
 
-  doc.setFontSize(8);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 83, 9); // Amber-700
-  doc.text('⚠ DOCUMENTO ESTIMATIVO', margin + 8, y + 10);
+  doc.setTextColor(185, 28, 28); // Red-700
+  doc.text('GUIA ESTIMADA - APENAS PARA PLANEJAMENTO', margin + 8, y + 12);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('Esta é uma estimativa. Para pagamento, acesse o Portal do Simples Nacional (www8.receita.fazenda.gov.br/simplesnacional)', margin + 8, y + 18);
+  doc.setFontSize(9);
+  doc.setTextColor(127, 29, 29); // Red-900
+  doc.text('Para efetuar o pagamento, gere a guia oficial no Portal PGDAS-D:', margin + 8, y + 22);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 64, 175); // Blue-800
+  doc.text('www8.receita.fazenda.gov.br/simplesnacional', margin + 8, y + 29);
 
   // ============ FOOTER ============
   const footerY = 280;
