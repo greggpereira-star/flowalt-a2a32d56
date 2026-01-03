@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { AppLayout } from '@/components/layout/AppLayout';
 import {
   Calendar,
   Clock,
@@ -16,6 +18,8 @@ import {
   Lock,
   Plus,
   Activity,
+  ArrowLeft,
+  Home,
 } from 'lucide-react';
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
 import { PlatformConnector } from '@/components/social-media/PlatformConnector';
@@ -31,6 +35,7 @@ import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
 
 export function MarketingPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('calendar');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const { has, isLoading: entitlementsLoading } = useEntitlementRegistry();
@@ -45,38 +50,58 @@ export function MarketingPage() {
 
   if (entitlementsLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-[600px] w-full" />
-      </div>
+      <AppLayout>
+        <div className="p-6 space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-[600px] w-full" />
+        </div>
+      </AppLayout>
     );
   }
 
   if (!hasSocialPublish) {
     return (
-      <AccessDeniedState
-        type="no_permission"
-        title="Módulo de Marketing"
-        description="Este módulo está disponível nos planos PRO e Enterprise. Faça upgrade para acessar o calendário editorial, agendamento de posts e métricas de redes sociais."
-      />
+      <AppLayout>
+        <AccessDeniedState
+          type="no_permission"
+          title="Módulo de Marketing"
+          description="Este módulo está disponível nos planos PRO e Enterprise. Faça upgrade para acessar o calendário editorial, agendamento de posts e métricas de redes sociais."
+        />
+      </AppLayout>
     );
   }
 
   const activePlatforms = platforms?.filter(p => p.is_active) || [];
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            Marketing
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie suas publicações em redes sociais
-          </p>
-        </div>
+    <AppLayout>
+      <div className="h-full flex flex-col">
+        {/* Header with Navigation */}
+        <div className="flex items-center justify-between p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-4">
+            {/* Back Navigation */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <Home className="h-4 w-4" />
+            </Button>
+            
+            <div className="h-6 w-px bg-border" />
+            
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                Marketing
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Central de comando para redes sociais
+              </p>
+            </div>
+          </div>
 
         {/* Quick Stats & Actions */}
         <div className="flex items-center gap-4">
@@ -288,6 +313,7 @@ export function MarketingPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppLayout>
   );
 }
 
