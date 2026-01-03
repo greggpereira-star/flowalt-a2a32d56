@@ -48,7 +48,7 @@ export interface SocialPost {
 }
 
 export interface CreateSocialPostInput {
-  card_id?: string | null;
+  card_id: string; // Required - posts must be linked to a card (Blueprint)
   client_id?: string | null;
   caption?: string;
   hashtags?: string[];
@@ -64,7 +64,7 @@ export interface CreateSocialPostInput {
   utm_params?: Record<string, string>;
 }
 
-export interface UpdateSocialPostInput extends Partial<CreateSocialPostInput> {
+export interface UpdateSocialPostInput extends Partial<Omit<CreateSocialPostInput, 'card_id'>> {
   status?: SocialPostStatus;
   approved_by?: string;
   approved_at?: string;
@@ -155,27 +155,52 @@ export const useCreateSocialPost = () => {
   return useMutation({
     mutationFn: async (input: CreateSocialPostInput) => {
       if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
+      if (!user?.id) throw new Error('Usuário não autenticado');
+      
+      // Blueprint: card_id is required for social posts
+      if (!input.card_id) {
+        throw new Error('Selecione um card para vincular a postagem');
+      }
 
       const { data, error } = await supabase
         .from('social_posts')
         .insert({
           workspace_id: currentWorkspace.id,
-          created_by: user?.id,
-          ...input,
+          created_by: user.id,
+          card_id: input.card_id,
+          client_id: input.client_id,
+          caption: input.caption,
+          hashtags: input.hashtags,
+          media_urls: input.media_urls,
+          first_comment: input.first_comment,
+          platform: input.platform,
+          content_type: input.content_type,
+          scheduled_at: input.scheduled_at,
+          timezone: input.timezone,
+          content_pillar: input.content_pillar,
+          funnel_stage: input.funnel_stage,
+          campaign_name: input.campaign_name,
+          utm_params: input.utm_params,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Handle RLS violations with user-friendly messages
+        if (error.code === '42501' || error.message?.includes('row-level security')) {
+          throw new Error('Você não tem permissão para criar posts neste card');
+        }
+        throw error;
+      }
       return data as SocialPost;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
       toast.success('Postagem criada com sucesso');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error creating social post:', error);
-      toast.error('Erro ao criar postagem');
+      toast.error(error.message || 'Erro ao criar postagem');
     },
   });
 };
