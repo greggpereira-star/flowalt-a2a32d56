@@ -5852,6 +5852,354 @@ export type Database = {
           },
         ]
       }
+      social_hashtag_library: {
+        Row: {
+          avg_engagement_boost: number | null
+          category: string | null
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          hashtags: string[]
+          id: string
+          name: string
+          updated_at: string | null
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_engagement_boost?: number | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          hashtags: string[]
+          id?: string
+          name: string
+          updated_at?: string | null
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avg_engagement_boost?: number | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          hashtags?: string[]
+          id?: string
+          name?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_hashtag_library_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_hashtag_library_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_hashtag_library_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_platforms: {
+        Row: {
+          access_token_encrypted: string | null
+          account_id: string
+          account_name: string
+          account_type: string | null
+          connection_status: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_sync_at: string | null
+          platform: string
+          profile_image_url: string | null
+          refresh_token_encrypted: string | null
+          scopes: string[] | null
+          token_expires_at: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          account_id: string
+          account_name: string
+          account_type?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          platform: string
+          profile_image_url?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          account_id?: string
+          account_name?: string
+          account_type?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          platform?: string
+          profile_image_url?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_platforms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_platforms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_post_templates: {
+        Row: {
+          caption_template: string | null
+          content_pillar: string | null
+          content_type: string | null
+          created_at: string | null
+          created_by: string | null
+          funnel_stage: string | null
+          hashtag_library_ids: string[] | null
+          id: string
+          is_active: boolean | null
+          name: string
+          platform: string | null
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          caption_template?: string | null
+          content_pillar?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          funnel_stage?: string | null
+          hashtag_library_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          platform?: string | null
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          caption_template?: string | null
+          content_pillar?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          funnel_stage?: string | null
+          hashtag_library_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          platform?: string | null
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_post_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          ab_test_group: string | null
+          approved_at: string | null
+          approved_by: string | null
+          campaign_name: string | null
+          caption: string | null
+          card_id: string | null
+          client_id: string | null
+          content_pillar: string | null
+          content_type: string
+          created_at: string | null
+          created_by: string | null
+          error_code: string | null
+          error_message: string | null
+          first_comment: string | null
+          funnel_stage: string | null
+          hashtags: string[] | null
+          id: string
+          max_retries: number | null
+          media_urls: Json | null
+          metrics: Json | null
+          metrics_updated_at: string | null
+          next_retry_at: string | null
+          platform: string
+          platform_post_id: string | null
+          platform_url: string | null
+          published_at: string | null
+          retry_count: number | null
+          scheduled_at: string | null
+          status: string
+          timezone: string | null
+          updated_at: string | null
+          utm_params: Json | null
+          visibility: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ab_test_group?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_name?: string | null
+          caption?: string | null
+          card_id?: string | null
+          client_id?: string | null
+          content_pillar?: string | null
+          content_type: string
+          created_at?: string | null
+          created_by?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          first_comment?: string | null
+          funnel_stage?: string | null
+          hashtags?: string[] | null
+          id?: string
+          max_retries?: number | null
+          media_urls?: Json | null
+          metrics?: Json | null
+          metrics_updated_at?: string | null
+          next_retry_at?: string | null
+          platform: string
+          platform_post_id?: string | null
+          platform_url?: string | null
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string | null
+          utm_params?: Json | null
+          visibility?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ab_test_group?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_name?: string | null
+          caption?: string | null
+          card_id?: string | null
+          client_id?: string | null
+          content_pillar?: string | null
+          content_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          first_comment?: string | null
+          funnel_stage?: string | null
+          hashtags?: string[] | null
+          id?: string
+          max_retries?: number | null
+          media_urls?: Json | null
+          metrics?: Json | null
+          metrics_updated_at?: string | null
+          next_retry_at?: string | null
+          platform?: string
+          platform_post_id?: string | null
+          platform_url?: string | null
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string | null
+          utm_params?: Json | null
+          visibility?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       space_custom_field_definitions: {
         Row: {
           created_at: string
@@ -9484,17 +9832,49 @@ export type Database = {
       card_urgency: "low" | "medium" | "high" | "critical"
       client_financial_state: "healthy" | "attention" | "critical" | "loss"
       client_status: "active" | "paused" | "closed"
+      content_pillar_type:
+        | "educational"
+        | "sales"
+        | "entertainment"
+        | "relationship"
+        | "institutional"
+        | "other"
       depreciation_method:
         | "straight_line"
         | "declining_balance"
         | "units_of_production"
       event_type: "meeting" | "recording" | "milestone" | "deadline" | "other"
+      funnel_stage_type: "tofu" | "mofu" | "bofu"
       inventory_category: "consumable" | "equipment" | "asset"
       item_condition: "good" | "fair" | "defective" | "maintenance"
       movement_type: "IN" | "OUT" | "RETURN" | "TRANSFER" | "ADJUST"
       plan_status: "active" | "past_due" | "canceled" | "trialing"
       plan_tier: "free" | "pro" | "enterprise"
       recurrence_type: "none" | "monthly" | "yearly"
+      social_content_type:
+        | "feed"
+        | "story"
+        | "reels"
+        | "carousel"
+        | "video"
+        | "short"
+        | "article"
+      social_platform_type:
+        | "instagram"
+        | "facebook"
+        | "linkedin"
+        | "tiktok"
+        | "youtube"
+        | "twitter"
+      social_post_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "scheduled"
+        | "publishing"
+        | "published"
+        | "failed"
+        | "archived"
       space_type:
         | "designer"
         | "audiovisual"
@@ -9670,18 +10050,54 @@ export const Constants = {
       card_urgency: ["low", "medium", "high", "critical"],
       client_financial_state: ["healthy", "attention", "critical", "loss"],
       client_status: ["active", "paused", "closed"],
+      content_pillar_type: [
+        "educational",
+        "sales",
+        "entertainment",
+        "relationship",
+        "institutional",
+        "other",
+      ],
       depreciation_method: [
         "straight_line",
         "declining_balance",
         "units_of_production",
       ],
       event_type: ["meeting", "recording", "milestone", "deadline", "other"],
+      funnel_stage_type: ["tofu", "mofu", "bofu"],
       inventory_category: ["consumable", "equipment", "asset"],
       item_condition: ["good", "fair", "defective", "maintenance"],
       movement_type: ["IN", "OUT", "RETURN", "TRANSFER", "ADJUST"],
       plan_status: ["active", "past_due", "canceled", "trialing"],
       plan_tier: ["free", "pro", "enterprise"],
       recurrence_type: ["none", "monthly", "yearly"],
+      social_content_type: [
+        "feed",
+        "story",
+        "reels",
+        "carousel",
+        "video",
+        "short",
+        "article",
+      ],
+      social_platform_type: [
+        "instagram",
+        "facebook",
+        "linkedin",
+        "tiktok",
+        "youtube",
+        "twitter",
+      ],
+      social_post_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "scheduled",
+        "publishing",
+        "published",
+        "failed",
+        "archived",
+      ],
       space_type: [
         "designer",
         "audiovisual",
