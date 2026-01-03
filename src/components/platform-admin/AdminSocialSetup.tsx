@@ -201,14 +201,28 @@ export function AdminSocialSetup() {
   const [isVerifying, setIsVerifying] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: providerStatus, isLoading, refetch } = useQuery({
+  const { data: providerStatus, isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['social-provider-status'],
     queryFn: async () => {
+      // Ensure we have a valid session before calling
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('No valid session for social-provider-status:', sessionError);
+        throw new Error('Sessão não encontrada. Faça login novamente.');
+      }
+
+      console.log('Calling social-provider-status with session:', session.user.email);
+      
       const { data, error } = await supabase.functions.invoke('social-provider-status');
 
-      if (error) throw error;
+      if (error) {
+        console.error('social-provider-status error:', error);
+        throw error;
+      }
       return data as ProviderStatusResponse;
     },
+    retry: 1,
   });
 
   const handleCopyUri = (uri: string) => {
