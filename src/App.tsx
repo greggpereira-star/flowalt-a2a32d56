@@ -32,6 +32,7 @@ import FirstAccessPage from "./pages/FirstAccessPage";
 import PlatformAdminPage from "./pages/PlatformAdminPage";
 import SecurityAuditPage from "./pages/SecurityAuditPage";
 import MarketingPage from "./pages/MarketingPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
             <KeyboardShortcutsDialog />
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/invite/:token" element={<AcceptInvitePage />} />
               <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
