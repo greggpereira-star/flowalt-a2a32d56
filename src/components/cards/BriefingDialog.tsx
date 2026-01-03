@@ -21,12 +21,14 @@ import {
   Clock,
   Lightbulb,
   AlertCircle,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { BriefingData } from './BriefingForm';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
+import { BriefingSummarySheet } from './BriefingSummarySheet';
 
 interface ValidationResult {
   isValid: boolean;
@@ -124,6 +126,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
   
   // Use local state for editing to prevent re-renders from parent
   const [localData, setLocalData] = useState<BriefingData>(data);
@@ -212,7 +215,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[700px] p-0 gap-0 flex flex-col overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header - Fixed */}
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-muted/30">
           <div className="flex items-center justify-between gap-3">
@@ -345,18 +348,30 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
           </div>
         </div>
 
-        {/* Footer - Fixed */}
         <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 flex items-center justify-between gap-2 sm:gap-3">
-          <Button
-            variant="ghost"
-            onClick={handlePrev}
-            disabled={isFirstStep}
-            size="sm"
-            className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-          >
-            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Anterior</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handlePrev}
+              disabled={isFirstStep}
+              size="sm"
+              className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+            >
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Anterior</span>
+            </Button>
+            
+            {/* View Summary Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowSummary(true)}
+              size="sm"
+              className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+            >
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Ver Resumo</span>
+            </Button>
+          </div>
 
           {/* Step indicator for mobile */}
           <div className="flex items-center gap-1 sm:hidden">
@@ -408,6 +423,15 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
             )}
           </div>
         </div>
+
+        {/* Briefing Summary Sheet */}
+        <BriefingSummarySheet
+          open={showSummary}
+          onOpenChange={setShowSummary}
+          data={localData}
+          isCompleted={isCompleted}
+          cardTitle={cardTitle}
+        />
       </DialogContent>
     </Dialog>
   );
