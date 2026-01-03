@@ -214,6 +214,17 @@ export function RichTextEditor({
   maxHeight = '400px',
   autoFocus = false,
 }: RichTextEditorProps) {
+  // Helper to safely parse content - handles both JSON and plain text
+  const parseContent = useCallback((content: string) => {
+    if (!content) return '';
+    try {
+      return JSON.parse(content);
+    } catch {
+      // If not valid JSON, treat as plain text
+      return content;
+    }
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -234,7 +245,7 @@ export function RichTextEditor({
         emptyEditorClass: 'is-editor-empty',
       }),
     ],
-    content: value ? JSON.parse(value) : '',
+    content: parseContent(value),
     editable: !disabled,
     autofocus: autoFocus,
     onUpdate: ({ editor }) => {
@@ -327,7 +338,14 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
         emptyEditorClass: 'is-editor-empty',
       }),
     ],
-    content: value ? JSON.parse(value) : '',
+    content: (() => {
+      if (!value) return '';
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    })(),
     editable: !disabled,
     autofocus: autoFocus,
     onUpdate: ({ editor }) => {
