@@ -5476,6 +5476,54 @@ export type Database = {
           },
         ]
       }
+      oauth_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          expires_at: string
+          platform: string
+          return_url: string | null
+          state: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string
+          expires_at: string
+          platform: string
+          return_url?: string | null
+          state: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          expires_at?: string
+          platform?: string
+          return_url?: string | null
+          state?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_entitlements: {
         Row: {
           config: Json | null
@@ -9509,6 +9557,7 @@ export type Database = {
         Args: { p_action: string; p_workspace_id: string }
         Returns: Json
       }
+      cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       compute_daily_snapshot: {
         Args: { p_workspace_id: string }
         Returns: Json

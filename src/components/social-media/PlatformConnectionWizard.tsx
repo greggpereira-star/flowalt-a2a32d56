@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import {
   CheckCircle2,
@@ -22,14 +23,18 @@ import {
   ExternalLink,
   Loader2,
   Shield,
-  Eye,
-  BarChart3,
-  Edit,
   RefreshCw,
   Info,
+  ChevronDown,
+  Settings,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useConnectPlatform } from '@/hooks/useSocialPlatforms';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -186,6 +191,11 @@ export function PlatformConnectionWizard({
   platformName,
   onSuccess,
 }: PlatformConnectionWizardProps) {
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -193,12 +203,33 @@ export function PlatformConnectionWizard({
   const [accountName, setAccountName] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [setupInstructions, setSetupInstructions] = useState<string[]>([]);
+  const [requiresSetup, setRequiresSetup] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
   
-  const connectPlatform = useConnectPlatform();
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
+
+  // Check for OAuth callback result
+  useEffect(() => {
+    const oauthSuccess = searchParams.get('oauth_success');
+    const oauthError = searchParams.get('oauth_error');
+    const platform = searchParams.get('platform');
+    
+    if (oauthSuccess === 'true' && platform === platformId) {
+      setConnectionStatus('success');
+      setCurrentStep(totalSteps - 1);
+      toast.success(`${platformName} conectado com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
+    }
+    
+    if (oauthError && platform === platformId) {
+      setConnectionStatus('error');
+      setErrorMessage(searchParams.get('error_description') || 'Erro na autenticação');
+    }
+  }, [searchParams, platformId, platformName, totalSteps, queryClient]);
 
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
@@ -213,71 +244,102 @@ export function PlatformConnectionWizard({
   };
 
   const handleStartOAuth = async () => {
+    if (!currentWorkspace?.id || !user?.id) {
+      toast.error('Erro: workspace ou usuário não encontrado');
+      return;
+    }
+
     setIsConnecting(true);
     setConnectionStatus('connecting');
     setErrorMessage(null);
+    setRequiresSetup(false);
 
-    // Simulate OAuth redirect delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Call the real OAuth start edge function
+      const { data, error } = await supabase.functions.invoke('social-oauth-start', {
+        body: {
+          platform: platformId,
+          workspace_id: currentWorkspace.id,
+          user_id: user.id,
+          return_url: window.location.pathname,
+        },
+      });
 
-    // For now, simulate successful OAuth
-    // In production, this would redirect to the actual OAuth provider
-    const mockAccounts = [
-      { id: `${platformId}_1`, name: `@${platformId}_business` },
-      { id: `${platformId}_2`, name: `@${platformId}_agency` },
-    ];
+      if (error) {
+        throw new Error(error.message);
+      }
 
-    setSelectedAccount(mockAccounts[0]);
-    setAccountName(mockAccounts[0].name);
-    setIsConnecting(false);
-    handleNext();
+      if (data.requires_setup) {
+        // Platform credentials not configured
+        setRequiresSetup(true);
+        setSetupInstructions(data.setup_instructions || []);
+        setErrorMessage(data.message);
+        setConnectionStatus('error');
+        setIsConnecting(false);
+        return;
+      }
+
+      if (data.auth_url) {
+        // Redirect to OAuth provider
+        window.location.href = data.auth_url;
+      } else {
+        throw new Error('No auth URL received');
+      }
+    } catch (error: any) {
+      console.error('OAuth start error:', error);
+      setConnectionStatus('error');
+      setErrorMessage(error.message || 'Erro ao iniciar autenticação');
+      setIsConnecting(false);
+    }
   };
 
   const handleValidateConnection = async () => {
+    if (!selectedAccount) return;
+    
     setIsValidating(true);
     setConnectionStatus('connecting');
+    setErrorMessage(null);
     
     try {
-      // Simulate validation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setConnectionStatus('success');
-    } catch {
+      // Call the real connection test edge function
+      const { data, error } = await supabase.functions.invoke('social-connection-test', {
+        body: { platform_id: selectedAccount.id },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.success) {
+        setConnectionStatus('success');
+        setAccountName(data.account_name || selectedAccount.name);
+      } else {
+        setConnectionStatus('error');
+        setErrorMessage(data.error_message || 'Falha na validação');
+        
+        if (data.requires_reconnect) {
+          toast.error('Token expirado', {
+            description: 'Você precisa reconectar a plataforma.',
+          });
+        }
+      }
+    } catch (error: any) {
       setConnectionStatus('error');
-      setErrorMessage('Falha na validação. Tente novamente.');
+      setErrorMessage(error.message || 'Falha na validação');
     } finally {
       setIsValidating(false);
     }
   };
 
   const handleFinishConnection = async () => {
-    if (!selectedAccount) return;
-
-    setIsConnecting(true);
-    setErrorMessage(null);
-
-    try {
-      await connectPlatform.mutateAsync({
-        platform: platformId as any,
-        account_name: accountName || selectedAccount.name,
-        account_id: selectedAccount.id,
-      });
-
-      setConnectionStatus('success');
-      toast.success(`${platformName} conectado com sucesso!`, {
-        description: `Conta: ${accountName || selectedAccount.name}`,
-      });
-      
-      onSuccess?.();
-      handleClose();
-    } catch (error: any) {
-      setConnectionStatus('error');
-      setErrorMessage(error.message || 'Erro ao conectar plataforma');
-      toast.error('Erro ao conectar', {
-        description: error.message,
-      });
-    } finally {
-      setIsConnecting(false);
-    }
+    // Connection was already saved by OAuth callback
+    // Just close the wizard and refresh
+    queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
+    queryClient.invalidateQueries({ queryKey: ['social-platforms-active'] });
+    
+    toast.success(`${platformName} conectado com sucesso!`);
+    onSuccess?.();
+    handleClose();
   };
 
   const handleClose = () => {
@@ -286,6 +348,8 @@ export function PlatformConnectionWizard({
     setAccountName('');
     setSelectedAccount(null);
     setErrorMessage(null);
+    setRequiresSetup(false);
+    setSetupInstructions([]);
     onOpenChange(false);
   };
 
@@ -333,49 +397,96 @@ export function PlatformConnectionWizard({
       case 'auth':
         return (
           <div className="space-y-6">
-            <div className="text-center py-4">
-              <h3 className="text-lg font-semibold mb-2">
-                Autenticação
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
-                Siga os passos abaixo para conectar sua conta:
-              </p>
-            </div>
+            {requiresSetup ? (
+              // Platform not configured - show setup instructions
+              <div className="space-y-4">
+                <Alert variant="destructive" className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    <strong>Configuração necessária:</strong> As credenciais do {platformName} ainda não foram configuradas.
+                  </AlertDescription>
+                </Alert>
 
-            <div className="space-y-3">
-              {config.instructions.map((instruction, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 p-3 rounded-lg border"
-                >
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                    {idx + 1}
-                  </div>
-                  <span className="text-sm pt-0.5">{instruction}</span>
+                <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Como configurar o {platformName}
+                      </span>
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", instructionsOpen && "rotate-180")} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <div className="space-y-2 p-4 rounded-lg bg-muted/50 border">
+                      {setupInstructions.map((instruction, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm">
+                          <span className="text-muted-foreground">{instruction}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Após configurar os secrets, tente novamente.
+                </p>
+              </div>
+            ) : (
+              // Normal OAuth flow
+              <>
+                <div className="text-center py-4">
+                  <h3 className="text-lg font-semibold mb-2">
+                    Autenticação
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+                    Siga os passos abaixo para conectar sua conta:
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            <Separator />
+                <div className="space-y-3">
+                  {config.instructions.map((instruction, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-3 p-3 rounded-lg border"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                        {idx + 1}
+                      </div>
+                      <span className="text-sm pt-0.5">{instruction}</span>
+                    </div>
+                  ))}
+                </div>
 
-            <Button
-              onClick={handleStartOAuth}
-              disabled={isConnecting}
-              className="w-full"
-              size="lg"
-            >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Conectando...
-                </>
-              ) : (
-                <>
-                  Iniciar Conexão
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
+                <Separator />
+
+                <Button
+                  onClick={handleStartOAuth}
+                  disabled={isConnecting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecionando...
+                    </>
+                  ) : (
+                    <>
+                      Iniciar Conexão OAuth
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+
+                {errorMessage && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+              </>
+            )}
           </div>
         );
 
@@ -620,7 +731,7 @@ export function PlatformConnectionWizard({
             <Button
               onClick={handleNext}
               disabled={
-                (steps[currentStep].id === 'auth' && !selectedAccount) ||
+                (steps[currentStep].id === 'auth' && requiresSetup) ||
                 (steps[currentStep].id === 'select' && !selectedAccount)
               }
             >
