@@ -33,6 +33,7 @@ import PlatformAdminPage from "./pages/PlatformAdminPage";
 import SecurityAuditPage from "./pages/SecurityAuditPage";
 import MarketingPage from "./pages/MarketingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import DataDeletionPage from "./pages/DataDeletionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/data-deletion" element={<DataDeletionPage />} />
               <Route path="/invite/:token" element={<AcceptInvitePage />} />
               <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
