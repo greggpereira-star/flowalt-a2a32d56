@@ -5484,6 +5484,7 @@ export type Database = {
           platform: string
           return_url: string | null
           state: string
+          used_at: string | null
           user_id: string
           workspace_id: string
         }
@@ -5494,6 +5495,7 @@ export type Database = {
           platform: string
           return_url?: string | null
           state: string
+          used_at?: string | null
           user_id: string
           workspace_id: string
         }
@@ -5504,6 +5506,7 @@ export type Database = {
           platform?: string
           return_url?: string | null
           state?: string
+          used_at?: string | null
           user_id?: string
           workspace_id?: string
         }
