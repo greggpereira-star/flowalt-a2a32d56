@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { useTransactions, useCreateTransaction } from "@/hooks/useFinancial";
 import { useTaxSettings, useLocalTaxCalculation } from "@/hooks/useTaxSettings";
 import { generatePDFReport, downloadPDF, type ReportData } from "@/lib/pdfGenerator";
+import { generateTaxGuidePDF, downloadTaxGuidePDF, type TaxGuideData } from "@/lib/taxGuidePdfGenerator";
 import { toast } from "sonner";
 
 const formatCurrency = (value: number) => {
@@ -242,37 +243,42 @@ export function TaxGuidesPanel() {
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     const dueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), guide.dueDay);
 
-    const reportData: ReportData = {
-      title: guide.name,
-      subtitle: `Competência: ${format(selectedMonth, "MMMM/yyyy", { locale: ptBR })}`,
-      generatedAt: new Date(),
-      sections: [
-        {
-          title: "Informações da Guia",
-          type: "summary",
-          summary: [
-            { label: "Guia", value: guide.name },
-            { label: "Código", value: guide.code || "-" },
-            { label: "Competência", value: format(selectedMonth, "MM/yyyy") },
-            { label: "Vencimento", value: format(dueDate, "dd/MM/yyyy") },
-            { label: "Valor", value: formatCurrency(guide.value) },
-          ],
-        },
-        {
-          title: "Base de Cálculo",
-          type: "summary",
-          summary: [
-            { label: "Receita Bruta", value: formatCurrency(revenue) },
-            { label: "Regime Tributário", value: regimeLabels[taxes.regime] || taxes.regime },
-            { label: "Alíquota Efetiva", value: `${taxes.effective_rate.toFixed(2)}%` },
-          ],
-        },
-      ],
+    // Montar breakdown baseado no regime
+    const breakdown: TaxGuideData['breakdown'] = [];
+    
+    if (taxes.regime === 'simples_nacional' && taxes.das > 0) {
+      // DAS é unificado, mostrar composição estimada
+      breakdown.push(
+        { label: 'IRPJ', value: taxes.das * 0.055, percentage: 5.5 },
+        { label: 'CSLL', value: taxes.das * 0.035, percentage: 3.5 },
+        { label: 'COFINS', value: taxes.das * 0.128, percentage: 12.8 },
+        { label: 'PIS', value: taxes.das * 0.028, percentage: 2.8 },
+        { label: 'CPP', value: taxes.das * 0.435, percentage: 43.5 },
+        { label: 'ISS', value: taxes.das * 0.335, percentage: 33.5 },
+      );
+    } else {
+      if (taxes.irpj > 0) breakdown.push({ label: 'IRPJ', value: taxes.irpj, percentage: (taxes.irpj / revenue) * 100 });
+      if (taxes.csll > 0) breakdown.push({ label: 'CSLL', value: taxes.csll, percentage: (taxes.csll / revenue) * 100 });
+      if (taxes.pis > 0) breakdown.push({ label: 'PIS', value: taxes.pis, percentage: (taxes.pis / revenue) * 100 });
+      if (taxes.cofins > 0) breakdown.push({ label: 'COFINS', value: taxes.cofins, percentage: (taxes.cofins / revenue) * 100 });
+      if (taxes.iss > 0) breakdown.push({ label: 'ISS', value: taxes.iss, percentage: (taxes.iss / revenue) * 100 });
+    }
+
+    const guideData: TaxGuideData = {
+      guideName: guide.name,
+      guideCode: guide.code,
+      competencia: selectedMonth,
+      dueDate: dueDate,
+      value: guide.value,
+      revenue: revenue,
+      regime: taxes.regime,
+      effectiveRate: taxes.effective_rate,
+      breakdown: breakdown.length > 0 ? breakdown : undefined,
     };
 
     try {
-      const doc = generatePDFReport(reportData);
-      downloadPDF(doc, `${guide.id}_${format(selectedMonth, "yyyy-MM")}`);
+      const doc = generateTaxGuidePDF(guideData);
+      downloadTaxGuidePDF(doc, guide.id, selectedMonth);
       toast.success("Guia exportada com sucesso!");
     } catch (error) {
       toast.error("Erro ao exportar guia");
