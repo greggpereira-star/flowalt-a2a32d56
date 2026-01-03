@@ -50,3 +50,12 @@ verify_jwt = true
 
 [functions.social-token-refresh]
 verify_jwt = true
+
+[functions.social-connection-assets]
+verify_jwt = true
+
+[functions.social-asset-select]
+verify_jwt = true
+
+[functions.social-smoke-test]
+verify_jwt = true

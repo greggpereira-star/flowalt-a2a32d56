@@ -6037,20 +6037,86 @@ export type Database = {
           },
         ]
       }
+      social_platform_assets: {
+        Row: {
+          asset_id: string
+          asset_meta: Json | null
+          asset_name: string
+          asset_type: string
+          created_at: string | null
+          id: string
+          platform_connection_id: string
+          platform_id: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          asset_meta?: Json | null
+          asset_name: string
+          asset_type: string
+          created_at?: string | null
+          id?: string
+          platform_connection_id: string
+          platform_id: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          asset_meta?: Json | null
+          asset_name?: string
+          asset_type?: string
+          created_at?: string | null
+          id?: string
+          platform_connection_id?: string
+          platform_id?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_platform_assets_platform_connection_id_fkey"
+            columns: ["platform_connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_platform_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "social_platform_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_platforms: {
         Row: {
           access_token_encrypted: string | null
           account_id: string
           account_name: string
           account_type: string | null
+          asset_selected_at: string | null
           connection_status: string | null
           created_at: string | null
           created_by: string | null
           id: string
           is_active: boolean | null
           last_error: string | null
+          last_error_code: string | null
+          last_error_message: string | null
           last_sync_at: string | null
+          last_tested_at: string | null
           platform: string
+          platform_account_type: string | null
           profile_image_url: string | null
           refresh_token_encrypted: string | null
           scopes: string[] | null
@@ -6063,14 +6129,19 @@ export type Database = {
           account_id: string
           account_name: string
           account_type?: string | null
+          asset_selected_at?: string | null
           connection_status?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
           last_error?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
           last_sync_at?: string | null
+          last_tested_at?: string | null
           platform: string
+          platform_account_type?: string | null
           profile_image_url?: string | null
           refresh_token_encrypted?: string | null
           scopes?: string[] | null
@@ -6083,14 +6154,19 @@ export type Database = {
           account_id?: string
           account_name?: string
           account_type?: string | null
+          asset_selected_at?: string | null
           connection_status?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
           last_error?: string | null
+          last_error_code?: string | null
+          last_error_message?: string | null
           last_sync_at?: string | null
+          last_tested_at?: string | null
           platform?: string
+          platform_account_type?: string | null
           profile_image_url?: string | null
           refresh_token_encrypted?: string | null
           scopes?: string[] | null

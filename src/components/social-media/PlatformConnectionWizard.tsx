@@ -199,37 +199,154 @@ export function PlatformConnectionWizard({
   const [currentStep, setCurrentStep] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [isFetchingAssets, setIsFetchingAssets] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
   const [accountName, setAccountName] = useState('');
-  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string; type: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [setupInstructions, setSetupInstructions] = useState<string[]>([]);
   const [requiresSetup, setRequiresSetup] = useState(false);
   const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [platformConnectionId, setPlatformConnectionId] = useState<string | null>(null);
+  const [availableAssets, setAvailableAssets] = useState<Array<{
+    asset_type: string;
+    asset_id: string;
+    asset_name: string;
+    asset_meta: Record<string, unknown>;
+  }>>([]);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
-  // Check for OAuth callback result
+  // Check for OAuth callback result and fetch platform connection
   useEffect(() => {
     const oauthSuccess = searchParams.get('oauth_success');
     const oauthError = searchParams.get('oauth_error');
     const platform = searchParams.get('platform');
     
-    if (oauthSuccess === 'true' && platform === platformId) {
-      setConnectionStatus('success');
-      setCurrentStep(totalSteps - 1);
-      toast.success(`${platformName} conectado com sucesso!`);
-      queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
+    if (oauthSuccess === 'true' && platform === platformId && open) {
+      // OAuth completed - now need to fetch assets
+      fetchPlatformConnection();
     }
     
     if (oauthError && platform === platformId) {
       setConnectionStatus('error');
       setErrorMessage(searchParams.get('error_description') || 'Erro na autenticação');
     }
-  }, [searchParams, platformId, platformName, totalSteps, queryClient]);
+  }, [searchParams, platformId, open]);
+
+  // Fetch the platform connection after OAuth
+  const fetchPlatformConnection = async () => {
+    if (!currentWorkspace?.id) return;
+    
+    try {
+      const { data: connections, error } = await supabase
+        .from('social_platforms')
+        .select('id, account_name, connection_status, platform_account_type')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('platform', platformId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      
+      if (connections && connections.length > 0) {
+        const conn = connections[0];
+        setPlatformConnectionId(conn.id);
+        setAccountName(conn.account_name || '');
+        
+        // If assets not selected yet, move to select step and fetch assets
+        if (conn.connection_status === 'pending_assets' || !conn.platform_account_type) {
+          // Find the select step index
+          const selectStepIndex = steps.findIndex(s => s.id === 'select');
+          if (selectStepIndex >= 0) {
+            setCurrentStep(selectStepIndex);
+            await fetchAssets(conn.id);
+          } else {
+            // No select step, go to confirm
+            setCurrentStep(totalSteps - 1);
+            setConnectionStatus('success');
+          }
+        } else {
+          // Assets already selected
+          setConnectionStatus('success');
+          setCurrentStep(totalSteps - 1);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching platform connection:', error);
+    }
+  };
+
+  // Fetch available assets from the platform
+  const fetchAssets = async (connectionId: string) => {
+    if (!currentWorkspace?.id) return;
+    
+    setIsFetchingAssets(true);
+    setErrorMessage(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('social-connection-assets', {
+        body: {
+          workspace_id: currentWorkspace.id,
+          platform_connection_id: connectionId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.assets) {
+        setAvailableAssets(data.assets);
+        if (data.assets.length === 0) {
+          setErrorMessage('Nenhum ativo encontrado. Verifique se você tem páginas/canais/contas configurados.');
+        }
+      } else {
+        setErrorMessage(data.error_message || 'Erro ao buscar ativos');
+      }
+    } catch (error: any) {
+      console.error('Error fetching assets:', error);
+      setErrorMessage(error.message || 'Erro ao buscar ativos da plataforma');
+    } finally {
+      setIsFetchingAssets(false);
+    }
+  };
+
+  // Select an asset
+  const handleSelectAsset = async (asset: typeof availableAssets[0]) => {
+    if (!currentWorkspace?.id || !platformConnectionId) return;
+    
+    setSelectedAccount({
+      id: asset.asset_id,
+      name: asset.asset_name,
+      type: asset.asset_type,
+    });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('social-asset-select', {
+        body: {
+          workspace_id: currentWorkspace.id,
+          platform_connection_id: platformConnectionId,
+          asset_type: asset.asset_type,
+          asset_id: asset.asset_id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.ok) {
+        setAccountName(data.selected.asset_name);
+        toast.success(`${data.selected.asset_name} selecionado!`);
+      } else {
+        setErrorMessage(data.error_message || 'Erro ao selecionar ativo');
+      }
+    } catch (error: any) {
+      console.error('Error selecting asset:', error);
+      setErrorMessage(error.message || 'Erro ao selecionar ativo');
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
@@ -495,58 +612,65 @@ export function PlatformConnectionWizard({
           <div className="space-y-6">
             <div className="text-center py-4">
               <h3 className="text-lg font-semibold mb-2">
-                Selecione a Conta
+                Selecione o Ativo
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Escolha qual conta deseja conectar ao FlowAlt:
+                Escolha qual página, conta ou canal deseja usar:
               </p>
             </div>
 
-            <div className="space-y-3">
-              {/* Mock account options */}
-              {[
-                { id: `${platformId}_1`, name: `@${platformId}_business`, type: 'Conta Comercial' },
-                { id: `${platformId}_2`, name: `@${platformId}_personal`, type: 'Perfil Pessoal' },
-              ].map((account) => (
-                <button
-                  key={account.id}
-                  onClick={() => {
-                    setSelectedAccount(account);
-                    setAccountName(account.name);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left",
-                    selectedAccount?.id === account.id
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    {account.name[1]?.toUpperCase() || 'A'}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{account.name}</p>
-                    <p className="text-xs text-muted-foreground">{account.type}</p>
-                  </div>
-                  {selectedAccount?.id === account.id && (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  )}
-                </button>
-              ))}
-            </div>
+            {isFetchingAssets ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Buscando ativos...</span>
+              </div>
+            ) : availableAssets.length > 0 ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {availableAssets.map((asset) => (
+                  <button
+                    key={`${asset.asset_type}_${asset.asset_id}`}
+                    onClick={() => handleSelectAsset(asset)}
+                    className={cn(
+                      "w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left",
+                      selectedAccount?.id === asset.asset_id
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                      {asset.asset_name[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{asset.asset_name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {asset.asset_type.replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                    {selectedAccount?.id === asset.asset_id && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {errorMessage || 'Nenhum ativo disponível. Verifique suas permissões.'}
+                </AlertDescription>
+              </Alert>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="customName">Nome de exibição (opcional)</Label>
-              <Input
-                id="customName"
-                placeholder={selectedAccount?.name || 'Ex: @minha_conta'}
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Este nome será usado para identificar a conta no FlowAlt
-              </p>
-            </div>
+            {platformConnectionId && !isFetchingAssets && (
+              <Button
+                variant="outline"
+                onClick={() => fetchAssets(platformConnectionId)}
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar Lista
+              </Button>
+            )}
           </div>
         );
 

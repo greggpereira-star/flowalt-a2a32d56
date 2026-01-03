@@ -280,9 +280,12 @@ serve(async (req) => {
         token_expires_at: tokenExpiresAt,
         scopes: tokens.scope?.split(/[,\s]+/) || [],
         is_active: true,
-        connection_status: 'connected',
+        // Set to pending_assets - user needs to select which page/account to use
+        connection_status: 'pending_assets',
         last_sync_at: new Date().toISOString(),
         last_error: null,
+        last_error_code: null,
+        last_error_message: null,
         created_by: userId,
       }, {
         onConflict: 'workspace_id,platform,account_id',

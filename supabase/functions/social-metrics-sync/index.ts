@@ -20,33 +20,190 @@ interface MetricsResponse {
   profile_visits?: number;
 }
 
-// Mock metrics fetcher - will be replaced with real API integrations
-async function fetchPlatformMetrics(platform: string, platformPostId: string): Promise<MetricsResponse> {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 200));
-  
-  // Generate realistic-looking mock metrics
-  const baseReach = Math.floor(Math.random() * 5000) + 500;
-  const impressions = Math.floor(baseReach * (1 + Math.random() * 0.5));
-  const likes = Math.floor(baseReach * (0.02 + Math.random() * 0.08));
-  const comments = Math.floor(likes * (0.05 + Math.random() * 0.15));
-  const shares = Math.floor(likes * (0.02 + Math.random() * 0.08));
-  const saves = Math.floor(likes * (0.1 + Math.random() * 0.2));
-  
-  const totalEngagement = likes + comments + shares + saves;
-  const engagementRate = baseReach > 0 ? (totalEngagement / baseReach) * 100 : 0;
+// Simple decryption for tokens
+function decryptToken(encrypted: string): string {
+  const key = Deno.env.get('TOKEN_ENCRYPTION_KEY') || 'default-key-change-me';
+  const decoded = atob(encrypted);
+  const bytes = new Uint8Array([...decoded].map(c => c.charCodeAt(0)));
+  const keyBytes = new TextEncoder().encode(key);
+  const decrypted = bytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length]);
+  return new TextDecoder().decode(decrypted);
+}
 
+// REAL metrics fetcher - fetches from actual platform APIs
+async function fetchPlatformMetrics(
+  platform: string, 
+  platformPostId: string,
+  accessToken: string,
+  assetType?: string
+): Promise<MetricsResponse> {
+  try {
+    switch (platform) {
+      case 'facebook':
+      case 'instagram': {
+        // Fetch post insights from Facebook/Instagram Graph API
+        const fields = 'impressions,reach,engagement,likes.summary(true),comments.summary(true),shares';
+        const response = await fetch(
+          `https://graph.facebook.com/v18.0/${platformPostId}?fields=${fields}&access_token=${accessToken}`
+        );
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch metrics for ${platform}/${platformPostId}`);
+          // Return empty metrics on error
+          return createEmptyMetrics();
+        }
+        
+        const data = await response.json();
+        
+        // For Instagram business, try to get insights
+        if (assetType === 'instagram_business') {
+          const insightsResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${platformPostId}/insights?metric=impressions,reach,engagement,saved&access_token=${accessToken}`
+          );
+          
+          if (insightsResponse.ok) {
+            const insightsData = await insightsResponse.json();
+            const metrics: Record<string, number> = {};
+            
+            for (const item of insightsData.data || []) {
+              metrics[item.name] = item.values?.[0]?.value || 0;
+            }
+            
+            return {
+              reach: metrics.reach || 0,
+              impressions: metrics.impressions || 0,
+              likes: data.likes?.summary?.total_count || 0,
+              comments: data.comments?.summary?.total_count || 0,
+              shares: data.shares?.count || 0,
+              saves: metrics.saved || 0,
+              engagement_rate: metrics.engagement || 0,
+            };
+          }
+        }
+        
+        return {
+          reach: data.reach || 0,
+          impressions: data.impressions || 0,
+          likes: data.likes?.summary?.total_count || 0,
+          comments: data.comments?.summary?.total_count || 0,
+          shares: data.shares?.count || 0,
+          saves: 0,
+          engagement_rate: data.engagement || 0,
+        };
+      }
+
+      case 'youtube': {
+        // YouTube video statistics
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${platformPostId}`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch YouTube metrics for ${platformPostId}`);
+          return createEmptyMetrics();
+        }
+        
+        const data = await response.json();
+        const stats = data.items?.[0]?.statistics;
+        
+        if (!stats) {
+          return createEmptyMetrics();
+        }
+        
+        const views = parseInt(stats.viewCount || '0');
+        const likes = parseInt(stats.likeCount || '0');
+        const comments = parseInt(stats.commentCount || '0');
+        
+        return {
+          reach: views,
+          impressions: views,
+          likes,
+          comments,
+          shares: 0,
+          saves: 0,
+          views,
+          engagement_rate: views > 0 ? ((likes + comments) / views) * 100 : 0,
+        };
+      }
+
+      case 'twitter': {
+        // Twitter/X metrics (requires elevated access)
+        const response = await fetch(
+          `https://api.twitter.com/2/tweets/${platformPostId}?tweet.fields=public_metrics`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch Twitter metrics for ${platformPostId}`);
+          return createEmptyMetrics();
+        }
+        
+        const data = await response.json();
+        const metrics = data.data?.public_metrics;
+        
+        if (!metrics) {
+          return createEmptyMetrics();
+        }
+        
+        return {
+          reach: metrics.impression_count || 0,
+          impressions: metrics.impression_count || 0,
+          likes: metrics.like_count || 0,
+          comments: metrics.reply_count || 0,
+          shares: metrics.retweet_count || 0,
+          saves: metrics.bookmark_count || 0,
+          engagement_rate: metrics.impression_count > 0 
+            ? ((metrics.like_count + metrics.reply_count + metrics.retweet_count) / metrics.impression_count) * 100 
+            : 0,
+        };
+      }
+
+      case 'linkedin': {
+        // LinkedIn UGC post stats
+        const response = await fetch(
+          `https://api.linkedin.com/v2/socialActions/${platformPostId}?fields=likesSummary,commentsSummary`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch LinkedIn metrics for ${platformPostId}`);
+          return createEmptyMetrics();
+        }
+        
+        const data = await response.json();
+        
+        return {
+          reach: 0, // LinkedIn doesn't provide reach for organic posts easily
+          impressions: 0,
+          likes: data.likesSummary?.totalLikes || 0,
+          comments: data.commentsSummary?.totalFirstLevelComments || 0,
+          shares: 0,
+          saves: 0,
+          engagement_rate: 0,
+        };
+      }
+
+      default:
+        console.log(`Metrics not supported for platform: ${platform}`);
+        return createEmptyMetrics();
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error fetching metrics for ${platform}/${platformPostId}:`, errorMessage);
+    return createEmptyMetrics();
+  }
+}
+
+function createEmptyMetrics(): MetricsResponse {
   return {
-    reach: baseReach,
-    impressions,
-    likes,
-    comments,
-    shares,
-    saves,
-    views: platform === 'tiktok' || platform === 'youtube' ? Math.floor(baseReach * 1.5) : undefined,
-    engagement_rate: Math.round(engagementRate * 100) / 100,
-    clicks: Math.floor(baseReach * 0.01),
-    profile_visits: Math.floor(baseReach * 0.005),
+    reach: 0,
+    impressions: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    saves: 0,
+    engagement_rate: 0,
   };
 }
 
@@ -106,8 +263,30 @@ serve(async (req) => {
           }
         }
 
+        // Get platform credentials to fetch metrics
+        const { data: platformCreds } = await supabase
+          .from("social_platforms")
+          .select("access_token_encrypted, platform_account_type")
+          .eq("workspace_id", post.workspace_id)
+          .eq("platform", post.platform)
+          .eq("is_active", true)
+          .single();
+
+        if (!platformCreds?.access_token_encrypted) {
+          logger.info(`No credentials for ${post.platform} in workspace ${post.workspace_id}`);
+          errorCount++;
+          continue;
+        }
+
+        const accessToken = decryptToken(platformCreds.access_token_encrypted);
+
         // Fetch metrics from platform
-        const metrics = await fetchPlatformMetrics(post.platform, post.platform_post_id);
+        const metrics = await fetchPlatformMetrics(
+          post.platform, 
+          post.platform_post_id,
+          accessToken,
+          platformCreds.platform_account_type
+        );
 
         // Calculate delta if we have previous metrics
         const previousMetrics = post.metrics || {};
