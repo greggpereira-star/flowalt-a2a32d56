@@ -1,6 +1,7 @@
 /**
  * Post Composer Component
  * Create and edit social media posts with multi-platform support
+ * Blueprint: Posts must be linked to a Card
  */
 
 import { useState, useCallback } from 'react';
@@ -27,13 +28,15 @@ import {
   Facebook,
   Linkedin,
   Youtube,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { useCreateSocialPost, type SocialPlatform, type SocialContentType } from '@/hooks/useSocialPosts';
+import { useAllCards } from '@/hooks/useCards';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaFile {
@@ -47,6 +50,7 @@ interface MediaFile {
 interface PostComposerProps {
   onClose?: () => void;
   editPostId?: string;
+  defaultCardId?: string;
 }
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
@@ -72,11 +76,13 @@ const CAPTION_LIMITS: Record<string, number> = {
   youtube: 5000,
 };
 
-export function PostComposer({ onClose, editPostId }: PostComposerProps) {
+export function PostComposer({ onClose, editPostId, defaultCardId }: PostComposerProps) {
   const { toast } = useToast();
   const { data: platforms, isLoading: platformsLoading } = useSocialPlatforms();
+  const { data: cards, isLoading: cardsLoading } = useAllCards();
   const { mutateAsync: createPost, isPending: isCreating } = useCreateSocialPost();
 
+  const [selectedCardId, setSelectedCardId] = useState<string>(defaultCardId || '');
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -141,6 +147,16 @@ export function PostComposer({ onClose, editPostId }: PostComposerProps) {
   const isOverLimit = getCaptionLength() > getMinCaptionLimit();
 
   const handleSubmit = async (publish: boolean = false) => {
+    // Blueprint: card_id is required
+    if (!selectedCardId) {
+      toast({
+        title: 'Selecione um card',
+        description: 'Posts devem estar vinculados a um card',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!selectedPlatform) {
       toast({
         title: 'Selecione uma plataforma',
@@ -167,7 +183,12 @@ export function PostComposer({ onClose, editPostId }: PostComposerProps) {
         scheduledAt = scheduled.toISOString();
       }
 
+      // Get client_id from selected card
+      const selectedCard = cards?.find(c => c.id === selectedCardId);
+
       await createPost({
+        card_id: selectedCardId,
+        client_id: selectedCard?.client_id,
         platform: selectedPlatform,
         caption,
         hashtags,
@@ -185,10 +206,10 @@ export function PostComposer({ onClose, editPostId }: PostComposerProps) {
       });
 
       onClose?.();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao salvar',
-        description: 'Tente novamente',
+        description: error?.message || 'Tente novamente',
         variant: 'destructive',
       });
     }
@@ -214,6 +235,40 @@ export function PostComposer({ onClose, editPostId }: PostComposerProps) {
           </TabsList>
 
           <TabsContent value="compose" className="space-y-6 mt-6">
+            {/* Card Selection - Blueprint: Required */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Vincular ao Card *
+              </Label>
+              <Select value={selectedCardId} onValueChange={setSelectedCardId}>
+                <SelectTrigger className={cn(
+                  "w-full",
+                  !selectedCardId && "border-destructive"
+                )}>
+                  <SelectValue placeholder="Selecione um card..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cardsLoading ? (
+                    <SelectItem value="" disabled>Carregando...</SelectItem>
+                  ) : cards?.length === 0 ? (
+                    <SelectItem value="" disabled>Nenhum card disponível</SelectItem>
+                  ) : (
+                    cards?.map(card => (
+                      <SelectItem key={card.id} value={card.id}>
+                        {card.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {!selectedCardId && (
+                <p className="text-xs text-muted-foreground">
+                  Posts devem estar vinculados a um card para controle de permissões
+                </p>
+              )}
+            </div>
+
             {/* Platform Selection */}
             <div className="space-y-3">
               <Label>Publicar em</Label>

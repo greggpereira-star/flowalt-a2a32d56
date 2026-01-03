@@ -9417,6 +9417,10 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
+      check_social_entitlement_safe: {
+        Args: { p_action: string; p_workspace_id: string }
+        Returns: Json
+      }
       compute_daily_snapshot: {
         Args: { p_workspace_id: string }
         Returns: Json
@@ -9573,6 +9577,14 @@ export type Database = {
       }
       has_billing_access: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      has_card_permission: {
+        Args: { p_card_id: string; p_permission: string; p_user_id: string }
+        Returns: boolean
+      }
+      has_elevated_role: {
+        Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
       has_entitlement: {
