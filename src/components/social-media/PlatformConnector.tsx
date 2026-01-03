@@ -26,6 +26,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
+import { SmokeTestConsole } from './SmokeTestConsole';
 import {
   Instagram,
   Facebook,
@@ -154,6 +155,20 @@ export function PlatformConnector() {
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Conectado
+          </Badge>
+        );
+      case 'pending_assets':
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Clock className="h-3 w-3 mr-1" />
+            Selecionar ativo
+          </Badge>
+        );
+      case 'expiring':
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            <Clock className="h-3 w-3 mr-1" />
+            Token expirando
           </Badge>
         );
       case 'expired':
@@ -347,6 +362,9 @@ export function PlatformConnector() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Smoke Test Console - Admin/Owner only */}
+      <SmokeTestConsole />
 
       {/* Platform Connection Wizard */}
       {selectedPlatform && (

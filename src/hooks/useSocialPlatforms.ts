@@ -14,7 +14,7 @@ export interface ConnectedPlatform {
   account_type: string;
   profile_image_url: string | null;
   is_active: boolean;
-  connection_status: 'connected' | 'expired' | 'error';
+  connection_status: 'disconnected' | 'pending_assets' | 'connected' | 'expiring' | 'expired' | 'error';
   last_sync_at: string | null;
   last_error: string | null;
   created_by: string | null;
