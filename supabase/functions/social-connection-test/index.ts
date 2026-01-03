@@ -13,10 +13,13 @@ interface TestResult {
   platform: string;
   account_id?: string;
   account_name?: string;
+  asset_type?: string;
   permissions?: string[];
   error_code?: string;
   error_message?: string;
+  gox_message?: string;
   requires_reconnect?: boolean;
+  requires_asset_selection?: boolean;
 }
 
 // Simple decryption for tokens
@@ -29,9 +32,11 @@ function decryptToken(encrypted: string): string {
   return new TextDecoder().decode(decrypted);
 }
 
-async function testPlatformConnection(
+async function testAssetConnection(
   platform: Platform,
-  accessToken: string
+  accessToken: string,
+  assetType: string,
+  assetId: string
 ): Promise<TestResult> {
   try {
     let response: Response;
@@ -40,7 +45,59 @@ async function testPlatformConnection(
     switch (platform) {
       case 'instagram':
       case 'facebook':
-        // Test with a simple /me call
+        if (assetType === 'facebook_page') {
+          response = await fetch(
+            `https://graph.facebook.com/v18.0/${assetId}?fields=id,name&access_token=${accessToken}`
+          );
+          
+          if (!response.ok) {
+            const error = await response.json();
+            return {
+              success: false,
+              platform,
+              error_code: error.error?.code?.toString() || 'API_ERROR',
+              error_message: error.error?.message || 'Failed to verify page',
+              gox_message: 'Página do Facebook não acessível. Verifique as permissões.',
+              requires_reconnect: error.error?.code === 190,
+            };
+          }
+          
+          data = await response.json();
+          return {
+            success: true,
+            platform,
+            account_id: data.id,
+            account_name: data.name,
+            asset_type: 'facebook_page',
+          };
+        } else if (assetType === 'instagram_business') {
+          response = await fetch(
+            `https://graph.facebook.com/v18.0/${assetId}?fields=id,username&access_token=${accessToken}`
+          );
+          
+          if (!response.ok) {
+            const error = await response.json();
+            return {
+              success: false,
+              platform,
+              error_code: error.error?.code?.toString() || 'API_ERROR',
+              error_message: error.error?.message || 'Failed to verify Instagram account',
+              gox_message: 'Conta do Instagram Business não acessível. Verifique se a conta está vinculada.',
+              requires_reconnect: error.error?.code === 190,
+            };
+          }
+          
+          data = await response.json();
+          return {
+            success: true,
+            platform,
+            account_id: data.id,
+            account_name: `@${data.username}`,
+            asset_type: 'instagram_business',
+          };
+        }
+        
+        // Fallback to /me for old connections without asset
         response = await fetch(
           `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
         );
@@ -52,27 +109,64 @@ async function testPlatformConnection(
             platform,
             error_code: error.error?.code?.toString() || 'API_ERROR',
             error_message: error.error?.message || 'Failed to verify token',
-            requires_reconnect: error.error?.code === 190, // Token expired
+            gox_message: 'Token expirado ou inválido. Reconecte a plataforma.',
+            requires_reconnect: error.error?.code === 190,
           };
         }
         
         data = await response.json();
-        
-        // Check permissions
-        const permResponse = await fetch(
-          `https://graph.facebook.com/v18.0/me/permissions?access_token=${accessToken}`
-        );
-        const permData = await permResponse.json();
-        const grantedPermissions = (permData.data || [])
-          .filter((p: any) => p.status === 'granted')
-          .map((p: any) => p.permission);
-        
         return {
           success: true,
           platform,
           account_id: data.id,
           account_name: data.name,
-          permissions: grantedPermissions,
+        };
+
+      case 'youtube':
+        if (assetType === 'youtube_channel' && assetId) {
+          response = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${assetId}`,
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+          );
+        } else {
+          response = await fetch(
+            'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+          );
+        }
+        
+        if (!response.ok) {
+          const error = await response.json();
+          return {
+            success: false,
+            platform,
+            error_code: error.error?.code?.toString() || 'API_ERROR',
+            error_message: error.error?.message || 'Failed to verify YouTube token',
+            gox_message: 'Token do YouTube expirado ou inválido. Reconecte.',
+            requires_reconnect: response.status === 401,
+          };
+        }
+        
+        data = await response.json();
+        const channel = data.items?.[0];
+        
+        if (!channel) {
+          return {
+            success: false,
+            platform,
+            error_code: 'NO_CHANNEL',
+            error_message: 'No YouTube channel found',
+            gox_message: 'Nenhum canal do YouTube encontrado para esta conta.',
+            requires_reconnect: false,
+          };
+        }
+        
+        return {
+          success: true,
+          platform,
+          account_id: channel.id,
+          account_name: channel.snippet?.title,
+          asset_type: 'youtube_channel',
         };
 
       case 'linkedin':
@@ -86,6 +180,7 @@ async function testPlatformConnection(
             platform,
             error_code: 'UNAUTHORIZED',
             error_message: 'LinkedIn token invalid or expired',
+            gox_message: 'Token do LinkedIn expirado. Reconecte a plataforma.',
             requires_reconnect: response.status === 401,
           };
         }
@@ -96,6 +191,7 @@ async function testPlatformConnection(
           platform,
           account_id: data.id,
           account_name: `${data.localizedFirstName} ${data.localizedLastName}`,
+          asset_type: assetType || 'linkedin_personal',
         };
 
       case 'tiktok':
@@ -110,6 +206,7 @@ async function testPlatformConnection(
             platform,
             error_code: 'UNAUTHORIZED',
             error_message: 'TikTok token invalid or expired',
+            gox_message: 'Token do TikTok expirado. Reconecte a plataforma.',
             requires_reconnect: true,
           };
         }
@@ -120,43 +217,7 @@ async function testPlatformConnection(
           platform,
           account_id: data.data?.user?.open_id,
           account_name: data.data?.user?.display_name,
-        };
-
-      case 'youtube':
-        response = await fetch(
-          'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
-          { headers: { 'Authorization': `Bearer ${accessToken}` } }
-        );
-        
-        if (!response.ok) {
-          const error = await response.json();
-          return {
-            success: false,
-            platform,
-            error_code: error.error?.code?.toString() || 'API_ERROR',
-            error_message: error.error?.message || 'Failed to verify YouTube token',
-            requires_reconnect: response.status === 401,
-          };
-        }
-        
-        data = await response.json();
-        const channel = data.items?.[0];
-        
-        if (!channel) {
-          return {
-            success: false,
-            platform,
-            error_code: 'NO_CHANNEL',
-            error_message: 'No YouTube channel found for this account',
-            requires_reconnect: false,
-          };
-        }
-        
-        return {
-          success: true,
-          platform,
-          account_id: channel.id,
-          account_name: channel.snippet?.title,
+          asset_type: 'tiktok_account',
         };
 
       case 'twitter':
@@ -170,6 +231,7 @@ async function testPlatformConnection(
             platform,
             error_code: 'UNAUTHORIZED',
             error_message: 'X (Twitter) token invalid or expired',
+            gox_message: 'Token do X/Twitter expirado. Reconecte a plataforma.',
             requires_reconnect: response.status === 401,
           };
         }
@@ -180,6 +242,7 @@ async function testPlatformConnection(
           platform,
           account_id: data.data?.id,
           account_name: `@${data.data?.username}`,
+          asset_type: 'twitter_account',
         };
 
       default:
@@ -188,6 +251,7 @@ async function testPlatformConnection(
           platform,
           error_code: 'UNSUPPORTED',
           error_message: `Platform ${platform} is not supported`,
+          gox_message: `Plataforma ${platform} não suportada ainda.`,
         };
     }
   } catch (error) {
@@ -197,6 +261,7 @@ async function testPlatformConnection(
       platform,
       error_code: 'NETWORK_ERROR',
       error_message: errorMessage,
+      gox_message: 'Erro de rede ao testar conexão. Tente novamente.',
       requires_reconnect: false,
     };
   }
@@ -216,7 +281,12 @@ serve(async (req) => {
 
     if (!platform_id) {
       return new Response(
-        JSON.stringify({ error: "Missing platform_id" }),
+        JSON.stringify({ 
+          success: false,
+          error_code: "MISSING_PARAMS",
+          error_message: "Missing platform_id",
+          gox_message: "ID da plataforma não informado.",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -230,7 +300,12 @@ serve(async (req) => {
 
     if (platformError || !platformData) {
       return new Response(
-        JSON.stringify({ error: "Platform connection not found" }),
+        JSON.stringify({ 
+          success: false,
+          error_code: "NOT_FOUND",
+          error_message: "Platform connection not found",
+          gox_message: "Conexão não encontrada. Conecte a plataforma novamente.",
+        }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -241,7 +316,26 @@ serve(async (req) => {
           success: false,
           error_code: 'NO_TOKEN',
           error_message: 'No access token stored for this connection',
+          gox_message: 'Reconecte a plataforma para obter novos tokens.',
           requires_reconnect: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if asset is selected (required for full validation)
+    const assetType = platformData.platform_account_type;
+    const assetId = platformData.account_id;
+    
+    if (!assetType || !assetId) {
+      // Asset not selected - return warning but don't fail completely
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error_code: 'ASSET_REQUIRED',
+          error_message: 'No asset selected for this connection',
+          gox_message: 'Selecione um ativo (Página/Conta/Canal) antes de concluir a conexão.',
+          requires_asset_selection: true,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -250,23 +344,30 @@ serve(async (req) => {
     // Decrypt token
     const accessToken = decryptToken(platformData.access_token_encrypted);
 
-    // Test the connection
-    const result = await testPlatformConnection(
+    // Test the connection with the selected asset
+    const result = await testAssetConnection(
       platformData.platform as Platform,
-      accessToken
+      accessToken,
+      assetType,
+      assetId
     );
 
     // Update platform status based on result
     const updateData: Record<string, any> = {
       last_sync_at: new Date().toISOString(),
+      last_tested_at: new Date().toISOString(),
     };
 
     if (result.success) {
       updateData.connection_status = 'connected';
       updateData.last_error = null;
+      updateData.last_error_code = null;
+      updateData.last_error_message = null;
     } else {
       updateData.connection_status = result.requires_reconnect ? 'expired' : 'error';
       updateData.last_error = result.error_message;
+      updateData.last_error_code = result.error_code;
+      updateData.last_error_message = result.gox_message || result.error_message;
     }
 
     await supabase
@@ -277,13 +378,17 @@ serve(async (req) => {
     // Log test event
     await supabase.from('domain_events').insert({
       workspace_id: platformData.workspace_id,
-      event_type: result.success ? 'social_connection.test_passed' : 'social_connection.test_failed',
+      event_type: result.success ? 'social_platform.connection_tested' : 'social_connection.test_failed',
       entity_type: 'social_platform',
       entity_id: platform_id,
-      payload: result,
+      payload: {
+        ...result,
+        asset_type: assetType,
+        asset_id: assetId,
+      },
     });
 
-    console.log(`Connection test for ${platformData.platform}: ${result.success ? 'PASSED' : 'FAILED'}`);
+    console.log(`Connection test for ${platformData.platform} (${assetType}/${assetId}): ${result.success ? 'PASSED' : 'FAILED'}`);
 
     return new Response(
       JSON.stringify(result),
@@ -297,6 +402,7 @@ serve(async (req) => {
         success: false,
         error_code: 'SERVER_ERROR',
         error_message: errorMessage,
+        gox_message: 'Erro interno ao testar conexão. Tente novamente.',
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

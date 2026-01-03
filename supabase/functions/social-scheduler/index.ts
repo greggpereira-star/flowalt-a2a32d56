@@ -39,32 +39,257 @@ function classifyError(errorCode: string): boolean {
   if (nonRetryable.includes(errorCode)) return false;
   if (retryable.includes(errorCode)) return true;
   
-  // Default to retryable for unknown errors
   return true;
 }
 
-// Mock publisher - will be replaced with real API integrations
-async function publishToplatform(post: SocialPost, credentials: unknown): Promise<PublishResult> {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // For now, simulate successful publishing 90% of the time
-  const success = Math.random() > 0.1;
-  
-  if (success) {
-    const mockPostId = `${post.platform}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return {
-      success: true,
-      platform_post_id: mockPostId,
-      platform_url: `https://${post.platform}.com/p/${mockPostId}`,
-    };
-  } else {
-    const errorCode = Math.random() > 0.5 ? 'RATE_LIMIT' : '400';
+// Simple decryption for tokens
+function decryptToken(encrypted: string): string {
+  const key = Deno.env.get('TOKEN_ENCRYPTION_KEY') || 'default-key-change-me';
+  const decoded = atob(encrypted);
+  const bytes = new Uint8Array([...decoded].map(c => c.charCodeAt(0)));
+  const keyBytes = new TextEncoder().encode(key);
+  const decrypted = bytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length]);
+  return new TextDecoder().decode(decrypted);
+}
+
+interface PlatformCredentials {
+  access_token_encrypted: string;
+  platform_account_type: string;
+  account_id: string;
+}
+
+// REAL publisher - publishes to actual platform APIs
+async function publishToplatform(post: SocialPost, credentials: PlatformCredentials): Promise<PublishResult> {
+  const accessToken = decryptToken(credentials.access_token_encrypted);
+  const assetType = credentials.platform_account_type;
+  const assetId = credentials.account_id;
+
+  try {
+    switch (post.platform) {
+      case 'facebook':
+        if (assetType === 'facebook_page') {
+          // Publish to Facebook Page feed
+          const fbParams = new URLSearchParams();
+          fbParams.set('message', post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
+          fbParams.set('access_token', accessToken);
+
+          // If there's a link/URL in media, add it
+          const linkMedia = post.media_urls?.find((m: any) => m.type === 'link');
+          if (linkMedia && typeof linkMedia === 'object' && 'url' in linkMedia) {
+            fbParams.set('link', (linkMedia as { url: string }).url);
+          }
+
+          const fbResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${assetId}/feed`,
+            { method: 'POST', body: fbParams }
+          );
+
+          if (!fbResponse.ok) {
+            const error = await fbResponse.json();
+            return {
+              success: false,
+              error_code: error.error?.code?.toString() || 'FB_API_ERROR',
+              error_message: error.error?.message || 'Facebook publishing failed',
+              retryable: error.error?.code === 190 ? false : true,
+            };
+          }
+
+          const fbResult = await fbResponse.json();
+          return {
+            success: true,
+            platform_post_id: fbResult.id,
+            platform_url: `https://facebook.com/${fbResult.id}`,
+          };
+        }
+        break;
+
+      case 'instagram':
+        if (assetType === 'instagram_business') {
+          // Instagram requires a two-step process for images
+          // Step 1: Create media container
+          const imageMedia = post.media_urls?.find((m: any) => m.type === 'image' || typeof m === 'string');
+          const imageUrl = typeof imageMedia === 'string' ? imageMedia : (imageMedia as any)?.url;
+
+          if (!imageUrl) {
+            return {
+              success: false,
+              error_code: 'NO_IMAGE',
+              error_message: 'Instagram posts require an image',
+              retryable: false,
+            };
+          }
+
+          const containerParams = new URLSearchParams();
+          containerParams.set('image_url', imageUrl);
+          containerParams.set('caption', post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
+          containerParams.set('access_token', accessToken);
+
+          const containerResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${assetId}/media`,
+            { method: 'POST', body: containerParams }
+          );
+
+          if (!containerResponse.ok) {
+            const error = await containerResponse.json();
+            return {
+              success: false,
+              error_code: error.error?.code?.toString() || 'IG_CONTAINER_ERROR',
+              error_message: error.error?.message || 'Failed to create Instagram media container',
+              retryable: true,
+            };
+          }
+
+          const containerResult = await containerResponse.json();
+          const creationId = containerResult.id;
+
+          // Wait for container to be ready (poll status)
+          await new Promise(resolve => setTimeout(resolve, 5000));
+
+          // Step 2: Publish the container
+          const publishParams = new URLSearchParams();
+          publishParams.set('creation_id', creationId);
+          publishParams.set('access_token', accessToken);
+
+          const publishResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${assetId}/media_publish`,
+            { method: 'POST', body: publishParams }
+          );
+
+          if (!publishResponse.ok) {
+            const error = await publishResponse.json();
+            return {
+              success: false,
+              error_code: error.error?.code?.toString() || 'IG_PUBLISH_ERROR',
+              error_message: error.error?.message || 'Failed to publish Instagram media',
+              retryable: true,
+            };
+          }
+
+          const publishResult = await publishResponse.json();
+          return {
+            success: true,
+            platform_post_id: publishResult.id,
+            platform_url: `https://instagram.com/p/${publishResult.id}`,
+          };
+        }
+        break;
+
+      case 'youtube':
+        // YouTube publishing requires video upload which is complex
+        // Return informative error for now
+        return {
+          success: false,
+          error_code: 'NOT_IMPLEMENTED',
+          error_message: 'YouTube video publishing requires additional implementation',
+          retryable: false,
+        };
+
+      case 'linkedin':
+        // LinkedIn UGC Post (text-only for now)
+        const linkedInPayload = {
+          author: `urn:li:person:${assetId}`,
+          lifecycleState: 'PUBLISHED',
+          specificContent: {
+            'com.linkedin.ugc.ShareContent': {
+              shareCommentary: {
+                text: post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''),
+              },
+              shareMediaCategory: 'NONE',
+            },
+          },
+          visibility: {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+          },
+        };
+
+        const linkedInResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+          body: JSON.stringify(linkedInPayload),
+        });
+
+        if (!linkedInResponse.ok) {
+          const error = await linkedInResponse.json();
+          return {
+            success: false,
+            error_code: 'LINKEDIN_ERROR',
+            error_message: error.message || 'LinkedIn publishing failed',
+            retryable: linkedInResponse.status >= 500,
+          };
+        }
+
+        const linkedInResult = await linkedInResponse.json();
+        return {
+          success: true,
+          platform_post_id: linkedInResult.id,
+          platform_url: `https://linkedin.com/feed/update/${linkedInResult.id}`,
+        };
+
+      case 'tiktok':
+        return {
+          success: false,
+          error_code: 'NOT_IMPLEMENTED',
+          error_message: 'TikTok video publishing requires additional implementation',
+          retryable: false,
+        };
+
+      case 'twitter':
+        const twitterPayload = {
+          text: post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''),
+        };
+
+        const twitterResponse = await fetch('https://api.twitter.com/2/tweets', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(twitterPayload),
+        });
+
+        if (!twitterResponse.ok) {
+          const error = await twitterResponse.json();
+          return {
+            success: false,
+            error_code: 'TWITTER_ERROR',
+            error_message: error.detail || error.title || 'Twitter publishing failed',
+            retryable: twitterResponse.status >= 500 || twitterResponse.status === 429,
+          };
+        }
+
+        const twitterResult = await twitterResponse.json();
+        return {
+          success: true,
+          platform_post_id: twitterResult.data?.id,
+          platform_url: `https://twitter.com/i/web/status/${twitterResult.data?.id}`,
+        };
+
+      default:
+        return {
+          success: false,
+          error_code: 'UNSUPPORTED_PLATFORM',
+          error_message: `Platform ${post.platform} is not yet supported for publishing`,
+          retryable: false,
+        };
+    }
+
     return {
       success: false,
-      error_message: errorCode === 'RATE_LIMIT' ? "Rate limit exceeded" : "Invalid content format",
-      error_code: errorCode,
-      retryable: classifyError(errorCode),
+      error_code: 'INVALID_ASSET_TYPE',
+      error_message: `Asset type ${assetType} not supported for ${post.platform}`,
+      retryable: false,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      success: false,
+      error_code: 'NETWORK_ERROR',
+      error_message: errorMessage,
+      retryable: true,
     };
   }
 }
@@ -231,7 +456,7 @@ serve(async (req) => {
         }
 
         // Attempt to publish
-        const result = await publishToplatform(post, platformCreds);
+        const result = await publishToplatform(post, platformCreds as unknown as PlatformCredentials);
 
         if (result.success) {
           // Success - update post
