@@ -52,9 +52,8 @@ export function SmokeTestConsole() {
     return null;
   }
 
-  const connectedPlatforms = platforms?.filter(p => 
-    p.is_active && ['connected', 'pending_assets'].includes(p.connection_status || '')
-  ) || [];
+  // Show all platforms, not just connected ones (to allow testing and diagnosis)
+  const availablePlatforms = platforms?.filter(p => p.is_active || p.connection_status !== 'disconnected') || [];
 
   const handleRunSmokeTest = async () => {
     if (!currentWorkspace?.id || !selectedPlatformId) {
@@ -62,7 +61,7 @@ export function SmokeTestConsole() {
       return;
     }
 
-    const platform = connectedPlatforms.find(p => p.id === selectedPlatformId);
+    const platform = availablePlatforms.find(p => p.id === selectedPlatformId);
     if (!platform) return;
 
     setIsRunning(true);
@@ -138,7 +137,7 @@ export function SmokeTestConsole() {
                 <SelectValue placeholder="Selecione uma plataforma conectada" />
               </SelectTrigger>
               <SelectContent>
-                {connectedPlatforms.map(platform => (
+                {availablePlatforms.map(platform => (
                   <SelectItem key={platform.id} value={platform.id}>
                     {platform.account_name || platform.platform} 
                     <span className="text-muted-foreground ml-2">({platform.platform})</span>
@@ -237,11 +236,11 @@ export function SmokeTestConsole() {
           </>
         )}
 
-        {connectedPlatforms.length === 0 && (
+        {availablePlatforms.length === 0 && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Nenhuma plataforma conectada. Conecte uma plataforma primeiro.
+              Nenhuma plataforma cadastrada. Conecte uma plataforma primeiro.
             </AlertDescription>
           </Alert>
         )}

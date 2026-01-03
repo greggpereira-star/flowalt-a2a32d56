@@ -381,25 +381,38 @@ export function PlatformConnectionWizard({
         },
       });
 
+      // Handle edge function errors
       if (error) {
-        throw new Error(error.message);
+        console.error('Edge function error:', error);
+        // Try to extract more details from the error
+        const errorMsg = error.message || 'Erro ao conectar com o servidor';
+        setConnectionStatus('error');
+        setErrorMessage(errorMsg);
+        setIsConnecting(false);
+        return;
       }
 
-      if (data.requires_setup) {
-        // Platform credentials not configured
-        setRequiresSetup(true);
-        setSetupInstructions(data.setup_instructions || []);
-        setErrorMessage(data.message);
+      // Handle application-level errors in response
+      if (data?.error) {
+        console.log('OAuth response error:', data);
+        if (data.requires_setup) {
+          // Platform credentials not configured
+          setRequiresSetup(true);
+          setSetupInstructions(data.setup_instructions || []);
+          setErrorMessage(data.message || 'Plataforma não configurada. Entre em contato com o administrador.');
+        } else {
+          setErrorMessage(data.message || data.error || 'Erro ao iniciar autenticação');
+        }
         setConnectionStatus('error');
         setIsConnecting(false);
         return;
       }
 
-      if (data.auth_url) {
+      if (data?.auth_url) {
         // Redirect to OAuth provider
         window.location.href = data.auth_url;
       } else {
-        throw new Error('No auth URL received');
+        throw new Error('Nenhuma URL de autenticação recebida. Verifique as credenciais da plataforma.');
       }
     } catch (error: any) {
       console.error('OAuth start error:', error);
