@@ -732,26 +732,65 @@ export function PlatformConnectionWizard({
                 </Alert>
 
                 {isSuperAdmin && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => window.open('https://developers.facebook.com/apps', '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Meta for Developers
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={() => {
-                        setShowScopeRetry(false);
-                        setErrorMessage(null);
-                        setConnectionStatus('idle');
-                      }}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Tentar novamente
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => window.open('https://developers.facebook.com/apps', '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Meta for Developers
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={() => {
+                          setShowScopeRetry(false);
+                          setErrorMessage(null);
+                          setConnectionStatus('idle');
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Tentar novamente
+                      </Button>
+                    </div>
+                    
+                    {/* Development fallback buttons */}
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-2 text-center">
+                        Opções de desenvolvimento (test users):
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setShowScopeRetry(false);
+                            setErrorMessage(null);
+                            setConnectionStatus('idle');
+                            handleStartOAuth('minimal');
+                          }}
+                          disabled={isConnecting}
+                        >
+                          Mínimo (só perfil)
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setShowScopeRetry(false);
+                            setErrorMessage(null);
+                            setConnectionStatus('idle');
+                            handleStartOAuth('pages_only');
+                          }}
+                          disabled={isConnecting}
+                        >
+                          Só Pages
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
