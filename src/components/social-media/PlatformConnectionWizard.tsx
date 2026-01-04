@@ -37,6 +37,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social/gox-messages';
+import { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -696,104 +697,24 @@ export function PlatformConnectionWizard({
                 </p>
               </div>
             ) : showScopeRetry && isMetaPlatform ? (
-              // INVALID_SCOPE error - show explanation and retry options
-              <div className="space-y-4">
-                <div className="text-center py-4">
-                  <div className="mx-auto w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
-                    <AlertCircle className="h-8 w-8 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Permissões não disponíveis
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    O Meta rejeitou algumas permissões solicitadas (Invalid Scopes).
-                  </p>
-                </div>
-
-                <Alert className="bg-red-50 border-red-200">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <AlertTitle className="text-red-800">Por que isso acontece?</AlertTitle>
-                  <AlertDescription className="text-red-700 text-sm">
-                    {isSuperAdmin ? (
-                      <>
-                        O App Meta ainda não tem as permissões aprovadas no App Review. 
-                        Acesse <strong>Meta for Developers → Casos de uso</strong> e habilite:
-                        <ul className="list-disc list-inside mt-2 space-y-1">
-                          <li>Facebook Login for Business</li>
-                          <li>pages_show_list, pages_read_engagement, pages_manage_posts</li>
-                          <li>instagram_basic, instagram_manage_insights, instagram_content_publish</li>
-                        </ul>
-                        <p className="mt-2">Depois, complete o App Review para cada permissão.</p>
-                      </>
-                    ) : (
-                      'A integração está com configuração pendente de permissões. Contate o administrador ou suporte.'
-                    )}
-                  </AlertDescription>
-                </Alert>
-
-                {isSuperAdmin && (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => window.open('https://developers.facebook.com/apps', '_blank')}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Meta for Developers
-                      </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={() => {
-                          setShowScopeRetry(false);
-                          setErrorMessage(null);
-                          setConnectionStatus('idle');
-                        }}
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Tentar novamente
-                      </Button>
-                    </div>
-                    
-                    {/* Development fallback buttons */}
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground mb-2 text-center">
-                        Opções de desenvolvimento (test users):
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => {
-                            setShowScopeRetry(false);
-                            setErrorMessage(null);
-                            setConnectionStatus('idle');
-                            handleStartOAuth('minimal');
-                          }}
-                          disabled={isConnecting}
-                        >
-                          Mínimo (só perfil)
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => {
-                            setShowScopeRetry(false);
-                            setErrorMessage(null);
-                            setConnectionStatus('idle');
-                            handleStartOAuth('pages_only');
-                          }}
-                          disabled={isConnecting}
-                        >
-                          Só Pages
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              // INVALID_SCOPE error - show comprehensive diagnostic
+              <MetaScopeDiagnostic
+                isSuperAdmin={!!isSuperAdmin}
+                platform={platformId as 'facebook' | 'instagram'}
+                errorDescription={initialOauthError?.description}
+                onRetry={(strategy) => {
+                  setShowScopeRetry(false);
+                  setErrorMessage(null);
+                  setConnectionStatus('idle');
+                  handleStartOAuth(strategy);
+                }}
+                onClose={() => {
+                  setShowScopeRetry(false);
+                  setErrorMessage(null);
+                  setConnectionStatus('idle');
+                }}
+                isConnecting={isConnecting}
+              />
             ) : (
               // Normal OAuth flow
               <>
