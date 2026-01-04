@@ -19,19 +19,19 @@ interface OAuthConfig {
 const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    scopes: [
-      'public_profile',
-      'email',
-    ],
+    // Note: we intentionally avoid requesting additional scopes by default.
+    // Meta will reject scopes that are not enabled/approved for the app.
+    // Once the app has the needed permissions approved, add them back here.
+    scopes: [],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    scopes: [
-      'public_profile',
-      'email',
-    ],
+    // Note: we intentionally avoid requesting additional scopes by default.
+    // Meta will reject scopes that are not enabled/approved for the app.
+    // Once the app has the needed permissions approved, add them back here.
+    scopes: [],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
@@ -338,7 +338,10 @@ serve(async (req) => {
       params.set('prompt', 'consent');
     } else {
       // Meta (Facebook/Instagram)
-      params.set('scope', config.scopes.join(','));
+      // Only include scope if we have any to request.
+      if (config.scopes.length > 0) {
+        params.set('scope', config.scopes.join(','));
+      }
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
