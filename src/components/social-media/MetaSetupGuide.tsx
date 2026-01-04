@@ -66,13 +66,19 @@ const SETUP_STEPS: SetupStep[] = [
   },
   {
     id: 'add_testers',
-    title: '5. Adicionar usuários de teste (Modo Development)',
-    description: 'Em "Funções" → "Funções do App", adicione seu usuário como Admin, Developer ou Tester.',
+    title: '5. Adicionar usuários de teste (CRÍTICO em modo Development)',
+    description: 'IMPORTANTE: Em modo Development, APENAS usuários cadastrados como Admin/Developer/Tester podem fazer login. Vá em "Funções" → "Funções do App" e adicione seu usuário Facebook.',
     helpUrl: 'https://developers.facebook.com/docs/development/build-and-test/test-users',
   },
   {
+    id: 'check_app_mode',
+    title: '6. Verificar modo do App (Development vs Live)',
+    description: 'Se o app está em modo "Development" (topo do painel mostra "Development"), apenas Test Users podem logar. Para produção, mude para "Live" após App Review.',
+    helpUrl: 'https://developers.facebook.com/docs/development/release',
+  },
+  {
     id: 'verify_app_id',
-    title: '6. Verificar App ID e App Secret',
+    title: '7. Verificar App ID e App Secret',
     description: 'Confirme que o App ID e App Secret estão configurados corretamente nas variáveis de ambiente.',
   },
 ];
@@ -112,6 +118,20 @@ export function MetaSetupGuide({ appId, callbackUrl, onClose }: MetaSetupGuidePr
           {completedCount}/{SETUP_STEPS.length} passos completos
         </Badge>
       </div>
+
+      {/* CRITICAL WARNING - Test Users */}
+      <Alert className="bg-amber-50 border-amber-300">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-800">⚠️ Problema Mais Comum</AlertTitle>
+        <AlertDescription className="text-amber-700 mt-2">
+          <p className="font-medium mb-2">Se o Facebook abre mas não redireciona de volta:</p>
+          <ol className="list-decimal list-inside space-y-1 text-sm">
+            <li>Verifique se seu usuário Facebook está cadastrado como <strong>Admin/Developer/Tester</strong> no app</li>
+            <li>Em modo Development, APENAS usuários cadastrados podem fazer login</li>
+            <li>Vá em <strong>Funções → Funções do App</strong> e adicione seu Facebook</li>
+          </ol>
+        </AlertDescription>
+      </Alert>
 
       {/* Critical Info Card */}
       <Alert>
