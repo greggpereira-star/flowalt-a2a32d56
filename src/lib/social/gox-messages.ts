@@ -21,6 +21,7 @@ export type GoxErrorCode =
   | 'NO_PAGES_ADMIN'
   | 'NO_IG_LINKED'
   | 'MISSING_SCOPES'
+  | 'USER_CONSENT_MISSING'
   | 'API_ERROR'
   | 'RATE_LIMITED'
   | 'PERMISSION_DENIED'
@@ -231,6 +232,19 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
       severity: 'error',
     },
   },
+  USER_CONSENT_MISSING: {
+    superAdmin: {
+      title: 'Permissões não concedidas pelo usuário',
+      message: 'O usuário não concedeu todas as permissões solicitadas durante o OAuth. O debug_token confirmou que os scopes abaixo estão faltando. O usuário precisa reconectar e ACEITAR todas as permissões.',
+      severity: 'error',
+    },
+    client: {
+      title: 'Permissões não concedidas',
+      message: 'Você precisa autorizar TODAS as permissões solicitadas para que a integração funcione. Durante o login com Facebook/Meta, clique em "Permitir" para cada permissão.',
+      cta: 'Reconectar com todas as permissões',
+      severity: 'error',
+    },
+  },
   API_ERROR: {
     superAdmin: {
       title: 'Erro de API',
@@ -414,6 +428,7 @@ export function mapApiErrorToGox(apiError: string): GoxErrorCode {
     
     // Permission errors
     'MISSING_SCOPES': 'MISSING_SCOPES',
+    'USER_CONSENT_MISSING': 'USER_CONSENT_MISSING',
     'INVALID_SCOPE': 'INVALID_SCOPE',
     'invalid_scope': 'INVALID_SCOPE',
     'FORBIDDEN': 'PERMISSION_DENIED',
