@@ -7,6 +7,8 @@ export { SocialCalendar } from './SocialCalendar';
 export { PlatformConnector } from './PlatformConnector';
 export { PlatformConnectionWizard } from './PlatformConnectionWizard';
 export { MetricsDashboard } from './MetricsDashboard';
+export { MetaConnectionStatus } from './MetaConnectionStatus';
+export { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
 export { PostComposer } from './PostComposer';
 export { PostList } from './PostList';
 export { SocialAccessMessage, useSocialAccessCheck, type SocialBlockReason } from './SocialAccessMessage';
