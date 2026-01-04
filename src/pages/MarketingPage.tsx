@@ -38,7 +38,7 @@ export function MarketingPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('calendar');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const { has, isLoading: entitlementsLoading } = useEntitlementRegistry();
+  const { has, isLoading: entitlementsLoading, entitlements } = useEntitlementRegistry();
   const { data: scheduledPosts } = useSocialPosts({ status: 'scheduled' });
   const { data: publishedPosts } = useSocialPosts({ status: 'published' });
   const { data: draftPosts } = useSocialPosts({ status: 'draft' });
@@ -48,7 +48,12 @@ export function MarketingPage() {
   const hasSocialReports = has('social_reports');
   const hasSocialInsights = has('social_insights_ai');
 
-  if (entitlementsLoading) {
+  // CRITICAL: Wait for both workspace context AND entitlements to fully load
+  // This prevents false "no permission" screen during OAuth callback redirects
+  // The entitlements array being empty/undefined means the query hasn't completed yet
+  const isFullyLoaded = !entitlementsLoading && entitlements && entitlements.length > 0;
+
+  if (!isFullyLoaded) {
     return (
       <AppLayout>
         <div className="p-6 space-y-6">
