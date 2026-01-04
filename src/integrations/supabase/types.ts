@@ -5483,6 +5483,7 @@ export type Database = {
           expires_at: string
           platform: string
           return_url: string | null
+          scopes: string | null
           state: string
           used_at: string | null
           user_id: string
@@ -5494,6 +5495,7 @@ export type Database = {
           expires_at: string
           platform: string
           return_url?: string | null
+          scopes?: string | null
           state: string
           used_at?: string | null
           user_id: string
@@ -5505,6 +5507,7 @@ export type Database = {
           expires_at?: string
           platform?: string
           return_url?: string | null
+          scopes?: string | null
           state?: string
           used_at?: string | null
           user_id?: string
