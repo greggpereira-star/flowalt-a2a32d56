@@ -429,7 +429,21 @@ export function PlatformConnectionWizard({
 
       if (data?.auth_url) {
         // Redirect to OAuth provider
-        window.location.href = data.auth_url;
+        // NOTE: In the Lovable preview, the app runs inside an iframe and Facebook blocks being loaded in iframes.
+        // Use top-level navigation when possible.
+        try {
+          if (window.top && window.top !== window) {
+            window.top.location.href = data.auth_url;
+          } else {
+            window.location.href = data.auth_url;
+          }
+        } catch {
+          // Fallback (e.g. if cross-origin restrictions block accessing window.top)
+          const win = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+          if (!win) {
+            window.location.href = data.auth_url;
+          }
+        }
       } else {
         throw new Error('Nenhuma URL de autenticação recebida. Verifique as credenciais da plataforma.');
       }
