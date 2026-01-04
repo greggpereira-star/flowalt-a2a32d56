@@ -6111,6 +6111,7 @@ export type Database = {
           account_name: string
           account_type: string | null
           asset_selected_at: string | null
+          asset_token_encrypted: string | null
           connection_status: string | null
           created_at: string | null
           created_by: string | null
@@ -6136,6 +6137,7 @@ export type Database = {
           account_name: string
           account_type?: string | null
           asset_selected_at?: string | null
+          asset_token_encrypted?: string | null
           connection_status?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -6161,6 +6163,7 @@ export type Database = {
           account_name?: string
           account_type?: string | null
           asset_selected_at?: string | null
+          asset_token_encrypted?: string | null
           connection_status?: string | null
           created_at?: string | null
           created_by?: string | null
