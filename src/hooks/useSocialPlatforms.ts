@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { toast } from 'sonner';
 import type { SocialPlatform } from './useSocialPosts';
 import { 
@@ -140,7 +141,8 @@ export const useSocialPlatforms = () => {
 export const useSocialPlatformsWithState = () => {
   const { currentWorkspace } = useWorkspace();
   const { has, limit } = useEntitlementRegistry();
-  const { data: providerReadiness } = useProviderReadiness();
+  const { isSuperAdmin } = usePlatformAdmin();
+  const { data: providerReadiness } = useProviderReadiness({ isSuperAdmin });
   const { data: platforms, ...rest } = useSocialPlatforms();
 
   const hasSocialPublish = has('social_publish');
@@ -159,10 +161,12 @@ export const useSocialPlatformsWithState = () => {
       platformsLimit,
       currentPlatformCount,
       connection: platform,
+      isSuperAdmin,
     };
 
     const computedState = computePlatformState(context);
     const stateConfig = getPlatformStateConfig(computedState, {
+      isSuperAdmin,
       platform: platform.platform,
       limit: platformsLimit ?? undefined,
     });
@@ -182,6 +186,7 @@ export const useSocialPlatformsWithState = () => {
     platformsLimit,
     currentPlatformCount,
     canConnectMore: platformsLimit === null || currentPlatformCount < platformsLimit,
+    isSuperAdmin,
   };
 };
 
@@ -190,7 +195,8 @@ export const useSocialPlatformsWithState = () => {
  */
 export const useUnconnectedPlatformState = (platformId: string) => {
   const { has, limit } = useEntitlementRegistry();
-  const { data: providerReadiness } = useProviderReadiness();
+  const { isSuperAdmin } = usePlatformAdmin();
+  const { data: providerReadiness } = useProviderReadiness({ isSuperAdmin });
   const { data: platforms } = useSocialPlatforms();
 
   const hasSocialPublish = has('social_publish');
@@ -206,10 +212,12 @@ export const useUnconnectedPlatformState = (platformId: string) => {
     platformsLimit,
     currentPlatformCount,
     connection: null,
+    isSuperAdmin,
   };
 
   const computedState = computePlatformState(context);
   const stateConfig = getPlatformStateConfig(computedState, {
+    isSuperAdmin,
     platform: platformId,
     limit: platformsLimit ?? undefined,
   });
@@ -220,6 +228,7 @@ export const useUnconnectedPlatformState = (platformId: string) => {
     providerStatus,
     isReady: providerStatus?.status === 'ready',
     canConnect: computedState === 'DISCONNECTED',
+    isSuperAdmin,
   };
 };
 
