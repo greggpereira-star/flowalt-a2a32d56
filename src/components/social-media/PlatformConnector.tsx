@@ -592,7 +592,9 @@ export function PlatformConnector() {
     const platformConfig = PLATFORMS.find(p => p.id === platform);
     if (platformConfig) {
       setSelectedPlatform({ id: platform, name: platformConfig.name });
-      setWizardMode('connect');
+      // If OAuth was successful, go directly to asset selection step
+      // If there was an error, open in connect mode to show the error
+      setWizardMode(oauthSuccess === 'true' ? 'asset_select' : 'connect');
       setWizardOpen(true);
     }
 
