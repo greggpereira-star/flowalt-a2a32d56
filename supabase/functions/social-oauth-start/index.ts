@@ -49,8 +49,49 @@ interface OAuthConfig {
  * - If in development, use only public_profile to at least authenticate
  */
 
-// Scopes for apps WITH completed App Review (production)
-const META_SCOPES_PRODUCTION = [
+/**
+ * META SCOPES BY CAPABILITY
+ * 
+ * Based on official Meta documentation:
+ * - pages_show_list: List Pages user is admin of
+ * - pages_read_engagement: Read Page posts, comments, reactions
+ * - pages_manage_posts: Create/edit/delete Page posts
+ * - read_insights: Access Page insights (requires pages_read_engagement + pages_show_list)
+ * - instagram_basic: Basic IG Business info
+ * - instagram_content_publish: Post to IG
+ * - instagram_manage_insights: IG analytics
+ * 
+ * CRITICAL: These scopes require:
+ * 1. Use Case enabled in Meta App Dashboard
+ * 2. App Review approval (except for test users in dev mode)
+ */
+
+// CAPABILITY-BASED SCOPE SETS
+const META_CAPABILITY_SCOPES = {
+  // List Pages only
+  META_PAGES_LIST: ['pages_show_list'],
+  
+  // List + Read Pages
+  META_PAGES_READ: ['pages_show_list', 'pages_read_engagement'],
+  
+  // Full Page management (publish)
+  META_PAGES_PUBLISH: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
+  
+  // Page insights
+  META_PAGES_INSIGHTS: ['pages_show_list', 'pages_read_engagement', 'read_insights'],
+  
+  // Instagram basic access
+  META_IG_BASIC: ['pages_show_list', 'pages_read_engagement', 'instagram_basic'],
+  
+  // Instagram publishing
+  META_IG_PUBLISH: ['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish'],
+  
+  // Instagram insights
+  META_IG_INSIGHTS: ['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_manage_insights'],
+};
+
+// Full production scopes (all capabilities)
+const META_SCOPES_FULL = [
   'public_profile',
   'pages_show_list',
   'pages_read_engagement', 
@@ -60,13 +101,12 @@ const META_SCOPES_PRODUCTION = [
   'instagram_content_publish',
 ];
 
-// Minimal scopes for apps in development mode (no App Review)
-// This allows basic authentication but won't access Pages/IG until App Review
-const META_SCOPES_DEVELOPMENT = [
+// Minimal scopes for development/testing
+const META_SCOPES_MINIMAL = [
   'public_profile',
 ];
 
-// Facebook-only scopes (no Instagram)
+// Facebook-only (no Instagram)
 const META_SCOPES_FACEBOOK_ONLY = [
   'public_profile',
   'pages_show_list',
@@ -74,21 +114,33 @@ const META_SCOPES_FACEBOOK_ONLY = [
   'pages_manage_posts',
 ];
 
-// Legacy/deprecated scopes that should NEVER be requested
-const META_SCOPES_DEPRECATED = ['manage_pages'];
+// Instagram-focused via Facebook Login
+const META_SCOPES_INSTAGRAM = [
+  'public_profile',
+  'pages_show_list',
+  'pages_read_engagement',
+  'instagram_basic',
+  'instagram_content_publish',
+  'instagram_manage_insights',
+];
+
+// Legacy/deprecated scopes - NEVER USE
+const META_SCOPES_DEPRECATED = ['manage_pages', 'publish_pages'];
 
 // Platform OAuth configurations
+// CRITICAL: All Meta platforms MUST use facebook.com/dialog/oauth (NOT instagram.com)
 const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
-    // Instagram Business uses Facebook OAuth (IG Graph API via Meta)
+    // CRITICAL: Instagram Business MUST use Facebook Login endpoint
+    // Using instagram.com/oauth/authorize will cause "Invalid Scopes" for pages_* scopes
     authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
-    scopes: META_SCOPES_PRODUCTION,
+    scopes: META_SCOPES_INSTAGRAM,
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
+    // Facebook Pages - uses same Facebook Login endpoint
     authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
-    // Facebook Pages: we need pages_show_list to list pages, plus publishing/insights
     scopes: META_SCOPES_FACEBOOK_ONLY,
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
@@ -407,7 +459,7 @@ serve(async (req) => {
       switch (effectiveScopeStrategy) {
         case 'minimal':
           // Development mode fallback - only public_profile works without App Review
-          scopesToUse = [...META_SCOPES_DEVELOPMENT];
+          scopesToUse = [...META_SCOPES_MINIMAL];
           console.log(`Using MINIMAL scopes for ${platform}: ${scopesToUse.join(',')}`);
           break;
         case 'pages_only':
