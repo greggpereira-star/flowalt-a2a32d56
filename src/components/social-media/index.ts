@@ -9,6 +9,7 @@ export { PlatformConnectionWizard } from './PlatformConnectionWizard';
 export { MetricsDashboard } from './MetricsDashboard';
 export { MetaConnectionStatus } from './MetaConnectionStatus';
 export { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
+export { MetaSetupGuide } from './MetaSetupGuide';
 export { PostComposer } from './PostComposer';
 export { PostList } from './PostList';
 export { SocialAccessMessage, useSocialAccessCheck, type SocialBlockReason } from './SocialAccessMessage';
