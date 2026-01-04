@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.social-meta-diagnostics]
 verify_jwt = false
+
+[functions.social-meta-app-audit]
+verify_jwt = false

@@ -41,6 +41,7 @@ import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social
 import { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
 import { MetaSetupGuide } from './MetaSetupGuide';
 import { MetaDiagnosticPanel } from './MetaDiagnosticPanel';
+import { MetaAppAuditPanel } from './MetaAppAuditPanel';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -229,6 +230,7 @@ export function PlatformConnectionWizard({
   const [requiresReauth, setRequiresReauth] = useState(false);
   const [reauthStrategy, setReauthStrategy] = useState<'pages_list' | 'pages_publish' | 'full' | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showAppAudit, setShowAppAudit] = useState(false);
   const [userConsentMissing, setUserConsentMissing] = useState(false);
   const [missingScopes, setMissingScopes] = useState<string[]>([]);
   const [grantedScopes, setGrantedScopes] = useState<string[]>([]);
@@ -879,6 +881,14 @@ export function PlatformConnectionWizard({
                 }}
                 onClose={() => setShowDiagnostics(false)}
               />
+            ) : showAppAudit && isMetaPlatform && currentWorkspace?.id && isSuperAdmin ? (
+              // App Audit panel - Admin only
+              <MetaAppAuditPanel
+                workspaceId={currentWorkspace.id}
+                platformConnectionId={platformConnectionId || undefined}
+                redirectUri={`${window.location.origin}/marketing`}
+                onClose={() => setShowAppAudit(false)}
+              />
             ) : (
               // Normal OAuth flow with MIN/FULL mode selection for Meta
               <>
@@ -984,13 +994,24 @@ export function PlatformConnectionWizard({
                       Tentar novamente
                     </Button>
                     {isMetaPlatform && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setShowDiagnostics(true)}
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Diagnóstico
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShowDiagnostics(true)}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Diagnóstico
+                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => setShowAppAudit(true)}
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            Auditoria App
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
