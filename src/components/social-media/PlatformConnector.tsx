@@ -27,6 +27,7 @@ import {
   useTestPlatformConnection,
   type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
@@ -358,9 +359,11 @@ function ConnectedPlatformCard({
 function UnconnectedPlatformCard({
   config,
   onConnect,
+  isSuperAdmin,
 }: {
   config: PlatformConfig;
   onConnect: () => void;
+  isSuperAdmin?: boolean;
 }) {
   const { computedState, stateConfig, canConnect } = useUnconnectedPlatformState(config.id);
   const Icon = config.icon;
@@ -394,24 +397,33 @@ function UnconnectedPlatformCard({
       </CardHeader>
       <CardContent>
         {computedState === 'PROVIDER_NOT_CONFIGURED' ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {stateConfig.goxMessage.message}
-                  </p>
-                  <Button disabled variant="secondary" className="w-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Em configuração
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p>O administrador do sistema está configurando esta integração.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {stateConfig.goxMessage.message}
+            </p>
+            {isSuperAdmin ? (
+              <Button asChild variant="secondary" className="w-full">
+                <Link to="/platform?tab=social">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurar OAuth
+                </Link>
+              </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button disabled variant="secondary" className="w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Em configuração
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>O administrador do sistema está configurando esta integração.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         ) : computedState === 'PLAN_REQUIRED' ? (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
@@ -454,6 +466,7 @@ function UnconnectedPlatformCard({
 export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+  const { isSuperAdmin } = usePlatformAdmin();
   
   const { 
     data: platforms, 
@@ -481,6 +494,7 @@ export function PlatformConnector() {
   const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect'>('connect');
 
   const getConnectedPlatform = (platformId: string): PlatformWithState | undefined => {
+    // Only return truly active and connected platforms
     return platforms?.find(p => p.platform === platformId && p.is_active);
   };
 
@@ -582,6 +596,7 @@ export function PlatformConnector() {
               key={config.id}
               config={config}
               onConnect={() => handleConnect(config.id, config.name)}
+              isSuperAdmin={isSuperAdmin}
             />
           );
         })}
