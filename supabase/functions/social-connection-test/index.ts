@@ -277,6 +277,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify JWT from request (this function runs with verify_jwt=false in config)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error_code: 'UNAUTHORIZED',
+          error_message: 'Missing authorization header',
+          gox_message: 'Faça login novamente e tente de novo.',
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error_code: 'UNAUTHORIZED',
+          error_message: 'Invalid token',
+          gox_message: 'Sua sessão expirou. Faça login novamente.',
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { platform_id } = await req.json();
 
     if (!platform_id) {
@@ -307,6 +334,26 @@ serve(async (req) => {
           gox_message: "Conexão não encontrada. Conecte a plataforma novamente.",
         }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Role check (elevated roles only)
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('workspace_id', platformData.workspace_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!roleData || !['owner', 'admin', 'coordinator'].includes(roleData.role)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error_code: 'FORBIDDEN',
+          error_message: 'Você não tem permissão para validar esta conexão.',
+          gox_message: 'Sem permissão (requer owner/admin/coordinator).',
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

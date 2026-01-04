@@ -46,22 +46,22 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.social-connection-test]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-token-refresh]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-connection-assets]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-asset-select]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-smoke-test]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-provider-status]
 verify_jwt = false
 
 [functions.social-disconnect]
-verify_jwt = true
+verify_jwt = false

@@ -162,83 +162,39 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request - can be called with platform_id or as a batch job
+    // Verify JWT from request (this function runs with verify_jwt=false in config)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error_code: 'UNAUTHORIZED', error_message: 'Missing authorization header' } as TokenRefreshResult),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error_code: 'UNAUTHORIZED', error_message: 'Invalid token' } as TokenRefreshResult),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse request - can be called with platform_id
     const body = await req.json().catch(() => ({}));
     const { platform_id, batch_refresh } = body;
 
-    // Batch refresh mode - refresh all expiring tokens
+    // Batch refresh is intentionally disabled on this public endpoint (security)
     if (batch_refresh) {
-      const expiryThreshold = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-      
-      const { data: expiringPlatforms, error } = await supabase
-        .from('social_platforms')
-        .select('*')
-        .eq('is_active', true)
-        .not('refresh_token_encrypted', 'is', null)
-        .lt('token_expires_at', expiryThreshold)
-        .order('token_expires_at', { ascending: true })
-        .limit(50);
-
-      if (error) {
-        throw new Error(`Failed to fetch expiring platforms: ${error.message}`);
-      }
-
-      const results = {
-        refreshed: 0,
-        failed: 0,
-        requires_reauth: [] as string[],
-      };
-
-      for (const platform of expiringPlatforms || []) {
-        const refreshToken = decryptToken(platform.refresh_token_encrypted);
-        const newTokens = await refreshPlatformToken(platform.platform as Platform, refreshToken);
-
-        if (newTokens) {
-          const expiresAt = newTokens.expires_in
-            ? new Date(Date.now() + newTokens.expires_in * 1000).toISOString()
-            : null;
-
-          await supabase
-            .from('social_platforms')
-            .update({
-              access_token_encrypted: encryptToken(newTokens.access_token),
-              refresh_token_encrypted: newTokens.refresh_token
-                ? encryptToken(newTokens.refresh_token)
-                : platform.refresh_token_encrypted,
-              token_expires_at: expiresAt,
-              connection_status: 'connected',
-              last_sync_at: new Date().toISOString(),
-              last_error: null,
-            })
-            .eq('id', platform.id);
-
-          results.refreshed++;
-        } else {
-          await supabase
-            .from('social_platforms')
-            .update({
-              connection_status: 'expired',
-              last_error: 'Token refresh failed - reauthorization required',
-            })
-            .eq('id', platform.id);
-
-          results.failed++;
-          results.requires_reauth.push(platform.id);
-        }
-      }
-
-      console.log(`Batch refresh: ${results.refreshed} refreshed, ${results.failed} failed`);
-
       return new Response(
-        JSON.stringify(results),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error_code: 'FORBIDDEN', error_message: 'batch_refresh is not supported' } as TokenRefreshResult),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Single platform refresh
     if (!platform_id) {
       return new Response(
-        JSON.stringify({ error: "Missing platform_id" }),
+        JSON.stringify({ success: false, error_code: 'MISSING_PARAMS', error_message: 'Missing platform_id' } as TokenRefreshResult),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -253,6 +209,25 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Platform connection not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Role check (elevated roles only)
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('workspace_id', platformData.workspace_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!roleData || !['owner', 'admin', 'coordinator'].includes(roleData.role)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error_code: 'FORBIDDEN',
+          error_message: 'Você não tem permissão para renovar tokens desta workspace.',
+        } as TokenRefreshResult),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
