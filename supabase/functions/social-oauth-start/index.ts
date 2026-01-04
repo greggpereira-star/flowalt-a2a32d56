@@ -136,12 +136,11 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Create client with user's token to validate auth
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } }
-    });
+    // Use service role client to validate the JWT token
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    // Validate the token by getting the user - pass token directly
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
       console.error('Auth error:', authError);
@@ -152,7 +151,7 @@ serve(async (req) => {
     }
 
     // Use service role for database operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = supabaseAdmin;
 
     const { platform, workspace_id, return_url } = await req.json();
 
