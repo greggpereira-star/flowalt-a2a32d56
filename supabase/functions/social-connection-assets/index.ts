@@ -8,6 +8,9 @@ const corsHeaders = {
 
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
+// Graph API version
+const GRAPH_VERSION = '21.0';
+
 interface Asset {
   asset_type: string;
   asset_id: string;
@@ -18,9 +21,25 @@ interface Asset {
 interface AssetsResult {
   success: boolean;
   assets: Asset[];
+  pages?: Asset[];
+  instagram?: Asset[];
+  warnings?: string[];
+  reason_code?: string;
+  reason_message?: string;
   error_code?: string;
   error_message?: string;
 }
+
+/**
+ * Reason codes for empty asset list (diagnosis)
+ */
+type AssetReasonCode = 
+  | 'NO_PAGES_ADMIN'      // User is not admin of any Facebook Page
+  | 'NO_IG_LINKED'        // No Instagram Business linked to Pages
+  | 'MISSING_SCOPES'      // Token missing required scopes
+  | 'TOKEN_INVALID'       // Token expired or revoked
+  | 'TOKEN_EXPIRED'       // Token explicitly expired
+  | 'API_ERROR';          // Generic API error
 
 // Simple decryption for tokens
 function decryptToken(encrypted: string): string {
@@ -32,77 +51,190 @@ function decryptToken(encrypted: string): string {
   return new TextDecoder().decode(decrypted);
 }
 
-async function fetchMetaAssets(accessToken: string): Promise<Asset[]> {
+// Simple encryption for tokens
+function encryptToken(token: string): string {
+  const key = Deno.env.get('TOKEN_ENCRYPTION_KEY') || 'default-key-change-me';
+  const encoded = new TextEncoder().encode(token);
+  const keyBytes = new TextEncoder().encode(key);
+  const encrypted = encoded.map((byte, i) => byte ^ keyBytes[i % keyBytes.length]);
+  return btoa(String.fromCharCode(...encrypted));
+}
+
+/**
+ * Fetch Meta Pages and Instagram Business accounts
+ * Returns detailed diagnosis if empty
+ */
+async function fetchMetaAssets(accessToken: string): Promise<AssetsResult> {
   const assets: Asset[] = [];
+  const pages: Asset[] = [];
+  const instagram: Asset[] = [];
+  const warnings: string[] = [];
   
   console.log('Fetching Meta assets with token length:', accessToken?.length || 0);
   
-  // 1. Get Facebook Pages
-  const pagesUrl = `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture{url}&access_token=${accessToken}`;
+  // 1. Get Facebook Pages where user is admin
+  // The 'tasks' field tells us what permissions we have on the page
+  const pagesUrl = `https://graph.facebook.com/v${GRAPH_VERSION}/me/accounts?fields=id,name,access_token,picture{url},tasks&access_token=${accessToken}`;
   console.log('Calling Facebook Pages API...');
   
   const pagesResponse = await fetch(pagesUrl);
   const pagesText = await pagesResponse.text();
   console.log('Pages API response status:', pagesResponse.status);
   
-  let pagesData;
+  let pagesData: any;
   try {
     pagesData = JSON.parse(pagesText);
   } catch {
     console.error('Failed to parse pages response:', pagesText.substring(0, 200));
-    throw new Error('Invalid response from Facebook API');
+    return {
+      success: false,
+      assets: [],
+      reason_code: 'API_ERROR',
+      reason_message: 'Invalid response from Facebook API',
+      error_code: 'API_ERROR',
+      error_message: 'Invalid response from Facebook API',
+    };
   }
   
-  if (!pagesResponse.ok) {
+  // Handle API errors
+  if (!pagesResponse.ok || pagesData.error) {
     console.error('Pages API error:', JSON.stringify(pagesData));
-    // If user doesn't have pages, that's okay - continue without throwing
-    if (pagesData.error?.code === 190) {
-      throw new Error(pagesData.error?.message || 'Access token expired or invalid');
+    
+    const errorCode = pagesData.error?.code;
+    const errorMessage = pagesData.error?.message || 'Unknown error';
+    
+    // Token expired/invalid
+    if (errorCode === 190) {
+      return {
+        success: false,
+        assets: [],
+        reason_code: 'TOKEN_INVALID',
+        reason_message: 'O token de acesso expirou ou foi revogado. Reconecte a plataforma.',
+        error_code: 'TOKEN_INVALID',
+        error_message: errorMessage,
+      };
     }
+    
+    // Permission denied (missing scopes)
+    if (errorCode === 200 || errorCode === 10 || errorMessage.includes('permission')) {
+      return {
+        success: false,
+        assets: [],
+        reason_code: 'MISSING_SCOPES',
+        reason_message: 'Permissões insuficientes. Você não concedeu pages_show_list ou outras permissões necessárias. Reconecte e autorize todas as permissões.',
+        error_code: 'MISSING_SCOPES',
+        error_message: errorMessage,
+      };
+    }
+    
+    return {
+      success: false,
+      assets: [],
+      reason_code: 'API_ERROR',
+      reason_message: errorMessage,
+      error_code: 'API_ERROR',
+      error_message: errorMessage,
+    };
   }
   
   console.log('Found pages:', pagesData.data?.length || 0);
   
+  // Check if user has no pages
+  if (!pagesData.data || pagesData.data.length === 0) {
+    return {
+      success: true,
+      assets: [],
+      pages: [],
+      instagram: [],
+      warnings: ['Nenhuma Página do Facebook encontrada para este usuário.'],
+      reason_code: 'NO_PAGES_ADMIN',
+      reason_message: 'Você não é administrador de nenhuma Página do Facebook. Para conectar, você precisa ter uma Página onde você é administrador.',
+    };
+  }
+  
+  // Process each page
   for (const page of pagesData.data || []) {
-    assets.push({
+    const tasks = page.tasks || [];
+    
+    // Check if user can publish (CREATE_CONTENT or MANAGE)
+    const canPublish = tasks.includes('CREATE_CONTENT') || tasks.includes('MANAGE') || tasks.includes('ADVERTISE');
+    
+    const pageAsset: Asset = {
       asset_type: 'facebook_page',
       asset_id: page.id,
       asset_name: page.name,
       asset_meta: {
         picture_url: page.picture?.data?.url,
-        page_access_token: page.access_token,
+        page_access_token: page.access_token, // Store for publishing
+        tasks: tasks,
+        can_publish: canPublish,
       },
-    });
+    };
+    
+    pages.push(pageAsset);
+    assets.push(pageAsset);
+    
+    if (!canPublish) {
+      warnings.push(`Página "${page.name}" não tem permissão de publicação (tasks: ${tasks.join(', ')})`);
+    }
     
     // 2. Check for Instagram Business Account linked to this page
-    console.log(`Checking Instagram for page ${page.id}...`);
-    const igResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account{id,username,profile_picture_url}&access_token=${accessToken}`
-    );
+    console.log(`Checking Instagram for page ${page.id} (${page.name})...`);
     
-    if (igResponse.ok) {
-      const igData = await igResponse.json();
-      const igAccount = igData.instagram_business_account;
+    try {
+      const igResponse = await fetch(
+        `https://graph.facebook.com/v${GRAPH_VERSION}/${page.id}?fields=instagram_business_account{id,username,name,profile_picture_url}&access_token=${accessToken}`
+      );
       
-      if (igAccount) {
-        console.log(`Found Instagram account: @${igAccount.username}`);
-        assets.push({
-          asset_type: 'instagram_business',
-          asset_id: igAccount.id,
-          asset_name: `@${igAccount.username}`,
-          asset_meta: {
-            username: igAccount.username,
-            profile_picture_url: igAccount.profile_picture_url,
-            linked_page_id: page.id,
-            page_access_token: page.access_token,
-          },
-        });
+      if (igResponse.ok) {
+        const igData = await igResponse.json();
+        const igAccount = igData.instagram_business_account;
+        
+        if (igAccount) {
+          console.log(`Found Instagram account: @${igAccount.username}`);
+          
+          const igAsset: Asset = {
+            asset_type: 'instagram_business',
+            asset_id: igAccount.id,
+            asset_name: `@${igAccount.username}`,
+            asset_meta: {
+              username: igAccount.username,
+              name: igAccount.name,
+              profile_picture_url: igAccount.profile_picture_url,
+              linked_page_id: page.id,
+              linked_page_name: page.name,
+              page_access_token: page.access_token, // Need this for IG publishing
+            },
+          };
+          
+          instagram.push(igAsset);
+          assets.push(igAsset);
+        }
+      } else {
+        const igError = await igResponse.text();
+        console.warn(`Failed to fetch IG for page ${page.id}:`, igError);
       }
+    } catch (igError) {
+      console.warn(`Error fetching IG for page ${page.id}:`, igError);
     }
   }
   
-  console.log(`Total Meta assets found: ${assets.length}`);
-  return assets;
+  // If we have pages but no Instagram accounts, add a note
+  if (pages.length > 0 && instagram.length === 0) {
+    warnings.push('Nenhuma conta Instagram Profissional vinculada às suas Páginas. Para conectar Instagram, vincule uma conta Instagram Business/Creator à sua Página do Facebook.');
+  }
+  
+  console.log(`Total Meta assets found: ${assets.length} (${pages.length} pages, ${instagram.length} IG accounts)`);
+  
+  return {
+    success: true,
+    assets,
+    pages,
+    instagram,
+    warnings: warnings.length > 0 ? warnings : undefined,
+    reason_code: assets.length === 0 ? 'NO_IG_LINKED' : undefined,
+    reason_message: assets.length === 0 ? 'Páginas encontradas mas sem Instagram Business vinculado.' : undefined,
+  };
 }
 
 async function fetchYouTubeAssets(accessToken: string): Promise<Asset[]> {
@@ -260,19 +392,19 @@ async function fetchTwitterAssets(accessToken: string): Promise<Asset[]> {
   return assets;
 }
 
-async function fetchPlatformAssets(platform: Platform, accessToken: string): Promise<Asset[]> {
+async function fetchPlatformAssets(platform: Platform, accessToken: string): Promise<AssetsResult> {
   switch (platform) {
     case 'instagram':
     case 'facebook':
       return fetchMetaAssets(accessToken);
     case 'youtube':
-      return fetchYouTubeAssets(accessToken);
+      return { success: true, assets: await fetchYouTubeAssets(accessToken) };
     case 'linkedin':
-      return fetchLinkedInAssets(accessToken);
+      return { success: true, assets: await fetchLinkedInAssets(accessToken) };
     case 'tiktok':
-      return fetchTikTokAssets(accessToken);
+      return { success: true, assets: await fetchTikTokAssets(accessToken) };
     case 'twitter':
-      return fetchTwitterAssets(accessToken);
+      return { success: true, assets: await fetchTwitterAssets(accessToken) };
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
@@ -378,7 +510,13 @@ serve(async (req) => {
 
     if (!platformData.access_token_encrypted) {
       return new Response(
-        JSON.stringify({ success: false, error_code: 'NO_TOKEN', error_message: 'Reconecte a plataforma para obter novos tokens.' }),
+        JSON.stringify({ 
+          success: false, 
+          error_code: 'NO_TOKEN', 
+          error_message: 'Reconecte a plataforma para obter novos tokens.',
+          reason_code: 'TOKEN_INVALID',
+          reason_message: 'Nenhum token armazenado. Reconecte a plataforma.',
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -388,8 +526,25 @@ serve(async (req) => {
 
     // Fetch assets from platform API
     console.log(`Fetching assets for ${platformData.platform}...`);
-    const assets = await fetchPlatformAssets(platformData.platform as Platform, accessToken);
-    console.log(`Found ${assets.length} assets`);
+    const result = await fetchPlatformAssets(platformData.platform as Platform, accessToken);
+    console.log(`Fetch result: success=${result.success}, assets=${result.assets.length}`);
+
+    if (!result.success) {
+      // Update connection status to error
+      await supabase
+        .from('social_platforms')
+        .update({ 
+          connection_status: 'error',
+          last_error_code: result.error_code,
+          last_error_message: result.reason_message || result.error_message,
+        })
+        .eq('id', platform_connection_id);
+
+      return new Response(
+        JSON.stringify(result),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Clear existing assets and insert new ones
     await supabase
@@ -397,8 +552,8 @@ serve(async (req) => {
       .delete()
       .eq('platform_connection_id', platform_connection_id);
 
-    if (assets.length > 0) {
-      const assetsToInsert = assets.map(asset => ({
+    if (result.assets.length > 0) {
+      const assetsToInsert = result.assets.map(asset => ({
         workspace_id,
         platform_id: platformData.platform,
         platform_connection_id,
@@ -422,7 +577,11 @@ serve(async (req) => {
     if (!platformData.platform_account_type || !platformData.account_id) {
       await supabase
         .from('social_platforms')
-        .update({ connection_status: 'pending_assets' })
+        .update({ 
+          connection_status: result.assets.length > 0 ? 'pending_assets' : 'error',
+          last_error_code: result.assets.length === 0 ? result.reason_code : null,
+          last_error_message: result.assets.length === 0 ? result.reason_message : null,
+        })
         .eq('id', platform_connection_id);
     }
 
@@ -434,8 +593,10 @@ serve(async (req) => {
       entity_id: platform_connection_id,
       payload: {
         platform: platformData.platform,
-        asset_count: assets.length,
-        asset_types: [...new Set(assets.map(a => a.asset_type))],
+        asset_count: result.assets.length,
+        asset_types: [...new Set(result.assets.map(a => a.asset_type))],
+        reason_code: result.reason_code,
+        warnings: result.warnings,
       },
       actor_id: user.id,
     });
@@ -443,8 +604,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        assets,
-        status: assets.length > 0 ? 'pending_selection' : 'no_assets_found',
+        assets: result.assets,
+        pages: result.pages,
+        instagram: result.instagram,
+        warnings: result.warnings,
+        reason_code: result.reason_code,
+        reason_message: result.reason_message,
+        status: result.assets.length > 0 ? 'pending_selection' : 'no_assets_found',
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

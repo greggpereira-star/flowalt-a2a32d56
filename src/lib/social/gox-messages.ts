@@ -15,15 +15,20 @@ export type GoxErrorCode =
   | 'LIMIT_REACHED'
   | 'TOKEN_EXPIRED'
   | 'TOKEN_EXPIRING_SOON'
+  | 'TOKEN_INVALID'
   | 'ASSET_REQUIRED'
   | 'NO_ASSETS_FOUND'
+  | 'NO_PAGES_ADMIN'
+  | 'NO_IG_LINKED'
+  | 'MISSING_SCOPES'
   | 'API_ERROR'
   | 'RATE_LIMITED'
   | 'PERMISSION_DENIED'
   | 'UNAUTHORIZED'
   | 'CONNECTION_FAILED'
   | 'SECRETS_MISSING'
-  | 'INVALID_SCOPE';
+  | 'INVALID_SCOPE'
+  | 'CONFIG_INVALID_SCOPES';
 
 export interface GoxMessage {
   title: string;
@@ -146,6 +151,19 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
       severity: 'warning',
     },
   },
+  TOKEN_INVALID: {
+    superAdmin: {
+      title: 'Token inválido',
+      message: 'O token foi revogado ou é inválido. O cliente precisa reconectar.',
+      severity: 'error',
+    },
+    client: {
+      title: 'Conexão inválida',
+      message: 'O token de acesso foi revogado ou expirou. Reconecte sua conta.',
+      cta: 'Reconectar',
+      severity: 'error',
+    },
+  },
   ASSET_REQUIRED: {
     superAdmin: {
       title: 'Ativo não selecionado',
@@ -168,6 +186,49 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
       title: 'Nenhum ativo encontrado',
       message: 'Não encontramos páginas, canais ou contas vinculadas. Verifique suas configurações na plataforma.',
       severity: 'warning',
+    },
+  },
+  NO_PAGES_ADMIN: {
+    superAdmin: {
+      title: 'Sem páginas administradas',
+      message: 'O usuário não é administrador de nenhuma Página do Facebook.',
+      severity: 'warning',
+    },
+    client: {
+      title: 'Nenhuma página encontrada',
+      message: 'Você não é administrador de nenhuma Página do Facebook. Para conectar, crie uma Página ou peça para ser adicionado como administrador.',
+      cta: 'Criar Página no Facebook',
+      ctaUrl: 'https://www.facebook.com/pages/create',
+      severity: 'warning',
+    },
+  },
+  NO_IG_LINKED: {
+    superAdmin: {
+      title: 'Instagram não vinculado',
+      message: 'Páginas encontradas, mas nenhuma tem conta Instagram Business/Creator vinculada.',
+      severity: 'warning',
+    },
+    client: {
+      title: 'Instagram não vinculado',
+      message: 'Suas Páginas do Facebook não têm conta Instagram Profissional vinculada. Vincule seu Instagram Business/Creator à Página para conectar.',
+      cta: 'Como vincular Instagram',
+      ctaUrl: 'https://www.facebook.com/help/1148909221857370',
+      severity: 'warning',
+    },
+  },
+  MISSING_SCOPES: {
+    superAdmin: {
+      title: 'Permissões insuficientes',
+      message: 'O token não tem as permissões necessárias (scopes). Verifique se o App Review está aprovado para todos os Use Cases.',
+      cta: 'Ver configuração',
+      ctaUrl: '/platform?tab=social',
+      severity: 'error',
+    },
+    client: {
+      title: 'Permissões insuficientes',
+      message: 'Você não concedeu todas as permissões necessárias. Reconecte e autorize todas as permissões solicitadas.',
+      cta: 'Reconectar',
+      severity: 'error',
     },
   },
   API_ERROR: {
@@ -233,7 +294,7 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
   SECRETS_MISSING: {
     superAdmin: {
       title: 'Secrets não configurados',
-      message: 'As credenciais OAuth precisam ser adicionadas nos secrets do projeto.',
+      message: 'As credenciais OAuth precisam ser adicionadas nos secrets do projeto (META_APP_ID, META_APP_SECRET, etc.).',
       cta: 'Configurar secrets',
       ctaUrl: '/platform?tab=social',
       severity: 'error',
@@ -248,14 +309,28 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
     superAdmin: {
       title: 'Escopo OAuth inválido',
       message:
-        'O provedor rejeitou permissões solicitadas (Invalid Scopes). Isso acontece quando o app ainda não tem os Use Cases/permissões habilitados/aprovados. Verifique as permissões Pages/Instagram e o redirect URI.',
-      cta: 'Ver configuração Social',
-      ctaUrl: '/platform?tab=social',
+        'O provedor rejeitou permissões solicitadas (Invalid Scopes). Isso acontece quando o App Meta não tem os Use Cases/permissões habilitados no App Review. Verifique: pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_manage_insights, instagram_content_publish. Também confirme o redirect URI.',
+      cta: 'Meta for Developers',
+      ctaUrl: 'https://developers.facebook.com/apps',
       severity: 'error',
     },
     client: {
       title: 'Integração indisponível',
-      message: 'A integração está com configuração pendente. Contate o administrador/suporte para concluir as permissões do provedor.',
+      message: 'A integração está com configuração pendente de permissões. Contate o administrador ou suporte.',
+      severity: 'error',
+    },
+  },
+  CONFIG_INVALID_SCOPES: {
+    superAdmin: {
+      title: 'Configuração inválida',
+      message: 'Escopos legados/depreciados detectados na configuração (ex: manage_pages). Isso é um bug de configuração - contate o suporte técnico.',
+      cta: 'Ver configuração',
+      ctaUrl: '/platform?tab=social',
+      severity: 'error',
+    },
+    client: {
+      title: 'Erro de configuração',
+      message: 'A integração está com erro de configuração. Contate o administrador ou suporte.',
       severity: 'error',
     },
   },
@@ -305,22 +380,42 @@ export function getGoxMessage(
  */
 export function mapApiErrorToGox(apiError: string): GoxErrorCode {
   const errorMap: Record<string, GoxErrorCode> = {
+    // Configuration errors
     'SECRETS_NOT_CONFIGURED': 'PROVIDER_NOT_CONFIGURED',
     'PROVIDER_NOT_READY': 'PROVIDER_NOT_CONFIGURED',
     'REQUIRES_SETUP': 'SECRETS_MISSING',
+    'CONFIG_INVALID_SCOPES': 'CONFIG_INVALID_SCOPES',
+    
+    // Plan/entitlement errors
     'ENTITLEMENT_DISABLED': 'PLAN_REQUIRED',
     'PLAN_LIMIT_REACHED': 'LIMIT_REACHED',
+    'PLAN_REQUIRED': 'PLAN_REQUIRED',
+    'LIMIT_REACHED': 'LIMIT_REACHED',
+    
+    // Token errors
     'TOKEN_EXPIRED': 'TOKEN_EXPIRED',
     'TOKEN_EXPIRING': 'TOKEN_EXPIRING_SOON',
+    'TOKEN_INVALID': 'TOKEN_INVALID',
+    
+    // Asset errors
     'NO_ASSET_SELECTED': 'ASSET_REQUIRED',
+    'ASSET_REQUIRED': 'ASSET_REQUIRED',
     'ASSETS_EMPTY': 'NO_ASSETS_FOUND',
-    'API_ERROR': 'API_ERROR',
-    'RATE_LIMITED': 'RATE_LIMITED',
-    'FORBIDDEN': 'PERMISSION_DENIED',
-    'UNAUTHORIZED': 'UNAUTHORIZED',
-    'CONNECTION_FAILED': 'CONNECTION_FAILED',
+    'NO_ASSETS_FOUND': 'NO_ASSETS_FOUND',
+    'NO_PAGES_ADMIN': 'NO_PAGES_ADMIN',
+    'NO_IG_LINKED': 'NO_IG_LINKED',
+    
+    // Permission errors
+    'MISSING_SCOPES': 'MISSING_SCOPES',
     'INVALID_SCOPE': 'INVALID_SCOPE',
     'invalid_scope': 'INVALID_SCOPE',
+    'FORBIDDEN': 'PERMISSION_DENIED',
+    'UNAUTHORIZED': 'UNAUTHORIZED',
+    
+    // Generic errors
+    'API_ERROR': 'API_ERROR',
+    'RATE_LIMITED': 'RATE_LIMITED',
+    'CONNECTION_FAILED': 'CONNECTION_FAILED',
   };
 
   return errorMap[apiError] || 'API_ERROR';

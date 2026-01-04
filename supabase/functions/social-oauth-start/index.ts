@@ -8,6 +8,9 @@ const corsHeaders = {
 
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
+// Graph API version - update as needed
+const GRAPH_VERSION = '21.0';
+
 interface OAuthConfig {
   authUrl: string;
   scopes: string[];
@@ -16,48 +19,50 @@ interface OAuthConfig {
 }
 
 /**
- * META SCOPES - Enterprise Grade Configuration
+ * META SCOPES - Enterprise Grade Configuration (2024/2025)
  * 
- * IMPORTANT: Only request scopes that are APPROVED in your Meta App Review.
+ * CRITICAL: Only request scopes that are APPROVED in your Meta App Review.
  * 
- * Basic scopes (no review required for Development mode):
- * - public_profile (always granted)
+ * Valid scopes for Facebook Pages + Instagram Business publishing & insights:
+ * - pages_show_list          - List Pages the user is admin of (required for /me/accounts)
+ * - pages_read_engagement    - Read Page posts, comments, likes
+ * - pages_manage_posts       - Create and manage Page posts
+ * - instagram_basic          - Basic Instagram account info
+ * - instagram_manage_insights- Instagram analytics
+ * - instagram_content_publish- Publish to Instagram (requires App Review for production)
  * 
- * Publishing/Insights scopes (require App Review for Production):
- * - pages_read_engagement - Read Page engagement data
- * - pages_manage_posts - Create and manage Page posts
- * - instagram_basic - Basic Instagram account info
- * - instagram_manage_insights - Instagram analytics
- * - instagram_content_publish - Publish to Instagram
- * 
- * DEPRECATED/LEGACY (DO NOT USE):
+ * DEPRECATED/LEGACY (DO NOT USE - causes Invalid Scope errors):
  * - manage_pages (replaced by pages_read_engagement + pages_manage_posts)
- * - pages_show_list (often causes Invalid Scope in development)
+ * 
+ * NOTE: pages_show_list is required to discover Pages via /me/accounts.
+ * If your app doesn't have this permission approved yet, the OAuth may fail with "Invalid Scopes".
+ * In that case, ensure the Use Case is enabled in Meta for Developers.
  */
-const META_SCOPES_PUBLISHING = [
+const META_SCOPES_VALID = [
+  'pages_show_list',
   'pages_read_engagement',
   'pages_manage_posts',
-];
-
-const META_SCOPES_INSTAGRAM = [
   'instagram_basic',
   'instagram_manage_insights',
   'instagram_content_publish',
 ];
 
+// Legacy/deprecated scopes that should NEVER be requested
+const META_SCOPES_DEPRECATED = ['manage_pages'];
+
 // Platform OAuth configurations
 const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
-    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // Instagram Business requires Pages + Instagram scopes
-    scopes: [...META_SCOPES_PUBLISHING, ...META_SCOPES_INSTAGRAM],
+    // Instagram Business uses Facebook OAuth (IG Graph API via Meta)
+    authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
+    scopes: META_SCOPES_VALID,
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
-    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // Facebook Pages publishing
-    scopes: [...META_SCOPES_PUBLISHING],
+    authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
+    // Facebook Pages: we need pages_show_list to list pages, plus publishing/insights
+    scopes: META_SCOPES_VALID.filter(s => !s.startsWith('instagram_')),
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
@@ -108,8 +113,8 @@ const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   },
 };
 
-// Generate PKCE code verifier and challenge
-function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
+// Generate PKCE code verifier and challenge (S256)
+async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   const codeVerifier = btoa(String.fromCharCode(...array))
@@ -117,8 +122,15 @@ function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
     .replace(/\//g, '_')
     .replace(/=/g, '');
 
-  // For simplicity, using plain challenge (S256 would require async crypto)
-  const codeChallenge = codeVerifier;
+  // S256 challenge
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+
   return { codeVerifier, codeChallenge };
 }
 
@@ -170,7 +182,7 @@ serve(async (req) => {
     // Use service role for database operations
     const supabase = supabaseAdmin;
 
-    const { platform, workspace_id, return_url, meta_scope_strategy } = await req.json();
+    const { platform, workspace_id, return_url } = await req.json();
 
     if (!platform || !workspace_id) {
       return new Response(
@@ -311,30 +323,49 @@ serve(async (req) => {
       );
     }
 
+    // ===========================================
+    // VALIDATE SCOPES (Meta hard-fail on legacy)
+    // ===========================================
+    const isMetaProvider = platform === 'facebook' || platform === 'instagram';
+    
+    if (isMetaProvider) {
+      // Check if any legacy/deprecated scopes are accidentally configured
+      const hasDeprecatedScopes = config.scopes.some(s => META_SCOPES_DEPRECATED.includes(s));
+      if (hasDeprecatedScopes) {
+        console.error(`CONFIG_INVALID_SCOPES: deprecated scopes found in config for ${platform}`);
+        
+        await supabase.from('domain_events').insert({
+          workspace_id,
+          event_type: 'social_oauth.blocked',
+          entity_type: 'social_platform',
+          entity_id: workspace_id,
+          payload: {
+            platform,
+            reason: 'CONFIG_INVALID_SCOPES',
+            deprecated_scopes_found: META_SCOPES_DEPRECATED.filter(s => config.scopes.includes(s)),
+          },
+          actor_id: user_id,
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            error: 'CONFIG_INVALID_SCOPES',
+            error_code: 'CONFIG_INVALID_SCOPES',
+            message: 'Configuração inválida: escopos legados detectados (manage_pages). Contate o suporte.',
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Generate state and PKCE
     const state = generateState();
-    const { codeVerifier, codeChallenge } = generatePKCE();
+    const { codeVerifier, codeChallenge } = await generatePKCE();
 
     // Store OAuth state in database for verification
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
 
-    // Determine final scopes to use (Meta has a fallback strategy)
-    const isMetaProvider = platform === 'facebook' || platform === 'instagram';
-    const metaScopeStrategy: 'primary' | 'fallback' =
-      isMetaProvider && meta_scope_strategy === 'fallback' ? 'fallback' : 'primary';
-
     const scopesToUse = [...config.scopes];
-    let fallbackUsed = false;
-
-    // Attempt A (primary): include pages_show_list for better Page discovery.
-    // If Meta rejects it (invalid_scope), the UI will re-try with strategy=fallback.
-    if (isMetaProvider && metaScopeStrategy === 'primary') {
-      scopesToUse.unshift('pages_show_list');
-    }
-
-    if (isMetaProvider && metaScopeStrategy === 'fallback') {
-      fallbackUsed = true;
-    }
     
     const { error: stateError } = await supabase
       .from('oauth_states')
@@ -369,7 +400,7 @@ serve(async (req) => {
     // Platform-specific parameters
     if (platform === 'twitter') {
       params.set('code_challenge', codeChallenge);
-      params.set('code_challenge_method', 'plain');
+      params.set('code_challenge_method', 'S256');
       params.set('scope', scopesToUse.join(' '));
     } else if (platform === 'linkedin') {
       params.set('scope', scopesToUse.join(' '));
@@ -380,12 +411,14 @@ serve(async (req) => {
       params.set('scope', scopesToUse.join(' '));
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
-    } else {
-      // Meta (Facebook/Instagram)
-      // Only include scope if we have any to request.
+    } else if (isMetaProvider) {
+      // Meta (Facebook/Instagram) - comma-separated scopes, URL-encoded
       if (scopesToUse.length > 0) {
         params.set('scope', scopesToUse.join(','));
       }
+      // PKCE is optional for Meta but recommended
+      params.set('code_challenge', codeChallenge);
+      params.set('code_challenge_method', 'S256');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -402,8 +435,7 @@ serve(async (req) => {
         user_id,
         scopes_used: scopesToUse,
         scopes_count: scopesToUse.length,
-        scope_strategy: isMetaProvider ? metaScopeStrategy : null,
-        fallback_used: fallbackUsed,
+        graph_version: isMetaProvider ? GRAPH_VERSION : null,
       },
       actor_id: user_id,
     });
@@ -416,8 +448,6 @@ serve(async (req) => {
         state,
         expires_at: expiresAt,
         scopes_requested: scopesToUse,
-        scope_strategy: isMetaProvider ? metaScopeStrategy : null,
-        fallback_used: fallbackUsed,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -436,7 +466,7 @@ function getSetupInstructions(platform: Platform): string[] {
     instagram: [
       '1. Acesse developers.facebook.com e crie um app do tipo "Business"',
       '2. Adicione os produtos: "Facebook Login for Business" e "Instagram Graph API"',
-      '3. Em Casos de Uso, adicione: pages_read_engagement, pages_manage_posts, instagram_basic, instagram_manage_insights, instagram_content_publish',
+      '3. Em Casos de Uso, adicione: pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_manage_insights, instagram_content_publish',
       '4. Configure a URI de redirecionamento OAuth válida',
       '5. Copie o App ID e App Secret',
       '6. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
@@ -445,7 +475,7 @@ function getSetupInstructions(platform: Platform): string[] {
     facebook: [
       '1. Acesse developers.facebook.com e crie um app do tipo "Business"',
       '2. Adicione o produto "Facebook Login for Business"',
-      '3. Em Casos de Uso, adicione: pages_read_engagement, pages_manage_posts',
+      '3. Em Casos de Uso, adicione: pages_show_list, pages_read_engagement, pages_manage_posts',
       '4. Configure a URI de redirecionamento OAuth válida',
       '5. Copie o App ID e App Secret',
       '6. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
