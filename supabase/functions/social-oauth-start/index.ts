@@ -299,15 +299,15 @@ serve(async (req) => {
       // Log blocked attempt
       await supabase.from('domain_events').insert({
         workspace_id,
+        aggregate_type: 'social_media',
+        aggregate_id: workspace_id,
         event_type: 'social_oauth.blocked',
-        entity_type: 'social_platform',
-        entity_id: workspace_id,
         payload: {
           platform,
           reason: 'PLAN_REQUIRED',
           message: 'Entitlement social_publish not enabled',
+          actor_id: user_id,
         },
-        actor_id: user_id,
       });
 
       return new Response(
@@ -341,16 +341,16 @@ serve(async (req) => {
         
         await supabase.from('domain_events').insert({
           workspace_id,
+          aggregate_type: 'social_media',
+          aggregate_id: workspace_id,
           event_type: 'social_oauth.blocked',
-          entity_type: 'social_platform',
-          entity_id: workspace_id,
           payload: {
             platform,
             reason: 'LIMIT_REACHED',
             current_count: count,
             limit: limitEntitlement.limit_value,
+            actor_id: user_id,
           },
-          actor_id: user_id,
         });
 
         return new Response(
@@ -387,15 +387,15 @@ serve(async (req) => {
       // Log configuration missing event
       await supabase.from('domain_events').insert({
         workspace_id,
+        aggregate_type: 'social_media',
+        aggregate_id: workspace_id,
         event_type: 'social_oauth.blocked',
-        entity_type: 'social_platform',
-        entity_id: workspace_id,
         payload: {
           platform,
           reason: 'PROVIDER_NOT_CONFIGURED',
           missing_secret: config.clientIdEnv,
+          actor_id: user_id,
         },
-        actor_id: user_id,
       });
 
       return new Response(
@@ -423,15 +423,15 @@ serve(async (req) => {
         
         await supabase.from('domain_events').insert({
           workspace_id,
+          aggregate_type: 'social_media',
+          aggregate_id: workspace_id,
           event_type: 'social_oauth.blocked',
-          entity_type: 'social_platform',
-          entity_id: workspace_id,
           payload: {
             platform,
             reason: 'CONFIG_INVALID_SCOPES',
             deprecated_scopes_found: META_SCOPES_DEPRECATED.filter(s => config.scopes.includes(s)),
+            actor_id: user_id,
           },
-          actor_id: user_id,
         });
 
         return new Response(
@@ -537,19 +537,22 @@ serve(async (req) => {
     // Log OAuth start event with scopes info
     await supabase.from('domain_events').insert({
       workspace_id,
+      aggregate_type: 'social_media',
+      aggregate_id: workspace_id,
       event_type: 'social_oauth.started',
-      entity_type: 'social_platform',
-      entity_id: state,
       payload: {
         platform,
         provider: isMetaProvider ? 'meta' : platform,
         user_id,
-        scopes_used: scopesToUse,
+        state,
+        auth_endpoint: config.authUrl,
+        redirect_uri: redirectUri,
+        graph_version: isMetaProvider ? GRAPH_VERSION : null,
+        scopes_requested: scopesToUse,
         scopes_count: scopesToUse.length,
         scope_strategy: effectiveScopeStrategy,
-        graph_version: isMetaProvider ? GRAPH_VERSION : null,
+        auth_url: authUrl,
       },
-      actor_id: user_id,
     });
 
     console.log(`OAuth started for ${platform} in workspace ${workspace_id} with strategy=${effectiveScopeStrategy}, scopes: ${scopesToUse.join(', ')}`);
