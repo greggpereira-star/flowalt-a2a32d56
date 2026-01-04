@@ -9,7 +9,7 @@ const corsHeaders = {
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
 // Graph API version - keep in sync with social-oauth-start
-const GRAPH_VERSION = '21.0';
+const GRAPH_VERSION = '24.0';
 
 interface TokenResponse {
   access_token: string;

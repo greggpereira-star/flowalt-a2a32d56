@@ -19,7 +19,7 @@ const corsHeaders = {
  * redirecting to OAuth (which would fail with Invalid Scopes if misconfigured).
  */
 
-const GRAPH_VERSION = '21.0';
+const GRAPH_VERSION = '24.0';
 
 /**
  * Scope capability groups

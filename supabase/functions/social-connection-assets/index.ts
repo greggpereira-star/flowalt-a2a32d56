@@ -9,7 +9,7 @@ const corsHeaders = {
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
 // Graph API version
-const GRAPH_VERSION = '21.0';
+const GRAPH_VERSION = '24.0';
 
 interface Asset {
   asset_type: string;
