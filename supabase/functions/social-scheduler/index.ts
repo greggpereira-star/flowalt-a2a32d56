@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Graph API version - MUST match Meta App configuration
+const GRAPH_VERSION = '24.0';
+
 interface SocialPost {
   id: string;
   workspace_id: string;
@@ -15,7 +18,7 @@ interface SocialPost {
   caption: string;
   hashtags: string[];
   media_urls: unknown[];
-  content_type: string;
+  content_type: string; // feed, story, reels, carousel, video
   scheduled_at: string;
   retry_count: number;
   max_retries: number;
@@ -29,6 +32,14 @@ interface PublishResult {
   error_message?: string;
   error_code?: string;
   retryable?: boolean;
+}
+
+interface PlatformCredentials {
+  access_token_encrypted: string;
+  page_access_token_encrypted?: string;
+  platform_account_type: string;
+  account_id: string;
+  linked_page_id?: string;
 }
 
 // Classify errors as retryable or not
@@ -52,140 +63,956 @@ function decryptToken(encrypted: string): string {
   return new TextDecoder().decode(decrypted);
 }
 
-interface PlatformCredentials {
-  access_token_encrypted: string;
-  platform_account_type: string;
-  account_id: string;
+// Helper to get media URL from various formats
+function getMediaUrl(media: unknown, type: 'image' | 'video'): string | null {
+  if (typeof media === 'string') return media;
+  if (media && typeof media === 'object') {
+    const m = media as Record<string, unknown>;
+    if (m.type === type || !m.type) {
+      return (m.url as string) || null;
+    }
+  }
+  return null;
 }
 
-// REAL publisher - publishes to actual platform APIs
+// Poll for container status (IG requires this)
+async function pollContainerStatus(
+  containerId: string,
+  accessToken: string,
+  maxAttempts = 10,
+  delayMs = 3000
+): Promise<{ ready: boolean; error?: string }> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const response = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${containerId}?fields=status_code,status&access_token=${accessToken}`
+    );
+    
+    if (!response.ok) {
+      return { ready: false, error: 'Failed to check container status' };
+    }
+    
+    const data = await response.json();
+    
+    if (data.status_code === 'FINISHED') {
+      return { ready: true };
+    } else if (data.status_code === 'ERROR') {
+      return { ready: false, error: data.status || 'Container processing failed' };
+    }
+    
+    // Wait before next check
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  
+  return { ready: false, error: 'Container processing timeout' };
+}
+
+// ============================================
+// FACEBOOK PUBLISHING FUNCTIONS
+// ============================================
+
+async function publishFacebookFeed(
+  pageId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const params = new URLSearchParams();
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+  params.set('message', caption);
+  params.set('access_token', accessToken);
+
+  // Check for photo
+  const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
+  const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
+
+  // Check for link
+  const linkMedia = post.media_urls?.find((m: unknown) => {
+    if (m && typeof m === 'object' && 'type' in m) {
+      return (m as Record<string, unknown>).type === 'link';
+    }
+    return false;
+  });
+
+  if (imageUrl) {
+    // Photo post
+    params.set('url', imageUrl);
+    const response = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/photos`,
+      { method: 'POST', body: params }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        success: false,
+        error_code: error.error?.code?.toString() || 'FB_PHOTO_ERROR',
+        error_message: error.error?.message || 'Failed to publish photo',
+        retryable: error.error?.code !== 190,
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      platform_post_id: result.post_id || result.id,
+      platform_url: `https://facebook.com/${result.post_id || result.id}`,
+    };
+  }
+
+  // Text/link post
+  if (linkMedia && typeof linkMedia === 'object' && 'url' in linkMedia) {
+    params.set('link', (linkMedia as { url: string }).url);
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/feed`,
+    { method: 'POST', body: params }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'FB_FEED_ERROR',
+      error_message: error.error?.message || 'Failed to publish to feed',
+      retryable: error.error?.code !== 190,
+    };
+  }
+
+  const result = await response.json();
+  return {
+    success: true,
+    platform_post_id: result.id,
+    platform_url: `https://facebook.com/${result.id}`,
+  };
+}
+
+async function publishFacebookCarousel(
+  pageId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const imageUrls = post.media_urls
+    ?.map((m: unknown) => getMediaUrl(m, 'image'))
+    .filter((url): url is string => !!url);
+
+  if (!imageUrls || imageUrls.length < 2) {
+    return {
+      success: false,
+      error_code: 'CAROUSEL_MIN_IMAGES',
+      error_message: 'Carousel requires at least 2 images',
+      retryable: false,
+    };
+  }
+
+  // Step 1: Upload each photo with published=false
+  const photoIds: string[] = [];
+  
+  for (const imageUrl of imageUrls) {
+    const params = new URLSearchParams();
+    params.set('url', imageUrl);
+    params.set('published', 'false');
+    params.set('access_token', accessToken);
+
+    const response = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/photos`,
+      { method: 'POST', body: params }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        success: false,
+        error_code: 'FB_CAROUSEL_UPLOAD_ERROR',
+        error_message: error.error?.message || 'Failed to upload carousel image',
+        retryable: true,
+      };
+    }
+
+    const result = await response.json();
+    photoIds.push(result.id);
+  }
+
+  // Step 2: Create carousel post with attached_media
+  const attachedMedia = photoIds.map(id => ({ media_fbid: id }));
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+
+  const response = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/feed`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: caption,
+        attached_media: attachedMedia,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    return {
+      success: false,
+      error_code: 'FB_CAROUSEL_POST_ERROR',
+      error_message: error.error?.message || 'Failed to create carousel post',
+      retryable: true,
+    };
+  }
+
+  const result = await response.json();
+  return {
+    success: true,
+    platform_post_id: result.id,
+    platform_url: `https://facebook.com/${result.id}`,
+  };
+}
+
+async function publishFacebookReel(
+  pageId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
+  const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+
+  if (!videoUrl) {
+    return {
+      success: false,
+      error_code: 'NO_VIDEO',
+      error_message: 'Facebook Reels require a video',
+      retryable: false,
+    };
+  }
+
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+
+  // Step 1: Start upload session
+  const startResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/video_reels`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        upload_phase: 'start',
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!startResponse.ok) {
+    const error = await startResponse.json();
+    return {
+      success: false,
+      error_code: 'FB_REEL_START_ERROR',
+      error_message: error.error?.message || 'Failed to start Reel upload',
+      retryable: true,
+    };
+  }
+
+  const startResult = await startResponse.json();
+  const videoId = startResult.video_id;
+
+  // Step 2: Upload video via URL (simplified - for URL-based uploads)
+  // For resumable uploads, you'd use rupload.facebook.com with binary data
+  const uploadResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${videoId}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_url: videoUrl,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!uploadResponse.ok) {
+    const error = await uploadResponse.json();
+    return {
+      success: false,
+      error_code: 'FB_REEL_UPLOAD_ERROR',
+      error_message: error.error?.message || 'Failed to upload Reel video',
+      retryable: true,
+    };
+  }
+
+  // Step 3: Finish and publish
+  const finishResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/video_reels`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        upload_phase: 'finish',
+        video_id: videoId,
+        video_state: 'PUBLISHED',
+        description: caption,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!finishResponse.ok) {
+    const error = await finishResponse.json();
+    return {
+      success: false,
+      error_code: 'FB_REEL_FINISH_ERROR',
+      error_message: error.error?.message || 'Failed to publish Reel',
+      retryable: true,
+    };
+  }
+
+  const finishResult = await finishResponse.json();
+  return {
+    success: true,
+    platform_post_id: finishResult.video_id || videoId,
+    platform_url: `https://facebook.com/reel/${finishResult.video_id || videoId}`,
+  };
+}
+
+async function publishFacebookStory(
+  pageId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
+  const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
+  
+  const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
+  const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+
+  if (videoUrl) {
+    // Video Story
+    const startResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/video_stories`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          upload_phase: 'start',
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!startResponse.ok) {
+      const error = await startResponse.json();
+      return {
+        success: false,
+        error_code: 'FB_STORY_VIDEO_START_ERROR',
+        error_message: error.error?.message || 'Failed to start Story video upload',
+        retryable: true,
+      };
+    }
+
+    const startResult = await startResponse.json();
+    const videoId = startResult.video_id;
+
+    // Upload video
+    const uploadResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${videoId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_url: videoUrl,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.json();
+      return {
+        success: false,
+        error_code: 'FB_STORY_VIDEO_UPLOAD_ERROR',
+        error_message: error.error?.message || 'Failed to upload Story video',
+        retryable: true,
+      };
+    }
+
+    // Finish
+    const finishResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/video_stories`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          upload_phase: 'finish',
+          video_id: videoId,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!finishResponse.ok) {
+      const error = await finishResponse.json();
+      return {
+        success: false,
+        error_code: 'FB_STORY_VIDEO_FINISH_ERROR',
+        error_message: error.error?.message || 'Failed to publish Story video',
+        retryable: true,
+      };
+    }
+
+    const result = await finishResponse.json();
+    return {
+      success: true,
+      platform_post_id: result.post_id || videoId,
+      platform_url: `https://facebook.com/stories/${pageId}`,
+    };
+  }
+
+  if (imageUrl) {
+    // Photo Story - upload photo first
+    const photoParams = new URLSearchParams();
+    photoParams.set('url', imageUrl);
+    photoParams.set('published', 'false');
+    photoParams.set('access_token', accessToken);
+
+    const photoResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/photos`,
+      { method: 'POST', body: photoParams }
+    );
+
+    if (!photoResponse.ok) {
+      const error = await photoResponse.json();
+      return {
+        success: false,
+        error_code: 'FB_STORY_PHOTO_UPLOAD_ERROR',
+        error_message: error.error?.message || 'Failed to upload Story photo',
+        retryable: true,
+      };
+    }
+
+    const photoResult = await photoResponse.json();
+    const photoId = photoResult.id;
+
+    // Publish as story
+    const storyResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${pageId}/photo_stories`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photo_id: photoId,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!storyResponse.ok) {
+      const error = await storyResponse.json();
+      return {
+        success: false,
+        error_code: 'FB_STORY_PHOTO_PUBLISH_ERROR',
+        error_message: error.error?.message || 'Failed to publish Story photo',
+        retryable: true,
+      };
+    }
+
+    const result = await storyResponse.json();
+    return {
+      success: true,
+      platform_post_id: result.post_id || photoId,
+      platform_url: `https://facebook.com/stories/${pageId}`,
+    };
+  }
+
+  return {
+    success: false,
+    error_code: 'NO_MEDIA',
+    error_message: 'Facebook Stories require an image or video',
+    retryable: false,
+  };
+}
+
+// ============================================
+// INSTAGRAM PUBLISHING FUNCTIONS
+// ============================================
+
+async function publishInstagramFeed(
+  igUserId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
+  const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
+  
+  const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
+  const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+
+  const containerParams = new URLSearchParams();
+  containerParams.set('caption', caption);
+  containerParams.set('access_token', accessToken);
+
+  if (videoUrl) {
+    containerParams.set('video_url', videoUrl);
+    containerParams.set('media_type', 'VIDEO');
+  } else if (imageUrl) {
+    containerParams.set('image_url', imageUrl);
+  } else {
+    return {
+      success: false,
+      error_code: 'NO_MEDIA',
+      error_message: 'Instagram feed posts require an image or video',
+      retryable: false,
+    };
+  }
+
+  // Step 1: Create container
+  const containerResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
+    { method: 'POST', body: containerParams }
+  );
+
+  if (!containerResponse.ok) {
+    const error = await containerResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_CONTAINER_ERROR',
+      error_message: error.error?.message || 'Failed to create media container',
+      retryable: true,
+    };
+  }
+
+  const containerResult = await containerResponse.json();
+  const creationId = containerResult.id;
+
+  // Step 2: Poll for container ready
+  const pollResult = await pollContainerStatus(creationId, accessToken);
+  if (!pollResult.ready) {
+    return {
+      success: false,
+      error_code: 'IG_CONTAINER_PROCESSING',
+      error_message: pollResult.error || 'Container processing failed',
+      retryable: true,
+    };
+  }
+
+  // Step 3: Publish
+  const publishParams = new URLSearchParams();
+  publishParams.set('creation_id', creationId);
+  publishParams.set('access_token', accessToken);
+
+  const publishResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
+    { method: 'POST', body: publishParams }
+  );
+
+  if (!publishResponse.ok) {
+    const error = await publishResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_PUBLISH_ERROR',
+      error_message: error.error?.message || 'Failed to publish',
+      retryable: true,
+    };
+  }
+
+  const publishResult = await publishResponse.json();
+  return {
+    success: true,
+    platform_post_id: publishResult.id,
+    platform_url: `https://instagram.com/p/${publishResult.id}`,
+  };
+}
+
+async function publishInstagramReel(
+  igUserId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
+  const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+
+  if (!videoUrl) {
+    return {
+      success: false,
+      error_code: 'NO_VIDEO',
+      error_message: 'Instagram Reels require a video',
+      retryable: false,
+    };
+  }
+
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+
+  // Get cover image if available
+  const coverMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
+  const coverUrl = coverMedia ? getMediaUrl(coverMedia, 'image') : null;
+
+  // Create Reel container
+  const containerBody: Record<string, string> = {
+    video_url: videoUrl,
+    caption: caption,
+    media_type: 'REELS',
+    access_token: accessToken,
+  };
+
+  if (coverUrl) {
+    containerBody.cover_url = coverUrl;
+  }
+
+  const containerResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(containerBody),
+    }
+  );
+
+  if (!containerResponse.ok) {
+    const error = await containerResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_REEL_CONTAINER_ERROR',
+      error_message: error.error?.message || 'Failed to create Reel container',
+      retryable: true,
+    };
+  }
+
+  const containerResult = await containerResponse.json();
+  const creationId = containerResult.id;
+
+  // Poll for processing (Reels take longer)
+  const pollResult = await pollContainerStatus(creationId, accessToken, 20, 5000);
+  if (!pollResult.ready) {
+    return {
+      success: false,
+      error_code: 'IG_REEL_PROCESSING',
+      error_message: pollResult.error || 'Reel processing failed',
+      retryable: true,
+    };
+  }
+
+  // Publish
+  const publishResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: creationId,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!publishResponse.ok) {
+    const error = await publishResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_REEL_PUBLISH_ERROR',
+      error_message: error.error?.message || 'Failed to publish Reel',
+      retryable: true,
+    };
+  }
+
+  const publishResult = await publishResponse.json();
+  return {
+    success: true,
+    platform_post_id: publishResult.id,
+    platform_url: `https://instagram.com/reel/${publishResult.id}`,
+  };
+}
+
+async function publishInstagramStory(
+  igUserId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
+  const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
+  
+  const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
+  const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+
+  const containerBody: Record<string, string> = {
+    media_type: 'STORIES',
+    access_token: accessToken,
+  };
+
+  if (videoUrl) {
+    containerBody.video_url = videoUrl;
+  } else if (imageUrl) {
+    containerBody.image_url = imageUrl;
+  } else {
+    return {
+      success: false,
+      error_code: 'NO_MEDIA',
+      error_message: 'Instagram Stories require an image or video',
+      retryable: false,
+    };
+  }
+
+  // Create Story container
+  const containerResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(containerBody),
+    }
+  );
+
+  if (!containerResponse.ok) {
+    const error = await containerResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_STORY_CONTAINER_ERROR',
+      error_message: error.error?.message || 'Failed to create Story container',
+      retryable: true,
+    };
+  }
+
+  const containerResult = await containerResponse.json();
+  const creationId = containerResult.id;
+
+  // Poll for processing
+  const pollResult = await pollContainerStatus(creationId, accessToken);
+  if (!pollResult.ready) {
+    return {
+      success: false,
+      error_code: 'IG_STORY_PROCESSING',
+      error_message: pollResult.error || 'Story processing failed',
+      retryable: true,
+    };
+  }
+
+  // Publish
+  const publishResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: creationId,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!publishResponse.ok) {
+    const error = await publishResponse.json();
+    return {
+      success: false,
+      error_code: error.error?.code?.toString() || 'IG_STORY_PUBLISH_ERROR',
+      error_message: error.error?.message || 'Failed to publish Story',
+      retryable: true,
+    };
+  }
+
+  const publishResult = await publishResponse.json();
+  return {
+    success: true,
+    platform_post_id: publishResult.id,
+    platform_url: `https://instagram.com/stories/${igUserId}`,
+  };
+}
+
+async function publishInstagramCarousel(
+  igUserId: string,
+  accessToken: string,
+  post: SocialPost
+): Promise<PublishResult> {
+  const mediaItems = post.media_urls || [];
+  
+  if (mediaItems.length < 2) {
+    return {
+      success: false,
+      error_code: 'CAROUSEL_MIN_ITEMS',
+      error_message: 'Instagram Carousel requires at least 2 media items',
+      retryable: false,
+    };
+  }
+
+  if (mediaItems.length > 10) {
+    return {
+      success: false,
+      error_code: 'CAROUSEL_MAX_ITEMS',
+      error_message: 'Instagram Carousel supports maximum 10 media items',
+      retryable: false,
+    };
+  }
+
+  const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+  const childrenIds: string[] = [];
+
+  // Step 1: Create child containers
+  for (const media of mediaItems) {
+    const imageUrl = getMediaUrl(media, 'image');
+    const videoUrl = getMediaUrl(media, 'video');
+
+    const childBody: Record<string, string> = {
+      is_carousel_item: 'true',
+      access_token: accessToken,
+    };
+
+    if (videoUrl) {
+      childBody.video_url = videoUrl;
+      childBody.media_type = 'VIDEO';
+    } else if (imageUrl) {
+      childBody.image_url = imageUrl;
+    } else {
+      continue; // Skip invalid items
+    }
+
+    const childResponse = await fetch(
+      `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(childBody),
+      }
+    );
+
+    if (!childResponse.ok) {
+      const error = await childResponse.json();
+      return {
+        success: false,
+        error_code: 'IG_CAROUSEL_CHILD_ERROR',
+        error_message: error.error?.message || 'Failed to create carousel item',
+        retryable: true,
+      };
+    }
+
+    const childResult = await childResponse.json();
+    
+    // Poll for child processing
+    const pollResult = await pollContainerStatus(childResult.id, accessToken);
+    if (!pollResult.ready) {
+      return {
+        success: false,
+        error_code: 'IG_CAROUSEL_CHILD_PROCESSING',
+        error_message: pollResult.error || 'Carousel item processing failed',
+        retryable: true,
+      };
+    }
+    
+    childrenIds.push(childResult.id);
+  }
+
+  if (childrenIds.length < 2) {
+    return {
+      success: false,
+      error_code: 'CAROUSEL_INVALID_ITEMS',
+      error_message: 'Could not process enough valid media items',
+      retryable: false,
+    };
+  }
+
+  // Step 2: Create carousel container
+  const carouselResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        media_type: 'CAROUSEL',
+        caption: caption,
+        children: childrenIds,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!carouselResponse.ok) {
+    const error = await carouselResponse.json();
+    return {
+      success: false,
+      error_code: 'IG_CAROUSEL_CONTAINER_ERROR',
+      error_message: error.error?.message || 'Failed to create carousel container',
+      retryable: true,
+    };
+  }
+
+  const carouselResult = await carouselResponse.json();
+  const creationId = carouselResult.id;
+
+  // Step 3: Publish
+  const publishResponse = await fetch(
+    `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: creationId,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!publishResponse.ok) {
+    const error = await publishResponse.json();
+    return {
+      success: false,
+      error_code: 'IG_CAROUSEL_PUBLISH_ERROR',
+      error_message: error.error?.message || 'Failed to publish carousel',
+      retryable: true,
+    };
+  }
+
+  const publishResult = await publishResponse.json();
+  return {
+    success: true,
+    platform_post_id: publishResult.id,
+    platform_url: `https://instagram.com/p/${publishResult.id}`,
+  };
+}
+
+// ============================================
+// MAIN PUBLISHER ROUTER
+// ============================================
+
 async function publishToplatform(post: SocialPost, credentials: PlatformCredentials): Promise<PublishResult> {
-  const accessToken = decryptToken(credentials.access_token_encrypted);
+  // Get appropriate token (page token for Meta assets)
+  const accessToken = credentials.page_access_token_encrypted 
+    ? decryptToken(credentials.page_access_token_encrypted)
+    : decryptToken(credentials.access_token_encrypted);
+  
   const assetType = credentials.platform_account_type;
   const assetId = credentials.account_id;
+  const contentType = post.content_type || 'feed';
 
   try {
     switch (post.platform) {
       case 'facebook':
         if (assetType === 'facebook_page') {
-          // Publish to Facebook Page feed
-          const fbParams = new URLSearchParams();
-          fbParams.set('message', post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
-          fbParams.set('access_token', accessToken);
-
-          // If there's a link/URL in media, add it
-          const linkMedia = post.media_urls?.find((m: any) => m.type === 'link');
-          if (linkMedia && typeof linkMedia === 'object' && 'url' in linkMedia) {
-            fbParams.set('link', (linkMedia as { url: string }).url);
+          switch (contentType) {
+            case 'story':
+              return await publishFacebookStory(assetId, accessToken, post);
+            case 'reels':
+              return await publishFacebookReel(assetId, accessToken, post);
+            case 'carousel':
+              return await publishFacebookCarousel(assetId, accessToken, post);
+            case 'video':
+            case 'feed':
+            default:
+              return await publishFacebookFeed(assetId, accessToken, post);
           }
-
-          const fbResponse = await fetch(
-            `https://graph.facebook.com/v24.0/${assetId}/feed`,
-            { method: 'POST', body: fbParams }
-          );
-
-          if (!fbResponse.ok) {
-            const error = await fbResponse.json();
-            return {
-              success: false,
-              error_code: error.error?.code?.toString() || 'FB_API_ERROR',
-              error_message: error.error?.message || 'Facebook publishing failed',
-              retryable: error.error?.code === 190 ? false : true,
-            };
-          }
-
-          const fbResult = await fbResponse.json();
-          return {
-            success: true,
-            platform_post_id: fbResult.id,
-            platform_url: `https://facebook.com/${fbResult.id}`,
-          };
         }
         break;
 
       case 'instagram':
         if (assetType === 'instagram_business') {
-          // Instagram requires a two-step process for images
-          // Step 1: Create media container
-          const imageMedia = post.media_urls?.find((m: any) => m.type === 'image' || typeof m === 'string');
-          const imageUrl = typeof imageMedia === 'string' ? imageMedia : (imageMedia as any)?.url;
-
-          if (!imageUrl) {
-            return {
-              success: false,
-              error_code: 'NO_IMAGE',
-              error_message: 'Instagram posts require an image',
-              retryable: false,
-            };
+          switch (contentType) {
+            case 'story':
+              return await publishInstagramStory(assetId, accessToken, post);
+            case 'reels':
+              return await publishInstagramReel(assetId, accessToken, post);
+            case 'carousel':
+              return await publishInstagramCarousel(assetId, accessToken, post);
+            case 'video':
+            case 'feed':
+            default:
+              return await publishInstagramFeed(assetId, accessToken, post);
           }
-
-          const containerParams = new URLSearchParams();
-          containerParams.set('image_url', imageUrl);
-          containerParams.set('caption', post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''));
-          containerParams.set('access_token', accessToken);
-
-          const containerResponse = await fetch(
-            `https://graph.facebook.com/v24.0/${assetId}/media`,
-            { method: 'POST', body: containerParams }
-          );
-
-          if (!containerResponse.ok) {
-            const error = await containerResponse.json();
-            return {
-              success: false,
-              error_code: error.error?.code?.toString() || 'IG_CONTAINER_ERROR',
-              error_message: error.error?.message || 'Failed to create Instagram media container',
-              retryable: true,
-            };
-          }
-
-          const containerResult = await containerResponse.json();
-          const creationId = containerResult.id;
-
-          // Wait for container to be ready (poll status)
-          await new Promise(resolve => setTimeout(resolve, 5000));
-
-          // Step 2: Publish the container
-          const publishParams = new URLSearchParams();
-          publishParams.set('creation_id', creationId);
-          publishParams.set('access_token', accessToken);
-
-          const publishResponse = await fetch(
-            `https://graph.facebook.com/v24.0/${assetId}/media_publish`,
-            { method: 'POST', body: publishParams }
-          );
-
-          if (!publishResponse.ok) {
-            const error = await publishResponse.json();
-            return {
-              success: false,
-              error_code: error.error?.code?.toString() || 'IG_PUBLISH_ERROR',
-              error_message: error.error?.message || 'Failed to publish Instagram media',
-              retryable: true,
-            };
-          }
-
-          const publishResult = await publishResponse.json();
-          return {
-            success: true,
-            platform_post_id: publishResult.id,
-            platform_url: `https://instagram.com/p/${publishResult.id}`,
-          };
         }
         break;
 
-      case 'youtube':
-        // YouTube publishing requires video upload which is complex
-        // Return informative error for now
-        return {
-          success: false,
-          error_code: 'NOT_IMPLEMENTED',
-          error_message: 'YouTube video publishing requires additional implementation',
-          retryable: false,
-        };
-
       case 'linkedin':
-        // LinkedIn UGC Post (text-only for now)
         const linkedInPayload = {
           author: `urn:li:person:${assetId}`,
           lifecycleState: 'PUBLISHED',
@@ -229,14 +1056,6 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
           platform_url: `https://linkedin.com/feed/update/${linkedInResult.id}`,
         };
 
-      case 'tiktok':
-        return {
-          success: false,
-          error_code: 'NOT_IMPLEMENTED',
-          error_message: 'TikTok video publishing requires additional implementation',
-          retryable: false,
-        };
-
       case 'twitter':
         const twitterPayload = {
           text: post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''),
@@ -268,11 +1087,27 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
           platform_url: `https://twitter.com/i/web/status/${twitterResult.data?.id}`,
         };
 
+      case 'youtube':
+        return {
+          success: false,
+          error_code: 'NOT_IMPLEMENTED',
+          error_message: 'YouTube video publishing requires additional implementation',
+          retryable: false,
+        };
+
+      case 'tiktok':
+        return {
+          success: false,
+          error_code: 'NOT_IMPLEMENTED',
+          error_message: 'TikTok video publishing requires additional implementation',
+          retryable: false,
+        };
+
       default:
         return {
           success: false,
           error_code: 'UNSUPPORTED_PLATFORM',
-          error_message: `Platform ${post.platform} is not yet supported for publishing`,
+          error_message: `Platform ${post.platform} is not yet supported`,
           retryable: false,
         };
     }
@@ -285,6 +1120,7 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Publishing error for ${post.platform}/${contentType}:`, errorMessage);
     return {
       success: false,
       error_code: 'NETWORK_ERROR',
