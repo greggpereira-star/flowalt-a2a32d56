@@ -269,7 +269,31 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
+
+    // Resolve return URL (MUST be absolute for Meta callback redirects)
+    const originHeader = req.headers.get('origin') || req.headers.get('referer');
+    let resolvedReturnUrl: string | null = null;
+    if (typeof return_url === 'string' && return_url.length > 0) {
+      try {
+        resolvedReturnUrl = new URL(return_url).toString();
+      } catch {
+        if (originHeader) {
+          try {
+            const origin = new URL(originHeader).origin;
+            resolvedReturnUrl = new URL(return_url.startsWith('/') ? return_url : `/${return_url}`, origin).toString();
+          } catch {
+            resolvedReturnUrl = null;
+          }
+        }
+      }
+    } else if (originHeader) {
+      try {
+        resolvedReturnUrl = new URL('/marketing', new URL(originHeader).origin).toString();
+      } catch {
+        resolvedReturnUrl = null;
+      }
+    }
+
     // Use authenticated user's ID
     const user_id = user.id;
 
@@ -486,7 +510,7 @@ serve(async (req) => {
         workspace_id,
         user_id,
         code_verifier: codeVerifier,
-        return_url: return_url || null,
+        return_url: resolvedReturnUrl,
         expires_at: expiresAt,
         created_at: new Date().toISOString(),
       });
