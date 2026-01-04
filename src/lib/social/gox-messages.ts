@@ -307,16 +307,23 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
   },
   INVALID_SCOPE: {
     superAdmin: {
-      title: 'Escopo OAuth inválido',
+      title: 'Permissões OAuth não disponíveis',
       message:
-        'O provedor rejeitou permissões solicitadas (Invalid Scopes). Isso acontece quando o App Meta não tem os Use Cases/permissões habilitados no App Review. Verifique: pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_manage_insights, instagram_content_publish. Também confirme o redirect URI.',
+        'O Meta retornou "Invalid Scopes" - as permissões solicitadas não estão habilitadas para este App.\n\n' +
+        'Para corrigir:\n' +
+        '1. Acesse Meta for Developers → Seu App → Casos de uso\n' +
+        '2. Habilite "Facebook Login for Business"\n' +
+        '3. Adicione as permissões: pages_show_list, pages_read_engagement, pages_manage_posts\n' +
+        '4. Para Instagram: instagram_basic, instagram_manage_insights, instagram_content_publish\n' +
+        '5. Complete o App Review para cada permissão\n' +
+        '6. Verifique se a URI de redirecionamento está correta nas configurações OAuth',
       cta: 'Meta for Developers',
       ctaUrl: 'https://developers.facebook.com/apps',
       severity: 'error',
     },
     client: {
       title: 'Integração indisponível',
-      message: 'A integração está com configuração pendente de permissões. Contate o administrador ou suporte.',
+      message: 'A integração com Meta está com configuração pendente de permissões. O administrador do sistema foi notificado.',
       severity: 'error',
     },
   },

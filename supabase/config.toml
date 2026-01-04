@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.social-disconnect]
 verify_jwt = false
+
+[functions.social-meta-preflight]
+verify_jwt = false
