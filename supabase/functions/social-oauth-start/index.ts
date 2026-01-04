@@ -103,8 +103,11 @@ const META_CAPABILITY_SCOPES = {
  */
 
 // Initial connect - MINIMAL scopes that always work
+// CRITICAL: public_profile alone causes "Invalid Scopes" on Business Apps
+// Must include at least 'email' OR actual business scopes
 const META_SCOPES_CONNECT = [
   'public_profile',
+  'email',
 ];
 
 // Scopes needed for listing pages
@@ -133,8 +136,10 @@ const META_SCOPES_FULL = [
 ];
 
 // Minimal scopes for development/testing
+// CRITICAL: Must include 'email' to avoid "Invalid Scopes" on Business Apps
 const META_SCOPES_MINIMAL = [
   'public_profile',
+  'email',
 ];
 
 // Facebook-only (no Instagram)
