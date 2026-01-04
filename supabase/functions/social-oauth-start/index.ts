@@ -354,6 +354,45 @@ serve(async (req) => {
     const effectiveScopeStrategy = scope_strategy || 'full';
 
     // ===========================================
+    // ROLE CHECK - Only Owner, Admin, Coordinator can connect
+    // ===========================================
+    
+    const { data: memberRole } = await supabase
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', workspace_id)
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    const allowedRoles = ['super_admin', 'owner', 'admin', 'coordinator'];
+    if (!memberRole || !allowedRoles.includes(memberRole.role)) {
+      console.log(`OAuth blocked for user ${user_id}: insufficient role (${memberRole?.role || 'none'})`);
+      
+      await supabase.from('domain_events').insert({
+        workspace_id,
+        aggregate_type: 'social_media',
+        aggregate_id: workspace_id,
+        event_type: 'social_oauth.blocked',
+        payload: {
+          platform,
+          reason: 'INSUFFICIENT_ROLE',
+          user_role: memberRole?.role || null,
+          required_roles: allowedRoles,
+          actor_id: user_id,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          error: 'FORBIDDEN',
+          error_code: 'INSUFFICIENT_ROLE',
+          message: 'Apenas Owner, Admin ou Coordenador podem conectar plataformas.',
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ===========================================
     // ENTITLEMENTS CHECK - Server-side validation
     // ===========================================
     
