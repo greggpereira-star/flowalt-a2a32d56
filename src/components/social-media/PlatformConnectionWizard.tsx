@@ -224,6 +224,8 @@ export function PlatformConnectionWizard({
   const [requiresUpgrade, setRequiresUpgrade] = useState(false);
   const [planLimit, setPlanLimit] = useState<number | null>(null);
   const [showScopeRetry, setShowScopeRetry] = useState(false);
+  const [requiresReauth, setRequiresReauth] = useState(false);
+  const [reauthStrategy, setReauthStrategy] = useState<'pages_list' | 'pages_publish' | 'full' | null>(null);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
@@ -314,7 +316,8 @@ export function PlatformConnectionWizard({
     
     setIsFetchingAssets(true);
     setErrorMessage(null);
-    
+    setRequiresReauth(false);
+    setReauthStrategy(null);
     try {
       const { data, error } = await supabase.functions.invoke('social-connection-assets', {
         body: {
@@ -324,6 +327,15 @@ export function PlatformConnectionWizard({
       });
 
       if (error) throw error;
+
+      // Handle REQUIRES_REAUTH - user needs to add more permissions
+      if (data.error_code === 'REQUIRES_REAUTH' || data.reason_code === 'REQUIRES_REAUTH') {
+        console.log('Requires re-auth with strategy:', data.reauth_strategy);
+        setRequiresReauth(true);
+        setReauthStrategy(data.reauth_strategy || 'pages_list');
+        setErrorMessage(data.reason_message || 'Precisamos de permissões adicionais para listar suas páginas.');
+        return;
+      }
 
       if (data.success && data.assets) {
         setAvailableAssets(data.assets);
@@ -399,12 +411,15 @@ export function PlatformConnectionWizard({
   /**
    * Start OAuth flow with optional scope strategy
    * 
-   * Scope strategies for Meta:
+   * Scope strategies for Meta (AUTOMATIC FALLBACK):
+   * - 'connect' (NEW DEFAULT): Only public_profile - always works, no App Review needed
+   * - 'pages_list': For listing pages
+   * - 'pages_publish': For managing/publishing to pages
    * - 'full': All production scopes (requires App Review)
-   * - 'minimal': Only public_profile (development mode fallback)
-   * - 'pages_only': Pages scopes without Instagram
+   * - 'minimal': Same as connect (backwards compat)
+   * - 'pages_only': Same as pages_publish (backwards compat)
    */
-  const handleStartOAuth = async (scopeStrategy: 'full' | 'minimal' | 'pages_only' = 'full') => {
+  const handleStartOAuth = async (scopeStrategy: 'connect' | 'pages_list' | 'pages_publish' | 'full' | 'minimal' | 'pages_only' = 'connect') => {
     if (!currentWorkspace?.id || !user?.id) {
       toast.error('Erro: workspace ou usuário não encontrado');
       return;
@@ -760,7 +775,7 @@ export function PlatformConnectionWizard({
                 <Separator />
 
                 <Button
-                  onClick={() => handleStartOAuth('full')}
+                  onClick={() => handleStartOAuth(isMetaPlatform ? 'connect' : 'full')}
                   disabled={isConnecting}
                   className="w-full"
                   size="lg"
@@ -848,16 +863,46 @@ export function PlatformConnectionWizard({
                   </button>
                 ))}
               </div>
+            ) : requiresReauth && isMetaPlatform ? (
+              // Need to re-authenticate with additional scopes
+              <div className="space-y-4">
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-800">Permissões adicionais necessárias</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    {errorMessage || 'Para listar suas páginas, precisamos de permissões adicionais.'}
+                  </AlertDescription>
+                </Alert>
+                
+                <Button
+                  onClick={() => handleStartOAuth(reauthStrategy || 'pages_list')}
+                  disabled={isConnecting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecionando...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" />
+                      Adicionar Permissões
+                    </>
+                  )}
+                </Button>
+              </div>
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="whitespace-pre-wrap">
                   {errorMessage || 'Nenhum ativo disponível. Verifique suas permissões.'}
                 </AlertDescription>
               </Alert>
             )}
 
-            {platformConnectionId && !isFetchingAssets && (
+            {platformConnectionId && !isFetchingAssets && !requiresReauth && (
               <Button
                 variant="outline"
                 onClick={() => fetchAssets(platformConnectionId)}
