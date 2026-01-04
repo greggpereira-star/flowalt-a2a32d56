@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,20 +12,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { 
-  useSocialPlatforms, 
-  useConnectPlatform, 
+  useSocialPlatformsWithState,
+  useUnconnectedPlatformState,
   useDisconnectPlatform, 
   useRefreshPlatformToken,
-  type ConnectedPlatform 
+  useTestPlatformConnection,
+  type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
-import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
 import { SmokeTestConsole } from './SmokeTestConsole';
+import type { PlatformState } from '@/lib/social/platform-state';
+import { Link } from 'react-router-dom';
 import {
   Instagram,
   Facebook,
@@ -41,13 +47,19 @@ import {
   AlertCircle,
   Clock,
   Lock,
+  Settings,
+  Zap,
+  Info,
+  ExternalLink,
+  Crown,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
 interface PlatformConfig {
-  id: string;
+  id: PlatformId;
   name: string;
   icon: React.ElementType;
   color: string;
@@ -106,116 +118,409 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+/**
+ * Badge variant based on platform state
+ */
+function getStateBadgeProps(state: PlatformState): {
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  className: string;
+  icon: React.ReactNode;
+  text: string;
+} {
+  switch (state) {
+    case 'CONNECTED':
+      return {
+        variant: 'outline',
+        className: 'bg-green-50 text-green-700 border-green-200',
+        icon: <CheckCircle2 className="h-3 w-3 mr-1" />,
+        text: 'Conectado',
+      };
+    case 'ASSET_REQUIRED':
+      return {
+        variant: 'outline',
+        className: 'bg-blue-50 text-blue-700 border-blue-200',
+        icon: <Settings className="h-3 w-3 mr-1" />,
+        text: 'Selecionar ativo',
+      };
+    case 'EXPIRING':
+      return {
+        variant: 'outline',
+        className: 'bg-amber-50 text-amber-700 border-amber-200',
+        icon: <Clock className="h-3 w-3 mr-1" />,
+        text: 'Token expirando',
+      };
+    case 'EXPIRED':
+      return {
+        variant: 'outline',
+        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        icon: <Clock className="h-3 w-3 mr-1" />,
+        text: 'Token expirado',
+      };
+    case 'ERROR':
+      return {
+        variant: 'outline',
+        className: 'bg-red-50 text-red-700 border-red-200',
+        icon: <AlertCircle className="h-3 w-3 mr-1" />,
+        text: 'Erro',
+      };
+    case 'PROVIDER_NOT_CONFIGURED':
+      return {
+        variant: 'outline',
+        className: 'bg-gray-50 text-gray-500 border-gray-200',
+        icon: <Settings className="h-3 w-3 mr-1" />,
+        text: 'Em configuração',
+      };
+    case 'PLAN_REQUIRED':
+      return {
+        variant: 'outline',
+        className: 'bg-purple-50 text-purple-700 border-purple-200',
+        icon: <Crown className="h-3 w-3 mr-1" />,
+        text: 'Premium',
+      };
+    case 'LIMIT_REACHED':
+      return {
+        variant: 'outline',
+        className: 'bg-amber-50 text-amber-700 border-amber-200',
+        icon: <Lock className="h-3 w-3 mr-1" />,
+        text: 'Limite atingido',
+      };
+    default:
+      return {
+        variant: 'outline',
+        className: 'bg-gray-50 text-gray-600 border-gray-200',
+        icon: null,
+        text: 'Desconectado',
+      };
+  }
+}
+
+/**
+ * Platform Card for connected platforms
+ */
+function ConnectedPlatformCard({
+  platform,
+  config,
+  onDisconnect,
+  onRefresh,
+  onTest,
+  onSelectAsset,
+  onReconnect,
+  isRefreshing,
+  isTesting,
+}: {
+  platform: PlatformWithState;
+  config: PlatformConfig;
+  onDisconnect: () => void;
+  onRefresh: () => void;
+  onTest: () => void;
+  onSelectAsset: () => void;
+  onReconnect: () => void;
+  isRefreshing: boolean;
+  isTesting: boolean;
+}) {
+  const Icon = config.icon;
+  const badgeProps = getStateBadgeProps(platform.computedState);
+  
+  // Don't show fake account names
+  const showAccountName = platform.computedState === 'CONNECTED' || 
+    platform.computedState === 'EXPIRING' || 
+    platform.computedState === 'EXPIRED' ||
+    platform.computedState === 'ERROR';
+  
+  const hasValidAccountName = platform.account_name && 
+    !platform.account_name.includes('account_') &&
+    !platform.account_name.includes('_account');
+
+  return (
+    <Card className="relative overflow-hidden ring-2 ring-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2 rounded-lg text-white", config.bgColor)}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">{config.name}</CardTitle>
+              <CardDescription className="text-xs">
+                {config.description}
+              </CardDescription>
+            </div>
+          </div>
+          <Badge variant={badgeProps.variant} className={badgeProps.className}>
+            {badgeProps.icon}
+            {badgeProps.text}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {/* Account name - only show if valid */}
+          {showAccountName && hasValidAccountName && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium truncate">
+                @{platform.account_name}
+              </span>
+            </div>
+          )}
+          
+          {/* GOX Message for error states */}
+          {(platform.computedState === 'ERROR' || platform.computedState === 'EXPIRED') && 
+            platform.last_error_message && (
+            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+              {platform.last_error_message}
+            </p>
+          )}
+          
+          {/* Action buttons based on state */}
+          <div className="flex flex-wrap items-center gap-2">
+            {platform.computedState === 'ASSET_REQUIRED' && (
+              <Button onClick={onSelectAsset} size="sm" className="flex-1">
+                <Settings className="h-4 w-4 mr-1" />
+                Selecionar ativo
+              </Button>
+            )}
+            
+            {platform.computedState === 'CONNECTED' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={onTest}
+                      disabled={isTesting}
+                    >
+                      {isTesting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Zap className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Testar conexão</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
+            {(platform.computedState === 'EXPIRING') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-1", isRefreshing && "animate-spin")} />
+                Renovar
+              </Button>
+            )}
+            
+            {(platform.computedState === 'EXPIRED' || platform.computedState === 'ERROR') && (
+              <Button
+                size="sm"
+                onClick={onReconnect}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Reconectar
+              </Button>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDisconnect}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Last sync info */}
+          {platform.last_sync_at && (platform.computedState === 'CONNECTED' || platform.computedState === 'EXPIRING') && (
+            <p className="text-xs text-muted-foreground">
+              Última sincronização: {new Date(platform.last_sync_at).toLocaleDateString('pt-BR')}
+            </p>
+          )}
+          
+          {platform.last_tested_at && (
+            <p className="text-xs text-muted-foreground">
+              Última validação: {new Date(platform.last_tested_at).toLocaleString('pt-BR')}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Platform Card for unconnected platforms
+ */
+function UnconnectedPlatformCard({
+  config,
+  onConnect,
+}: {
+  config: PlatformConfig;
+  onConnect: () => void;
+}) {
+  const { computedState, stateConfig, canConnect } = useUnconnectedPlatformState(config.id);
+  const Icon = config.icon;
+  const badgeProps = getStateBadgeProps(computedState);
+
+  // Blocked states
+  const isBlocked = ['PROVIDER_NOT_CONFIGURED', 'PLAN_REQUIRED', 'LIMIT_REACHED'].includes(computedState);
+
+  return (
+    <Card className="relative overflow-hidden transition-all hover:shadow-md">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2 rounded-lg text-white", config.bgColor)}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">{config.name}</CardTitle>
+              <CardDescription className="text-xs">
+                {config.description}
+              </CardDescription>
+            </div>
+          </div>
+          {isBlocked && (
+            <Badge variant={badgeProps.variant} className={badgeProps.className}>
+              {badgeProps.icon}
+              {badgeProps.text}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {computedState === 'PROVIDER_NOT_CONFIGURED' ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {stateConfig.goxMessage.message}
+                  </p>
+                  <Button disabled variant="secondary" className="w-full">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Em configuração
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p>O administrador do sistema está configurando esta integração.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : computedState === 'PLAN_REQUIRED' ? (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {stateConfig.goxMessage.message}
+            </p>
+            <Button asChild variant="secondary" className="w-full">
+              <Link to="/settings?tab=plano">
+                <Crown className="h-4 w-4 mr-2" />
+                Ver planos
+              </Link>
+            </Button>
+          </div>
+        ) : computedState === 'LIMIT_REACHED' ? (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {stateConfig.goxMessage.message}
+            </p>
+            <Button asChild variant="secondary" className="w-full">
+              <Link to="/settings?tab=plano">
+                <Lock className="h-4 w-4 mr-2" />
+                Fazer upgrade
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={onConnect}
+            disabled={!canConnect}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Conectar
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
-  const { has, limit } = useEntitlementRegistry();
   const queryClient = useQueryClient();
   
-  const { data: platforms } = useSocialPlatforms();
-  const connectPlatform = useConnectPlatform();
+  const { 
+    data: platforms, 
+    isLoading,
+    hasSocialPublish,
+    platformsLimit,
+    currentPlatformCount,
+    canConnectMore,
+  } = useSocialPlatformsWithState();
+  
   const disconnectPlatform = useDisconnectPlatform();
   const refreshToken = useRefreshPlatformToken();
+  const testConnection = useTestPlatformConnection();
   
-  const [disconnectDialog, setDisconnectDialog] = useState<{ open: boolean; platform: ConnectedPlatform | null }>({
+  const [disconnectDialog, setDisconnectDialog] = useState<{ 
+    open: boolean; 
+    platform: PlatformWithState | null;
+  }>({
     open: false,
     platform: null,
   });
   
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
+  const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect'>('connect');
 
-  const togglePlatform = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('social_platforms')
-        .update({ is_active: isActive })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
-    },
-  });
-
-  const hasSocialPublish = has('social_publish');
-  const platformsLimit = limit('social_platforms_limit');
-  const connectedCount = platforms?.filter(p => p.is_active)?.length || 0;
-  const canConnectMore = platformsLimit === null || connectedCount < platformsLimit;
-
-  const getConnectedPlatform = (platformId: string) => {
-    return platforms?.find(p => p.platform === platformId);
+  const getConnectedPlatform = (platformId: string): PlatformWithState | undefined => {
+    return platforms?.find(p => p.platform === platformId && p.is_active);
   };
 
-  const getStatusBadge = (platform: ConnectedPlatform) => {
-    if (!platform) return null;
-    
-    switch (platform.connection_status) {
-      case 'connected':
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Conectado
-          </Badge>
-        );
-      case 'pending_assets':
-        return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Selecionar ativo
-          </Badge>
-        );
-      case 'expiring':
-        return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Token expirando
-          </Badge>
-        );
-      case 'expired':
-        return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Token expirado
-          </Badge>
-        );
-      case 'error':
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Erro
-          </Badge>
-        );
-      default:
-        return null;
-    }
+  const handleConnect = (platformId: PlatformId, platformName: string) => {
+    setSelectedPlatform({ id: platformId, name: platformName });
+    setWizardMode('connect');
+    setWizardOpen(true);
   };
 
-  const handleConnect = (platformId: string, platformName: string) => {
-    if (!canConnectMore) {
-      toast.error('Limite de plataformas atingido', {
-        description: 'Faça upgrade do seu plano para conectar mais plataformas.',
-      });
-      return;
-    }
+  const handleSelectAsset = (platform: PlatformWithState, platformName: string) => {
+    setSelectedPlatform({ id: platform.platform as PlatformId, name: platformName });
+    setWizardMode('asset_select');
+    setWizardOpen(true);
+  };
 
-    // Open the wizard instead of mock connection
-    setSelectedPlatform({ id: platformId as PlatformId, name: platformName });
+  const handleReconnect = (platformId: PlatformId, platformName: string) => {
+    setSelectedPlatform({ id: platformId, name: platformName });
+    setWizardMode('reconnect');
     setWizardOpen(true);
   };
 
   const handleDisconnect = async () => {
     if (!disconnectDialog.platform) return;
 
-    await disconnectPlatform.mutateAsync(disconnectDialog.platform.id);
+    await disconnectPlatform.mutateAsync({ 
+      platformId: disconnectDialog.platform.id,
+      reason: 'user_initiated',
+    });
     setDisconnectDialog({ open: false, platform: null });
-    toast.success('Plataforma desconectada');
   };
 
   const handleRefreshToken = async (platformId: string) => {
     await refreshToken.mutateAsync(platformId);
-    toast.success('Token atualizado com sucesso!');
   };
 
+  const handleTestConnection = async (platformId: string) => {
+    await testConnection.mutateAsync(platformId);
+  };
+
+  // Plan required - show upgrade card
   if (!hasSocialPublish) {
     return (
       <Card className="border-dashed">
@@ -226,7 +531,9 @@ export function PlatformConnector() {
             Conecte suas redes sociais e publique diretamente do FlowAlt.
             Faça upgrade para PRO para desbloquear.
           </p>
-          <Button className="mt-4">Ver planos</Button>
+          <Button asChild className="mt-4">
+            <Link to="/settings?tab=plano">Ver planos</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -238,7 +545,7 @@ export function PlatformConnector() {
         <div>
           <h2 className="text-xl font-semibold">Plataformas Conectadas</h2>
           <p className="text-sm text-muted-foreground">
-            {connectedCount} de {platformsLimit ?? '∞'} plataformas conectadas
+            {currentPlatformCount} de {platformsLimit ?? '∞'} plataformas conectadas
           </p>
         </div>
         {!canConnectMore && (
@@ -250,95 +557,37 @@ export function PlatformConnector() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {PLATFORMS.map((platform) => {
-          const connected = getConnectedPlatform(platform.id);
-          const Icon = platform.icon;
+        {PLATFORMS.map((config) => {
+          const connected = getConnectedPlatform(config.id);
+
+          if (connected) {
+            return (
+              <ConnectedPlatformCard
+                key={config.id}
+                platform={connected}
+                config={config}
+                onDisconnect={() => setDisconnectDialog({ open: true, platform: connected })}
+                onRefresh={() => handleRefreshToken(connected.id)}
+                onTest={() => handleTestConnection(connected.id)}
+                onSelectAsset={() => handleSelectAsset(connected, config.name)}
+                onReconnect={() => handleReconnect(config.id, config.name)}
+                isRefreshing={refreshToken.isPending}
+                isTesting={testConnection.isPending}
+              />
+            );
+          }
 
           return (
-            <Card
-              key={platform.id}
-              className={cn(
-                "relative overflow-hidden transition-all",
-                connected && "ring-2 ring-primary/20"
-              )}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-lg text-white", platform.bgColor)}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{platform.name}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {platform.description}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  {connected && (
-                    <Switch
-                      checked={connected.is_active}
-                      onCheckedChange={(checked) => togglePlatform.mutate({ id: connected.id, isActive: checked })}
-                    />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {connected ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium truncate">
-                        @{connected.account_name}
-                      </span>
-                      {getStatusBadge(connected)}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {connected.connection_status === 'expired' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRefreshToken(connected.id)}
-                          disabled={refreshToken.isPending}
-                        >
-                          <RefreshCw className={cn("h-4 w-4 mr-1", refreshToken.isPending && "animate-spin")} />
-                          Reconectar
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDisconnectDialog({ open: true, platform: connected })}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Desconectar
-                      </Button>
-                    </div>
-
-                    {connected.last_sync_at && (
-                      <p className="text-xs text-muted-foreground">
-                        Última sincronização: {new Date(connected.last_sync_at).toLocaleDateString('pt-BR')}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    onClick={() => handleConnect(platform.id, platform.name)}
-                    disabled={!canConnectMore || connectPlatform.isPending}
-                    className="w-full"
-                    variant={canConnectMore ? "default" : "secondary"}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Conectar
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <UnconnectedPlatformCard
+              key={config.id}
+              config={config}
+              onConnect={() => handleConnect(config.id, config.name)}
+            />
           );
         })}
       </div>
 
+      {/* Disconnect confirmation dialog */}
       <AlertDialog
         open={disconnectDialog.open}
         onOpenChange={(open) => setDisconnectDialog({ open, platform: disconnectDialog.platform })}
@@ -347,7 +596,7 @@ export function PlatformConnector() {
           <AlertDialogHeader>
             <AlertDialogTitle>Desconectar plataforma?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso irá remover a conexão com {disconnectDialog.platform?.account_name}.
+              Isso irá remover a conexão com {disconnectDialog.platform?.account_name || 'esta conta'}.
               Posts agendados para esta conta não serão publicados.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -356,7 +605,11 @@ export function PlatformConnector() {
             <AlertDialogAction
               onClick={handleDisconnect}
               className="bg-red-600 hover:bg-red-700"
+              disabled={disconnectPlatform.isPending}
             >
+              {disconnectPlatform.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
               Desconectar
             </AlertDialogAction>
           </AlertDialogFooter>

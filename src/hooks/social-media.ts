@@ -9,3 +9,7 @@ export * from './useSocialMetrics';
 export * from './useSocialHashtags';
 export * from './useSocialMediaTemplates';
 export * from './useSocialMediaTracking';
+
+// Re-export platform state types
+export type { PlatformState } from '@/lib/social/platform-state';
+export { computePlatformState, getPlatformStateConfig, isStateActionable, isStateAttentionRequired } from '@/lib/social/platform-state';
