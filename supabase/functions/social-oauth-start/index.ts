@@ -20,13 +20,8 @@ const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     scopes: [
-      'instagram_basic',
-      'instagram_content_publish',
-      'instagram_manage_comments',
-      'instagram_manage_insights',
-      'pages_show_list',
-      'pages_read_engagement',
-      'business_management',
+      'public_profile',
+      'email',
     ],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
@@ -34,12 +29,8 @@ const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     scopes: [
-      'pages_show_list',
-      'pages_read_engagement',
-      'pages_manage_posts',
-      'pages_read_user_content',
-      'pages_manage_metadata',
-      'business_management',
+      'public_profile',
+      'email',
     ],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
