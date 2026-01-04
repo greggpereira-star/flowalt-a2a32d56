@@ -8,8 +8,8 @@ const corsHeaders = {
 
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
-// Graph API version - update as needed
-const GRAPH_VERSION = '21.0';
+// Graph API version - MUST match your Meta App settings
+const GRAPH_VERSION = '24.0';
 
 interface OAuthConfig {
   authUrl: string;
