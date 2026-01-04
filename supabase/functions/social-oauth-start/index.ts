@@ -102,12 +102,13 @@ const META_CAPABILITY_SCOPES = {
  * This avoids "Invalid Scopes" errors for apps that haven't completed App Review.
  */
 
-// Initial connect - MINIMAL scopes that always work
-// CRITICAL: public_profile alone causes "Invalid Scopes" on Business Apps
-// Must include at least 'email' OR actual business scopes
+// Initial connect - minimal scopes that work for Business Login
+// CRITICAL: Business Login requires at least one *supported* permission (e.g. business_management, ads_read, pages_show_list).
+// public_profile/email alone can trigger the "supported permission" blocking screen.
 const META_SCOPES_CONNECT = [
   'public_profile',
   'email',
+  'business_management',
 ];
 
 // Scopes needed for listing pages
@@ -136,10 +137,11 @@ const META_SCOPES_FULL = [
 ];
 
 // Minimal scopes for development/testing
-// CRITICAL: Must include 'email' to avoid "Invalid Scopes" on Business Apps
+// Keep aligned with CONNECT to avoid Business Login "supported permission" block.
 const META_SCOPES_MINIMAL = [
   'public_profile',
   'email',
+  'business_management',
 ];
 
 // Facebook-only (no Instagram)

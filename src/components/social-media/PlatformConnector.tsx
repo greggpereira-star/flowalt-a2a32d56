@@ -563,7 +563,7 @@ export function PlatformConnector() {
               platform,
               workspace_id: currentWorkspace.id,
               return_url: `${window.location.origin}${window.location.pathname}`,
-              meta_scope_strategy: 'fallback',
+              scope_strategy: 'connect',
             },
           });
 
