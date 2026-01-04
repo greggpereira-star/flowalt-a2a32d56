@@ -332,7 +332,15 @@ serve(async (req) => {
     console.log(`OAuth completed for ${platform}: ${accountInfo.account_name}`);
 
     // Redirect back to app
-    const successUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+    // Prefer an absolute return URL (provided by the web app) to avoid wrong domain redirects.
+    let successUrl: URL;
+    try {
+      successUrl = new URL(returnUrl);
+    } catch {
+      // Backwards-compatible fallback for older stored states
+      successUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+    }
+
     successUrl.searchParams.set('oauth_success', 'true');
     successUrl.searchParams.set('platform', platform);
 
