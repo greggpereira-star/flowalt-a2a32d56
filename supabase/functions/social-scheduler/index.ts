@@ -37,6 +37,7 @@ interface PublishResult {
 interface PlatformCredentials {
   access_token_encrypted: string;
   page_access_token_encrypted?: string;
+  asset_token_encrypted?: string;  // Page token saved during asset selection - preferred for publishing
   platform_account_type: string;
   account_id: string;
   linked_page_id?: string;
@@ -968,9 +969,13 @@ async function publishInstagramCarousel(
 
 async function publishToplatform(post: SocialPost, credentials: PlatformCredentials): Promise<PublishResult> {
   // Get appropriate token (page token for Meta assets)
-  const accessToken = credentials.page_access_token_encrypted 
-    ? decryptToken(credentials.page_access_token_encrypted)
-    : decryptToken(credentials.access_token_encrypted);
+  // Priority: asset_token_encrypted (Page token saved during asset selection) > page_access_token_encrypted > access_token_encrypted
+  // Using the Page Access Token is CRITICAL for publishing to Facebook Pages and Instagram Business accounts
+  const accessToken = credentials.asset_token_encrypted 
+    ? decryptToken(credentials.asset_token_encrypted)
+    : credentials.page_access_token_encrypted 
+      ? decryptToken(credentials.page_access_token_encrypted)
+      : decryptToken(credentials.access_token_encrypted);
   
   const assetType = credentials.platform_account_type;
   const assetId = credentials.account_id;

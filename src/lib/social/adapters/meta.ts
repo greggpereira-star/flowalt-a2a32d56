@@ -17,7 +17,8 @@ import type {
 } from './types';
 import { SocialPlatformError, SocialErrorCode } from './types';
 
-const META_GRAPH_API_VERSION = 'v18.0';
+// IMPORTANT: Keep in sync with social-oauth-start and social-scheduler edge functions
+const META_GRAPH_API_VERSION = 'v24.0';
 const META_GRAPH_API_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
 
 const INSTAGRAM_CAPABILITIES: PlatformCapabilities = {
