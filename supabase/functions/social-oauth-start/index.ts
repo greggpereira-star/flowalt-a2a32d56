@@ -102,13 +102,16 @@ const META_CAPABILITY_SCOPES = {
  * This avoids "Invalid Scopes" errors for apps that haven't completed App Review.
  */
 
-// Initial connect - minimal scopes that work for Business Login
-// CRITICAL: Business Login requires at least one *supported* permission (e.g. business_management, ads_read, pages_show_list).
-// public_profile/email alone can trigger the "supported permission" blocking screen.
+// Initial connect - MUST include pages_show_list to allow listing pages after OAuth
+// CRITICAL: Without pages_show_list, social-connection-assets will return empty
+// business_management is REQUIRED for Business Login to avoid "supported permission" error
 const META_SCOPES_CONNECT = [
   'public_profile',
   'email',
   'business_management',
+  'pages_show_list',          // REQUIRED to list pages after OAuth
+  'pages_read_engagement',    // REQUIRED to get page details/insights
+  'pages_manage_posts',       // REQUIRED to publish content
 ];
 
 // Scopes needed for listing pages
@@ -138,10 +141,14 @@ const META_SCOPES_FULL = [
 
 // Minimal scopes for development/testing
 // Keep aligned with CONNECT to avoid Business Login "supported permission" block.
+// MUST include pages_show_list to list pages after OAuth completes
 const META_SCOPES_MINIMAL = [
   'public_profile',
   'email',
   'business_management',
+  'pages_show_list',          // REQUIRED to list pages
+  'pages_read_engagement',    // REQUIRED to get page details
+  'pages_manage_posts',       // REQUIRED to publish
 ];
 
 // Facebook-only (no Instagram)
