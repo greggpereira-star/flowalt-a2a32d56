@@ -19,19 +19,30 @@ interface OAuthConfig {
 const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // Note: we intentionally avoid requesting additional scopes by default.
-    // Meta will reject scopes that are not enabled/approved for the app.
-    // Once the app has the needed permissions approved, add them back here.
-    scopes: [],
+    // NOTE: Meta will only grant scopes that are enabled/approved for the app.
+    // These scopes are required to list Pages and discover linked Instagram Business accounts.
+    // If Meta rejects any scope, adjust permissions in your Meta app or remove the unapproved ones.
+    scopes: [
+      'pages_show_list',
+      'instagram_basic',
+      // Optional but recommended for analytics/publishing flows:
+      'pages_read_engagement',
+      'instagram_manage_insights',
+      'instagram_content_publish',
+    ],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // Note: we intentionally avoid requesting additional scopes by default.
-    // Meta will reject scopes that are not enabled/approved for the app.
-    // Once the app has the needed permissions approved, add them back here.
-    scopes: [],
+    // NOTE: Meta will only grant scopes that are enabled/approved for the app.
+    // These scopes are required to list Pages and publish as a Page.
+    scopes: [
+      'pages_show_list',
+      // Optional but recommended for analytics/publishing flows:
+      'pages_read_engagement',
+      'pages_manage_posts',
+    ],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },

@@ -296,7 +296,16 @@ export function PlatformConnectionWizard({
       if (data.success && data.assets) {
         setAvailableAssets(data.assets);
         if (data.assets.length === 0) {
-          setErrorMessage('Nenhum ativo encontrado. Verifique se você tem páginas/canais/contas configurados.');
+          if (platformId === 'facebook' || platformId === 'instagram') {
+            setErrorMessage(
+              'Nenhum ativo retornado pela Meta para este login. Isso geralmente acontece quando:\n' +
+              '• você não entrou com o perfil que é admin da Página\n' +
+              '• o app não recebeu as permissões de Páginas (ex.: pages_show_list)\n\n' +
+              'Clique em “Atualizar Lista”. Se continuar vazio, volte e reconecte a plataforma aceitando as permissões.'
+            );
+          } else {
+            setErrorMessage('Nenhum ativo encontrado. Verifique se você tem páginas/canais/contas configurados.');
+          }
         }
       } else {
         setErrorMessage(data.error_message || 'Erro ao buscar ativos');
