@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,10 @@ import {
   Sparkles,
   Loader2,
   Link as LinkIcon,
+  Upload,
+  X,
+  Plus,
+  AlertCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -57,7 +61,19 @@ import {
   type CreateSocialPostInput,
 } from '@/hooks/useSocialPosts';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface MediaFile {
+  id: string;
+  file?: File;
+  url: string;
+  type: 'image' | 'video';
+  preview: string;
+  uploading?: boolean;
+  uploaded?: boolean;
+}
 
 interface CreateSocialPostDialogProps {
   open: boolean;
@@ -113,6 +129,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 }) => {
   const createPost = useCreateSocialPost();
   const { has } = useEntitlementRegistry();
+  const { currentWorkspace } = useWorkspace();
 
   const [platform, setPlatform] = useState<SocialPlatform | ''>(defaultPlatform || '');
   const [contentType, setContentType] = useState<SocialContentType | ''>('');
@@ -126,6 +143,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [utmSource, setUtmSource] = useState('');
   const [utmMedium, setUtmMedium] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
+  const [media, setMedia] = useState<MediaFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const hasUtmBuilder = has('social_utm_builder');
   const hasSchedule = has('social_schedule');
@@ -145,12 +164,140 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUtmSource('');
       setUtmMedium('');
       setUtmCampaign('');
+      setMedia([]);
+      setIsUploading(false);
     }
   }, [open, defaultPlatform]);
+
+  // Upload media to Supabase Storage
+  const uploadMedia = useCallback(async (file: File): Promise<string | null> => {
+    if (!currentWorkspace?.id) return null;
+    
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${currentWorkspace.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('social-media')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('social-media')
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  }, [currentWorkspace?.id]);
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+
+    try {
+      for (const file of Array.from(files)) {
+        const isVideo = file.type.startsWith('video/');
+        const preview = URL.createObjectURL(file);
+        const tempId = crypto.randomUUID();
+
+        // Add to state with uploading indicator
+        setMedia(prev => [...prev, {
+          id: tempId,
+          file,
+          url: '',
+          type: isVideo ? 'video' : 'image',
+          preview,
+          uploading: true,
+          uploaded: false,
+        }]);
+
+        // Upload to storage
+        const publicUrl = await uploadMedia(file);
+        
+        if (publicUrl) {
+          // Update with real URL
+          setMedia(prev => prev.map(m => 
+            m.id === tempId 
+              ? { ...m, url: publicUrl, uploading: false, uploaded: true }
+              : m
+          ));
+        } else {
+          // Remove failed upload
+          setMedia(prev => prev.filter(m => m.id !== tempId));
+          toast.error(`Falha ao enviar ${file.name}`);
+        }
+      }
+    } catch (error: any) {
+      toast.error('Erro ao enviar mídia: ' + (error.message || 'Tente novamente'));
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveMedia = (id: string) => {
+    const item = media.find(m => m.id === id);
+    if (item?.preview) {
+      URL.revokeObjectURL(item.preview);
+    }
+    setMedia(media.filter(m => m.id !== id));
+  };
+
+  // Validation: check if content type requires media
+  const requiresMedia = (type: SocialContentType) => {
+    return ['story', 'reels', 'carousel', 'video', 'short'].includes(type);
+  };
+
+  const getMinMediaCount = () => {
+    if (contentType === 'carousel') return 2;
+    if (requiresMedia(contentType as SocialContentType)) return 1;
+    return 0;
+  };
+
+  const getMaxMediaCount = () => {
+    if (contentType === 'carousel') return 10;
+    if (['story', 'reels', 'video', 'short'].includes(contentType)) return 1;
+    return 10;
+  };
+
+  const mediaValidation = () => {
+    const min = getMinMediaCount();
+    const uploadedMedia = media.filter(m => m.uploaded);
+    if (uploadedMedia.length < min) {
+      if (contentType === 'carousel') return 'Carrossel requer no mínimo 2 mídias';
+      if (contentType === 'story') return 'Story requer uma imagem ou vídeo';
+      if (contentType === 'reels') return 'Reels requer um vídeo';
+      if (contentType === 'video') return 'Vídeo requer um arquivo de vídeo';
+      return null;
+    }
+    return null;
+  };
 
   const handleSubmit = async (asDraft: boolean = true) => {
     if (!platform || !contentType) {
       toast.error('Selecione a plataforma e o tipo de conteúdo');
+      return;
+    }
+
+    // Validate media requirements
+    const mediaError = mediaValidation();
+    if (mediaError) {
+      toast.error(mediaError);
+      return;
+    }
+
+    // Check if any media is still uploading
+    if (media.some(m => m.uploading)) {
+      toast.error('Aguarde o upload das mídias terminar');
       return;
     }
 
@@ -176,13 +323,23 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         }
       : undefined;
 
+    // Build media_urls array with uploaded URLs
+    const uploadedMedia = media
+      .filter(m => m.uploaded && m.url)
+      .map((m, index) => ({
+        url: m.url,
+        type: m.type,
+        order: index,
+      }));
+
     const input: CreateSocialPostInput = {
-      card_id: cardId || null,
+      card_id: cardId || '',
       client_id: clientId || null,
       platform: platform as SocialPlatform,
       content_type: contentType as SocialContentType,
       caption,
       hashtags,
+      media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
       scheduled_at: scheduledAt,
       content_pillar: contentPillar as ContentPillar || undefined,
       funnel_stage: funnelStage as FunnelStage || undefined,
@@ -287,6 +444,122 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Media Upload Section */}
+            {contentType && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Mídia {requiresMedia(contentType as SocialContentType) && '*'}
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    {media.filter(m => m.uploaded).length}/{getMaxMediaCount()} arquivos
+                  </span>
+                </div>
+
+                {/* Media requirement info */}
+                {requiresMedia(contentType as SocialContentType) && (
+                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md flex items-start gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      {contentType === 'carousel' && 'Carrossel requer entre 2 e 10 imagens ou vídeos'}
+                      {contentType === 'story' && 'Story requer uma imagem (9:16) ou vídeo (até 60s)'}
+                      {contentType === 'reels' && 'Reels requer um vídeo vertical (9:16, até 90s)'}
+                      {contentType === 'video' && 'Vídeo requer um arquivo de vídeo'}
+                      {contentType === 'short' && 'Short requer um vídeo vertical (9:16, até 60s)'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Media preview grid */}
+                <div className="flex flex-wrap gap-3">
+                  {media.map(item => (
+                    <div key={item.id} className="relative group">
+                      {item.type === 'image' ? (
+                        <img
+                          src={item.preview}
+                          alt="Preview"
+                          className={cn(
+                            "w-20 h-20 object-cover rounded-lg border",
+                            item.uploading && "opacity-50"
+                          )}
+                        />
+                      ) : (
+                        <div className={cn(
+                          "w-20 h-20 bg-muted rounded-lg flex items-center justify-center border",
+                          item.uploading && "opacity-50"
+                        )}>
+                          <Video className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      
+                      {/* Uploading indicator */}
+                      {item.uploading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        </div>
+                      )}
+
+                      {/* Uploaded checkmark */}
+                      {item.uploaded && (
+                        <div className="absolute bottom-1 right-1 bg-green-500 rounded-full p-0.5">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Remove button */}
+                      {!item.uploading && (
+                        <button
+                          onClick={() => handleRemoveMedia(item.id)}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Upload button */}
+                  {media.length < getMaxMediaCount() && (
+                    <label className={cn(
+                      "w-20 h-20 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors",
+                      isUploading && "opacity-50 cursor-not-allowed"
+                    )}>
+                      {isUploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          <Plus className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground mt-1">Adicionar</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept={contentType === 'reels' || contentType === 'video' || contentType === 'short' 
+                          ? 'video/mp4,video/quicktime,video/webm' 
+                          : 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm'
+                        }
+                        multiple={contentType === 'carousel'}
+                        onChange={handleMediaUpload}
+                        disabled={isUploading}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Validation error */}
+                {mediaValidation() && (
+                  <div className="flex items-center gap-2 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    {mediaValidation()}
+                  </div>
+                )}
               </div>
             )}
 
@@ -481,9 +754,16 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           </Button>
           <Button
             onClick={() => handleSubmit(true)}
-            disabled={!platform || !contentType || createPost.isPending}
+            disabled={
+              !platform || 
+              !contentType || 
+              createPost.isPending || 
+              isUploading || 
+              media.some(m => m.uploading) ||
+              !!mediaValidation()
+            }
           >
-            {createPost.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(createPost.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {scheduledDate && hasSchedule ? 'Agendar Postagem' : 'Salvar como Rascunho'}
           </Button>
         </DialogFooter>
