@@ -27,7 +27,6 @@ import {
   useTestPlatformConnection,
   type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
-import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
@@ -208,6 +207,7 @@ function ConnectedPlatformCard({
   onReconnect,
   isRefreshing,
   isTesting,
+  isSuperAdmin,
 }: {
   platform: PlatformWithState;
   config: PlatformConfig;
@@ -218,6 +218,7 @@ function ConnectedPlatformCard({
   onReconnect: () => void;
   isRefreshing: boolean;
   isTesting: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const Icon = config.icon;
   const badgeProps = getStateBadgeProps(platform.computedState);
@@ -270,6 +271,21 @@ function ConnectedPlatformCard({
             <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
               {platform.last_error_message}
             </p>
+          )}
+
+          {/* Technical details for Super Admin */}
+          {isSuperAdmin && platform.last_error_code && (
+            <div className="text-xs font-mono bg-muted/30 p-2 rounded border border-dashed">
+              <span className="text-muted-foreground">Error code:</span>{' '}
+              <span className="text-destructive">{platform.last_error_code}</span>
+              {platform.connection_status && (
+                <>
+                  <br />
+                  <span className="text-muted-foreground">Status:</span>{' '}
+                  <span>{platform.connection_status}</span>
+                </>
+              )}
+            </div>
           )}
           
           {/* Action buttons based on state */}
@@ -466,7 +482,6 @@ function UnconnectedPlatformCard({
 export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
-  const { isSuperAdmin } = usePlatformAdmin();
   
   const { 
     data: platforms, 
@@ -475,6 +490,7 @@ export function PlatformConnector() {
     platformsLimit,
     currentPlatformCount,
     canConnectMore,
+    isSuperAdmin,
   } = useSocialPlatformsWithState();
   
   const disconnectPlatform = useDisconnectPlatform();
@@ -587,6 +603,7 @@ export function PlatformConnector() {
                 onReconnect={() => handleReconnect(config.id, config.name)}
                 isRefreshing={refreshToken.isPending}
                 isTesting={testConnection.isPending}
+                isSuperAdmin={isSuperAdmin}
               />
             );
           }
