@@ -449,7 +449,7 @@ async function testRealConnection(
     case 'instagram': {
       if (assetType === 'facebook_page') {
         const response = await fetch(
-          `https://graph.facebook.com/v18.0/${assetId}?fields=id,name&access_token=${accessToken}`
+          `https://graph.facebook.com/v24.0/${assetId}?fields=id,name&access_token=${accessToken}`
         );
         if (!response.ok) {
           const error = await response.json();
@@ -459,7 +459,7 @@ async function testRealConnection(
         return { ok: true, detail: `Página verificada: ${data.name}` };
       } else if (assetType === 'instagram_business') {
         const response = await fetch(
-          `https://graph.facebook.com/v18.0/${assetId}?fields=id,username&access_token=${accessToken}`
+          `https://graph.facebook.com/v24.0/${assetId}?fields=id,username&access_token=${accessToken}`
         );
         if (!response.ok) {
           const error = await response.json();

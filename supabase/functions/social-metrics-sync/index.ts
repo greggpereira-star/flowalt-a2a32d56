@@ -44,7 +44,7 @@ async function fetchPlatformMetrics(
         // Fetch post insights from Facebook/Instagram Graph API
         const fields = 'impressions,reach,engagement,likes.summary(true),comments.summary(true),shares';
         const response = await fetch(
-          `https://graph.facebook.com/v18.0/${platformPostId}?fields=${fields}&access_token=${accessToken}`
+          `https://graph.facebook.com/v24.0/${platformPostId}?fields=${fields}&access_token=${accessToken}`
         );
         
         if (!response.ok) {
@@ -58,7 +58,7 @@ async function fetchPlatformMetrics(
         // For Instagram business, try to get insights
         if (assetType === 'instagram_business') {
           const insightsResponse = await fetch(
-            `https://graph.facebook.com/v18.0/${platformPostId}/insights?metric=impressions,reach,engagement,saved&access_token=${accessToken}`
+            `https://graph.facebook.com/v24.0/${platformPostId}/insights?metric=impressions,reach,engagement,saved&access_token=${accessToken}`
           );
           
           if (insightsResponse.ok) {

@@ -47,7 +47,7 @@ async function testAssetConnection(
       case 'facebook':
         if (assetType === 'facebook_page') {
           response = await fetch(
-            `https://graph.facebook.com/v18.0/${assetId}?fields=id,name&access_token=${accessToken}`
+            `https://graph.facebook.com/v24.0/${assetId}?fields=id,name&access_token=${accessToken}`
           );
           
           if (!response.ok) {
@@ -72,7 +72,7 @@ async function testAssetConnection(
           };
         } else if (assetType === 'instagram_business') {
           response = await fetch(
-            `https://graph.facebook.com/v18.0/${assetId}?fields=id,username&access_token=${accessToken}`
+            `https://graph.facebook.com/v24.0/${assetId}?fields=id,username&access_token=${accessToken}`
           );
           
           if (!response.ok) {
@@ -99,7 +99,7 @@ async function testAssetConnection(
         
         // Fallback to /me for old connections without asset
         response = await fetch(
-          `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
+          `https://graph.facebook.com/v24.0/me?fields=id,name&access_token=${accessToken}`
         );
         
         if (!response.ok) {
