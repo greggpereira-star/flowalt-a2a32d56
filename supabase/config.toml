@@ -40,7 +40,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.social-oauth-start]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-oauth-callback]
 verify_jwt = false
