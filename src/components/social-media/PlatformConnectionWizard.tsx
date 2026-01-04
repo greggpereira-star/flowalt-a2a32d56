@@ -35,7 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social/gox-messages';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
@@ -196,8 +196,6 @@ export function PlatformConnectionWizard({
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -225,44 +223,14 @@ export function PlatformConnectionWizard({
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
-  // Check for OAuth callback result and fetch platform connection
+  // When wizard opens, check if we should fetch the platform connection (after OAuth redirect)
+  // The parent component (PlatformConnector) handles detecting the OAuth callback and opening this wizard.
   useEffect(() => {
-    const oauthSuccess = searchParams.get('oauth_success');
-    const oauthError = searchParams.get('oauth_error');
-    const platform = searchParams.get('platform');
-
-    const isForThisPlatform = platform === platformId;
-    const hasOauthResult = (oauthSuccess === 'true' && isForThisPlatform) || (oauthError && isForThisPlatform);
-
-    if (!hasOauthResult) return;
-
-    // After full-page redirect, the wizard will be closed by default.
-    // Auto-open it so the user can continue (asset selection / confirmation).
-    if (!open) {
-      onOpenChange(true);
-    }
-
-    if (oauthSuccess === 'true' && isForThisPlatform) {
+    if (open && currentWorkspace?.id) {
+      // Check if there's a pending connection for this platform
       fetchPlatformConnection();
     }
-
-    if (oauthError && isForThisPlatform) {
-      setConnectionStatus('error');
-      setErrorMessage(searchParams.get('error_description') || 'Erro na autenticação');
-    }
-
-    // Clean URL to avoid re-triggering on refresh
-    const cleaned = new URLSearchParams(searchParams);
-    cleaned.delete('oauth_success');
-    cleaned.delete('oauth_error');
-    cleaned.delete('platform');
-    cleaned.delete('error_description');
-
-    navigate(
-      { pathname: window.location.pathname, search: cleaned.toString() ? `?${cleaned.toString()}` : '' },
-      { replace: true }
-    );
-  }, [searchParams, platformId, open, onOpenChange, navigate]);
+  }, [open, currentWorkspace?.id, platformId]);
 
   // Fetch the platform connection after OAuth
   const fetchPlatformConnection = async () => {

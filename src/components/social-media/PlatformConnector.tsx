@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
 import { SmokeTestConsole } from './SmokeTestConsole';
 import type { PlatformState } from '@/lib/social/platform-state';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Instagram,
   Facebook,
@@ -482,6 +482,7 @@ function UnconnectedPlatformCard({
 export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { 
     data: platforms, 
@@ -508,6 +509,34 @@ export function PlatformConnector() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
   const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect'>('connect');
+
+  // Detect OAuth callback and auto-open wizard
+  useEffect(() => {
+    const oauthSuccess = searchParams.get('oauth_success');
+    const oauthError = searchParams.get('oauth_error');
+    const platform = searchParams.get('platform') as PlatformId | null;
+
+    if (!platform) return;
+
+    const hasOauthResult = oauthSuccess === 'true' || !!oauthError;
+    if (!hasOauthResult) return;
+
+    // Find platform config to get name
+    const platformConfig = PLATFORMS.find(p => p.id === platform);
+    if (platformConfig) {
+      setSelectedPlatform({ id: platform, name: platformConfig.name });
+      setWizardMode('connect');
+      setWizardOpen(true);
+    }
+
+    // Clean URL params (the wizard will handle displaying success/error)
+    const cleaned = new URLSearchParams(searchParams);
+    cleaned.delete('oauth_success');
+    cleaned.delete('oauth_error');
+    cleaned.delete('platform');
+    cleaned.delete('error_description');
+    setSearchParams(cleaned, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const getConnectedPlatform = (platformId: string): PlatformWithState | undefined => {
     // Only return truly active and connected platforms
