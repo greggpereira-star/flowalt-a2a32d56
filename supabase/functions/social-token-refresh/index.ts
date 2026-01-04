@@ -77,7 +77,7 @@ async function refreshPlatformToken(
     case 'facebook':
       // Meta uses long-lived tokens, refresh by exchanging
       response = await fetch(
-        `https://graph.facebook.com/v18.0/oauth/access_token?` +
+        `https://graph.facebook.com/v24.0/oauth/access_token?` +
         `grant_type=fb_exchange_token&` +
         `client_id=${clientId}&` +
         `client_secret=${clientSecret}&` +

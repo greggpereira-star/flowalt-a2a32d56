@@ -80,7 +80,7 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
           }
 
           const fbResponse = await fetch(
-            `https://graph.facebook.com/v18.0/${assetId}/feed`,
+            `https://graph.facebook.com/v24.0/${assetId}/feed`,
             { method: 'POST', body: fbParams }
           );
 
@@ -125,7 +125,7 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
           containerParams.set('access_token', accessToken);
 
           const containerResponse = await fetch(
-            `https://graph.facebook.com/v18.0/${assetId}/media`,
+            `https://graph.facebook.com/v24.0/${assetId}/media`,
             { method: 'POST', body: containerParams }
           );
 
@@ -151,7 +151,7 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
           publishParams.set('access_token', accessToken);
 
           const publishResponse = await fetch(
-            `https://graph.facebook.com/v18.0/${assetId}/media_publish`,
+            `https://graph.facebook.com/v24.0/${assetId}/media_publish`,
             { method: 'POST', body: publishParams }
           );
 
