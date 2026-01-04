@@ -23,28 +23,55 @@ interface OAuthConfig {
  * 
  * CRITICAL: Only request scopes that are APPROVED in your Meta App Review.
  * 
- * Valid scopes for Facebook Pages + Instagram Business publishing & insights:
- * - pages_show_list          - List Pages the user is admin of (required for /me/accounts)
+ * The error "Invalid Scopes" means the scopes are NOT enabled in your Meta App's
+ * Use Cases or haven't passed App Review yet.
+ * 
+ * SCOPE TIERS:
+ * 
+ * TIER 1 - Development Mode (no App Review needed):
+ * - public_profile (always available)
+ * - email (always available)
+ * 
+ * TIER 2 - Requires Use Case enablement + App Review:
+ * - pages_show_list          - List Pages the user is admin of
  * - pages_read_engagement    - Read Page posts, comments, likes
  * - pages_manage_posts       - Create and manage Page posts
  * - instagram_basic          - Basic Instagram account info
  * - instagram_manage_insights- Instagram analytics
- * - instagram_content_publish- Publish to Instagram (requires App Review for production)
+ * - instagram_content_publish- Publish to Instagram
  * 
- * DEPRECATED/LEGACY (DO NOT USE - causes Invalid Scope errors):
- * - manage_pages (replaced by pages_read_engagement + pages_manage_posts)
+ * DEPRECATED/LEGACY (NEVER USE):
+ * - manage_pages (causes Invalid Scope - was replaced in 2020)
  * 
- * NOTE: pages_show_list is required to discover Pages via /me/accounts.
- * If your app doesn't have this permission approved yet, the OAuth may fail with "Invalid Scopes".
- * In that case, ensure the Use Case is enabled in Meta for Developers.
+ * STRATEGY:
+ * - We use a tiered approach: start with minimal scopes, fallback if needed
+ * - If App Review is complete, use full scopes
+ * - If in development, use only public_profile to at least authenticate
  */
-const META_SCOPES_VALID = [
+
+// Scopes for apps WITH completed App Review (production)
+const META_SCOPES_PRODUCTION = [
+  'public_profile',
   'pages_show_list',
-  'pages_read_engagement',
+  'pages_read_engagement', 
   'pages_manage_posts',
   'instagram_basic',
   'instagram_manage_insights',
   'instagram_content_publish',
+];
+
+// Minimal scopes for apps in development mode (no App Review)
+// This allows basic authentication but won't access Pages/IG until App Review
+const META_SCOPES_DEVELOPMENT = [
+  'public_profile',
+];
+
+// Facebook-only scopes (no Instagram)
+const META_SCOPES_FACEBOOK_ONLY = [
+  'public_profile',
+  'pages_show_list',
+  'pages_read_engagement',
+  'pages_manage_posts',
 ];
 
 // Legacy/deprecated scopes that should NEVER be requested
@@ -55,14 +82,14 @@ const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
     // Instagram Business uses Facebook OAuth (IG Graph API via Meta)
     authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
-    scopes: META_SCOPES_VALID,
+    scopes: META_SCOPES_PRODUCTION,
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
     authUrl: `https://www.facebook.com/v${GRAPH_VERSION}/dialog/oauth`,
     // Facebook Pages: we need pages_show_list to list pages, plus publishing/insights
-    scopes: META_SCOPES_VALID.filter(s => !s.startsWith('instagram_')),
+    scopes: META_SCOPES_FACEBOOK_ONLY,
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
@@ -182,7 +209,7 @@ serve(async (req) => {
     // Use service role for database operations
     const supabase = supabaseAdmin;
 
-    const { platform, workspace_id, return_url } = await req.json();
+    const { platform, workspace_id, return_url, scope_strategy } = await req.json();
 
     if (!platform || !workspace_id) {
       return new Response(
@@ -193,6 +220,14 @@ serve(async (req) => {
     
     // Use authenticated user's ID
     const user_id = user.id;
+
+    /**
+     * Scope Strategy:
+     * - 'full' (default): Use all production scopes - requires completed App Review
+     * - 'minimal': Use only public_profile - works in development mode
+     * - 'pages_only': Use pages scopes without Instagram - for Facebook-only connections
+     */
+    const effectiveScopeStrategy = scope_strategy || 'full';
 
     // ===========================================
     // ENTITLEMENTS CHECK - Server-side validation
@@ -365,7 +400,31 @@ serve(async (req) => {
     // Store OAuth state in database for verification
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
 
-    const scopesToUse = [...config.scopes];
+    // Determine scopes based on strategy
+    let scopesToUse: string[];
+    
+    if (isMetaProvider) {
+      switch (effectiveScopeStrategy) {
+        case 'minimal':
+          // Development mode fallback - only public_profile works without App Review
+          scopesToUse = [...META_SCOPES_DEVELOPMENT];
+          console.log(`Using MINIMAL scopes for ${platform}: ${scopesToUse.join(',')}`);
+          break;
+        case 'pages_only':
+          // Facebook pages only, no Instagram
+          scopesToUse = [...META_SCOPES_FACEBOOK_ONLY];
+          console.log(`Using PAGES_ONLY scopes for ${platform}: ${scopesToUse.join(',')}`);
+          break;
+        case 'full':
+        default:
+          // Full production scopes - requires App Review
+          scopesToUse = [...config.scopes];
+          console.log(`Using FULL scopes for ${platform}: ${scopesToUse.join(',')}`);
+          break;
+      }
+    } else {
+      scopesToUse = [...config.scopes];
+    }
     
     const { error: stateError } = await supabase
       .from('oauth_states')
@@ -435,12 +494,13 @@ serve(async (req) => {
         user_id,
         scopes_used: scopesToUse,
         scopes_count: scopesToUse.length,
+        scope_strategy: effectiveScopeStrategy,
         graph_version: isMetaProvider ? GRAPH_VERSION : null,
       },
       actor_id: user_id,
     });
 
-    console.log(`OAuth started for ${platform} in workspace ${workspace_id} with scopes: ${scopesToUse.join(', ')}`);
+    console.log(`OAuth started for ${platform} in workspace ${workspace_id} with strategy=${effectiveScopeStrategy}, scopes: ${scopesToUse.join(', ')}`);
 
     return new Response(
       JSON.stringify({
@@ -448,6 +508,7 @@ serve(async (req) => {
         state,
         expires_at: expiresAt,
         scopes_requested: scopesToUse,
+        scope_strategy: effectiveScopeStrategy,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

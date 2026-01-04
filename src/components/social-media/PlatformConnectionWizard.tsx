@@ -221,11 +221,13 @@ export function PlatformConnectionWizard({
   }>>([]);
   const [requiresUpgrade, setRequiresUpgrade] = useState(false);
   const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [showScopeRetry, setShowScopeRetry] = useState(false);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
+  const isMetaPlatform = platformId === 'facebook' || platformId === 'instagram';
 
   // When wizard opens, check if we should fetch the platform connection (after OAuth redirect)
   // The parent component (PlatformConnector) handles detecting the OAuth callback and opening this wizard.
@@ -250,10 +252,15 @@ export function PlatformConnectionWizard({
     setConnectionStatus('error');
     setErrorMessage(goxMessage.message);
 
+    // Check if this is an INVALID_SCOPE error - show retry option for Meta
+    if (goxCode === 'INVALID_SCOPE' && isMetaPlatform) {
+      setShowScopeRetry(true);
+    }
+
     // Keep the user on the auth step so they can retry
     const authStepIndex = steps.findIndex((s) => s.id === 'auth');
     if (authStepIndex >= 0) setCurrentStep(authStepIndex);
-  }, [open, initialOauthError?.code, isSuperAdmin, platformName]);
+  }, [open, initialOauthError?.code, isSuperAdmin, platformName, isMetaPlatform]);
 
   // Fetch the platform connection after OAuth
   const fetchPlatformConnection = async () => {
@@ -387,7 +394,15 @@ export function PlatformConnectionWizard({
     }
   };
 
-  const handleStartOAuth = async () => {
+  /**
+   * Start OAuth flow with optional scope strategy
+   * 
+   * Scope strategies for Meta:
+   * - 'full': All production scopes (requires App Review)
+   * - 'minimal': Only public_profile (development mode fallback)
+   * - 'pages_only': Pages scopes without Instagram
+   */
+  const handleStartOAuth = async (scopeStrategy: 'full' | 'minimal' | 'pages_only' = 'full') => {
     if (!currentWorkspace?.id || !user?.id) {
       toast.error('Erro: workspace ou usuário não encontrado');
       return;
@@ -398,21 +413,50 @@ export function PlatformConnectionWizard({
     setErrorMessage(null);
     setRequiresSetup(false);
 
+    const isMetaPlatform = platformId === 'facebook' || platformId === 'instagram';
+
     try {
-      // Call the real OAuth start edge function
+      // For Meta platforms, optionally run preflight check
+      if (isMetaPlatform && scopeStrategy === 'full') {
+        try {
+          const { data: preflight } = await supabase.functions.invoke('social-meta-preflight', {
+            body: {
+              workspace_id: currentWorkspace.id,
+              platform: platformId,
+            },
+          });
+
+          if (preflight?.detected_issue) {
+            const goxCode = mapApiErrorToGox(preflight.detected_issue.code);
+            const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: !!isSuperAdmin, platform: platformName });
+            
+            if (preflight.detected_issue.code === 'PROVIDER_NOT_CONFIGURED') {
+              setRequiresSetup(true);
+            }
+            setConnectionStatus('error');
+            setErrorMessage(goxMessage.message);
+            setIsConnecting(false);
+            return;
+          }
+        } catch (preflightError) {
+          console.warn('Preflight check failed, proceeding with OAuth:', preflightError);
+          // Continue with OAuth even if preflight fails
+        }
+      }
+
+      // Call the OAuth start edge function
       const { data, error } = await supabase.functions.invoke('social-oauth-start', {
         body: {
           platform: platformId,
           workspace_id: currentWorkspace.id,
-          // IMPORTANT: send absolute URL so the callback can safely redirect back
           return_url: `${window.location.origin}${window.location.pathname}`,
+          scope_strategy: isMetaPlatform ? scopeStrategy : undefined,
         },
       });
 
       // Handle edge function errors
       if (error) {
         console.error('Edge function error:', error);
-        // Try to extract more details from the error
         const errorMsg = error.message || 'Erro ao conectar com o servidor';
         setConnectionStatus('error');
         setErrorMessage(errorMsg);
@@ -429,16 +473,13 @@ export function PlatformConnectionWizard({
         const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: !!isSuperAdmin, platform: platformName });
         
         if (data.requires_setup) {
-          // Platform credentials not configured
           setRequiresSetup(true);
           setSetupInstructions(data.setup_instructions || []);
           setErrorMessage(goxMessage.message);
         } else if (data.requires_upgrade || data.error_code === 'PLAN_REQUIRED') {
-          // Plan upgrade required
           setRequiresUpgrade(true);
           setErrorMessage(goxMessage.message);
         } else if (data.error_code === 'LIMIT_REACHED') {
-          // Platform limit reached
           setRequiresUpgrade(true);
           setPlanLimit(data.limit);
           setErrorMessage(goxMessage.message);
@@ -451,9 +492,12 @@ export function PlatformConnectionWizard({
       }
 
       if (data?.auth_url) {
+        // Store scope strategy in sessionStorage for retry handling
+        if (isMetaPlatform) {
+          sessionStorage.setItem('meta_oauth_scope_strategy', scopeStrategy);
+        }
+        
         // Redirect to OAuth provider
-        // NOTE: In the Lovable preview, the app runs inside an iframe and Facebook blocks being loaded in iframes.
-        // Use top-level navigation when possible.
         try {
           if (window.top && window.top !== window) {
             window.top.location.href = data.auth_url;
@@ -461,7 +505,6 @@ export function PlatformConnectionWizard({
             window.location.href = data.auth_url;
           }
         } catch {
-          // Fallback (e.g. if cross-origin restrictions block accessing window.top)
           const win = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
           if (!win) {
             window.location.href = data.auth_url;
@@ -652,6 +695,66 @@ export function PlatformConnectionWizard({
                   Se você é administrador, acesse Platform Admin para configurar.
                 </p>
               </div>
+            ) : showScopeRetry && isMetaPlatform ? (
+              // INVALID_SCOPE error - show explanation and retry options
+              <div className="space-y-4">
+                <div className="text-center py-4">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+                    <AlertCircle className="h-8 w-8 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Permissões não disponíveis
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    O Meta rejeitou algumas permissões solicitadas (Invalid Scopes).
+                  </p>
+                </div>
+
+                <Alert className="bg-red-50 border-red-200">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertTitle className="text-red-800">Por que isso acontece?</AlertTitle>
+                  <AlertDescription className="text-red-700 text-sm">
+                    {isSuperAdmin ? (
+                      <>
+                        O App Meta ainda não tem as permissões aprovadas no App Review. 
+                        Acesse <strong>Meta for Developers → Casos de uso</strong> e habilite:
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>Facebook Login for Business</li>
+                          <li>pages_show_list, pages_read_engagement, pages_manage_posts</li>
+                          <li>instagram_basic, instagram_manage_insights, instagram_content_publish</li>
+                        </ul>
+                        <p className="mt-2">Depois, complete o App Review para cada permissão.</p>
+                      </>
+                    ) : (
+                      'A integração está com configuração pendente de permissões. Contate o administrador ou suporte.'
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                {isSuperAdmin && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => window.open('https://developers.facebook.com/apps', '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Meta for Developers
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        setShowScopeRetry(false);
+                        setErrorMessage(null);
+                        setConnectionStatus('idle');
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Tentar novamente
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               // Normal OAuth flow
               <>
@@ -681,7 +784,7 @@ export function PlatformConnectionWizard({
                 <Separator />
 
                 <Button
-                  onClick={handleStartOAuth}
+                  onClick={() => handleStartOAuth('full')}
                   disabled={isConnecting}
                   className="w-full"
                   size="lg"
@@ -702,8 +805,22 @@ export function PlatformConnectionWizard({
                 {errorMessage && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription className="whitespace-pre-wrap">{errorMessage}</AlertDescription>
                   </Alert>
+                )}
+
+                {connectionStatus === 'error' && !showScopeRetry && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setConnectionStatus('idle');
+                      setErrorMessage(null);
+                    }}
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Tentar novamente
+                  </Button>
                 )}
               </>
             )}
