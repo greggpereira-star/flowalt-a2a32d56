@@ -381,7 +381,8 @@ export function PlatformConnectionWizard({
         body: {
           platform: platformId,
           workspace_id: currentWorkspace.id,
-          return_url: window.location.pathname,
+          // IMPORTANT: send absolute URL so the callback can safely redirect back
+          return_url: `${window.location.origin}${window.location.pathname}`,
         },
       });
 
