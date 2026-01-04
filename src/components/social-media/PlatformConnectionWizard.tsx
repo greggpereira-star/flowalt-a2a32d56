@@ -38,6 +38,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social/gox-messages';
 import { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
+import { MetaSetupGuide } from './MetaSetupGuide';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -663,38 +664,53 @@ export function PlatformConnectionWizard({
             ) : requiresSetup ? (
               // Platform not configured - show setup instructions
               <div className="space-y-4">
-                <Alert className="bg-blue-50 border-blue-200">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertTitle className="text-blue-800">Integração em configuração</AlertTitle>
-                  <AlertDescription className="text-blue-700">
-                    O administrador do sistema está configurando esta integração. Tente novamente em breve.
-                  </AlertDescription>
-                </Alert>
+                {isSuperAdmin && isMetaPlatform ? (
+                  // Super Admin sees setup guide for Meta
+                  <MetaSetupGuide
+                    appId="2562991294073382"
+                    callbackUrl="https://vnohlxerngxizmzyptyw.supabase.co/functions/v1/social-oauth-callback"
+                    onClose={() => {
+                      setRequiresSetup(false);
+                      setErrorMessage(null);
+                      setConnectionStatus('idle');
+                    }}
+                  />
+                ) : (
+                  <>
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertTitle className="text-blue-800">Integração em configuração</AlertTitle>
+                      <AlertDescription className="text-blue-700">
+                        O administrador do sistema está configurando esta integração. Tente novamente em breve.
+                      </AlertDescription>
+                    </Alert>
 
-                <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Detalhes técnicos
-                      </span>
-                      <ChevronDown className={cn("h-4 w-4 transition-transform", instructionsOpen && "rotate-180")} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    <div className="space-y-2 p-4 rounded-lg bg-muted/50 border">
-                      {setupInstructions.map((instruction, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm">
-                          <span className="text-muted-foreground">{instruction}</span>
+                    <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          <span className="flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Detalhes técnicos
+                          </span>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform", instructionsOpen && "rotate-180")} />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-4">
+                        <div className="space-y-2 p-4 rounded-lg bg-muted/50 border">
+                          {setupInstructions.map((instruction, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-sm">
+                              <span className="text-muted-foreground">{instruction}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                      </CollapsibleContent>
+                    </Collapsible>
 
-                <p className="text-xs text-muted-foreground text-center">
-                  Se você é administrador, acesse Platform Admin para configurar.
-                </p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Se você é administrador, acesse Platform Admin para configurar.
+                    </p>
+                  </>
+                )}
               </div>
             ) : showScopeRetry && isMetaPlatform ? (
               // INVALID_SCOPE error - show comprehensive diagnostic
