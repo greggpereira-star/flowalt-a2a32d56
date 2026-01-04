@@ -279,13 +279,25 @@ async function fetchPlatformAssets(platform: Platform, accessToken: string): Pro
 }
 
 serve(async (req) => {
+  console.log('social-connection-assets invoked, method:', req.method);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Starting assets fetch...');
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      return new Response(
+        JSON.stringify({ success: false, error_code: 'CONFIG_ERROR', error_message: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify JWT from request
@@ -297,7 +309,11 @@ serve(async (req) => {
       );
     }
 
+    console.log('Auth header present:', !!authHeader);
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    console.log('User auth result:', user?.id || 'no user', authError?.message || 'no error');
+    
     if (authError || !user) {
       return new Response(
         JSON.stringify({ success: false, error_code: 'UNAUTHORIZED', error_message: 'Invalid token' }),
@@ -305,7 +321,19 @@ serve(async (req) => {
       );
     }
 
-    const { workspace_id, platform_connection_id } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ success: false, error_code: 'INVALID_BODY', error_message: 'Invalid request body' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { workspace_id, platform_connection_id } = body;
+    console.log('Request params:', { workspace_id, platform_connection_id });
 
     if (!workspace_id || !platform_connection_id) {
       return new Response(
