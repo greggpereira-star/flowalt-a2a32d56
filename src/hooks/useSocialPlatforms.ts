@@ -56,14 +56,30 @@ export interface ConnectPlatformInput {
 }
 
 /**
- * Fetch provider readiness status from edge function
+ * Fetch provider readiness status
+ * For clients: defaults to "ready" since they shouldn't see config issues
+ * For super admins: fetches real status from edge function
  */
-export const useProviderReadiness = () => {
+export const useProviderReadiness = (options?: { isSuperAdmin?: boolean }) => {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ['provider-readiness', currentWorkspace?.id],
+    queryKey: ['provider-readiness', currentWorkspace?.id, options?.isSuperAdmin],
     queryFn: async (): Promise<Record<string, ProviderReadiness>> => {
+      // For regular clients, we check readiness via oauth-start response
+      // Not by calling the super-admin-only provider-status endpoint
+      if (!options?.isSuperAdmin) {
+        // Return all as ready - actual issues will surface when user tries to connect
+        return {
+          meta: { status: 'ready' },
+          google: { status: 'ready' },
+          linkedin: { status: 'ready' },
+          tiktok: { status: 'ready' },
+          twitter: { status: 'ready' },
+        };
+      }
+
+      // Super admin can see real status
       const { data, error } = await supabase.functions.invoke('social-provider-status', {
         body: {},
       });
@@ -81,7 +97,7 @@ export const useProviderReadiness = () => {
         for (const [key, provider] of Object.entries(data.providers as Record<string, any>)) {
           readiness[key] = {
             status: provider.status || 'not_configured',
-            missingSecrets: provider.missingSecrets || [],
+            missingSecrets: provider.missing || [],
           };
         }
       }
