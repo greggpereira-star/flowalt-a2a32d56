@@ -229,6 +229,10 @@ export function PlatformConnectionWizard({
   const [requiresReauth, setRequiresReauth] = useState(false);
   const [reauthStrategy, setReauthStrategy] = useState<'pages_list' | 'pages_publish' | 'full' | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [userConsentMissing, setUserConsentMissing] = useState(false);
+  const [missingScopes, setMissingScopes] = useState<string[]>([]);
+  const [grantedScopes, setGrantedScopes] = useState<string[]>([]);
+  const [requestedScopes, setRequestedScopes] = useState<string[]>([]);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
@@ -258,6 +262,21 @@ export function PlatformConnectionWizard({
 
     setConnectionStatus('error');
     setErrorMessage(goxMessage.message);
+
+    // Check if this is a USER_CONSENT_MISSING error - show detailed scope info
+    if (initialOauthError.code === 'USER_CONSENT_MISSING') {
+      setUserConsentMissing(true);
+      
+      // Parse scope info from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const missing = urlParams.get('missing_scopes')?.split(',').filter(Boolean) || [];
+      const granted = urlParams.get('granted_scopes')?.split(',').filter(Boolean) || [];
+      const requested = urlParams.get('requested_scopes')?.split(',').filter(Boolean) || [];
+      
+      setMissingScopes(missing);
+      setGrantedScopes(granted);
+      setRequestedScopes(requested);
+    }
 
     // Check if this is an INVALID_SCOPE error - show retry option for Meta
     if (goxCode === 'INVALID_SCOPE' && isMetaPlatform) {
@@ -729,6 +748,104 @@ export function PlatformConnectionWizard({
                     </p>
                   </>
                 )}
+              </div>
+            ) : userConsentMissing && isMetaPlatform ? (
+              // USER_CONSENT_MISSING - user didn't grant all permissions
+              <div className="space-y-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Permissões não concedidas</AlertTitle>
+                  <AlertDescription>
+                    Você não autorizou todas as permissões necessárias durante o login com Meta.
+                    É preciso reconectar e clicar em "Permitir" para cada permissão.
+                  </AlertDescription>
+                </Alert>
+
+                {/* Scope comparison panel */}
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <h4 className="font-medium text-sm">Diagnóstico via debug_token:</h4>
+                  
+                  {requestedScopes.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Escopos solicitados:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {requestedScopes.map((scope) => (
+                          <Badge key={scope} variant="outline" className="text-xs">
+                            {scope}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {grantedScopes.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-green-600">✓ Escopos concedidos:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {grantedScopes.map((scope) => (
+                          <Badge key={scope} variant="secondary" className="text-xs bg-green-100 text-green-700">
+                            {scope}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {missingScopes.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-destructive">✗ Escopos NÃO concedidos:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {missingScopes.map((scope) => (
+                          <Badge key={scope} variant="destructive" className="text-xs">
+                            {scope}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800">
+                    <strong>Para corrigir:</strong> Ao reconectar, quando o Facebook mostrar o diálogo de permissões,
+                    certifique-se de clicar em "Permitir" (ou "Allow") para cada permissão listada.
+                    Não clique em "Recusar" ou "Editar permissões" desmarcando itens.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setUserConsentMissing(false);
+                      setMissingScopes([]);
+                      setGrantedScopes([]);
+                      setRequestedScopes([]);
+                      setErrorMessage(null);
+                      setConnectionStatus('idle');
+                      // Reconectar com auth_type=rerequest (já configurado no backend)
+                      handleStartOAuth('full');
+                    }}
+                    disabled={isConnecting}
+                    className="flex-1"
+                  >
+                    {isConnecting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Reconectar e autorizar tudo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setUserConsentMissing(false);
+                      setErrorMessage(null);
+                      setConnectionStatus('idle');
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
               </div>
             ) : showScopeRetry && isMetaPlatform ? (
               // INVALID_SCOPE error - show comprehensive diagnostic

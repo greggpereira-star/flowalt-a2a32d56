@@ -11,12 +11,47 @@ type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | '
 // Graph API version - keep in sync with social-oauth-start
 const GRAPH_VERSION = '24.0';
 
+// Required scopes for full Meta functionality
+const META_REQUIRED_SCOPES = [
+  'pages_show_list',
+  'pages_read_engagement', 
+  'pages_manage_posts',
+  'instagram_basic',
+];
+
 interface TokenResponse {
   access_token: string;
   refresh_token?: string;
   expires_in?: number;
   token_type?: string;
   scope?: string;
+}
+
+interface DebugTokenResult {
+  data: {
+    app_id: string;
+    type: string;
+    application: string;
+    data_access_expires_at: number;
+    expires_at: number;
+    is_valid: boolean;
+    scopes: string[];
+    user_id: string;
+    error?: {
+      code: number;
+      message: string;
+      subcode?: number;
+    };
+  };
+}
+
+interface ScopeValidationResult {
+  isValid: boolean;
+  grantedScopes: string[];
+  requestedScopes: string[];
+  missingScopes: string[];
+  errorCode?: string;
+  errorMessage?: string;
 }
 
 interface AccountInfo {
@@ -129,6 +164,95 @@ async function exchangeForLongLivedToken(
   console.log(`Got long-lived token, expires_in: ${data.expires_in}`);
   
   return data;
+}
+
+/**
+ * Debug token to validate scopes using App Access Token
+ * This is the definitive way to check what permissions the user granted
+ */
+async function debugToken(userAccessToken: string): Promise<DebugTokenResult> {
+  const appId = Deno.env.get('META_APP_ID')!;
+  const appSecret = Deno.env.get('META_APP_SECRET')!;
+  
+  // App access token = {app_id}|{app_secret}
+  const appAccessToken = `${appId}|${appSecret}`;
+  
+  const url = `https://graph.facebook.com/v${GRAPH_VERSION}/debug_token?` +
+    `input_token=${encodeURIComponent(userAccessToken)}&` +
+    `access_token=${encodeURIComponent(appAccessToken)}`;
+
+  console.log('Calling /debug_token to validate scopes...');
+  
+  const response = await fetch(url);
+  const data = await response.json();
+  
+  if (!response.ok || data.error) {
+    console.error('debug_token failed:', data);
+    throw new Error(data.error?.message || 'Failed to debug token');
+  }
+
+  console.log('debug_token result:', JSON.stringify(data, null, 2));
+  
+  return data;
+}
+
+/**
+ * Validate that user granted required scopes
+ * Returns detailed info about granted vs missing scopes
+ */
+function validateMetaScopes(
+  debugResult: DebugTokenResult,
+  requestedScopes: string[]
+): ScopeValidationResult {
+  const grantedScopes = debugResult.data?.scopes || [];
+  
+  // Determine which scopes to check based on what was requested
+  // If minimal connection (only public_profile), don't require advanced scopes
+  const scopesToCheck = requestedScopes.length <= 1 
+    ? requestedScopes 
+    : META_REQUIRED_SCOPES;
+  
+  const missingScopes = scopesToCheck.filter(
+    scope => !grantedScopes.includes(scope)
+  );
+
+  console.log('Scope validation:', {
+    requested: requestedScopes,
+    granted: grantedScopes,
+    required: scopesToCheck,
+    missing: missingScopes,
+  });
+
+  if (missingScopes.length > 0) {
+    return {
+      isValid: false,
+      grantedScopes,
+      requestedScopes,
+      missingScopes,
+      errorCode: 'USER_CONSENT_MISSING',
+      errorMessage: `Permissões não concedidas: ${missingScopes.join(', ')}. ` +
+        `O usuário precisa reconectar e autorizar todas as permissões solicitadas.`,
+    };
+  }
+
+  // Also check if token is valid
+  if (!debugResult.data?.is_valid) {
+    return {
+      isValid: false,
+      grantedScopes,
+      requestedScopes,
+      missingScopes: [],
+      errorCode: 'TOKEN_INVALID',
+      errorMessage: debugResult.data?.error?.message || 'Token inválido',
+    };
+  }
+
+  return {
+    isValid: true,
+    grantedScopes,
+    requestedScopes,
+    missingScopes: [],
+  };
 }
 
 async function fetchAccountInfo(platform: Platform, accessToken: string): Promise<AccountInfo> {
@@ -382,6 +506,82 @@ serve(async (req) => {
       };
     }
 
+    // Get requested scopes from oauth_state (stored during /start)
+    const requestedScopes: string[] = oauthState.scopes || [];
+
+    // For Meta platforms, validate scopes via debug_token
+    let scopesArray: string[] = tokens.scope?.split(/[,\s]+/).filter(Boolean) || [];
+    let scopeValidation: ScopeValidationResult | null = null;
+    
+    if (isMetaPlatform && tokens.access_token) {
+      try {
+        const debugResult = await debugToken(tokens.access_token);
+        scopeValidation = validateMetaScopes(debugResult, requestedScopes);
+        
+        // Use scopes from debug_token as source of truth
+        scopesArray = scopeValidation.grantedScopes;
+        
+        console.log('Scope validation result:', {
+          isValid: scopeValidation.isValid,
+          granted: scopeValidation.grantedScopes,
+          requested: scopeValidation.requestedScopes,
+          missing: scopeValidation.missingScopes,
+        });
+
+        // If scopes are missing, redirect with detailed error
+        if (!scopeValidation.isValid && scopeValidation.errorCode === 'USER_CONSENT_MISSING') {
+          // Log failure event with scope details
+          await supabase.from('domain_events').insert({
+            workspace_id: workspaceId,
+            aggregate_type: 'social_media',
+            aggregate_id: workspaceId,
+            event_type: 'social_oauth.scope_validation_failed',
+            payload: {
+              platform,
+              provider: 'meta',
+              error_code: scopeValidation.errorCode,
+              requested_scopes: scopeValidation.requestedScopes,
+              granted_scopes: scopeValidation.grantedScopes,
+              missing_scopes: scopeValidation.missingScopes,
+              actor_id: userId,
+              action: 'Reconectar com auth_type=rerequest para solicitar permissões novamente',
+            },
+          });
+
+          // Return error with detailed scope info
+          const errorParams = new URLSearchParams({
+            oauth_error: 'USER_CONSENT_MISSING',
+            error_description: scopeValidation.errorMessage || 'Permissões não concedidas',
+            platform,
+            missing_scopes: scopeValidation.missingScopes.join(','),
+            granted_scopes: scopeValidation.grantedScopes.join(','),
+            requested_scopes: scopeValidation.requestedScopes.join(','),
+            reauth_required: 'true',
+          });
+
+          let targetUrl: URL;
+          try {
+            targetUrl = new URL(returnUrl);
+          } catch {
+            targetUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+          }
+          
+          errorParams.forEach((value, key) => targetUrl.searchParams.set(key, value));
+
+          // Clean up OAuth state
+          await supabase.from('oauth_states').delete().eq('state', state);
+
+          return new Response(null, {
+            status: 302,
+            headers: { 'Location': targetUrl.toString() },
+          });
+        }
+      } catch (debugError) {
+        console.error('debug_token failed, continuing without validation:', debugError);
+        // Continue without scope validation if debug_token fails
+      }
+    }
+
     // Fetch account info to validate token works
     const accountInfo = await fetchAccountInfo(platform, tokens.access_token);
 
@@ -389,9 +589,6 @@ serve(async (req) => {
     const tokenExpiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
       : null;
-
-    // Parse scopes from response
-    const scopesArray = tokens.scope?.split(/[,\s]+/).filter(Boolean) || [];
 
     // Store platform connection
     const { data: platformData, error: platformError } = await supabase

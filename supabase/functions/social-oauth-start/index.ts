@@ -564,6 +564,8 @@ serve(async (req) => {
         return_url: resolvedReturnUrl,
         expires_at: expiresAt,
         created_at: new Date().toISOString(),
+        // Store requested scopes for validation in callback
+        scopes: scopesToUse,
       });
 
     if (stateError) {
@@ -605,6 +607,10 @@ serve(async (req) => {
       // PKCE is optional for Meta but recommended
       params.set('code_challenge', codeChallenge);
       params.set('code_challenge_method', 'S256');
+      
+      // Add auth_type=rerequest to force permission dialog
+      // This is critical for re-auth flows when user didn't grant all scopes
+      params.set('auth_type', 'rerequest');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
