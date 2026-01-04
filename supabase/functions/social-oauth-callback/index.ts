@@ -215,8 +215,56 @@ serve(async (req) => {
     const errorDescription = url.searchParams.get('error_description');
 
     if (error) {
-      console.error('OAuth error:', error, errorDescription);
-      return createErrorRedirect(error, errorDescription || 'OAuth authorization failed');
+      const normalizedError = error === 'invalid_scope' ? 'INVALID_SCOPE' : error;
+      console.error('OAuth error:', normalizedError, errorDescription);
+
+      // Try to redirect back to the original return_url stored in oauth_states
+      let returnUrl: string | null = null;
+      let platformForRedirect: string | null = null;
+      let workspaceId: string | null = null;
+      let userId: string | null = null;
+
+      if (state) {
+        const { data: oauthState } = await supabase
+          .from('oauth_states')
+          .select('*')
+          .eq('state', state)
+          .maybeSingle();
+
+        if (oauthState) {
+          returnUrl = oauthState.return_url || null;
+          platformForRedirect = oauthState.platform || null;
+          workspaceId = oauthState.workspace_id || null;
+          userId = oauthState.user_id || null;
+
+          // Log failure event
+          if (workspaceId) {
+            await supabase.from('domain_events').insert({
+              workspace_id: workspaceId,
+              event_type: 'social_oauth.failed',
+              entity_type: 'social_platform',
+              entity_id: state,
+              payload: {
+                platform: platformForRedirect,
+                provider: platformForRedirect === 'facebook' || platformForRedirect === 'instagram' ? 'meta' : platformForRedirect,
+                error_code: normalizedError,
+                error_description: errorDescription || null,
+              },
+              actor_id: userId,
+            });
+          }
+
+          // Clean up OAuth state to avoid accumulating invalid sessions
+          await supabase.from('oauth_states').delete().eq('state', state);
+        }
+      }
+
+      return createErrorRedirect(
+        normalizedError,
+        errorDescription || 'OAuth authorization failed',
+        returnUrl,
+        platformForRedirect
+      );
     }
 
     if (!code || !state) {
@@ -357,16 +405,33 @@ serve(async (req) => {
   }
 });
 
-function createErrorRedirect(error: string, description: string): Response {
+function createErrorRedirect(
+  error: string,
+  description: string,
+  returnUrl?: string | null,
+  platform?: string | null
+): Response {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const errorUrl = new URL('/marketing', supabaseUrl.replace('.supabase.co', '.lovable.app'));
-  errorUrl.searchParams.set('oauth_error', error);
-  errorUrl.searchParams.set('error_description', description);
-  
+
+  let targetUrl: URL;
+  if (returnUrl) {
+    try {
+      targetUrl = new URL(returnUrl);
+    } catch {
+      targetUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+    }
+  } else {
+    targetUrl = new URL('/marketing', supabaseUrl.replace('.supabase.co', '.lovable.app'));
+  }
+
+  targetUrl.searchParams.set('oauth_error', error);
+  targetUrl.searchParams.set('error_description', description);
+  if (platform) targetUrl.searchParams.set('platform', platform);
+
   return new Response(null, {
     status: 302,
     headers: {
-      'Location': errorUrl.toString(),
+      'Location': targetUrl.toString(),
     },
   });
 }

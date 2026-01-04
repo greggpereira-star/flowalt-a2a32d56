@@ -51,6 +51,8 @@ interface PlatformConnectionWizardProps {
   onOpenChange: (open: boolean) => void;
   platformId: PlatformId;
   platformName: string;
+  isSuperAdmin?: boolean;
+  initialOauthError?: { code: string; description?: string } | null;
   onSuccess?: () => void;
 }
 
@@ -191,6 +193,8 @@ export function PlatformConnectionWizard({
   onOpenChange,
   platformId,
   platformName,
+  isSuperAdmin,
+  initialOauthError,
   onSuccess,
 }: PlatformConnectionWizardProps) {
   const { currentWorkspace } = useWorkspace();
@@ -231,6 +235,25 @@ export function PlatformConnectionWizard({
       fetchPlatformConnection();
     }
   }, [open, currentWorkspace?.id, platformId]);
+
+  // If we were redirected back with an OAuth error, show a GOX message (Enterprise)
+  useEffect(() => {
+    if (!open) return;
+    if (!initialOauthError?.code) return;
+
+    const goxCode = mapApiErrorToGox(initialOauthError.code);
+    const goxMessage = getGoxMessage(goxCode, {
+      isSuperAdmin: !!isSuperAdmin,
+      platform: platformName,
+    });
+
+    setConnectionStatus('error');
+    setErrorMessage(goxMessage.message);
+
+    // Keep the user on the auth step so they can retry
+    const authStepIndex = steps.findIndex((s) => s.id === 'auth');
+    if (authStepIndex >= 0) setCurrentStep(authStepIndex);
+  }, [open, initialOauthError?.code, isSuperAdmin, platformName]);
 
   // Fetch the platform connection after OAuth
   const fetchPlatformConnection = async () => {
@@ -300,8 +323,8 @@ export function PlatformConnectionWizard({
             setErrorMessage(
               'Nenhum ativo retornado pela Meta para este login. Isso geralmente acontece quando:\n' +
               '• você não entrou com o perfil que é admin da Página\n' +
-              '• o app não recebeu as permissões de Páginas (ex.: pages_show_list)\n\n' +
-              'Clique em “Atualizar Lista”. Se continuar vazio, volte e reconecte a plataforma aceitando as permissões.'
+              '• o app ainda não tem acesso aprovado/configurado para permissões de Páginas/Instagram (ex.: pages_read_engagement, pages_manage_posts, instagram_basic)\n\n' +
+              'Clique em “Atualizar Lista”. Se continuar vazio, reconecte. Se aparecer "Invalid Scopes", é configuração do app (admin/suporte).'
             );
           } else {
             setErrorMessage('Nenhum ativo encontrado. Verifique se você tem páginas/canais/contas configurados.');
@@ -383,6 +406,9 @@ export function PlatformConnectionWizard({
           workspace_id: currentWorkspace.id,
           // IMPORTANT: send absolute URL so the callback can safely redirect back
           return_url: `${window.location.origin}${window.location.pathname}`,
+          ...(platformId === 'facebook' || platformId === 'instagram'
+            ? { meta_scope_strategy: 'primary' }
+            : {}),
         },
       });
 
@@ -403,7 +429,7 @@ export function PlatformConnectionWizard({
         
         // Map API error to GOX message
         const goxCode = mapApiErrorToGox(data.error_code || data.error);
-        const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: false, platform: platformName });
+        const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: !!isSuperAdmin, platform: platformName });
         
         if (data.requires_setup) {
           // Platform credentials not configured

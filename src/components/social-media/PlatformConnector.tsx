@@ -19,16 +19,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { 
+import {
   useSocialPlatformsWithState,
   useUnconnectedPlatformState,
-  useDisconnectPlatform, 
+  useDisconnectPlatform,
   useRefreshPlatformToken,
   useTestPlatformConnection,
   type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
 import { SmokeTestConsole } from './SmokeTestConsole';
 import type { PlatformState } from '@/lib/social/platform-state';
@@ -509,17 +510,83 @@ export function PlatformConnector() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
   const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect'>('connect');
+  const [initialOauthError, setInitialOauthError] = useState<{ code: string; description?: string } | null>(null);
 
-  // Detect OAuth callback and auto-open wizard
+  // Detect OAuth callback and auto-open wizard (and apply Meta invalid-scope fallback)
   useEffect(() => {
     const oauthSuccess = searchParams.get('oauth_success');
     const oauthError = searchParams.get('oauth_error');
+    const errorDescription = searchParams.get('error_description') || undefined;
     const platform = searchParams.get('platform') as PlatformId | null;
 
     if (!platform) return;
 
     const hasOauthResult = oauthSuccess === 'true' || !!oauthError;
     if (!hasOauthResult) return;
+
+    const normalizedError = oauthError?.toLowerCase();
+    const isInvalidScope = normalizedError === 'invalid_scope' || oauthError === 'INVALID_SCOPE';
+    const isMeta = platform === 'facebook' || platform === 'instagram';
+
+    const redirectToAuth = (authUrl: string) => {
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = authUrl;
+        } else {
+          window.location.href = authUrl;
+        }
+      } catch {
+        const win = window.open(authUrl, '_blank', 'noopener,noreferrer');
+        if (!win) window.location.href = authUrl;
+      }
+    };
+
+    // Auto-fallback: if Meta returns invalid_scope, re-try once without pages_show_list
+    if (isMeta && isInvalidScope && currentWorkspace?.id) {
+      const retryKey = `meta_oauth_retry:${currentWorkspace.id}:${platform}`;
+      const alreadyRetried = window.localStorage.getItem(retryKey);
+
+      if (!alreadyRetried) {
+        window.localStorage.setItem(retryKey, '1');
+
+        // Clean URL params early to avoid loops on refresh
+        const cleaned = new URLSearchParams(searchParams);
+        cleaned.delete('oauth_success');
+        cleaned.delete('oauth_error');
+        cleaned.delete('platform');
+        cleaned.delete('error_description');
+        setSearchParams(cleaned, { replace: true });
+
+        (async () => {
+          const { data, error } = await supabase.functions.invoke('social-oauth-start', {
+            body: {
+              platform,
+              workspace_id: currentWorkspace.id,
+              return_url: `${window.location.origin}${window.location.pathname}`,
+              meta_scope_strategy: 'fallback',
+            },
+          });
+
+          if (error || !data?.auth_url) {
+            console.error('Meta fallback OAuth start failed:', error);
+            toast.error('Falha ao tentar reconectar com permissões ajustadas.');
+            setInitialOauthError({ code: 'INVALID_SCOPE', description: errorDescription });
+            return;
+          }
+
+          redirectToAuth(data.auth_url);
+        })();
+
+        return;
+      }
+
+      // If we already retried once, open wizard and show a GOX message
+      setInitialOauthError({ code: 'INVALID_SCOPE', description: errorDescription });
+    } else if (oauthError) {
+      setInitialOauthError({ code: oauthError, description: errorDescription });
+    } else {
+      setInitialOauthError(null);
+    }
 
     // Find platform config to get name
     const platformConfig = PLATFORMS.find(p => p.id === platform);
@@ -529,14 +596,14 @@ export function PlatformConnector() {
       setWizardOpen(true);
     }
 
-    // Clean URL params (the wizard will handle displaying success/error)
+    // Clean URL params
     const cleaned = new URLSearchParams(searchParams);
     cleaned.delete('oauth_success');
     cleaned.delete('oauth_error');
     cleaned.delete('platform');
     cleaned.delete('error_description');
     setSearchParams(cleaned, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, currentWorkspace?.id]);
 
   const getConnectedPlatform = (platformId: string): PlatformWithState | undefined => {
     // Only return truly active and connected platforms
@@ -687,8 +754,11 @@ export function PlatformConnector() {
           onOpenChange={setWizardOpen}
           platformId={selectedPlatform.id}
           platformName={selectedPlatform.name}
+          isSuperAdmin={isSuperAdmin}
+          initialOauthError={initialOauthError}
           onSuccess={() => {
             setSelectedPlatform(null);
+            setInitialOauthError(null);
             queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
           }}
         />

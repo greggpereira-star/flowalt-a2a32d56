@@ -170,7 +170,7 @@ serve(async (req) => {
     // Use service role for database operations
     const supabase = supabaseAdmin;
 
-    const { platform, workspace_id, return_url } = await req.json();
+    const { platform, workspace_id, return_url, meta_scope_strategy } = await req.json();
 
     if (!platform || !workspace_id) {
       return new Response(
@@ -317,9 +317,24 @@ serve(async (req) => {
 
     // Store OAuth state in database for verification
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
-    
-    // Determine final scopes to use
+
+    // Determine final scopes to use (Meta has a fallback strategy)
+    const isMetaProvider = platform === 'facebook' || platform === 'instagram';
+    const metaScopeStrategy: 'primary' | 'fallback' =
+      isMetaProvider && meta_scope_strategy === 'fallback' ? 'fallback' : 'primary';
+
     const scopesToUse = [...config.scopes];
+    let fallbackUsed = false;
+
+    // Attempt A (primary): include pages_show_list for better Page discovery.
+    // If Meta rejects it (invalid_scope), the UI will re-try with strategy=fallback.
+    if (isMetaProvider && metaScopeStrategy === 'primary') {
+      scopesToUse.unshift('pages_show_list');
+    }
+
+    if (isMetaProvider && metaScopeStrategy === 'fallback') {
+      fallbackUsed = true;
+    }
     
     const { error: stateError } = await supabase
       .from('oauth_states')
@@ -383,10 +398,12 @@ serve(async (req) => {
       entity_id: state,
       payload: {
         platform,
-        provider: platform === 'instagram' || platform === 'facebook' ? 'meta' : platform,
+        provider: isMetaProvider ? 'meta' : platform,
         user_id,
         scopes_used: scopesToUse,
         scopes_count: scopesToUse.length,
+        scope_strategy: isMetaProvider ? metaScopeStrategy : null,
+        fallback_used: fallbackUsed,
       },
       actor_id: user_id,
     });
@@ -399,6 +416,8 @@ serve(async (req) => {
         state,
         expires_at: expiresAt,
         scopes_requested: scopesToUse,
+        scope_strategy: isMetaProvider ? metaScopeStrategy : null,
+        fallback_used: fallbackUsed,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

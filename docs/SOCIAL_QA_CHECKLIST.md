@@ -96,6 +96,11 @@
 
 ## 5. Smoke Test Steps
 
+### Meta (Facebook/Instagram) — Pré-checagens (manual)
+- **OAuth abre sem bloqueio**: ao clicar “Conectar”, o provedor deve abrir a tela de autorização sem interromper o fluxo.
+- **Se aparecer “Invalid Scopes”**: validar que o app do provedor tem Use Cases/permissões habilitados/aprovados (Pages/Instagram) e que o Redirect URI está correto.
+- **Fallback automático**: se o provedor retornar `invalid_scope`, o app deve tentar novamente automaticamente (uma vez) sem `pages_show_list`.
+
 | Step | Descrição | Validação |
 |------|-----------|-----------|
 | 0. Job Creation | Criar entrada em social_jobs | job_id retornado |
