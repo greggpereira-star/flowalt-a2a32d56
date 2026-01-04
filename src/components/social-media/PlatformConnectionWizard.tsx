@@ -29,6 +29,7 @@ import {
   Settings,
   AlertTriangle,
   Crown,
+  Key,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +40,7 @@ import { Link } from 'react-router-dom';
 import { getGoxMessage, mapApiErrorToGox, type GoxErrorCode } from '@/lib/social/gox-messages';
 import { MetaScopeDiagnostic } from './MetaScopeDiagnostic';
 import { MetaSetupGuide } from './MetaSetupGuide';
+import { MetaDiagnosticPanel } from './MetaDiagnosticPanel';
 
 type PlatformId = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
@@ -226,6 +228,7 @@ export function PlatformConnectionWizard({
   const [showScopeRetry, setShowScopeRetry] = useState(false);
   const [requiresReauth, setRequiresReauth] = useState(false);
   const [reauthStrategy, setReauthStrategy] = useState<'pages_list' | 'pages_publish' | 'full' | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
@@ -746,8 +749,21 @@ export function PlatformConnectionWizard({
                 }}
                 isConnecting={isConnecting}
               />
+            ) : showDiagnostics && isMetaPlatform && currentWorkspace?.id ? (
+              // Diagnostics panel
+              <MetaDiagnosticPanel
+                workspaceId={currentWorkspace.id}
+                platformConnectionId={platformConnectionId || undefined}
+                platform={platformId as 'facebook' | 'instagram'}
+                isSuperAdmin={isSuperAdmin}
+                onReauth={(strategy) => {
+                  setShowDiagnostics(false);
+                  handleStartOAuth(strategy);
+                }}
+                onClose={() => setShowDiagnostics(false)}
+              />
             ) : (
-              // Normal OAuth flow
+              // Normal OAuth flow with MIN/FULL mode selection for Meta
               <>
                 <div className="text-center py-4">
                   <h3 className="text-lg font-semibold mb-2">
@@ -774,24 +790,61 @@ export function PlatformConnectionWizard({
 
                 <Separator />
 
-                <Button
-                  onClick={() => handleStartOAuth(isMetaPlatform ? 'connect' : 'full')}
-                  disabled={isConnecting}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isConnecting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Redirecionando...
-                    </>
-                  ) : (
-                    <>
-                      Iniciar Conexão OAuth
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </Button>
+                {/* Connection mode selection for Meta platforms */}
+                {isMetaPlatform ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Escolha o modo de conexão:
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={() => handleStartOAuth('full')}
+                        disabled={isConnecting}
+                        variant="default"
+                        className="flex-col h-auto py-4"
+                      >
+                        <Shield className="h-5 w-5 mb-1" />
+                        <span className="text-xs font-medium">Modo Completo</span>
+                        <span className="text-[10px] text-primary-foreground/70">Publicar + Agendar</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleStartOAuth('connect')}
+                        disabled={isConnecting}
+                        variant="outline"
+                        className="flex-col h-auto py-4"
+                      >
+                        <Key className="h-5 w-5 mb-1" />
+                        <span className="text-xs font-medium">Modo Mínimo</span>
+                        <span className="text-[10px] text-muted-foreground">Conectar primeiro</span>
+                      </Button>
+                    </div>
+                    {isConnecting && (
+                      <div className="flex items-center justify-center py-2">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Redirecionando...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => handleStartOAuth('full')}
+                    disabled={isConnecting}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Redirecionando...
+                      </>
+                    ) : (
+                      <>
+                        Iniciar Conexão OAuth
+                        <ExternalLink className="h-4 w-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {errorMessage && (
                   <Alert variant="destructive">
@@ -801,17 +854,28 @@ export function PlatformConnectionWizard({
                 )}
 
                 {connectionStatus === 'error' && !showScopeRetry && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setConnectionStatus('idle');
-                      setErrorMessage(null);
-                    }}
-                    className="w-full"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Tentar novamente
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setConnectionStatus('idle');
+                        setErrorMessage(null);
+                      }}
+                      className="flex-1"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Tentar novamente
+                    </Button>
+                    {isMetaPlatform && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDiagnostics(true)}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Diagnóstico
+                      </Button>
+                    )}
+                  </div>
                 )}
               </>
             )}

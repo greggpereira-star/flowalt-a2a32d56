@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.social-meta-preflight]
 verify_jwt = false
+
+[functions.social-meta-diagnostics]
+verify_jwt = false
