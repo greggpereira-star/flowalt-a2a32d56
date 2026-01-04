@@ -588,17 +588,18 @@ serve(async (req) => {
     // Log event
     await supabase.from('domain_events').insert({
       workspace_id,
+      aggregate_type: 'social_media',
+      aggregate_id: workspace_id,
       event_type: 'social_platform.assets_fetched',
-      entity_type: 'social_platform',
-      entity_id: platform_connection_id,
       payload: {
+        platform_connection_id,
         platform: platformData.platform,
         asset_count: result.assets.length,
         asset_types: [...new Set(result.assets.map(a => a.asset_type))],
         reason_code: result.reason_code,
         warnings: result.warnings,
+        actor_id: user.id,
       },
-      actor_id: user.id,
     });
 
     return new Response(

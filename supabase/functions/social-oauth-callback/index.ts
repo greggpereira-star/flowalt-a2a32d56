@@ -292,17 +292,18 @@ serve(async (req) => {
           if (workspaceId) {
             await supabase.from('domain_events').insert({
               workspace_id: workspaceId,
+              aggregate_type: 'social_media',
+              aggregate_id: workspaceId,
               event_type: 'social_oauth.failed',
-              entity_type: 'social_platform',
-              entity_id: state,
               payload: {
                 platform: platformForRedirect,
                 provider: platformForRedirect === 'facebook' || platformForRedirect === 'instagram' ? 'meta' : platformForRedirect,
+                state,
                 error_code: normalizedError,
                 error_description: errorDescription || null,
                 error_reason: errorReason || null,
+                actor_id: userId,
               },
-              actor_id: userId,
             });
           }
 
@@ -428,9 +429,9 @@ serve(async (req) => {
     // Log success event
     await supabase.from('domain_events').insert({
       workspace_id: workspaceId,
+      aggregate_type: 'social_media',
+      aggregate_id: workspaceId,
       event_type: 'social_oauth.completed',
-      entity_type: 'social_platform',
-      entity_id: platformData.id,
       payload: {
         platform,
         provider: isMetaPlatform ? 'meta' : platform,
@@ -440,8 +441,8 @@ serve(async (req) => {
         token_expires_at: tokenExpiresAt,
         scopes: scopesArray,
         is_long_lived: isMetaPlatform,
+        actor_id: userId,
       },
-      actor_id: userId,
     });
 
     // Clean up OAuth state

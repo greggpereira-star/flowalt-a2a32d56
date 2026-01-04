@@ -215,9 +215,9 @@ serve(async (req) => {
     // Log preflight event
     await supabase.from('domain_events').insert({
       workspace_id,
+      aggregate_type: 'social_media',
+      aggregate_id: workspace_id,
       event_type: 'social_meta.preflight',
-      entity_type: 'social_platform',
-      entity_id: workspace_id,
       payload: {
         platform,
         provider_configured: providerConfigured,
@@ -225,8 +225,8 @@ serve(async (req) => {
         recommended_scopes: Array.from(recommendedScopes),
         capabilities: effectiveCapabilities,
         issue_code: detectedIssue?.code || null,
+        actor_id: user.id,
       },
-      actor_id: user.id,
     });
 
     const response: PreflightResponse = {
