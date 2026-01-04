@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple encryption for tokens
+function encryptToken(token: string): string {
+  const key = Deno.env.get('TOKEN_ENCRYPTION_KEY') || 'default-key-change-me';
+  const encoded = new TextEncoder().encode(token);
+  const keyBytes = new TextEncoder().encode(key);
+  const encrypted = encoded.map((byte, i) => byte ^ keyBytes[i % keyBytes.length]);
+  return btoa(String.fromCharCode(...encrypted));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -86,7 +95,7 @@ serve(async (req) => {
       );
     }
 
-    // Verify asset exists
+    // Verify asset exists in our cached list
     const { data: assetData, error: assetError } = await supabase
       .from('social_platform_assets')
       .select('*')
@@ -121,6 +130,11 @@ serve(async (req) => {
       );
     }
 
+    // Extract page_access_token if available (for Meta platforms)
+    // This is crucial for publishing to Pages and Instagram
+    const assetMeta = assetData.asset_meta as Record<string, unknown>;
+    const pageAccessToken = assetMeta?.page_access_token as string | undefined;
+    
     // Determine connection status based on token expiration
     let newStatus = 'connected';
     if (platformData.token_expires_at) {
@@ -135,18 +149,34 @@ serve(async (req) => {
       }
     }
 
+    // Build update payload
+    const updatePayload: Record<string, unknown> = {
+      platform_account_type: asset_type,
+      account_id: asset_id,
+      account_name: assetData.asset_name,
+      asset_selected_at: new Date().toISOString(),
+      connection_status: newStatus,
+      last_error_code: null,
+      last_error_message: null,
+      last_validated_at: new Date().toISOString(),
+    };
+
+    // Store the page_access_token encrypted if available
+    // This allows us to use the Page token for publishing instead of the user token
+    if (pageAccessToken) {
+      updatePayload.asset_token_encrypted = encryptToken(pageAccessToken);
+    }
+
+    // For Instagram, also store the linked page info
+    if (asset_type === 'instagram_business') {
+      updatePayload.linked_page_id = assetMeta?.linked_page_id || null;
+      updatePayload.linked_page_name = assetMeta?.linked_page_name || null;
+    }
+
     // Update platform connection with selected asset
     const { error: updateError } = await supabase
       .from('social_platforms')
-      .update({
-        platform_account_type: asset_type,
-        account_id: asset_id,
-        account_name: assetData.asset_name,
-        asset_selected_at: new Date().toISOString(),
-        connection_status: newStatus,
-        last_error_code: null,
-        last_error_message: null,
-      })
+      .update(updatePayload)
       .eq('id', platform_connection_id);
 
     if (updateError) {
@@ -169,11 +199,13 @@ serve(async (req) => {
         asset_id,
         asset_name: assetData.asset_name,
         previous_asset_id: platformData.account_id,
+        has_page_token: !!pageAccessToken,
+        linked_page_id: assetMeta?.linked_page_id,
       },
       actor_id: user.id,
     });
 
-    console.log(`Asset selected: ${asset_type}/${asset_id} for connection ${platform_connection_id}`);
+    console.log(`Asset selected: ${asset_type}/${asset_id} for connection ${platform_connection_id} (page_token: ${!!pageAccessToken})`);
 
     return new Response(
       JSON.stringify({

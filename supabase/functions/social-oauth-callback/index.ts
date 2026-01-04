@@ -8,6 +8,9 @@ const corsHeaders = {
 
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 
+// Graph API version - keep in sync with social-oauth-start
+const GRAPH_VERSION = '21.0';
+
 interface TokenResponse {
   access_token: string;
   refresh_token?: string;
@@ -25,8 +28,8 @@ interface AccountInfo {
 
 // Token exchange URLs
 const TOKEN_URLS: Record<Platform, string> = {
-  instagram: 'https://graph.facebook.com/v18.0/oauth/access_token',
-  facebook: 'https://graph.facebook.com/v18.0/oauth/access_token',
+  instagram: `https://graph.facebook.com/v${GRAPH_VERSION}/oauth/access_token`,
+  facebook: `https://graph.facebook.com/v${GRAPH_VERSION}/oauth/access_token`,
   linkedin: 'https://www.linkedin.com/oauth/v2/accessToken',
   tiktok: 'https://open.tiktokapis.com/v2/oauth/token/',
   youtube: 'https://oauth2.googleapis.com/token',
@@ -58,6 +61,11 @@ async function exchangeCodeForToken(
   } else if (platform === 'linkedin') {
     params.set('client_id', clientId);
     params.set('client_secret', clientSecret);
+  } else if (platform === 'facebook' || platform === 'instagram') {
+    // Meta token exchange
+    params.set('client_id', clientId);
+    params.set('client_secret', clientSecret);
+    if (codeVerifier) params.set('code_verifier', codeVerifier);
   } else {
     params.set('client_id', clientId);
     params.set('client_secret', clientSecret);
@@ -73,6 +81,8 @@ async function exchangeCodeForToken(
     headers['Authorization'] = `Basic ${credentials}`;
   }
 
+  console.log(`Exchanging code for token at ${tokenUrl}...`);
+  
   const response = await fetch(tokenUrl, {
     method: 'POST',
     headers,
@@ -82,10 +92,43 @@ async function exchangeCodeForToken(
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`Token exchange failed for ${platform}:`, errorText);
-    throw new Error(`Token exchange failed: ${response.status}`);
+    throw new Error(`Token exchange failed: ${response.status} - ${errorText}`);
   }
 
   return await response.json();
+}
+
+/**
+ * Exchange short-lived token for long-lived token (Meta only)
+ * Long-lived tokens last ~60 days
+ */
+async function exchangeForLongLivedToken(
+  shortLivedToken: string
+): Promise<{ access_token: string; expires_in?: number }> {
+  const clientId = Deno.env.get('META_APP_ID')!;
+  const clientSecret = Deno.env.get('META_APP_SECRET')!;
+  
+  const url = `https://graph.facebook.com/v${GRAPH_VERSION}/oauth/access_token?` +
+    `grant_type=fb_exchange_token&` +
+    `client_id=${clientId}&` +
+    `client_secret=${clientSecret}&` +
+    `fb_exchange_token=${shortLivedToken}`;
+
+  console.log('Exchanging for long-lived token...');
+  
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.warn('Long-lived token exchange failed, using short-lived:', errorText);
+    // Return original token if exchange fails
+    return { access_token: shortLivedToken };
+  }
+
+  const data = await response.json();
+  console.log(`Got long-lived token, expires_in: ${data.expires_in}`);
+  
+  return data;
 }
 
 async function fetchAccountInfo(platform: Platform, accessToken: string): Promise<AccountInfo> {
@@ -95,11 +138,17 @@ async function fetchAccountInfo(platform: Platform, accessToken: string): Promis
   switch (platform) {
     case 'instagram':
     case 'facebook':
-      // Get user info and pages
+      // Get user info
       response = await fetch(
-        `https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${accessToken}`
+        `https://graph.facebook.com/v${GRAPH_VERSION}/me?fields=id,name,picture&access_token=${accessToken}`
       );
       data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Failed to fetch Meta user info:', data);
+        throw new Error(data.error?.message || 'Failed to fetch user info');
+      }
+      
       return {
         account_id: data.id,
         account_name: data.name,
@@ -213,10 +262,12 @@ serve(async (req) => {
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
     const errorDescription = url.searchParams.get('error_description');
+    const errorReason = url.searchParams.get('error_reason');
 
     if (error) {
-      const normalizedError = error === 'invalid_scope' ? 'INVALID_SCOPE' : error;
-      console.error('OAuth error:', normalizedError, errorDescription);
+      // Normalize Meta's invalid_scope to our standard code
+      const normalizedError = error === 'invalid_scope' ? 'INVALID_SCOPE' : error.toUpperCase();
+      console.error('OAuth error:', normalizedError, errorDescription, errorReason);
 
       // Try to redirect back to the original return_url stored in oauth_states
       let returnUrl: string | null = null;
@@ -249,26 +300,27 @@ serve(async (req) => {
                 provider: platformForRedirect === 'facebook' || platformForRedirect === 'instagram' ? 'meta' : platformForRedirect,
                 error_code: normalizedError,
                 error_description: errorDescription || null,
+                error_reason: errorReason || null,
               },
               actor_id: userId,
             });
           }
 
-          // Clean up OAuth state to avoid accumulating invalid sessions
+          // Clean up OAuth state
           await supabase.from('oauth_states').delete().eq('state', state);
         }
       }
 
       return createErrorRedirect(
         normalizedError,
-        errorDescription || 'OAuth authorization failed',
+        errorDescription || errorReason || 'OAuth authorization failed',
         returnUrl,
         platformForRedirect
       );
     }
 
     if (!code || !state) {
-      return createErrorRedirect('missing_params', 'Missing code or state parameter');
+      return createErrorRedirect('MISSING_PARAMS', 'Missing code or state parameter');
     }
 
     // Validate state and get OAuth session (check not used)
@@ -281,13 +333,13 @@ serve(async (req) => {
 
     if (stateError || !oauthState) {
       console.error('Invalid OAuth state:', stateError);
-      return createErrorRedirect('invalid_state', 'OAuth session expired or invalid');
+      return createErrorRedirect('INVALID_STATE', 'OAuth session expired or invalid');
     }
 
     // Check expiration
     if (new Date(oauthState.expires_at) < new Date()) {
       await supabase.from('oauth_states').delete().eq('state', state);
-      return createErrorRedirect('expired', 'OAuth session expired');
+      return createErrorRedirect('EXPIRED', 'OAuth session expired');
     }
 
     // Mark state as used immediately to prevent replay attacks
@@ -299,7 +351,7 @@ serve(async (req) => {
 
     if (markUsedError) {
       console.error('Failed to mark state as used:', markUsedError);
-      return createErrorRedirect('replay_detected', 'State already used');
+      return createErrorRedirect('REPLAY_DETECTED', 'State already used');
     }
 
     const platform = oauthState.platform as Platform;
@@ -311,12 +363,23 @@ serve(async (req) => {
     // Check credentials exist
     const clientSecret = Deno.env.get(getClientSecretEnv(platform));
     if (!clientSecret) {
-      return createErrorRedirect('not_configured', `${platform} credentials not configured`);
+      return createErrorRedirect('NOT_CONFIGURED', `${platform} credentials not configured`, returnUrl, platform);
     }
 
     // Exchange code for tokens
     const redirectUri = `${supabaseUrl}/functions/v1/social-oauth-callback`;
-    const tokens = await exchangeCodeForToken(platform, code, redirectUri, codeVerifier);
+    let tokens = await exchangeCodeForToken(platform, code, redirectUri, codeVerifier);
+
+    // For Meta platforms, try to get a long-lived token
+    const isMetaPlatform = platform === 'facebook' || platform === 'instagram';
+    if (isMetaPlatform && tokens.access_token) {
+      const longLivedResult = await exchangeForLongLivedToken(tokens.access_token);
+      tokens = {
+        ...tokens,
+        access_token: longLivedResult.access_token,
+        expires_in: longLivedResult.expires_in || tokens.expires_in,
+      };
+    }
 
     // Fetch account info to validate token works
     const accountInfo = await fetchAccountInfo(platform, tokens.access_token);
@@ -325,6 +388,9 @@ serve(async (req) => {
     const tokenExpiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
       : null;
+
+    // Parse scopes from response
+    const scopesArray = tokens.scope?.split(/[,\s]+/).filter(Boolean) || [];
 
     // Store platform connection
     const { data: platformData, error: platformError } = await supabase
@@ -339,7 +405,7 @@ serve(async (req) => {
         access_token_encrypted: encryptToken(tokens.access_token),
         refresh_token_encrypted: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
         token_expires_at: tokenExpiresAt,
-        scopes: tokens.scope?.split(/[,\s]+/) || [],
+        scopes: scopesArray,
         is_active: true,
         // Set to pending_assets - user needs to select which page/account to use
         connection_status: 'pending_assets',
@@ -356,7 +422,7 @@ serve(async (req) => {
 
     if (platformError) {
       console.error('Error storing platform:', platformError);
-      return createErrorRedirect('storage_error', 'Failed to save connection');
+      return createErrorRedirect('STORAGE_ERROR', 'Failed to save connection', returnUrl, platform);
     }
 
     // Log success event
@@ -367,9 +433,13 @@ serve(async (req) => {
       entity_id: platformData.id,
       payload: {
         platform,
+        provider: isMetaPlatform ? 'meta' : platform,
         account_id: accountInfo.account_id,
         account_name: accountInfo.account_name,
         has_refresh_token: !!tokens.refresh_token,
+        token_expires_at: tokenExpiresAt,
+        scopes: scopesArray,
+        is_long_lived: isMetaPlatform,
       },
       actor_id: userId,
     });
@@ -377,10 +447,9 @@ serve(async (req) => {
     // Clean up OAuth state
     await supabase.from('oauth_states').delete().eq('state', state);
 
-    console.log(`OAuth completed for ${platform}: ${accountInfo.account_name}`);
+    console.log(`OAuth completed for ${platform}: ${accountInfo.account_name} (token expires: ${tokenExpiresAt})`);
 
     // Redirect back to app
-    // Prefer an absolute return URL (provided by the web app) to avoid wrong domain redirects.
     let successUrl: URL;
     try {
       successUrl = new URL(returnUrl);
@@ -401,7 +470,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('OAuth callback error:', errorMessage);
-    return createErrorRedirect('server_error', errorMessage);
+    return createErrorRedirect('SERVER_ERROR', errorMessage);
   }
 });
 

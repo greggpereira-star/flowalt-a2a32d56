@@ -406,9 +406,6 @@ export function PlatformConnectionWizard({
           workspace_id: currentWorkspace.id,
           // IMPORTANT: send absolute URL so the callback can safely redirect back
           return_url: `${window.location.origin}${window.location.pathname}`,
-          ...(platformId === 'facebook' || platformId === 'instagram'
-            ? { meta_scope_strategy: 'primary' }
-            : {}),
         },
       });
 
