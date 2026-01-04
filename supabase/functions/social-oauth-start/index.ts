@@ -15,34 +15,49 @@ interface OAuthConfig {
   redirectPath: string;
 }
 
+/**
+ * META SCOPES - Enterprise Grade Configuration
+ * 
+ * IMPORTANT: Only request scopes that are APPROVED in your Meta App Review.
+ * 
+ * Basic scopes (no review required for Development mode):
+ * - public_profile (always granted)
+ * 
+ * Publishing/Insights scopes (require App Review for Production):
+ * - pages_read_engagement - Read Page engagement data
+ * - pages_manage_posts - Create and manage Page posts
+ * - instagram_basic - Basic Instagram account info
+ * - instagram_manage_insights - Instagram analytics
+ * - instagram_content_publish - Publish to Instagram
+ * 
+ * DEPRECATED/LEGACY (DO NOT USE):
+ * - manage_pages (replaced by pages_read_engagement + pages_manage_posts)
+ * - pages_show_list (often causes Invalid Scope in development)
+ */
+const META_SCOPES_PUBLISHING = [
+  'pages_read_engagement',
+  'pages_manage_posts',
+];
+
+const META_SCOPES_INSTAGRAM = [
+  'instagram_basic',
+  'instagram_manage_insights',
+  'instagram_content_publish',
+];
+
 // Platform OAuth configurations
 const PLATFORM_CONFIGS: Record<Platform, OAuthConfig> = {
   instagram: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // NOTE: Meta will only grant scopes that are enabled/approved for the app.
-    // These scopes are required to list Pages and discover linked Instagram Business accounts.
-    // If Meta rejects any scope, adjust permissions in your Meta app or remove the unapproved ones.
-    scopes: [
-      'pages_show_list',
-      'instagram_basic',
-      // Optional but recommended for analytics/publishing flows:
-      'pages_read_engagement',
-      'instagram_manage_insights',
-      'instagram_content_publish',
-    ],
+    // Instagram Business requires Pages + Instagram scopes
+    scopes: [...META_SCOPES_PUBLISHING, ...META_SCOPES_INSTAGRAM],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
   facebook: {
     authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
-    // NOTE: Meta will only grant scopes that are enabled/approved for the app.
-    // These scopes are required to list Pages and publish as a Page.
-    scopes: [
-      'pages_show_list',
-      // Optional but recommended for analytics/publishing flows:
-      'pages_read_engagement',
-      'pages_manage_posts',
-    ],
+    // Facebook Pages publishing
+    scopes: [...META_SCOPES_PUBLISHING],
     clientIdEnv: 'META_APP_ID',
     redirectPath: '/functions/v1/social-oauth-callback',
   },
@@ -303,6 +318,9 @@ serve(async (req) => {
     // Store OAuth state in database for verification
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
     
+    // Determine final scopes to use
+    const scopesToUse = [...config.scopes];
+    
     const { error: stateError } = await supabase
       .from('oauth_states')
       .upsert({
@@ -337,27 +355,27 @@ serve(async (req) => {
     if (platform === 'twitter') {
       params.set('code_challenge', codeChallenge);
       params.set('code_challenge_method', 'plain');
-      params.set('scope', config.scopes.join(' '));
+      params.set('scope', scopesToUse.join(' '));
     } else if (platform === 'linkedin') {
-      params.set('scope', config.scopes.join(' '));
+      params.set('scope', scopesToUse.join(' '));
     } else if (platform === 'tiktok') {
-      params.set('scope', config.scopes.join(','));
+      params.set('scope', scopesToUse.join(','));
       params.set('client_key', clientId);
     } else if (platform === 'youtube') {
-      params.set('scope', config.scopes.join(' '));
+      params.set('scope', scopesToUse.join(' '));
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
     } else {
       // Meta (Facebook/Instagram)
       // Only include scope if we have any to request.
-      if (config.scopes.length > 0) {
-        params.set('scope', config.scopes.join(','));
+      if (scopesToUse.length > 0) {
+        params.set('scope', scopesToUse.join(','));
       }
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
 
-    // Log OAuth start event
+    // Log OAuth start event with scopes info
     await supabase.from('domain_events').insert({
       workspace_id,
       event_type: 'social_oauth.started',
@@ -365,19 +383,22 @@ serve(async (req) => {
       entity_id: state,
       payload: {
         platform,
+        provider: platform === 'instagram' || platform === 'facebook' ? 'meta' : platform,
         user_id,
-        scopes: config.scopes,
+        scopes_used: scopesToUse,
+        scopes_count: scopesToUse.length,
       },
       actor_id: user_id,
     });
 
-    console.log(`OAuth started for ${platform} in workspace ${workspace_id}`);
+    console.log(`OAuth started for ${platform} in workspace ${workspace_id} with scopes: ${scopesToUse.join(', ')}`);
 
     return new Response(
       JSON.stringify({
         auth_url: authUrl,
         state,
         expires_at: expiresAt,
+        scopes_requested: scopesToUse,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -394,18 +415,22 @@ serve(async (req) => {
 function getSetupInstructions(platform: Platform): string[] {
   const instructions: Record<Platform, string[]> = {
     instagram: [
-      '1. Acesse developers.facebook.com e crie um app',
-      '2. Adicione o produto "Instagram Basic Display" ou "Instagram Graph API"',
-      '3. Configure a URI de redirecionamento OAuth',
-      '4. Copie o App ID e App Secret',
-      '5. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
+      '1. Acesse developers.facebook.com e crie um app do tipo "Business"',
+      '2. Adicione os produtos: "Facebook Login for Business" e "Instagram Graph API"',
+      '3. Em Casos de Uso, adicione: pages_read_engagement, pages_manage_posts, instagram_basic, instagram_manage_insights, instagram_content_publish',
+      '4. Configure a URI de redirecionamento OAuth válida',
+      '5. Copie o App ID e App Secret',
+      '6. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
+      '7. Para produção: complete o App Review para cada permissão',
     ],
     facebook: [
-      '1. Acesse developers.facebook.com e crie um app',
-      '2. Adicione o produto "Facebook Login"',
-      '3. Configure as permissões de páginas',
-      '4. Copie o App ID e App Secret',
-      '5. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
+      '1. Acesse developers.facebook.com e crie um app do tipo "Business"',
+      '2. Adicione o produto "Facebook Login for Business"',
+      '3. Em Casos de Uso, adicione: pages_read_engagement, pages_manage_posts',
+      '4. Configure a URI de redirecionamento OAuth válida',
+      '5. Copie o App ID e App Secret',
+      '6. Adicione META_APP_ID e META_APP_SECRET nos secrets do projeto',
+      '7. Para produção: complete o App Review para cada permissão',
     ],
     linkedin: [
       '1. Acesse linkedin.com/developers e crie um app',

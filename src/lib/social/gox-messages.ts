@@ -22,7 +22,8 @@ export type GoxErrorCode =
   | 'PERMISSION_DENIED'
   | 'UNAUTHORIZED'
   | 'CONNECTION_FAILED'
-  | 'SECRETS_MISSING';
+  | 'SECRETS_MISSING'
+  | 'INVALID_SCOPE';
 
 export interface GoxMessage {
   title: string;
@@ -243,6 +244,20 @@ const BASE_MESSAGES: Record<GoxErrorCode, {
       severity: 'info',
     },
   },
+  INVALID_SCOPE: {
+    superAdmin: {
+      title: 'Escopo OAuth inválido',
+      message: 'O Meta rejeitou permissões solicitadas. Revise o App Review no Meta for Developers e habilite os Use Cases necessários: pages_read_engagement, pages_manage_posts, instagram_basic.',
+      cta: 'Abrir Meta for Developers',
+      ctaUrl: 'https://developers.facebook.com/apps',
+      severity: 'error',
+    },
+    client: {
+      title: 'Erro de configuração',
+      message: 'A integração precisa de ajustes pelo administrador do sistema. Por favor, contate o suporte.',
+      severity: 'error',
+    },
+  },
 };
 
 /**
@@ -303,6 +318,8 @@ export function mapApiErrorToGox(apiError: string): GoxErrorCode {
     'FORBIDDEN': 'PERMISSION_DENIED',
     'UNAUTHORIZED': 'UNAUTHORIZED',
     'CONNECTION_FAILED': 'CONNECTION_FAILED',
+    'INVALID_SCOPE': 'INVALID_SCOPE',
+    'invalid_scope': 'INVALID_SCOPE',
   };
 
   return errorMap[apiError] || 'API_ERROR';
