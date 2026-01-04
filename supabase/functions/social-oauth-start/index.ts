@@ -102,16 +102,19 @@ const META_CAPABILITY_SCOPES = {
  * This avoids "Invalid Scopes" errors for apps that haven't completed App Review.
  */
 
-// Initial connect - MUST include pages_show_list to allow listing pages after OAuth
+// Initial connect - MUST include all scopes needed for both Facebook AND Instagram publishing
 // CRITICAL: Without pages_show_list, social-connection-assets will return empty
 // business_management is REQUIRED for Business Login to avoid "supported permission" error
+// Instagram scopes are REQUIRED to publish to Instagram Business accounts
 const META_SCOPES_CONNECT = [
   'public_profile',
   'email',
   'business_management',
-  'pages_show_list',          // REQUIRED to list pages after OAuth
-  'pages_read_engagement',    // REQUIRED to get page details/insights
-  'pages_manage_posts',       // REQUIRED to publish content
+  'pages_show_list',              // REQUIRED to list pages after OAuth
+  'pages_read_engagement',        // REQUIRED to get page details/insights
+  'pages_manage_posts',           // REQUIRED to publish to Facebook Pages
+  'instagram_basic',              // REQUIRED to access Instagram Business accounts
+  'instagram_content_publish',    // REQUIRED to publish to Instagram
 ];
 
 // Scopes needed for listing pages
