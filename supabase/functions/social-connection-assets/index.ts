@@ -35,17 +35,33 @@ function decryptToken(encrypted: string): string {
 async function fetchMetaAssets(accessToken: string): Promise<Asset[]> {
   const assets: Asset[] = [];
   
-  // 1. Get Facebook Pages
-  const pagesResponse = await fetch(
-    `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture{url}&access_token=${accessToken}`
-  );
+  console.log('Fetching Meta assets with token length:', accessToken?.length || 0);
   
-  if (!pagesResponse.ok) {
-    const error = await pagesResponse.json();
-    throw new Error(error.error?.message || 'Failed to fetch pages');
+  // 1. Get Facebook Pages
+  const pagesUrl = `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture{url}&access_token=${accessToken}`;
+  console.log('Calling Facebook Pages API...');
+  
+  const pagesResponse = await fetch(pagesUrl);
+  const pagesText = await pagesResponse.text();
+  console.log('Pages API response status:', pagesResponse.status);
+  
+  let pagesData;
+  try {
+    pagesData = JSON.parse(pagesText);
+  } catch {
+    console.error('Failed to parse pages response:', pagesText.substring(0, 200));
+    throw new Error('Invalid response from Facebook API');
   }
   
-  const pagesData = await pagesResponse.json();
+  if (!pagesResponse.ok) {
+    console.error('Pages API error:', JSON.stringify(pagesData));
+    // If user doesn't have pages, that's okay - continue without throwing
+    if (pagesData.error?.code === 190) {
+      throw new Error(pagesData.error?.message || 'Access token expired or invalid');
+    }
+  }
+  
+  console.log('Found pages:', pagesData.data?.length || 0);
   
   for (const page of pagesData.data || []) {
     assets.push({
@@ -54,11 +70,12 @@ async function fetchMetaAssets(accessToken: string): Promise<Asset[]> {
       asset_name: page.name,
       asset_meta: {
         picture_url: page.picture?.data?.url,
-        page_access_token: page.access_token, // Keep for publishing
+        page_access_token: page.access_token,
       },
     });
     
     // 2. Check for Instagram Business Account linked to this page
+    console.log(`Checking Instagram for page ${page.id}...`);
     const igResponse = await fetch(
       `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account{id,username,profile_picture_url}&access_token=${accessToken}`
     );
@@ -68,6 +85,7 @@ async function fetchMetaAssets(accessToken: string): Promise<Asset[]> {
       const igAccount = igData.instagram_business_account;
       
       if (igAccount) {
+        console.log(`Found Instagram account: @${igAccount.username}`);
         assets.push({
           asset_type: 'instagram_business',
           asset_id: igAccount.id,
@@ -76,13 +94,14 @@ async function fetchMetaAssets(accessToken: string): Promise<Asset[]> {
             username: igAccount.username,
             profile_picture_url: igAccount.profile_picture_url,
             linked_page_id: page.id,
-            page_access_token: page.access_token, // Required for IG publishing
+            page_access_token: page.access_token,
           },
         });
       }
     }
   }
   
+  console.log(`Total Meta assets found: ${assets.length}`);
   return assets;
 }
 
