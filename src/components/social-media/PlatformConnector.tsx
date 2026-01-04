@@ -28,6 +28,7 @@ import {
   type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
@@ -377,10 +378,12 @@ function UnconnectedPlatformCard({
   config,
   onConnect,
   isSuperAdmin,
+  canManage,
 }: {
   config: PlatformConfig;
   onConnect: () => void;
   isSuperAdmin?: boolean;
+  canManage?: boolean;
 }) {
   const { computedState, stateConfig, canConnect } = useUnconnectedPlatformState(config.id);
   const Icon = config.icon;
@@ -465,6 +468,20 @@ function UnconnectedPlatformCard({
               </Link>
             </Button>
           </div>
+        ) : !canManage ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button disabled variant="secondary" className="w-full">
+                  <Lock className="h-4 w-4 mr-2" />
+                  Conectar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p>Apenas Owner, Admin ou Coordenador podem conectar plataformas.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : (
           <Button
             onClick={onConnect}
@@ -482,8 +499,12 @@ function UnconnectedPlatformCard({
 
 export function PlatformConnector() {
   const { currentWorkspace } = useWorkspace();
+  const { isAdmin, isCoordinator, isOwner } = usePermissions();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Only Owner, Admin, or Coordinator can connect/disconnect platforms
+  const canManagePlatforms = isOwner || isAdmin || isCoordinator;
   
   const { 
     data: platforms, 
@@ -712,6 +733,7 @@ export function PlatformConnector() {
               config={config}
               onConnect={() => handleConnect(config.id, config.name)}
               isSuperAdmin={isSuperAdmin}
+              canManage={canManagePlatforms}
             />
           );
         })}
