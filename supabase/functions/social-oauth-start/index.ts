@@ -90,7 +90,38 @@ const META_CAPABILITY_SCOPES = {
   META_IG_INSIGHTS: ['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_manage_insights'],
 };
 
-// Full production scopes (all capabilities)
+/**
+ * META SCOPES - FALLBACK STRATEGY (2025)
+ * 
+ * IMPORTANT: We now use AUTOMATIC FALLBACK approach:
+ * - First connection: ONLY request public_profile (always works, no App Review needed)
+ * - This ensures the OAuth ALWAYS succeeds
+ * - When user tries to list pages or publish, we check if we have the needed scopes
+ * - If not, we trigger a re-auth with the additional scopes
+ * 
+ * This avoids "Invalid Scopes" errors for apps that haven't completed App Review.
+ */
+
+// Initial connect - MINIMAL scopes that always work
+const META_SCOPES_CONNECT = [
+  'public_profile',
+];
+
+// Scopes needed for listing pages
+const META_SCOPES_PAGES_LIST = [
+  'public_profile',
+  'pages_show_list',
+];
+
+// Scopes needed for managing/publishing to pages  
+const META_SCOPES_PAGES_PUBLISH = [
+  'public_profile',
+  'pages_show_list',
+  'pages_read_engagement', 
+  'pages_manage_posts',
+];
+
+// Full production scopes (all capabilities) - for apps with App Review complete
 const META_SCOPES_FULL = [
   'public_profile',
   'pages_show_list',
@@ -476,26 +507,46 @@ serve(async (req) => {
     // Store OAuth state in database for verification
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
 
-    // Determine scopes based on strategy
+    /**
+     * AUTOMATIC FALLBACK STRATEGY for Meta:
+     * 
+     * 'connect' (NEW DEFAULT): Only public_profile - ALWAYS works, no App Review needed
+     * 'pages_list': public_profile + pages_show_list - for listing pages
+     * 'pages_publish': public_profile + pages_show_list + pages_read_engagement + pages_manage_posts
+     * 'full': All scopes including Instagram - requires App Review
+     * 'minimal': Same as connect (backwards compat)
+     * 'pages_only': Same as pages_publish (backwards compat)
+     */
     let scopesToUse: string[];
     
     if (isMetaProvider) {
       switch (effectiveScopeStrategy) {
+        case 'connect':
         case 'minimal':
-          // Development mode fallback - only public_profile works without App Review
-          scopesToUse = [...META_SCOPES_MINIMAL];
-          console.log(`Using MINIMAL scopes for ${platform}: ${scopesToUse.join(',')}`);
+          // Initial connection - ONLY public_profile (always works)
+          scopesToUse = [...META_SCOPES_CONNECT];
+          console.log(`Using CONNECT (minimal) scopes for ${platform}: ${scopesToUse.join(',')}`);
           break;
+        case 'pages_list':
+          // Need to list pages
+          scopesToUse = [...META_SCOPES_PAGES_LIST];
+          console.log(`Using PAGES_LIST scopes for ${platform}: ${scopesToUse.join(',')}`);
+          break;
+        case 'pages_publish':
         case 'pages_only':
-          // Facebook pages only, no Instagram
-          scopesToUse = [...META_SCOPES_FACEBOOK_ONLY];
-          console.log(`Using PAGES_ONLY scopes for ${platform}: ${scopesToUse.join(',')}`);
+          // Need to manage/publish to pages
+          scopesToUse = [...META_SCOPES_PAGES_PUBLISH];
+          console.log(`Using PAGES_PUBLISH scopes for ${platform}: ${scopesToUse.join(',')}`);
           break;
         case 'full':
-        default:
           // Full production scopes - requires App Review
-          scopesToUse = [...config.scopes];
+          scopesToUse = [...META_SCOPES_FULL];
           console.log(`Using FULL scopes for ${platform}: ${scopesToUse.join(',')}`);
+          break;
+        default:
+          // DEFAULT: Use minimal connect scopes to avoid Invalid Scopes errors
+          scopesToUse = [...META_SCOPES_CONNECT];
+          console.log(`Using DEFAULT (connect) scopes for ${platform}: ${scopesToUse.join(',')}`);
           break;
       }
     } else {

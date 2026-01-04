@@ -28,6 +28,7 @@ interface AssetsResult {
   reason_message?: string;
   error_code?: string;
   error_message?: string;
+  reauth_strategy?: string; // For REQUIRES_REAUTH - tells frontend which strategy to use
 }
 
 /**
@@ -37,6 +38,7 @@ type AssetReasonCode =
   | 'NO_PAGES_ADMIN'      // User is not admin of any Facebook Page
   | 'NO_IG_LINKED'        // No Instagram Business linked to Pages
   | 'MISSING_SCOPES'      // Token missing required scopes
+  | 'REQUIRES_REAUTH'     // Need to re-authenticate with more scopes
   | 'TOKEN_INVALID'       // Token expired or revoked
   | 'TOKEN_EXPIRED'       // Token explicitly expired
   | 'API_ERROR';          // Generic API error
@@ -116,14 +118,18 @@ async function fetchMetaAssets(accessToken: string): Promise<AssetsResult> {
     }
     
     // Permission denied (missing scopes)
-    if (errorCode === 200 || errorCode === 10 || errorMessage.includes('permission')) {
+    // This is the EXPECTED case when using fallback auth with only public_profile
+    if (errorCode === 200 || errorCode === 10 || errorMessage.includes('permission') || errorMessage.includes('scope')) {
+      console.log('Missing scopes detected - user needs to re-authenticate with pages_show_list');
       return {
         success: false,
         assets: [],
-        reason_code: 'MISSING_SCOPES',
-        reason_message: 'Permissões insuficientes. Você não concedeu pages_show_list ou outras permissões necessárias. Reconecte e autorize todas as permissões.',
-        error_code: 'MISSING_SCOPES',
-        error_message: errorMessage,
+        reason_code: 'REQUIRES_REAUTH',
+        reason_message: 'Para listar suas páginas, precisamos de permissões adicionais. Clique em "Adicionar permissões" para continuar.',
+        error_code: 'REQUIRES_REAUTH',
+        error_message: 'Missing pages_show_list scope',
+        // Tell frontend which strategy to use for re-auth
+        reauth_strategy: 'pages_list',
       };
     }
     
