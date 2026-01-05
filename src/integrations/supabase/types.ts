@@ -6122,6 +6122,7 @@ export type Database = {
           last_error_message: string | null
           last_sync_at: string | null
           last_tested_at: string | null
+          last_validated_at: string | null
           linked_page_id: string | null
           linked_page_name: string | null
           platform: string
@@ -6150,6 +6151,7 @@ export type Database = {
           last_error_message?: string | null
           last_sync_at?: string | null
           last_tested_at?: string | null
+          last_validated_at?: string | null
           linked_page_id?: string | null
           linked_page_name?: string | null
           platform: string
@@ -6178,6 +6180,7 @@ export type Database = {
           last_error_message?: string | null
           last_sync_at?: string | null
           last_tested_at?: string | null
+          last_validated_at?: string | null
           linked_page_id?: string | null
           linked_page_name?: string | null
           platform?: string
