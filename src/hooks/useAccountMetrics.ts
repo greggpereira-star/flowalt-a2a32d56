@@ -72,19 +72,31 @@ export const useAccountMetrics = (platformConnectionId: string | null) => {
 
   // Flatten all asset metrics into an array
   // Support both new format (asset_type:asset_id) and legacy format (asset_type)
-  const assetsMetrics = selectedAccount?.account_metrics 
-    ? Object.entries(selectedAccount.account_metrics)
-        .filter(([key]) => !key.includes(':') || key.startsWith('instagram_business:') || key.startsWith('facebook_page:'))
-        .map(([key, metrics]) => {
-          const m = metrics as AccountMetricsData;
-          // For new format keys like "facebook_page:123", extract info
-          const [assetType] = key.split(':');
-          return {
-            assetType: (m as any).asset_type || assetType || key,
-            ...m,
-          };
-        })
-    : [];
+  // Deduplicate by asset_id to avoid showing same asset twice
+  const assetsMetrics = (() => {
+    if (!selectedAccount?.account_metrics) return [];
+    
+    const seen = new Set<string>();
+    const results: Array<AccountMetricsData & { assetType: string }> = [];
+    
+    for (const [key, metrics] of Object.entries(selectedAccount.account_metrics)) {
+      const m = metrics as AccountMetricsData;
+      const assetId = m.asset_id;
+      
+      // Skip if we've already processed this asset_id
+      if (seen.has(assetId)) continue;
+      seen.add(assetId);
+      
+      // Extract asset type from key or from metrics
+      const [assetType] = key.split(':');
+      results.push({
+        assetType: (m as any).asset_type || assetType || key,
+        ...m,
+      });
+    }
+    
+    return results;
+  })();
 
   // Calculate totals across all assets
   const totalFollowers = assetsMetrics.reduce((sum, m) => sum + (m.followers || 0), 0);
