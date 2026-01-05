@@ -213,6 +213,7 @@ export function PlatformConnectionWizard({
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
   const [accountName, setAccountName] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string; type: string } | null>(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [setupInstructions, setSetupInstructions] = useState<string[]>([]);
   const [requiresSetup, setRequiresSetup] = useState(false);
@@ -386,37 +387,61 @@ export function PlatformConnectionWizard({
     }
   };
 
-  // Select an asset
-  const handleSelectAsset = async (asset: typeof availableAssets[0]) => {
-    if (!currentWorkspace?.id || !platformConnectionId) return;
-    
-    setSelectedAccount({
-      id: asset.asset_id,
-      name: asset.asset_name,
-      type: asset.asset_type,
+  // Toggle asset selection (multi-select)
+  const handleToggleAsset = (asset: typeof availableAssets[0]) => {
+    setSelectedAssetIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(asset.asset_id)) {
+        newSet.delete(asset.asset_id);
+      } else {
+        newSet.add(asset.asset_id);
+      }
+      return newSet;
     });
+  };
+
+  // Select all assets
+  const handleSelectAll = () => {
+    if (selectedAssetIds.size === availableAssets.length) {
+      setSelectedAssetIds(new Set());
+    } else {
+      setSelectedAssetIds(new Set(availableAssets.map(a => a.asset_id)));
+    }
+  };
+
+  // Activate selected assets when moving to next step
+  const handleActivateAssets = async () => {
+    if (!currentWorkspace?.id || !platformConnectionId || selectedAssetIds.size === 0) return;
     
     try {
-      const { data, error } = await supabase.functions.invoke('social-asset-select', {
+      const { data, error } = await supabase.functions.invoke('social-assets-activate', {
         body: {
           workspace_id: currentWorkspace.id,
           platform_connection_id: platformConnectionId,
-          asset_type: asset.asset_type,
-          asset_id: asset.asset_id,
+          asset_ids: Array.from(selectedAssetIds),
         },
       });
 
       if (error) throw error;
 
       if (data.ok) {
-        setAccountName(data.selected.asset_name);
-        toast.success(`${data.selected.asset_name} selecionado!`);
+        setAccountName(data.display_name);
+        setSelectedAccount({
+          id: data.assets[0]?.asset_id || '',
+          name: data.display_name,
+          type: data.assets[0]?.asset_type || '',
+        });
+        setConnectionStatus('success');
+        toast.success(`${data.activated_count} conta(s) ativada(s)!`);
+        return true;
       } else {
-        setErrorMessage(data.error_message || 'Erro ao selecionar ativo');
+        setErrorMessage(data.error_message || 'Erro ao ativar ativos');
+        return false;
       }
     } catch (error: any) {
-      console.error('Error selecting asset:', error);
-      setErrorMessage(error.message || 'Erro ao selecionar ativo');
+      console.error('Error activating assets:', error);
+      setErrorMessage(error.message || 'Erro ao ativar ativos');
+      return false;
     }
   };
 
@@ -1030,10 +1055,10 @@ export function PlatformConnectionWizard({
           <div className="space-y-6">
             <div className="text-center py-4">
               <h3 className="text-lg font-semibold mb-2">
-                Selecione o Ativo
+                Selecione as Contas
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Escolha qual página, conta ou canal deseja usar:
+                Escolha quais páginas, contas ou canais deseja usar para agendamento de posts:
               </p>
             </div>
 
@@ -1044,17 +1069,50 @@ export function PlatformConnectionWizard({
               </div>
             ) : availableAssets.length > 0 ? (
               <div className="space-y-3 max-h-60 overflow-y-auto">
+                {/* Select all toggle */}
+                <button
+                  onClick={handleSelectAll}
+                  className="w-full flex items-center gap-4 p-3 rounded-lg border border-dashed hover:border-primary/50 transition-all text-left"
+                >
+                  <div className={cn(
+                    "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
+                    selectedAssetIds.size === availableAssets.length
+                      ? "bg-primary border-primary"
+                      : "border-muted-foreground/50"
+                  )}>
+                    {selectedAssetIds.size === availableAssets.length && (
+                      <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                    )}
+                  </div>
+                  <span className="text-sm font-medium">
+                    {selectedAssetIds.size === availableAssets.length ? 'Desmarcar todas' : 'Selecionar todas'}
+                  </span>
+                  <Badge variant="secondary" className="ml-auto">
+                    {selectedAssetIds.size}/{availableAssets.length}
+                  </Badge>
+                </button>
+
                 {availableAssets.map((asset) => (
                   <button
                     key={`${asset.asset_type}_${asset.asset_id}`}
-                    onClick={() => handleSelectAsset(asset)}
+                    onClick={() => handleToggleAsset(asset)}
                     className={cn(
                       "w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left",
-                      selectedAccount?.id === asset.asset_id
+                      selectedAssetIds.has(asset.asset_id)
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                         : "border-border hover:border-primary/50"
                     )}
                   >
+                    <div className={cn(
+                      "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
+                      selectedAssetIds.has(asset.asset_id)
+                        ? "bg-primary border-primary"
+                        : "border-muted-foreground/50"
+                    )}>
+                      {selectedAssetIds.has(asset.asset_id) && (
+                        <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                      )}
+                    </div>
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
                       {asset.asset_name[0]?.toUpperCase() || 'A'}
                     </div>
@@ -1064,9 +1122,6 @@ export function PlatformConnectionWizard({
                         {asset.asset_type.replace(/_/g, ' ')}
                       </p>
                     </div>
-                    {selectedAccount?.id === asset.asset_id && (
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                    )}
                   </button>
                 ))}
               </div>
@@ -1168,9 +1223,21 @@ export function PlatformConnectionWizard({
                 <span className="font-medium">{platformName}</span>
               </div>
               <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Conta</span>
-                <span className="font-medium">{accountName || selectedAccount?.name || '-'}</span>
+              <div>
+                <span className="text-sm text-muted-foreground">Contas selecionadas</span>
+                <div className="mt-2 space-y-2">
+                  {availableAssets
+                    .filter(a => selectedAssetIds.has(a.asset_id))
+                    .map(asset => (
+                      <div key={asset.asset_id} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">{asset.asset_name}</span>
+                        <span className="text-xs text-muted-foreground capitalize">
+                          ({asset.asset_type.replace(/_/g, ' ')})
+                        </span>
+                      </div>
+                    ))}
+                </div>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -1301,10 +1368,20 @@ export function PlatformConnectionWizard({
 
           {currentStep < totalSteps - 1 ? (
             <Button
-              onClick={handleNext}
+              onClick={async () => {
+                // If on select step, activate assets before moving forward
+                if (steps[currentStep].id === 'select' && selectedAssetIds.size > 0) {
+                  const success = await handleActivateAssets();
+                  if (success) {
+                    handleNext();
+                  }
+                } else {
+                  handleNext();
+                }
+              }}
               disabled={
                 (steps[currentStep].id === 'auth' && requiresSetup) ||
-                (steps[currentStep].id === 'select' && !selectedAccount)
+                (steps[currentStep].id === 'select' && selectedAssetIds.size === 0)
               }
             >
               Próximo

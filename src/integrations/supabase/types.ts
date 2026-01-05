@@ -6051,6 +6051,7 @@ export type Database = {
           asset_type: string
           created_at: string | null
           id: string
+          is_active: boolean
           platform_connection_id: string
           platform_id: string
           updated_at: string | null
@@ -6063,6 +6064,7 @@ export type Database = {
           asset_type: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           platform_connection_id: string
           platform_id: string
           updated_at?: string | null
@@ -6075,6 +6077,7 @@ export type Database = {
           asset_type?: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           platform_connection_id?: string
           platform_id?: string
           updated_at?: string | null
