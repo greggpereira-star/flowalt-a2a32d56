@@ -98,8 +98,12 @@ export function useCollaborators() {
         const profile = profiles.find(p => p.id === member.user_id);
         const detail = details.find(d => d.member_id === member.id);
 
+        // Always return member_id even if no details exist yet
         return {
           ...detail,
+          id: detail?.id || null,
+          member_id: detail?.member_id || member.id,
+          workspace_id: detail?.workspace_id || currentWorkspace.id,
           member: {
             ...member,
             profile,
