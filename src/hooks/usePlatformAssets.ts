@@ -41,7 +41,8 @@ export const usePlatformAssets = () => {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await supabase
+      // First, try to get assets from connections that are fully connected
+      const { data: connectedAssets, error: connectedError } = await supabase
         .from('social_platform_assets')
         .select(`
           *,
@@ -55,9 +56,28 @@ export const usePlatformAssets = () => {
         .eq('social_platforms.is_active', true)
         .eq('social_platforms.connection_status', 'connected');
 
-      if (error) throw error;
+      if (connectedError) throw connectedError;
+
+      // Also check for assets from pending_assets connections (assets were saved but connection not finalized)
+      const { data: pendingAssets, error: pendingError } = await supabase
+        .from('social_platform_assets')
+        .select(`
+          *,
+          social_platforms!inner(
+            account_name,
+            connection_status,
+            is_active
+          )
+        `)
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('social_platforms.is_active', true)
+        .eq('social_platforms.connection_status', 'pending_assets');
+
+      if (pendingError) throw pendingError;
+
+      const allAssets = [...(connectedAssets || []), ...(pendingAssets || [])];
       
-      return (data || []).map((asset: any) => ({
+      return allAssets.map((asset: any) => ({
         ...asset,
         connection_account_name: asset.social_platforms?.account_name,
         connection_status: asset.social_platforms?.connection_status,

@@ -64,6 +64,7 @@ import {
   type UpdateSocialPostInput,
 } from '@/hooks/useSocialPosts';
 import { usePostableAssets, type AssetWithConnection } from '@/hooks/usePlatformAssets';
+import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -164,6 +165,14 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
   // Get postable assets filtered by platform
   const { data: availableAssets, isLoading: isLoadingAssets } = usePostableAssets(platform as SocialPlatform || null);
+  
+  // Get all platform connections to check for pending ones
+  const { data: allPlatforms } = useSocialPlatforms();
+  
+  // Check if selected platform has a pending_assets connection
+  const hasPendingConnection = platform && allPlatforms?.some(
+    p => p.platform === platform && p.connection_status === 'pending_assets' && p.is_active
+  );
 
   // Load existing post data when editing
   useEffect(() => {
@@ -496,6 +505,19 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     }
 
     if (!availableAssets || availableAssets.length === 0) {
+      // Check if there's a pending connection that needs asset selection
+      if (hasPendingConnection) {
+        return (
+          <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-500/50 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm">
+              A conexão {platformConfig[platform as SocialPlatform]?.name} está pendente de configuração. 
+              Complete a seleção de páginas/contas em Configurações → Redes Sociais.
+            </span>
+          </div>
+        );
+      }
+      
       return (
         <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
