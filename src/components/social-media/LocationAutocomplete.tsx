@@ -59,6 +59,16 @@ export function LocationAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Traduz códigos de erro para mensagens amigáveis em português
+  const getErrorMessage = (errorCode: string): string => {
+    const errorMessages: Record<string, string> = {
+      'NO_SOCIAL_ACCOUNTS': 'Para buscar localizações automaticamente, conecte sua conta do Facebook ou Instagram nas configurações de Redes Sociais.',
+      'FB_API_ERROR': 'Não foi possível buscar localizações no momento. Tente novamente em alguns segundos.',
+      'NETWORK_ERROR': 'Erro de conexão. Verifique sua internet e tente novamente.',
+    };
+    return errorMessages[errorCode] || 'Ocorreu um erro ao buscar localizações. Tente novamente.';
+  };
+
   const searchPlaces = useCallback(async (query: string) => {
     if (!query || query.length < 2 || !currentWorkspace?.id) {
       setPlaces([]);
@@ -87,8 +97,8 @@ export function LocationAutocomplete({
 
       const data = await response.json();
       
-      if (data.error) {
-        setError(data.error);
+      if (data.error || data.errorCode) {
+        setError(getErrorMessage(data.errorCode || data.error));
         setPlaces([]);
       } else {
         setPlaces(data.places || []);
@@ -98,7 +108,7 @@ export function LocationAutocomplete({
       }
     } catch (err) {
       console.error('Error searching places:', err);
-      setError('Erro ao buscar localizações');
+      setError(getErrorMessage('NETWORK_ERROR'));
       setPlaces([]);
     } finally {
       setIsLoading(false);
@@ -219,7 +229,7 @@ export function LocationAutocomplete({
 
       {/* Error message */}
       {error && (
-        <p className="text-xs text-destructive mt-1">{error}</p>
+        <p className="text-xs text-amber-600 mt-1">{error}</p>
       )}
 
       {/* Hint when no location selected */}

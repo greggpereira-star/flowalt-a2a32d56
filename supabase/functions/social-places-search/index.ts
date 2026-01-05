@@ -56,7 +56,7 @@ serve(async (req) => {
     if (platformError || !platforms || platforms.length === 0) {
       console.log("[social-places-search] No connected Facebook/Instagram accounts found");
       return new Response(
-        JSON.stringify({ places: [], error: "No connected social accounts" }),
+        JSON.stringify({ places: [], error: "NO_SOCIAL_ACCOUNTS", errorCode: "NO_SOCIAL_ACCOUNTS" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -78,7 +78,7 @@ serve(async (req) => {
     if (fbData.error) {
       console.error("[social-places-search] Facebook API error:", fbData.error);
       return new Response(
-        JSON.stringify({ places: [], error: fbData.error.message }),
+        JSON.stringify({ places: [], error: "FB_API_ERROR", errorCode: "FB_API_ERROR", details: fbData.error.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -100,7 +100,7 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("[social-places-search] Error:", errorMessage);
     return new Response(
-      JSON.stringify({ places: [], error: errorMessage }),
+      JSON.stringify({ places: [], error: "NETWORK_ERROR", errorCode: "NETWORK_ERROR", details: errorMessage }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
