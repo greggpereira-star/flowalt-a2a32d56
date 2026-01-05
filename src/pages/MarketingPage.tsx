@@ -19,6 +19,8 @@ import {
   Activity,
   ArrowLeft,
   Home,
+  Wifi,
+  AlertCircle,
 } from 'lucide-react';
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
 import { PlatformConnector } from '@/components/social-media/PlatformConnector';
@@ -26,11 +28,19 @@ import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
 import { PostList } from '@/components/social-media/PostList';
 import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
-import { useSocialPosts } from '@/hooks/useSocialPosts';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
 import { CreateSocialPostDialog } from '@/components/social-media/CreateSocialPostDialog';
+import { useRealtimeSocialPosts } from '@/hooks/useRealtimeSocialPosts';
+import { useRealtimeSocialJobs } from '@/hooks/useRealtimeSocialJobs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export function MarketingPage() {
   const navigate = useNavigate();
@@ -38,9 +48,13 @@ export function MarketingPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const { has, isLoading: entitlementsLoading, entitlements } = useEntitlementRegistry();
-  const { data: scheduledPosts } = useSocialPosts({ status: 'scheduled' });
-  const { data: publishedPosts } = useSocialPosts({ status: 'published' });
-  const { data: draftPosts } = useSocialPosts({ status: 'draft' });
+  
+  // Use realtime hooks for live updates
+  const { posts: scheduledPosts, realtimeStatus: postsRealtimeStatus } = useRealtimeSocialPosts({ status: 'scheduled' });
+  const { posts: publishedPosts } = useRealtimeSocialPosts({ status: 'published' });
+  const { posts: draftPosts } = useRealtimeSocialPosts({ status: 'draft' });
+  const { posts: failedPosts } = useRealtimeSocialPosts({ status: 'failed' });
+  const { jobStats, realtimeStatus: jobsRealtimeStatus } = useRealtimeSocialJobs();
   const { data: platforms } = useSocialPlatforms();
 
   const hasSocialPublish = has('social_publish');
@@ -107,8 +121,35 @@ export function MarketingPage() {
             </div>
           </div>
 
-        {/* Quick Stats & Actions */}
+        {/* Quick Stats & Actions with Realtime Indicator */}
         <div className="flex items-center gap-4">
+          {/* Realtime Status */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+                  postsRealtimeStatus === 'connected' && "bg-green-100 text-green-700",
+                  postsRealtimeStatus === 'connecting' && "bg-amber-100 text-amber-700",
+                  postsRealtimeStatus === 'disconnected' && "bg-red-100 text-red-700"
+                )}>
+                  <Wifi className="h-3 w-3" />
+                  {postsRealtimeStatus === 'connected' ? 'Ao vivo' : 
+                   postsRealtimeStatus === 'connecting' ? '...' : 'Offline'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {postsRealtimeStatus === 'connected' 
+                    ? 'Dados sincronizados em tempo real' 
+                    : postsRealtimeStatus === 'connecting'
+                      ? 'Conectando ao servidor...'
+                      : 'Conexão perdida - atualize a página'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Clock className="h-4 w-4 text-blue-500" />
             <span className="text-sm font-medium">{scheduledPosts?.length || 0} agendados</span>
@@ -117,6 +158,12 @@ export function MarketingPage() {
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <span className="text-sm font-medium">{publishedPosts?.length || 0} publicados</span>
           </div>
+          {(failedPosts?.length || 0) > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span className="text-sm font-medium text-red-700">{failedPosts?.length || 0} com erro</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Plug className="h-4 w-4 text-purple-500" />
             <span className="text-sm font-medium">{activePlatforms.length} plataformas</span>
