@@ -104,11 +104,19 @@ export const useSocialPosts = (filters?: {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      const publishedOnly =
+        filters?.status === 'published' ||
+        (Array.isArray(filters?.status) && filters?.status.length === 1 && filters.status[0] === 'published');
+
       let query = supabase
         .from('social_posts')
         .select('*')
-        .eq('workspace_id', currentWorkspace.id)
-        .order('scheduled_at', { ascending: true, nullsFirst: false });
+        .eq('workspace_id', currentWorkspace.id);
+
+      // Sorting: published shows newest first; others keep scheduled order
+      query = publishedOnly
+        ? query.order('published_at', { ascending: false, nullsFirst: false })
+        : query.order('scheduled_at', { ascending: true, nullsFirst: false });
 
       if (filters?.status) {
         if (Array.isArray(filters.status)) {
@@ -171,6 +179,8 @@ export const useSocialPosts = (filters?: {
       return enrichedPosts as unknown as SocialPost[];
     },
     enabled: !!currentWorkspace?.id,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 };
 
