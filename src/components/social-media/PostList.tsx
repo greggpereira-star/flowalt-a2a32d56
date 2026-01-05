@@ -176,16 +176,22 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
 
                         {/* Date Info */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {post.scheduled_at && (
+                          {post.scheduled_at && post.status === 'scheduled' && (
+                            <span className="flex items-center gap-1 font-medium text-blue-600">
+                              <Clock className="h-3 w-3" />
+                              Agendado para {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          )}
+                          {post.scheduled_at && post.status !== 'scheduled' && post.status !== 'published' && (
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                              Previsto para {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                             </span>
                           )}
                           {post.published_at && (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              Publicado {format(new Date(post.published_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Publicado em {format(new Date(post.published_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                             </span>
                           )}
                         </div>
