@@ -6287,6 +6287,7 @@ export type Database = {
       social_posts: {
         Row: {
           ab_test_group: string | null
+          alt_text: string | null
           approved_at: string | null
           approved_by: string | null
           campaign_name: string | null
@@ -6307,6 +6308,8 @@ export type Database = {
           job_id: string | null
           last_error_code: string | null
           last_error_message: string | null
+          location_id: string | null
+          location_name: string | null
           max_retries: number | null
           media_urls: Json | null
           metrics: Json | null
@@ -6325,12 +6328,14 @@ export type Database = {
           timezone: string | null
           title: string | null
           updated_at: string | null
+          user_tags: Json | null
           utm_params: Json | null
           visibility: string | null
           workspace_id: string
         }
         Insert: {
           ab_test_group?: string | null
+          alt_text?: string | null
           approved_at?: string | null
           approved_by?: string | null
           campaign_name?: string | null
@@ -6351,6 +6356,8 @@ export type Database = {
           job_id?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
+          location_id?: string | null
+          location_name?: string | null
           max_retries?: number | null
           media_urls?: Json | null
           metrics?: Json | null
@@ -6369,12 +6376,14 @@ export type Database = {
           timezone?: string | null
           title?: string | null
           updated_at?: string | null
+          user_tags?: Json | null
           utm_params?: Json | null
           visibility?: string | null
           workspace_id: string
         }
         Update: {
           ab_test_group?: string | null
+          alt_text?: string | null
           approved_at?: string | null
           approved_by?: string | null
           campaign_name?: string | null
@@ -6395,6 +6404,8 @@ export type Database = {
           job_id?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
+          location_id?: string | null
+          location_name?: string | null
           max_retries?: number | null
           media_urls?: Json | null
           metrics?: Json | null
@@ -6413,6 +6424,7 @@ export type Database = {
           timezone?: string | null
           title?: string | null
           updated_at?: string | null
+          user_tags?: Json | null
           utm_params?: Json | null
           visibility?: string | null
           workspace_id?: string

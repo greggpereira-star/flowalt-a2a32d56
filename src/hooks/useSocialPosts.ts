@@ -17,16 +17,23 @@ export interface SocialPostCreator {
   avatar_url: string | null;
 }
 
+export interface UserTag {
+  username: string;
+  x: number;
+  y: number;
+  [key: string]: string | number; // Index signature for JSON compatibility
+}
+
 export interface SocialPost {
   id: string;
   workspace_id: string;
-  card_id: string | null; // Optional - posts can be created without a card
+  card_id: string | null;
   client_id: string | null;
-  platform_connection_id: string | null; // Link to social_platforms
-  title: string | null; // Title for calendar display
+  platform_connection_id: string | null;
+  title: string | null;
   caption: string | null;
   hashtags: string[];
-  media_urls: unknown; // JSON type from DB
+  media_urls: unknown;
   first_comment: string | null;
   platform: SocialPlatform;
   content_type: SocialContentType;
@@ -54,14 +61,19 @@ export interface SocialPost {
   visibility: string;
   created_at: string;
   updated_at: string;
-  // New hardening fields
+  // Engagement fields
+  location_id: string | null;
+  location_name: string | null;
+  user_tags: UserTag[] | null;
+  alt_text: string | null;
+  // Hardening fields
   content_fingerprint: string | null;
   last_error_code: string | null;
   last_error_message: string | null;
   job_id: string | null;
   processing_started_at: string | null;
   processing_completed_at: string | null;
-  // Joined data for audit display
+  // Joined data
   creator?: SocialPostCreator | null;
   approver?: SocialPostCreator | null;
 }
@@ -83,6 +95,11 @@ export interface CreateSocialPostInput {
   funnel_stage?: FunnelStage;
   campaign_name?: string;
   utm_params?: Record<string, string>;
+  // Engagement fields
+  location_id?: string;
+  location_name?: string;
+  user_tags?: UserTag[];
+  alt_text?: string;
 }
 
 export interface UpdateSocialPostInput extends Partial<Omit<CreateSocialPostInput, 'card_id'>> {
@@ -248,6 +265,7 @@ export const useCreateSocialPost = () => {
           card_id: input.card_id || null,
           client_id: input.client_id || null,
           platform_connection_id: input.platform_connection_id,
+          title: input.title,
           caption: input.caption,
           hashtags: input.hashtags,
           media_urls: input.media_urls,
@@ -261,6 +279,10 @@ export const useCreateSocialPost = () => {
           funnel_stage: input.funnel_stage,
           campaign_name: input.campaign_name,
           utm_params: input.utm_params,
+          location_id: input.location_id,
+          location_name: input.location_name,
+          user_tags: input.user_tags,
+          alt_text: input.alt_text,
         })
         .select()
         .single();
