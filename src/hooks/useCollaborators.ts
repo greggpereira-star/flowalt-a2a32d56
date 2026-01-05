@@ -84,6 +84,15 @@ export function useCollaborators() {
 
       if (profilesError) throw profilesError;
 
+      // Get user roles for members
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds)
+        .eq("workspace_id", currentWorkspace.id);
+
+      if (rolesError) throw rolesError;
+
       // Get collaborator details
       const memberIds = members.map(m => m.id);
       const { data: details, error: detailsError } = await supabase
@@ -97,6 +106,7 @@ export function useCollaborators() {
       return members.map(member => {
         const profile = profiles.find(p => p.id === member.user_id);
         const detail = details.find(d => d.member_id === member.id);
+        const userRole = roles.find(r => r.user_id === member.user_id);
 
         // Always return member_id even if no details exist yet
         return {
@@ -104,9 +114,12 @@ export function useCollaborators() {
           id: detail?.id || null,
           member_id: detail?.member_id || member.id,
           workspace_id: detail?.workspace_id || currentWorkspace.id,
+          // Use profile name as fallback
+          full_name: detail?.full_name || profile?.full_name || null,
           member: {
             ...member,
             profile,
+            role: userRole?.role || null,
           },
         } as CollaboratorDetails;
       });
@@ -123,14 +136,56 @@ export function useCollaboratorDetails(memberId: string) {
     queryFn: async () => {
       if (!currentWorkspace?.id || !memberId) return null;
 
-      const { data, error } = await supabase
+      // First, get the workspace_member to get user_id
+      const { data: member, error: memberError } = await supabase
+        .from("workspace_members")
+        .select("id, user_id, function_title, department")
+        .eq("id", memberId)
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+      if (!member) return null;
+
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url")
+        .eq("id", member.user_id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // Get user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", member.user_id)
+        .eq("workspace_id", currentWorkspace.id)
+        .maybeSingle();
+
+      // Get collaborator_details if exists
+      const { data: details, error: detailsError } = await supabase
         .from("collaborator_details")
         .select("*")
         .eq("member_id", memberId)
         .maybeSingle();
 
-      if (error) throw error;
-      return data as CollaboratorDetails | null;
+      if (detailsError) throw detailsError;
+
+      // Return combined data - always include member and profile info
+      return {
+        ...details,
+        id: details?.id || null,
+        member_id: memberId,
+        workspace_id: currentWorkspace.id,
+        // Use profile name as fallback if no collaborator_details full_name
+        full_name: details?.full_name || profile?.full_name || null,
+        member: {
+          ...member,
+          profile,
+          role: roleData?.role || null,
+        },
+      } as CollaboratorDetails & { member: { role: string | null } };
     },
     enabled: !!currentWorkspace?.id && !!memberId,
   });
