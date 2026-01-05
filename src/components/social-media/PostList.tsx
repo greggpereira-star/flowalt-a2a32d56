@@ -49,7 +49,7 @@ import { useDeleteSocialPost, useUpdateSocialPost } from '@/hooks/useSocialPosts
 
 interface PostListProps {
   posts: SocialPost[];
-  onEdit?: (post: SocialPost) => void;
+  onEdit?: (postId: string) => void;
   showActions?: boolean;
   emptyMessage?: string;
 }
@@ -214,7 +214,7 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                               </DropdownMenuItem>
                             )}
                             {onEdit && ['draft', 'pending_approval', 'scheduled'].includes(post.status) && (
-                              <DropdownMenuItem onClick={() => onEdit(post)}>
+                              <DropdownMenuItem onClick={() => onEdit(post.id)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>

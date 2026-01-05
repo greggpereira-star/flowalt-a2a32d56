@@ -336,7 +336,7 @@ export function SocialPostDetailSheet({
                 Aprovar
               </Button>
             )}
-            {['draft', 'pending_approval', 'approved'].includes(post.status) && (
+            {['draft', 'pending_approval', 'approved', 'scheduled'].includes(post.status) && (
               <Button variant="outline" onClick={onEdit} className="flex-1">
                 <Edit className="h-4 w-4 mr-2" />
                 Editar

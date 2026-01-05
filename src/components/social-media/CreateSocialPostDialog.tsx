@@ -47,6 +47,7 @@ import {
   X,
   Plus,
   AlertCircle,
+  Edit,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,17 +55,20 @@ import { cn } from '@/lib/utils';
 import {
   useCreateSocialPost,
   useUpdateSocialPost,
+  useSocialPost,
   type SocialPlatform,
   type SocialContentType,
   type ContentPillar,
   type FunnelStage,
   type CreateSocialPostInput,
+  type UpdateSocialPostInput,
 } from '@/hooks/useSocialPosts';
-import { useActivePlatforms, type ConnectedPlatform } from '@/hooks/useSocialPlatforms';
+import { usePostableAssets, type AssetWithConnection } from '@/hooks/usePlatformAssets';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
 interface MediaFile {
   id: string;
   file?: File;
@@ -80,7 +84,7 @@ interface CreateSocialPostDialogProps {
   onOpenChange: (open: boolean) => void;
   cardId?: string;
   clientId?: string;
-  editPostId?: string;
+  editPostId?: string; // If provided, opens in edit mode
   defaultPlatform?: SocialPlatform;
   onSuccess?: () => void;
 }
@@ -124,16 +128,20 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   onOpenChange,
   cardId,
   clientId,
+  editPostId,
   defaultPlatform,
   onSuccess,
 }) => {
   const createPost = useCreateSocialPost();
+  const updatePost = useUpdateSocialPost();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
-  const { data: connectedPlatforms } = useActivePlatforms();
+  
+  // Fetch existing post if in edit mode
+  const { data: existingPost, isLoading: isLoadingPost } = useSocialPost(editPostId || null);
 
   const [platform, setPlatform] = useState<SocialPlatform | ''>(defaultPlatform || '');
-  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [contentType, setContentType] = useState<SocialContentType | ''>('');
   const [caption, setCaption] = useState('');
   const [hashtagsInput, setHashtagsInput] = useState('');
@@ -150,16 +158,53 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
   const hasUtmBuilder = has('social_utm_builder');
   const hasSchedule = has('social_schedule');
+  
+  const isEditMode = !!editPostId;
+  const isSubmitting = createPost.isPending || updatePost.isPending;
 
-  // Filter connections by selected platform
-  const availableConnections = connectedPlatforms?.filter(
-    (conn) => conn.platform === platform && conn.is_active && conn.connection_status === 'connected'
-  ) || [];
-  // Reset form when dialog opens
+  // Get postable assets filtered by platform
+  const { data: availableAssets, isLoading: isLoadingAssets } = usePostableAssets(platform as SocialPlatform || null);
+
+  // Load existing post data when editing
   useEffect(() => {
-    if (open) {
+    if (existingPost && isEditMode) {
+      setPlatform(existingPost.platform);
+      setContentType(existingPost.content_type);
+      setCaption(existingPost.caption || '');
+      setHashtagsInput((existingPost.hashtags || []).join(', '));
+      setContentPillar(existingPost.content_pillar || '');
+      setFunnelStage(existingPost.funnel_stage || '');
+      setCampaignName(existingPost.campaign_name || '');
+      
+      if (existingPost.utm_params) {
+        setUtmSource(existingPost.utm_params.utm_source || '');
+        setUtmMedium(existingPost.utm_params.utm_medium || '');
+        setUtmCampaign(existingPost.utm_params.utm_campaign || '');
+      }
+      
+      if (existingPost.scheduled_at) {
+        const date = new Date(existingPost.scheduled_at);
+        setScheduledDate(date);
+        setScheduledTime(format(date, 'HH:mm'));
+      }
+      
+      // Load existing media
+      const existingMedia = (existingPost.media_urls as any[]) || [];
+      setMedia(existingMedia.map((m: any, idx: number) => ({
+        id: `existing-${idx}`,
+        url: m.url,
+        type: m.type as 'image' | 'video',
+        preview: m.url,
+        uploaded: true,
+      })));
+    }
+  }, [existingPost, isEditMode]);
+
+  // Reset form when dialog opens (for create mode)
+  useEffect(() => {
+    if (open && !isEditMode) {
       setPlatform(defaultPlatform || '');
-      setSelectedConnectionId('');
+      setSelectedAssetId('');
       setContentType('');
       setCaption('');
       setHashtagsInput('');
@@ -174,16 +219,16 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setMedia([]);
       setIsUploading(false);
     }
-  }, [open, defaultPlatform]);
+  }, [open, defaultPlatform, isEditMode]);
 
-  // Auto-select connection when platform changes and only one connection exists
+  // Auto-select asset when platform changes and only one asset exists
   useEffect(() => {
-    if (platform && availableConnections.length === 1) {
-      setSelectedConnectionId(availableConnections[0].id);
-    } else if (!platform || availableConnections.length === 0) {
-      setSelectedConnectionId('');
+    if (platform && availableAssets && availableAssets.length === 1) {
+      setSelectedAssetId(availableAssets[0].id);
+    } else if (!platform || !availableAssets || availableAssets.length === 0) {
+      setSelectedAssetId('');
     }
-  }, [platform, availableConnections.length]);
+  }, [platform, availableAssets]);
 
   // Upload media to Supabase Storage
   const uploadMedia = useCallback(async (file: File): Promise<string | null> => {
@@ -262,7 +307,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
   const handleRemoveMedia = (id: string) => {
     const item = media.find(m => m.id === id);
-    if (item?.preview) {
+    if (item?.preview && !item.preview.startsWith('http')) {
       URL.revokeObjectURL(item.preview);
     }
     setMedia(media.filter(m => m.id !== id));
@@ -298,14 +343,14 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     return null;
   };
 
-  const handleSubmit = async (asDraft: boolean = true) => {
+  const handleSubmit = async () => {
     if (!platform || !contentType) {
       toast.error('Selecione a plataforma e o tipo de conteúdo');
       return;
     }
 
-    if (!selectedConnectionId) {
-      toast.error('Selecione uma conta conectada para publicar');
+    if (!selectedAssetId) {
+      toast.error('Selecione uma página/conta para publicar');
       return;
     }
 
@@ -353,25 +398,56 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         order: index,
       }));
 
-    const input: CreateSocialPostInput = {
-      card_id: cardId || null,
-      client_id: clientId || null,
-      platform_connection_id: selectedConnectionId,
-      platform: platform as SocialPlatform,
-      content_type: contentType as SocialContentType,
-      caption,
-      hashtags,
-      media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
-      scheduled_at: scheduledAt,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      content_pillar: contentPillar as ContentPillar || undefined,
-      funnel_stage: funnelStage as FunnelStage || undefined,
-      campaign_name: campaignName || undefined,
-      utm_params: utmParams,
-    };
+    // Get the selected asset to find the platform_connection_id
+    const selectedAsset = availableAssets?.find(a => a.id === selectedAssetId);
+    if (!selectedAsset) {
+      toast.error('Conta selecionada não encontrada');
+      return;
+    }
 
     try {
-      await createPost.mutateAsync(input);
+      if (isEditMode && editPostId) {
+        // Update existing post
+        const updateInput: UpdateSocialPostInput = {
+          platform: platform as SocialPlatform,
+          content_type: contentType as SocialContentType,
+          caption,
+          hashtags,
+          media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
+          scheduled_at: scheduledAt,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          content_pillar: contentPillar as ContentPillar || undefined,
+          funnel_stage: funnelStage as FunnelStage || undefined,
+          campaign_name: campaignName || undefined,
+          utm_params: utmParams,
+          // Reset status to scheduled if there's a scheduled time
+          status: scheduledAt ? 'scheduled' : 'draft',
+        };
+
+        await updatePost.mutateAsync({ postId: editPostId, input: updateInput });
+        toast.success('Postagem atualizada e reagendada');
+      } else {
+        // Create new post
+        const input: CreateSocialPostInput = {
+          card_id: cardId || null,
+          client_id: clientId || null,
+          platform_connection_id: selectedAsset.platform_connection_id,
+          platform: platform as SocialPlatform,
+          content_type: contentType as SocialContentType,
+          caption,
+          hashtags,
+          media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
+          scheduled_at: scheduledAt,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          content_pillar: contentPillar as ContentPillar || undefined,
+          funnel_stage: funnelStage as FunnelStage || undefined,
+          campaign_name: campaignName || undefined,
+          utm_params: utmParams,
+        };
+
+        await createPost.mutateAsync(input);
+      }
+      
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -394,16 +470,115 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     return platformContentTypes[platform as SocialPlatform] || [];
   };
 
+  const renderAssetSelector = () => {
+    if (!platform) return null;
+    
+    if (isLoadingAssets) {
+      return (
+        <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Carregando contas...</span>
+        </div>
+      );
+    }
+
+    if (!availableAssets || availableAssets.length === 0) {
+      return (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">
+            Nenhuma página/conta {platformConfig[platform as SocialPlatform]?.name} conectada. 
+            Conecte uma conta e selecione os portfolios/páginas em Configurações → Redes Sociais.
+          </span>
+        </div>
+      );
+    }
+
+    if (availableAssets.length === 1) {
+      const asset = availableAssets[0];
+      return (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/10">
+          {asset.asset_meta?.profile_picture_url && (
+            <img 
+              src={asset.asset_meta.profile_picture_url} 
+              alt={asset.asset_name}
+              className="w-8 h-8 rounded-full"
+            />
+          )}
+          <div className="flex-1">
+            <span className="text-sm font-medium">{asset.asset_name}</span>
+            <span className="text-xs text-muted-foreground block capitalize">
+              {asset.asset_type.replace('_', ' ')}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
+        <SelectTrigger>
+          <SelectValue placeholder="Selecionar página/conta" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableAssets.map((asset) => (
+            <SelectItem key={asset.id} value={asset.id}>
+              <div className="flex items-center gap-2">
+                {asset.asset_meta?.profile_picture_url && (
+                  <img 
+                    src={asset.asset_meta.profile_picture_url} 
+                    alt={asset.asset_name}
+                    className="w-5 h-5 rounded-full"
+                  />
+                )}
+                <div>
+                  <span className="font-medium">{asset.asset_name}</span>
+                  <span className="text-xs text-muted-foreground ml-2 capitalize">
+                    ({asset.asset_type.replace('_', ' ')})
+                  </span>
+                </div>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
+  if (isEditMode && isLoadingPost) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Nova Postagem Social
+            {isEditMode ? (
+              <>
+                <Edit className="h-5 w-5 text-primary" />
+                Editar Postagem
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5 text-primary" />
+                Nova Postagem Social
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Crie uma nova postagem para suas redes sociais
+            {isEditMode 
+              ? 'Edite os dados da postagem. Alterações serão reenviadas para agendamento.'
+              : 'Crie uma nova postagem para suas redes sociais'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -422,12 +597,15 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                       onClick={() => {
                         setPlatform(key);
                         setContentType('');
+                        setSelectedAssetId('');
                       }}
+                      disabled={isEditMode} // Can't change platform in edit mode
                       className={cn(
                         "flex items-center gap-2 p-3 rounded-lg border transition-all",
                         platform === key
                           ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/50",
+                        isEditMode && platform !== key && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <Icon className="h-5 w-5" style={{ color: config.color }} />
@@ -470,58 +648,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
               </div>
             )}
 
-            {/* Account Selection */}
-            {platform && availableConnections.length > 0 && (
+            {/* Account/Page Selection */}
+            {platform && (
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Conta para publicação *</Label>
-                {availableConnections.length === 1 ? (
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/10">
-                    {availableConnections[0].profile_image_url && (
-                      <img 
-                        src={availableConnections[0].profile_image_url} 
-                        alt={availableConnections[0].account_name}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <div>
-                      <span className="text-sm font-medium">{availableConnections[0].account_name}</span>
-                      <span className="text-xs text-muted-foreground block">Conta selecionada</span>
-                    </div>
-                  </div>
-                ) : (
-                  <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar conta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableConnections.map((conn) => (
-                        <SelectItem key={conn.id} value={conn.id}>
-                          <div className="flex items-center gap-2">
-                            {conn.profile_image_url && (
-                              <img 
-                                src={conn.profile_image_url} 
-                                alt={conn.account_name}
-                                className="w-5 h-5 rounded-full"
-                              />
-                            )}
-                            <span>{conn.account_name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
-
-            {/* Warning if no connected accounts */}
-            {platform && availableConnections.length === 0 && (
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">
-                  Nenhuma conta {platformConfig[platform as SocialPlatform]?.name} conectada. 
-                  Conecte uma conta em Configurações → Redes Sociais.
-                </span>
+                <Label className="text-sm font-medium">Página/Conta para publicação *</Label>
+                {renderAssetSelector()}
               </div>
             )}
 
@@ -831,19 +962,24 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
             Cancelar
           </Button>
           <Button
-            onClick={() => handleSubmit(true)}
+            onClick={handleSubmit}
             disabled={
               !platform || 
               !contentType ||
-              !selectedConnectionId ||
-              createPost.isPending || 
+              !selectedAssetId ||
+              isSubmitting || 
               isUploading || 
               media.some(m => m.uploading) ||
               !!mediaValidation()
             }
           >
-            {(createPost.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {scheduledDate && hasSchedule ? 'Agendar Postagem' : 'Criar Postagem'}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditMode 
+              ? 'Salvar Alterações' 
+              : scheduledDate && hasSchedule 
+                ? 'Agendar Postagem' 
+                : 'Criar Postagem'
+            }
           </Button>
         </DialogFooter>
       </DialogContent>
