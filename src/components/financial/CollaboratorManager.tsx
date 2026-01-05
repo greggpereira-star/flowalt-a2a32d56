@@ -192,8 +192,8 @@ export function CollaboratorManager() {
               <CardContent>
                 <p className="text-2xl font-bold">
                   {formatCurrency(
-                    collaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0) +
-                    externalCollaborators.reduce((acc, c) => acc + (c?.base_salary || 0), 0)
+                    collaborators.filter(c => c?.contract_type !== "socio").reduce((acc, c) => acc + (c?.base_salary || 0), 0) +
+                    externalCollaborators.filter(c => c?.contract_type !== "socio").reduce((acc, c) => acc + (c?.base_salary || 0), 0)
                   )}
                 </p>
               </CardContent>
@@ -312,7 +312,9 @@ export function CollaboratorManager() {
                               </Badge>
                             </TableCell>
                             <TableCell className="font-medium">
-                              {formatCurrency(collab?.base_salary)}
+                              {collab?.contract_type === "socio" 
+                                ? `${collab?.partner_percentage || 0}%`
+                                : formatCurrency(collab?.base_salary)}
                             </TableCell>
                             <TableCell>{collab?.weekly_hours || 40}h</TableCell>
                             <TableCell>
@@ -410,7 +412,9 @@ export function CollaboratorManager() {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {formatCurrency(collab.base_salary)}
+                            {collab.contract_type === "socio" 
+                              ? `${(collab as any).partner_percentage || 0}%`
+                              : formatCurrency(collab.base_salary)}
                           </TableCell>
                           <TableCell>{collab.weekly_hours || 40}h</TableCell>
                           <TableCell>
@@ -689,8 +693,14 @@ function CollaboratorDetailView({
         <TabsContent value="salary" className="space-y-4 mt-4">
           <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Salário Atual</p>
-              <p className="text-2xl font-bold">{formatCurrency(collaborator.base_salary)}</p>
+              <p className="text-sm text-muted-foreground">
+                {collaborator.contract_type === "socio" ? "Participação Societária" : "Salário Atual"}
+              </p>
+              <p className="text-2xl font-bold">
+                {collaborator.contract_type === "socio" 
+                  ? `${collaborator.partner_percentage || 0}%`
+                  : formatCurrency(collaborator.base_salary)}
+              </p>
             </div>
             <TrendingUp className="w-8 h-8 text-primary" />
           </div>
@@ -970,8 +980,14 @@ function ExternalCollaboratorDetailView({
         <TabsContent value="salary" className="space-y-4 mt-4">
           <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Salário Atual</p>
-              <p className="text-2xl font-bold">{formatCurrency(collaborator.base_salary)}</p>
+              <p className="text-sm text-muted-foreground">
+                {collaborator.contract_type === "socio" ? "Participação Societária" : "Salário Atual"}
+              </p>
+              <p className="text-2xl font-bold">
+                {collaborator.contract_type === "socio" 
+                  ? `${(collaborator as any).partner_percentage || 0}%`
+                  : formatCurrency(collaborator.base_salary)}
+              </p>
             </div>
             <TrendingUp className="w-8 h-8 text-primary" />
           </div>
