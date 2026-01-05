@@ -48,6 +48,11 @@ import {
   Plus,
   AlertCircle,
   Edit,
+  MapPin,
+  AtSign,
+  Eye,
+  Music,
+  Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -157,6 +162,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [utmCampaign, setUtmCampaign] = useState('');
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  // Engagement fields
+  const [locationName, setLocationName] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [userTagsInput, setUserTagsInput] = useState('');
+  const [altText, setAltText] = useState('');
 
   const hasUtmBuilder = has('social_utm_builder');
   const hasSchedule = has('social_schedule');
@@ -185,6 +195,13 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setHashtagsInput((existingPost.hashtags || []).join(', '));
       setContentPillar(existingPost.content_pillar || '');
       setFunnelStage(existingPost.funnel_stage || '');
+      // Load engagement fields
+      setLocationName(existingPost.location_name || '');
+      setLocationId(existingPost.location_id || '');
+      setAltText(existingPost.alt_text || '');
+      if (existingPost.user_tags && existingPost.user_tags.length > 0) {
+        setUserTagsInput(existingPost.user_tags.map((t: any) => t.username).join(', '));
+      }
       
       if (existingPost.utm_params) {
         setUtmSource(existingPost.utm_params.utm_source || '');
@@ -241,6 +258,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUtmCampaign('');
       setMedia([]);
       setIsUploading(false);
+      // Reset engagement fields
+      setLocationName('');
+      setLocationId('');
+      setUserTagsInput('');
+      setAltText('');
     }
   }, [open, defaultPlatform, isEditMode]);
 
@@ -444,6 +466,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           funnel_stage: funnelStage as FunnelStage || undefined,
           campaign_name: title || undefined,
           utm_params: utmParams,
+          // Engagement fields
+          location_id: locationId || undefined,
+          location_name: locationName || undefined,
+          user_tags: userTagsInput ? userTagsInput.split(',').map(u => ({ username: u.trim().replace('@', ''), x: 0.5, y: 0.5 })) : undefined,
+          alt_text: altText || undefined,
           // Reset status to scheduled if there's a scheduled time
           status: scheduledAt ? 'scheduled' : 'draft',
         };
@@ -468,6 +495,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           funnel_stage: funnelStage as FunnelStage || undefined,
           campaign_name: title || undefined,
           utm_params: utmParams,
+          // Engagement fields
+          location_id: locationId || undefined,
+          location_name: locationName || undefined,
+          user_tags: userTagsInput ? userTagsInput.split(',').map(u => ({ username: u.trim().replace('@', ''), x: 0.5, y: 0.5 })) : undefined,
+          alt_text: altText || undefined,
         };
 
         await createPost.mutateAsync(input);
@@ -899,6 +931,41 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                     {mediaValidation()}
                   </div>
                 )}
+
+                {/* Music tip banner for videos */}
+                {media.some(m => m.type === 'video') && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-800/50">
+                    <Music className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                        Dica: Adicione música ao vídeo
+                      </p>
+                      <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
+                        A música deve ser inserida diretamente no arquivo de vídeo antes do upload. A API não suporta adição de músicas licenciadas do Instagram.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alt Text for accessibility */}
+                {media.some(m => m.type === 'image') && contentType !== 'story' && contentType !== 'reels' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="altText" className="text-xs text-muted-foreground flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5" />
+                      Texto Alternativo (Acessibilidade)
+                    </Label>
+                    <Input
+                      id="altText"
+                      value={altText}
+                      onChange={(e) => setAltText(e.target.value)}
+                      placeholder="Descreva a imagem para pessoas com deficiência visual..."
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Melhora a acessibilidade e o SEO da sua postagem.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -962,6 +1029,54 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Location */}
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Localização
+              </Label>
+              <Input
+                id="location"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                placeholder="Ex: São Paulo, Brasil ou nome do estabelecimento..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Posts com localização têm em média 79% mais engajamento.
+              </p>
+            </div>
+
+            {/* User Tags */}
+            {(contentType === 'feed' || contentType === 'carousel') && (
+              <div className="space-y-2">
+                <Label htmlFor="userTags" className="text-sm font-medium flex items-center gap-2">
+                  <AtSign className="h-4 w-4" />
+                  Marcar Pessoas
+                </Label>
+                <Input
+                  id="userTags"
+                  value={userTagsInput}
+                  onChange={(e) => setUserTagsInput(e.target.value)}
+                  placeholder="@usuario1, @usuario2 (separados por vírgula)"
+                />
+                {userTagsInput && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {userTagsInput
+                      .split(',')
+                      .filter(u => u.trim())
+                      .map((user, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          @{user.trim().replace('@', '')}
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Os usuários marcados receberão uma notificação.
+                </p>
+              </div>
+            )}
 
             <Separator />
 
