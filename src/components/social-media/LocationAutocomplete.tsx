@@ -62,9 +62,11 @@ export function LocationAutocomplete({
   // Traduz códigos de erro para mensagens amigáveis em português
   const getErrorMessage = (errorCode: string): string => {
     const errorMessages: Record<string, string> = {
-      'NO_SOCIAL_ACCOUNTS': 'Para buscar localizações automaticamente, conecte sua conta do Facebook ou Instagram nas configurações de Redes Sociais.',
-      'FB_API_ERROR': 'Não foi possível buscar localizações no momento. Tente novamente em alguns segundos.',
-      'NETWORK_ERROR': 'Erro de conexão. Verifique sua internet e tente novamente.',
+      NO_SOCIAL_ACCOUNTS: 'Para buscar localizações automaticamente, conecte sua conta do Facebook ou Instagram nas configurações de Redes Sociais.',
+      TOKEN_MISSING: 'Sua conta conectada está sem permissão/token válido. Reconecte a conta nas configurações de Redes Sociais e tente novamente.',
+      FB_API_ERROR: 'Não foi possível buscar localizações no momento. Tente novamente em alguns segundos.',
+      DB_ERROR: 'Não foi possível acessar as configurações de conexão agora. Tente novamente em alguns segundos.',
+      NETWORK_ERROR: 'Erro de conexão. Verifique sua internet e tente novamente.',
     };
     return errorMessages[errorCode] || 'Ocorreu um erro ao buscar localizações. Tente novamente.';
   };
@@ -79,32 +81,29 @@ export function LocationAutocomplete({
     setError(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-places-search`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ 
-            query, 
-            workspaceId: currentWorkspace.id 
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('social-places-search', {
+        body: {
+          query,
+          workspaceId: currentWorkspace.id,
+        },
+      });
 
-      const data = await response.json();
-      
-      if (data.error || data.errorCode) {
+      if (error) {
+        console.error('Edge function error:', error);
+        setError(getErrorMessage('NETWORK_ERROR'));
+        setPlaces([]);
+        return;
+      }
+
+      if (data?.error || data?.errorCode) {
         setError(getErrorMessage(data.errorCode || data.error));
         setPlaces([]);
-      } else {
-        setPlaces(data.places || []);
-        if (data.places?.length > 0) {
-          setIsOpen(true);
-        }
+        return;
+      }
+
+      setPlaces(data?.places || []);
+      if (data?.places?.length > 0) {
+        setIsOpen(true);
       }
     } catch (err) {
       console.error('Error searching places:', err);
@@ -227,13 +226,13 @@ export function LocationAutocomplete({
         </div>
       )}
 
-      {/* Error message */}
+      {/* Error/Info message */}
       {error && (
-        <p className="text-xs text-amber-600 mt-1">{error}</p>
+        <p className="text-xs text-muted-foreground mt-1">{error}</p>
       )}
 
       {/* Hint when no location selected */}
-      {!locationId && inputValue && !isLoading && places.length === 0 && inputValue.length >= 2 && (
+      {!error && !locationId && inputValue && !isLoading && places.length === 0 && inputValue.length >= 2 && (
         <p className="text-xs text-muted-foreground mt-1">
           Nenhum local encontrado. A localização será salva como texto.
         </p>
