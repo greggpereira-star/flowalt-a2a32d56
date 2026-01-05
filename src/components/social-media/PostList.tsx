@@ -77,6 +77,45 @@ const STATUS_CONFIG: Record<SocialPostStatus, { label: string; variant: 'default
   archived: { label: 'Arquivado', variant: 'secondary', icon: <AlertCircle className="h-3 w-3" /> },
 };
 
+// Map technical error codes to user-friendly messages
+const getErrorMessage = (errorCode: string | null, errorMessage: string | null): { message: string; isRetrying: boolean } => {
+  const retryableErrors = [
+    'FB_STORY_PHOTO_PUBLISH_ERROR',
+    'FB_API_TEMPORARILY_UNAVAILABLE',
+    'FB_RATE_LIMIT',
+    'NETWORK_ERROR',
+    'TIMEOUT',
+  ];
+  
+  const isRetrying = errorCode ? retryableErrors.includes(errorCode) : false;
+  
+  const errorMessages: Record<string, string> = {
+    'FB_STORY_PHOTO_PUBLISH_ERROR': 'Falha temporária na API do Meta. O sistema tentará novamente automaticamente.',
+    'FB_API_TEMPORARILY_UNAVAILABLE': 'API do Meta temporariamente indisponível. Aguardando nova tentativa.',
+    'FB_RATE_LIMIT': 'Limite de publicações atingido. Aguardando para tentar novamente.',
+    'FB_INVALID_TOKEN': 'Token de acesso expirado. Reconecte sua conta nas configurações.',
+    'FB_PERMISSION_DENIED': 'Permissão negada. Verifique as permissões da conta conectada.',
+    'FB_MEDIA_ERROR': 'Erro ao processar mídia. Verifique se o arquivo é válido.',
+    'FB_DUPLICATE_POST': 'Conteúdo duplicado detectado pelo Facebook.',
+    'NETWORK_ERROR': 'Erro de conexão. O sistema tentará novamente.',
+    'TIMEOUT': 'Tempo limite excedido. Tentando novamente em breve.',
+    'INVALID_MEDIA_URL': 'URL da mídia inválida ou inacessível.',
+    'NO_CONNECTED_ACCOUNT': 'Nenhuma conta conectada para esta plataforma.',
+  };
+  
+  if (errorCode && errorMessages[errorCode]) {
+    return { message: errorMessages[errorCode], isRetrying };
+  }
+  
+  // For unknown errors, show a generic message instead of technical details
+  if (errorMessage?.toLowerCase().includes('temporarily unavailable') || 
+      errorMessage?.toLowerCase().includes('service unavailable')) {
+    return { message: 'Serviço temporariamente indisponível. O sistema tentará novamente.', isRetrying: true };
+  }
+  
+  return { message: errorMessage || 'Ocorreu um erro ao publicar.', isRetrying: false };
+};
+
 export function PostList({ posts, onEdit, showActions = true, emptyMessage }: PostListProps) {
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const { mutate: deletePost, isPending: isDeleting } = useDeleteSocialPost();
@@ -221,11 +260,23 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                         </div>
 
                         {/* Error Message */}
-                        {post.error_message && (
-                          <div className="mt-2 p-2 bg-destructive/10 rounded text-xs text-destructive flex items-start gap-2">
-                            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                            <span>{post.error_message}</span>
-                          </div>
+                        {(post.error_message || post.error_code) && (
+                          (() => {
+                            const { message, isRetrying } = getErrorMessage(post.error_code, post.error_message);
+                            return (
+                              <div className={cn(
+                                "mt-2 p-2 rounded text-xs flex items-start gap-2",
+                                isRetrying ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-destructive/10 text-destructive"
+                              )}>
+                                {isRetrying ? (
+                                  <RefreshCw className="h-3 w-3 mt-0.5 flex-shrink-0 animate-spin" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                )}
+                                <span>{message}</span>
+                              </div>
+                            );
+                          })()
                         )}
                       </div>
 
