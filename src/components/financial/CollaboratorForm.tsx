@@ -87,16 +87,25 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
   const contractType = form.watch("contract_type");
   const isPartner = contractType === "socio";
 
-  // Populate form when data loads
+  // Populate form when data loads - use profile data as fallback
   useEffect(() => {
     if (existingDetails) {
+      // Get member role to set appropriate contract type for owners
+      const memberData = existingDetails as any;
+      const memberRole = memberData?.member?.role;
+      
+      // Default contract type: if member is owner and no contract set, default to "socio"
+      const defaultContractType = existingDetails.contract_type 
+        || (memberRole === 'owner' ? 'socio' : 'clt');
+
       form.reset({
-        full_name: existingDetails.full_name || "",
+        // Use full_name from collaborator_details OR fallback to profile name
+        full_name: existingDetails.full_name || memberData?.member?.profile?.full_name || "",
         cpf: existingDetails.cpf || "",
         rg: existingDetails.rg || "",
         birth_date: existingDetails.birth_date ? new Date(existingDetails.birth_date) : undefined,
         hire_date: existingDetails.hire_date ? new Date(existingDetails.hire_date) : undefined,
-        contract_type: existingDetails.contract_type || "clt",
+        contract_type: defaultContractType,
         bank_name: existingDetails.bank_name || "",
         bank_agency: existingDetails.bank_agency || "",
         bank_account: existingDetails.bank_account || "",
