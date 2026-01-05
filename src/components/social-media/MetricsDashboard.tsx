@@ -6,8 +6,10 @@ import { useSocialMetrics, useTopPosts, formatMetricNumber } from '@/hooks/useSo
 import { useClients } from '@/hooks/useClients';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
+import { useConnectedAccountsWithMetrics } from '@/hooks/useAccountMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { EmptyPlatformState } from './EmptyPlatformState';
+import { AccountMetricsCard } from './AccountMetricsCard';
 import {
   BarChart,
   Bar,
@@ -29,6 +31,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Instagram,
+  Facebook,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -99,10 +103,12 @@ export function MetricsDashboard() {
   const { has } = useEntitlementRegistry();
   const { data: clients } = useClients();
   const { data: connectedPlatforms, isLoading: platformsLoading } = useSocialPlatforms();
+  const { data: connectedAccounts } = useConnectedAccountsWithMetrics();
   
   const [dateRange, setDateRange] = useState<DateRange>('7d');
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
+  const [selectedAccount, setSelectedAccount] = useState<string>('all');
 
   const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
 
@@ -128,12 +134,23 @@ export function MetricsDashboard() {
     return {
       clientId: selectedClient !== 'all' ? selectedClient : undefined,
       startDate,
+      platformConnectionId: selectedAccount !== 'all' ? selectedAccount : undefined,
+      platform: selectedPlatform !== 'all' ? selectedPlatform : undefined,
     };
   };
 
   const filters = getDateFilters();
   const { summary, platformMetrics, contentTypeMetrics, isLoading } = useSocialMetrics(filters);
   const { data: topPosts } = useTopPosts(5, filters);
+
+  // Get platform icon
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram': return <Instagram className="h-4 w-4 mr-2 text-pink-500" />;
+      case 'facebook': return <Facebook className="h-4 w-4 mr-2 text-blue-600" />;
+      default: return null;
+    }
+  };
 
   const hasBasicMetrics = has('social_metrics_basic');
 
@@ -166,6 +183,24 @@ export function MetricsDashboard() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        {/* Account Selector - Primary Filter */}
+        <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Selecionar conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as contas</SelectItem>
+            {connectedAccounts?.map((account) => (
+              <SelectItem key={account.id} value={account.id}>
+                <div className="flex items-center">
+                  {getPlatformIcon(account.platform)}
+                  <span>{account.account_name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Período" />
@@ -205,6 +240,11 @@ export function MetricsDashboard() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Account Metrics Card - Shows when specific account is selected */}
+      {selectedAccount !== 'all' && (
+        <AccountMetricsCard platformConnectionId={selectedAccount} />
+      )}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
