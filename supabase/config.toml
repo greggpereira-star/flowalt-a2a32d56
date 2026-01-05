@@ -37,7 +37,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.social-metrics-sync]
-verify_jwt = true
+verify_jwt = false
 
 [functions.social-oauth-start]
 verify_jwt = false

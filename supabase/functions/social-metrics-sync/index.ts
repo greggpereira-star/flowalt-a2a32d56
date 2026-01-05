@@ -41,19 +41,26 @@ async function fetchPlatformMetrics(
     switch (platform) {
       case 'facebook':
       case 'instagram': {
-        // Fetch post insights from Facebook/Instagram Graph API
+        // Try fetching post insights from Facebook/Instagram Graph API
         const fields = 'impressions,reach,engagement,likes.summary(true),comments.summary(true),shares';
         const response = await fetch(
           `https://graph.facebook.com/v24.0/${platformPostId}?fields=${fields}&access_token=${accessToken}`
         );
         
         if (!response.ok) {
-          console.error(`Failed to fetch metrics for ${platform}/${platformPostId}`);
-          // Return empty metrics on error
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`Failed to fetch metrics for ${platform}/${platformPostId}:`, errorData.error?.message || response.status);
+          
+          // Stories expire after 24h - this is expected
+          if (errorData.error?.code === 100 || errorData.error?.message?.includes('does not exist')) {
+            console.log(`Post ${platformPostId} may have expired (Stories last 24h)`);
+          }
+          
           return createEmptyMetrics();
         }
         
         const data = await response.json();
+        console.log(`Fetched metrics for ${platform}/${platformPostId}:`, JSON.stringify(data).substring(0, 200));
         
         // For Instagram business, try to get insights
         if (assetType === 'instagram_business') {
@@ -309,12 +316,12 @@ serve(async (req) => {
           })
           .eq("id", post.id);
 
-        // Emit metrics updated event
+        // Emit metrics updated event (using correct column names)
         await supabase.from("domain_events").insert({
           workspace_id: post.workspace_id,
           event_type: "social_metrics.synced",
-          entity_type: "social_post",
-          entity_id: post.id,
+          aggregate_type: "social_post",
+          aggregate_id: post.id,
           payload: {
             platform: post.platform,
             metrics,
