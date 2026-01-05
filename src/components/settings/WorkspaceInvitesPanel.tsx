@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Collapsible,
   CollapsibleContent,
@@ -39,6 +40,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Mail, 
   UserPlus, 
@@ -52,20 +66,34 @@ import {
   Lock,
   ChevronDown,
   History,
+  Crown,
+  Search,
+  User,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import type { AppRole } from '@/lib/supabase';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
-const INVITE_ROLES: { value: AppRole; label: string }[] = [
+// Include 'owner' role for workspace owners to invite as proprietário
+const INVITE_ROLES: { value: AppRole; label: string; icon?: React.ReactNode }[] = [
+  { value: 'owner', label: 'Proprietário', icon: <Crown className="h-4 w-4 text-amber-500" /> },
   { value: 'admin', label: 'Administrador' },
   { value: 'coordinator', label: 'Coordenador' },
   { value: 'finance', label: 'Financeiro' },
   { value: 'member', label: 'Colaborador' },
   { value: 'viewer', label: 'Visualizador' },
 ];
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
 
 const STATUS_CONFIG = {
   pending: { label: 'Pendente', icon: Clock, variant: 'secondary' as const },
@@ -78,8 +106,8 @@ export function WorkspaceInvitesPanel() {
   const { data: invites, isLoading } = useWorkspaceInvites();
   const createInvite = useCreateWorkspaceInvite();
   const revokeInvite = useRevokeWorkspaceInvite();
-  const { canManageWorkspace } = usePermissions();
-  const { currentRole } = useWorkspace();
+  const { canManageWorkspace, canPromoteToOwner } = usePermissions();
+  const { currentRole, currentWorkspace } = useWorkspace();
   
   const { within, explain } = useEntitlementRegistry();
   const canInvite = within('members_limit');
@@ -90,13 +118,51 @@ export function WorkspaceInvitesPanel() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AppRole>('member');
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+
+  // Fetch existing users for autocomplete
+  const { data: existingUsers = [] } = useQuery({
+    queryKey: ['all-users-search', currentWorkspace?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+      return data as UserProfile[];
+    },
+    enabled: isDialogOpen,
+  });
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return existingUsers.slice(0, 10);
+    
+    const query = searchQuery.toLowerCase();
+    return existingUsers.filter(user => 
+      user.email.toLowerCase().includes(query) ||
+      (user.full_name?.toLowerCase().includes(query))
+    ).slice(0, 10);
+  }, [existingUsers, searchQuery]);
+
+  // Filter roles based on permission
+  const availableRoles = useMemo(() => {
+    if (canPromoteToOwner) return INVITE_ROLES;
+    return INVITE_ROLES.filter(r => r.value !== 'owner');
+  }, [canPromoteToOwner]);
 
   const handleCreateInvite = async () => {
-    if (!email.trim()) return;
+    const inviteEmail = selectedUser?.email || email.trim();
+    if (!inviteEmail) return;
 
-    await createInvite.mutateAsync({ email: email.trim(), role });
+    await createInvite.mutateAsync({ email: inviteEmail, role });
     setEmail('');
     setRole('member');
+    setSelectedUser(null);
+    setSearchQuery('');
     setIsDialogOpen(false);
   };
 
@@ -105,10 +171,30 @@ export function WorkspaceInvitesPanel() {
     setConfirmRevoke(null);
   };
 
+  const handleSelectUser = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEmail(user.email);
+    setSearchQuery(user.full_name || user.email);
+    setIsSearchOpen(false);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUser(null);
+    setEmail('');
+    setSearchQuery('');
+  };
+
   const copyInviteLink = (token: string) => {
     const link = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(link);
     toast.success('Link copiado!');
+  };
+
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return email.slice(0, 2).toUpperCase();
   };
 
   const pendingInvites = invites?.filter(i => i.status === 'pending') || [];
@@ -135,6 +221,7 @@ export function WorkspaceInvitesPanel() {
   }
 
   const inviteToRevoke = invites?.find(i => i.id === confirmRevoke);
+  const selectedRoleData = availableRoles.find(r => r.value === role);
 
   return (
     <>
@@ -151,18 +238,23 @@ export function WorkspaceInvitesPanel() {
               </div>
             </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                handleClearSelection();
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button size="sm" disabled={!canInvite}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Convidar
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Convidar Membro</DialogTitle>
                   <DialogDescription>
-                    Envie um convite por email para adicionar alguém ao workspace.
+                    Busque um usuário existente ou digite um email para enviar o convite.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -191,31 +283,141 @@ export function WorkspaceInvitesPanel() {
                 {canInvite && (
                   <>
                     <div className="space-y-4 py-4">
+                      {/* User search with autocomplete */}
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="nome@empresa.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                        />
+                        <Label>Usuário ou Email</Label>
+                        
+                        {selectedUser ? (
+                          <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                            <Avatar className="h-9 w-9">
+                              <AvatarImage src={selectedUser.avatar_url || undefined} />
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                {getInitials(selectedUser.full_name, selectedUser.email)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm">
+                                {selectedUser.full_name || selectedUser.email}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {selectedUser.email}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleClearSelection}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Buscar usuário ou digite email..."
+                                  value={searchQuery || email}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSearchQuery(val);
+                                    setEmail(val);
+                                    if (val.length > 0) {
+                                      setIsSearchOpen(true);
+                                    }
+                                  }}
+                                  onFocus={() => setIsSearchOpen(true)}
+                                  className="pl-10"
+                                />
+                              </div>
+                            </PopoverTrigger>
+                            <PopoverContent 
+                              className="w-[--radix-popover-trigger-width] p-0" 
+                              align="start"
+                              onOpenAutoFocus={(e) => e.preventDefault()}
+                            >
+                              <Command shouldFilter={false}>
+                                <CommandList>
+                                  {filteredUsers.length === 0 ? (
+                                    <CommandEmpty className="py-4 text-center text-sm">
+                                      {email.includes('@') ? (
+                                        <div className="space-y-2">
+                                          <User className="h-8 w-8 mx-auto text-muted-foreground" />
+                                          <p>Novo usuário</p>
+                                          <p className="text-muted-foreground text-xs">
+                                            Convite será enviado para {email}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <p className="text-muted-foreground">
+                                          Nenhum usuário encontrado
+                                        </p>
+                                      )}
+                                    </CommandEmpty>
+                                  ) : (
+                                    <CommandGroup heading="Usuários cadastrados">
+                                      {filteredUsers.map((user) => (
+                                        <CommandItem
+                                          key={user.id}
+                                          value={user.email}
+                                          onSelect={() => handleSelectUser(user)}
+                                          className="flex items-center gap-3 cursor-pointer"
+                                        >
+                                          <Avatar className="h-8 w-8">
+                                            <AvatarImage src={user.avatar_url || undefined} />
+                                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                              {getInitials(user.full_name, user.email)}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate text-sm">
+                                              {user.full_name || user.email}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {user.email}
+                                            </p>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  )}
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        )}
                       </div>
 
+                      {/* Role selection */}
                       <div className="space-y-2">
                         <Label htmlFor="role">Função</Label>
                         <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue>
+                              <div className="flex items-center gap-2">
+                                {selectedRoleData?.icon}
+                                <span>{selectedRoleData?.label}</span>
+                              </div>
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            {INVITE_ROLES.map((r) => (
+                            {availableRoles.map((r) => (
                               <SelectItem key={r.value} value={r.value}>
-                                {r.label}
+                                <div className="flex items-center gap-2">
+                                  {r.icon}
+                                  <span>{r.label}</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {role === 'owner' && (
+                          <p className="text-xs text-amber-600 flex items-center gap-1">
+                            <Crown className="h-3 w-3" />
+                            Este usuário terá controle total do workspace
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -254,7 +456,8 @@ export function WorkspaceInvitesPanel() {
               {pendingInvites.map((invite) => {
                 const status = STATUS_CONFIG[invite.status];
                 const StatusIcon = status.icon;
-                const roleLabel = INVITE_ROLES.find(r => r.value === invite.role)?.label || invite.role;
+                const roleData = INVITE_ROLES.find(r => r.value === invite.role);
+                const roleLabel = roleData?.label || invite.role;
                 const expiresIn = formatDistanceToNow(new Date(invite.expires_at), { 
                   addSuffix: true, 
                   locale: ptBR 
@@ -268,7 +471,10 @@ export function WorkspaceInvitesPanel() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{invite.email}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{roleLabel}</span>
+                        <span className="flex items-center gap-1">
+                          {roleData?.icon}
+                          {roleLabel}
+                        </span>
                         <span>•</span>
                         <span>Expira {expiresIn}</span>
                       </div>
