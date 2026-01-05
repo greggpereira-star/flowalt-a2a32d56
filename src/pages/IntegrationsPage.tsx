@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 const INTEGRATION_TABS = new Set([
   'api-keys',
   'webhooks',
@@ -86,8 +87,11 @@ export default function IntegrationsPage() {
   const { has } = useEntitlementRegistry();
   const hasIntegrationsEntitlement = has('integrations_access');
 
-  // Permission check: Owner, Admin, or Coordinator
-  const hasAccess = isAdmin || isCoordinator;
+  // Import workspace loading state to avoid false "no access" during refetch
+  const { loading: workspaceLoading } = useWorkspace();
+
+  // Permission check: Owner, Admin, or Coordinator - but wait for workspace to load
+  const hasAccess = workspaceLoading || isAdmin || isCoordinator;
 
   const initialTab = useMemo(() => {
     const tab = searchParams.get('tab');
