@@ -1153,11 +1153,10 @@ serve(async (req) => {
     logger.info(`Starting scheduled posts processing - Job ${jobId}`);
 
     // Find posts that are scheduled and due for publishing
-    // Using FOR UPDATE SKIP LOCKED pattern via a database function would be ideal
-    // For now, we use optimistic locking with processing_started_at
     const now = new Date().toISOString();
     const lockTimeout = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min timeout
     
+    // Query: status = scheduled AND scheduled_at <= now AND (processing_started_at IS NULL OR processing_started_at < lockTimeout)
     const { data: scheduledPosts, error: fetchError } = await supabase
       .from("social_posts")
       .select(`
@@ -1172,11 +1171,11 @@ serve(async (req) => {
         scheduled_at,
         retry_count,
         max_retries,
-        error_code
+        error_code,
+        processing_started_at
       `)
       .eq("status", "scheduled")
       .lte("scheduled_at", now)
-      .or(`processing_started_at.is.null,processing_started_at.lt.${lockTimeout}`)
       .order("scheduled_at", { ascending: true })
       .limit(50);
 
@@ -1184,7 +1183,13 @@ serve(async (req) => {
       throw new Error(`Failed to fetch scheduled posts: ${fetchError.message}`);
     }
 
-    if (!scheduledPosts || scheduledPosts.length === 0) {
+    // Filter posts that are not currently being processed (lock not held or expired)
+    const availablePosts = (scheduledPosts || []).filter(post => {
+      if (!post.processing_started_at) return true;
+      return new Date(post.processing_started_at) < new Date(lockTimeout);
+    });
+
+    if (availablePosts.length === 0) {
       logger.info("No scheduled posts to process");
       return new Response(
         JSON.stringify({ processed: 0, success: 0, failed: 0, job_id: jobId }),
@@ -1192,34 +1197,50 @@ serve(async (req) => {
       );
     }
 
-    logger.info(`Found ${scheduledPosts.length} posts to process`);
+    logger.info(`Found ${availablePosts.length} posts to process`);
 
     let successCount = 0;
     let failedCount = 0;
     let skippedCount = 0;
 
-    for (const post of scheduledPosts as SocialPost[]) {
+    for (const post of availablePosts as SocialPost[]) {
       const postStartTime = Date.now();
       
       try {
-        // Try to acquire lock by setting processing_started_at
-        const { data: lockData, error: lockError } = await supabase
+        // Try to acquire lock by setting processing_started_at atomically
+        // Use a two-step approach: update then verify
+        const lockTimestamp = new Date().toISOString();
+        
+        const { error: lockError } = await supabase
           .from("social_posts")
           .update({ 
-            processing_started_at: new Date().toISOString(),
+            processing_started_at: lockTimestamp,
             job_id: jobId 
           })
           .eq("id", post.id)
-          .eq("status", "scheduled")
-          .or(`processing_started_at.is.null,processing_started_at.lt.${lockTimeout}`)
-          .select("id")
-          .single();
+          .eq("status", "scheduled");
 
-        if (lockError || !lockData) {
-          logger.info(`Skipping post ${post.id} - already being processed`);
+        if (lockError) {
+          logger.warn(`Failed to acquire lock for post ${post.id}: ${lockError.message}`);
           skippedCount++;
           continue;
         }
+
+        // Verify we got the lock by checking if our job_id is set
+        const { data: verifyData, error: verifyError } = await supabase
+          .from("social_posts")
+          .select("id, job_id, processing_started_at")
+          .eq("id", post.id)
+          .eq("job_id", jobId)
+          .single();
+
+        if (verifyError || !verifyData) {
+          logger.info(`Skipping post ${post.id} - lock acquired by another job`);
+          skippedCount++;
+          continue;
+        }
+
+        logger.info(`Lock acquired for post ${post.id}`);
 
         // Update status to publishing
         await supabase
