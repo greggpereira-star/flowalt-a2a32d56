@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
-import { useFolders, useCreateFolder } from '@/hooks/useFolders';
+import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useCards, useCardsByFolder } from '@/hooks/useCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
@@ -33,6 +33,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -53,6 +69,8 @@ import {
   Folder,
   Sparkles,
   X,
+  Trash2,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
@@ -94,6 +112,8 @@ const SpacePage: React.FC = () => {
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
   const { data: activeView, isLoading: viewLoading } = useFolderView(activeViewId);
   const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
   
   // Social media tracking
   const { trackEvent } = useSocialMediaTracking();
@@ -164,6 +184,10 @@ const SpacePage: React.FC = () => {
   const [quickAddInitialMode, setQuickAddInitialMode] = useState<'quick' | 'full'>('quick');
   const [demandFormOpen, setDemandFormOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterQuery>({});
+  
+  // Folder edit/delete states
+  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string } | null>(null);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
 
   // Update view type and folder when active view changes
   useEffect(() => {
@@ -417,17 +441,13 @@ const SpacePage: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setDemandFormOpen(true)}>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Nova Demanda (com Briefing)
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Novo Card (Rápido)
+                    Novo Card
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setQuickAddInitialMode('full'); setQuickAddOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Card (Completo)
+                  <DropdownMenuItem onClick={() => setDemandFormOpen(true)}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Nova Demanda (Briefing)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
                     <FolderPlus className="h-4 w-4 mr-2" />
@@ -450,16 +470,32 @@ const SpacePage: React.FC = () => {
                 Todos
               </Button>
               {folders.map((folder) => (
-                <Button
-                  key={folder.id}
-                  variant={selectedFolder === folder.id ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSelectedFolder(folder.id)}
-                  className="h-7 px-2.5 text-xs flex-shrink-0"
-                >
-                  <Folder className="h-3 w-3 mr-1" style={{ color: folder.color || undefined }} />
-                  {folder.name}
-                </Button>
+                <ContextMenu key={folder.id}>
+                  <ContextMenuTrigger asChild>
+                    <Button
+                      variant={selectedFolder === folder.id ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setSelectedFolder(folder.id)}
+                      className="h-7 px-2.5 text-xs flex-shrink-0"
+                    >
+                      <Folder className="h-3 w-3 mr-1" style={{ color: folder.color || undefined }} />
+                      {folder.name}
+                    </Button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => setEditingFolder({ id: folder.id, name: folder.name })}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Renomear
+                    </ContextMenuItem>
+                    <ContextMenuItem 
+                      onClick={() => setDeletingFolderId(folder.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}
@@ -544,18 +580,29 @@ const SpacePage: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Nova Pasta</DialogTitle>
               <DialogDescription>
-                Crie uma pasta para organizar seus cards neste espaço.
+                Crie uma pasta para organizar seus cards.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="folderName">Nome da pasta</Label>
-              <Input
-                id="folderName"
-                placeholder="Ex: Cliente X, Campanha Y..."
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                className="mt-2"
-              />
+            <div className="py-4 space-y-4">
+              {/* Show current space info */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <Label className="text-xs text-muted-foreground">Espaço selecionado</Label>
+                <p className="text-sm font-medium mt-1 flex items-center gap-2">
+                  <Folder className="h-4 w-4" style={{ color: space?.color || undefined }} />
+                  {space?.name || 'Carregando...'}
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="folderName">Nome da pasta</Label>
+                <Input
+                  id="folderName"
+                  placeholder="Ex: Cliente X, Campanha Y..."
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  className="mt-2"
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateFolderOpen(false)}>
@@ -572,6 +619,80 @@ const SpacePage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Folder Rename Dialog */}
+      <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear Pasta</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="editFolderName">Nome da pasta</Label>
+            <Input
+              id="editFolderName"
+              value={editingFolder?.name || ''}
+              onChange={(e) => setEditingFolder(prev => prev ? { ...prev, name: e.target.value } : null)}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingFolder(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingFolder && editingFolder.name.trim()) {
+                  updateFolder.mutate(
+                    { id: editingFolder.id, name: editingFolder.name.trim() },
+                    { onSuccess: () => setEditingFolder(null) }
+                  );
+                }
+              }}
+              disabled={!editingFolder?.name.trim() || updateFolder.isPending}
+            >
+              {updateFolder.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Folder Delete Confirmation */}
+      <AlertDialog open={!!deletingFolderId} onOpenChange={(open) => !open && setDeletingFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pasta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação vai arquivar a pasta. Os cards dentro dela permanecerão no espaço, 
+              apenas sem a organização da pasta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingFolderId && spaceId) {
+                  deleteFolder.mutate(
+                    { id: deletingFolderId, spaceId },
+                    { 
+                      onSuccess: () => {
+                        setDeletingFolderId(null);
+                        if (selectedFolder === deletingFolderId) {
+                          setSelectedFolder(null);
+                        }
+                      }
+                    }
+                  );
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteFolder.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Card Detail Sheet */}
       <CardDetailSheet
