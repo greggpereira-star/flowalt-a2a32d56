@@ -73,6 +73,7 @@ import { usePostableAssets, type AssetWithConnection } from '@/hooks/usePlatform
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -1032,15 +1033,18 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
             {/* Location */}
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Localização
               </Label>
-              <Input
-                id="location"
+              <LocationAutocomplete
                 value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
-                placeholder="Ex: São Paulo, Brasil ou nome do estabelecimento..."
+                locationId={locationId}
+                onChange={(name, id) => {
+                  setLocationName(name);
+                  setLocationId(id);
+                }}
+                placeholder="Buscar local, cidade ou estabelecimento..."
               />
               <p className="text-xs text-muted-foreground">
                 Posts com localização têm em média 79% mais engajamento.
