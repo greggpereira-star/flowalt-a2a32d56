@@ -60,11 +60,11 @@ import {
   type FunnelStage,
   type CreateSocialPostInput,
 } from '@/hooks/useSocialPosts';
+import { useActivePlatforms, type ConnectedPlatform } from '@/hooks/useSocialPlatforms';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
 interface MediaFile {
   id: string;
   file?: File;
@@ -130,8 +130,10 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const createPost = useCreateSocialPost();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
+  const { data: connectedPlatforms } = useActivePlatforms();
 
   const [platform, setPlatform] = useState<SocialPlatform | ''>(defaultPlatform || '');
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
   const [contentType, setContentType] = useState<SocialContentType | ''>('');
   const [caption, setCaption] = useState('');
   const [hashtagsInput, setHashtagsInput] = useState('');
@@ -149,10 +151,15 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const hasUtmBuilder = has('social_utm_builder');
   const hasSchedule = has('social_schedule');
 
+  // Filter connections by selected platform
+  const availableConnections = connectedPlatforms?.filter(
+    (conn) => conn.platform === platform && conn.is_active && conn.connection_status === 'connected'
+  ) || [];
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setPlatform(defaultPlatform || '');
+      setSelectedConnectionId('');
       setContentType('');
       setCaption('');
       setHashtagsInput('');
@@ -168,6 +175,15 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setIsUploading(false);
     }
   }, [open, defaultPlatform]);
+
+  // Auto-select connection when platform changes and only one connection exists
+  useEffect(() => {
+    if (platform && availableConnections.length === 1) {
+      setSelectedConnectionId(availableConnections[0].id);
+    } else if (!platform || availableConnections.length === 0) {
+      setSelectedConnectionId('');
+    }
+  }, [platform, availableConnections.length]);
 
   // Upload media to Supabase Storage
   const uploadMedia = useCallback(async (file: File): Promise<string | null> => {
@@ -288,6 +304,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       return;
     }
 
+    if (!selectedConnectionId) {
+      toast.error('Selecione uma conta conectada para publicar');
+      return;
+    }
+
     // Validate media requirements
     const mediaError = mediaValidation();
     if (mediaError) {
@@ -335,12 +356,14 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     const input: CreateSocialPostInput = {
       card_id: cardId || null,
       client_id: clientId || null,
+      platform_connection_id: selectedConnectionId,
       platform: platform as SocialPlatform,
       content_type: contentType as SocialContentType,
       caption,
       hashtags,
       media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
       scheduled_at: scheduledAt,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       content_pillar: contentPillar as ContentPillar || undefined,
       funnel_stage: funnelStage as FunnelStage || undefined,
       campaign_name: campaignName || undefined,
@@ -444,6 +467,61 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Account Selection */}
+            {platform && availableConnections.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Conta para publicação *</Label>
+                {availableConnections.length === 1 ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/10">
+                    {availableConnections[0].profile_image_url && (
+                      <img 
+                        src={availableConnections[0].profile_image_url} 
+                        alt={availableConnections[0].account_name}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    )}
+                    <div>
+                      <span className="text-sm font-medium">{availableConnections[0].account_name}</span>
+                      <span className="text-xs text-muted-foreground block">Conta selecionada</span>
+                    </div>
+                  </div>
+                ) : (
+                  <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar conta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableConnections.map((conn) => (
+                        <SelectItem key={conn.id} value={conn.id}>
+                          <div className="flex items-center gap-2">
+                            {conn.profile_image_url && (
+                              <img 
+                                src={conn.profile_image_url} 
+                                alt={conn.account_name}
+                                className="w-5 h-5 rounded-full"
+                              />
+                            )}
+                            <span>{conn.account_name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {/* Warning if no connected accounts */}
+            {platform && availableConnections.length === 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">
+                  Nenhuma conta {platformConfig[platform as SocialPlatform]?.name} conectada. 
+                  Conecte uma conta em Configurações → Redes Sociais.
+                </span>
               </div>
             )}
 
@@ -756,7 +834,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
             onClick={() => handleSubmit(true)}
             disabled={
               !platform || 
-              !contentType || 
+              !contentType ||
+              !selectedConnectionId ||
               createPost.isPending || 
               isUploading || 
               media.some(m => m.uploading) ||
@@ -764,7 +843,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
             }
           >
             {(createPost.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {scheduledDate && hasSchedule ? 'Agendar Postagem' : 'Salvar como Rascunho'}
+            {scheduledDate && hasSchedule ? 'Agendar Postagem' : 'Criar Postagem'}
           </Button>
         </DialogFooter>
       </DialogContent>
