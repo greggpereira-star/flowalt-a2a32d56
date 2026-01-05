@@ -200,6 +200,19 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     }
   }, [existingPost, isEditMode]);
 
+  // Set asset ID when editing and assets are loaded
+  useEffect(() => {
+    if (isEditMode && existingPost?.platform_connection_id && availableAssets && availableAssets.length > 0) {
+      // Find asset that matches the platform_connection_id
+      const matchingAsset = availableAssets.find(
+        a => a.platform_connection_id === existingPost.platform_connection_id
+      );
+      if (matchingAsset) {
+        setSelectedAssetId(matchingAsset.id);
+      }
+    }
+  }, [isEditMode, existingPost?.platform_connection_id, availableAssets]);
+
   // Reset form when dialog opens (for create mode)
   useEffect(() => {
     if (open && !isEditMode) {

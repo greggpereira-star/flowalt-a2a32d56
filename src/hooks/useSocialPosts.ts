@@ -15,6 +15,7 @@ export interface SocialPost {
   workspace_id: string;
   card_id: string | null; // Optional - posts can be created without a card
   client_id: string | null;
+  platform_connection_id: string | null; // Link to social_platforms
   caption: string | null;
   hashtags: string[];
   media_urls: unknown; // JSON type from DB
