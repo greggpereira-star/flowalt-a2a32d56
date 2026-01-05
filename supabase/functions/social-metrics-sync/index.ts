@@ -237,7 +237,8 @@ async function fetchAccountMetrics(
     switch (platform) {
       case 'instagram': {
         // Instagram Business Account metrics
-        const fields = 'followers_count,media_count,username,profile_views';
+        // Note: profile_views is NOT available for IG Business accounts via Graph API
+        const fields = 'followers_count,media_count,username';
         const response = await fetch(
           `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
         );
@@ -275,7 +276,6 @@ async function fetchAccountMetrics(
           followers: data.followers_count || 0,
           following: 0,
           posts_count: data.media_count || 0,
-          profile_views: data.profile_views,
           page_reach: pageReach,
           page_impressions: pageImpressions,
         };
