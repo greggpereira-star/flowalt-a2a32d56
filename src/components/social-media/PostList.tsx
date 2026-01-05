@@ -42,7 +42,9 @@ import {
   Image as ImageIcon,
   User,
   Calendar as CalendarIcon,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  PartyPopper
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -151,13 +153,25 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
         {posts.map(post => {
           const statusConfig = STATUS_CONFIG[post.status];
           const firstMedia = post.media_urls?.[0];
+          const isPublished = post.status === 'published';
+          const isFailed = post.status === 'failed';
+          const isScheduled = post.status === 'scheduled';
 
           return (
-            <Card key={post.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card 
+              key={post.id} 
+              className={cn(
+                "overflow-hidden transition-all",
+                isPublished && "border-green-200 bg-gradient-to-r from-green-50/50 to-transparent shadow-sm",
+                isFailed && "border-red-200 bg-gradient-to-r from-red-50/30 to-transparent",
+                isScheduled && "border-blue-200 bg-gradient-to-r from-blue-50/30 to-transparent",
+                !isPublished && !isFailed && !isScheduled && "hover:shadow-md"
+              )}
+            >
               <CardContent className="p-0">
                 <div className="flex">
-                  {/* Media Preview */}
-                  <div className="w-32 h-32 flex-shrink-0 bg-muted">
+                  {/* Media Preview with status indicator */}
+                  <div className="relative w-32 h-32 flex-shrink-0 bg-muted">
                     {firstMedia ? (
                       <img 
                         src={firstMedia.url} 
@@ -167,6 +181,29 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    
+                    {/* Success overlay indicator */}
+                    {isPublished && (
+                      <div className="absolute inset-0 bg-green-500/10 flex items-center justify-center">
+                        <div className="absolute bottom-2 right-2 bg-green-500 rounded-full p-1.5 shadow-lg">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Scheduled indicator */}
+                    {isScheduled && (
+                      <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full p-1.5 shadow-lg">
+                        <Clock className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    
+                    {/* Failed indicator */}
+                    {isFailed && (
+                      <div className="absolute bottom-2 right-2 bg-red-500 rounded-full p-1.5 shadow-lg">
+                        <XCircle className="h-4 w-4 text-white" />
                       </div>
                     )}
                   </div>
@@ -181,7 +218,14 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                             {PLATFORM_ICONS[post.platform]}
                             <span className="text-xs capitalize">{post.platform}</span>
                           </div>
-                          <Badge variant={statusConfig.variant} className="gap-1 text-xs">
+                          <Badge 
+                            variant={statusConfig.variant} 
+                            className={cn(
+                              "gap-1 text-xs",
+                              isPublished && "bg-green-500 hover:bg-green-600 text-white",
+                              isScheduled && "bg-blue-500 hover:bg-blue-600 text-white"
+                            )}
+                          >
                             {statusConfig.icon}
                             {statusConfig.label}
                           </Badge>
@@ -259,8 +303,36 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                           )}
                         </div>
 
-                        {/* Error Message */}
-                        {(post.error_message || post.error_code) && (
+                        {/* Success Message - Only for published posts */}
+                        {isPublished && (
+                          <div className="mt-2 p-2.5 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-green-800">
+                                Publicado com sucesso!
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {post.published_at && format(new Date(post.published_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                              </p>
+                            </div>
+                            {post.platform_url && (
+                              <a 
+                                href={post.platform_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-800 bg-green-100 hover:bg-green-200 px-2 py-1 rounded transition-colors"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Ver post
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Error Message - Only for failed posts or posts with errors */}
+                        {!isPublished && (post.error_message || post.error_code) && (
                           (() => {
                             const { message, isRetrying } = getErrorMessage(post.error_code, post.error_message);
                             return (
