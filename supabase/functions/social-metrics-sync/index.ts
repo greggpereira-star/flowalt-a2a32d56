@@ -329,52 +329,80 @@ serve(async (req) => {
 
     // ==========================================
     // PART 1: Sync account-level metrics (followers, etc.)
+    // Uses social_platform_assets to get the real IG/FB accounts
     // ==========================================
-    const { data: activeAccounts } = await supabase
-      .from("social_platforms")
-      .select("id, workspace_id, platform, account_id, access_token_encrypted, platform_account_type, account_metrics_updated_at")
+    const { data: activeAssets } = await supabase
+      .from("social_platform_assets")
+      .select(`
+        id, 
+        platform_connection_id, 
+        asset_id, 
+        asset_type, 
+        asset_name,
+        asset_meta,
+        social_platforms!inner(
+          id, workspace_id, platform, access_token_encrypted, 
+          platform_account_type, account_metrics_updated_at
+        )
+      `)
       .eq("is_active", true)
-      .order("account_metrics_updated_at", { ascending: true, nullsFirst: true })
+      .in("asset_type", ["instagram_business", "facebook_page"])
       .limit(20);
 
     let accountsSynced = 0;
     const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
 
-    for (const account of activeAccounts || []) {
+    for (const asset of activeAssets || []) {
       try {
+        const connection = (asset as unknown as Record<string, unknown>).social_platforms as Record<string, unknown> | undefined;
+        if (!connection?.access_token_encrypted) continue;
+
         // Skip if metrics were updated less than 4 hours ago
-        if (account.account_metrics_updated_at) {
-          const lastUpdate = new Date(account.account_metrics_updated_at).getTime();
+        if (connection.account_metrics_updated_at) {
+          const lastUpdate = new Date(connection.account_metrics_updated_at as string).getTime();
           if (lastUpdate > fourHoursAgo) {
             continue;
           }
         }
 
-        if (!account.access_token_encrypted) continue;
-
-        const accessToken = decryptToken(account.access_token_encrypted);
+        const accessToken = decryptToken(connection.access_token_encrypted as string);
+        
+        // Determine platform based on asset type
+        const platform = asset.asset_type === 'instagram_business' ? 'instagram' : 'facebook';
+        
         const accountMetrics = await fetchAccountMetrics(
-          account.platform,
-          account.account_id,
+          platform,
+          asset.asset_id,
           accessToken,
-          account.platform_account_type
+          connection.platform_account_type as string
         );
 
         if (accountMetrics) {
+          // Update the connection with the metrics (merged if multiple assets)
+          const existingMetrics = (connection.account_metrics as Record<string, unknown>) || {};
+          const mergedMetrics = {
+            ...existingMetrics,
+            [asset.asset_type]: {
+              ...accountMetrics,
+              asset_id: asset.asset_id,
+              asset_name: asset.asset_name,
+            }
+          };
+
           await supabase
             .from("social_platforms")
             .update({
-              account_metrics: accountMetrics,
+              account_metrics: mergedMetrics,
               account_metrics_updated_at: new Date().toISOString(),
             })
-            .eq("id", account.id);
+            .eq("id", connection.id);
           
           accountsSynced++;
-          logger.info(`Synced account metrics for ${account.platform}/${account.account_id}`);
+          logger.info(`Synced metrics for ${platform}/${asset.asset_name} (${asset.asset_id})`);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown';
-        logger.error(`Error syncing account ${account.id}:`, { error: msg });
+        logger.error(`Error syncing asset ${asset.id}:`, { error: msg });
       }
     }
 
