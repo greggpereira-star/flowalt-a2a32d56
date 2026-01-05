@@ -342,7 +342,7 @@ export function PlatformConnectionWizard({
     }
   };
 
-  // Fetch platform connection for "add accounts" mode - goes directly to asset selection
+  // Fetch platform connection for "add accounts" mode - starts OAuth to allow selecting a new business portfolio
   const fetchPlatformConnectionForAddAccounts = async () => {
     if (!currentWorkspace?.id) return;
     
@@ -363,15 +363,25 @@ export function PlatformConnectionWizard({
         setPlatformConnectionId(conn.id);
         setAccountName(conn.account_name || '');
         
-        // Go directly to select step
-        const selectStepIndex = steps.findIndex(s => s.id === 'select');
-        if (selectStepIndex >= 0) {
-          setCurrentStep(selectStepIndex);
-          await fetchAssetsForAddAccounts(conn.id);
+        // Fetch currently active assets to pre-select them later
+        const { data: activeAssets } = await supabase
+          .from('social_platform_assets')
+          .select('asset_id')
+          .eq('platform_connection_id', conn.id)
+          .eq('is_active', true);
+        
+        if (activeAssets) {
+          setSelectedAssetIds(new Set(activeAssets.map(a => a.asset_id)));
+        }
+        
+        // Go to auth step so user can login and select a different business portfolio
+        const authStepIndex = steps.findIndex(s => s.id === 'auth');
+        if (authStepIndex >= 0) {
+          setCurrentStep(authStepIndex);
         }
       } else {
-        // No connection found
-        setErrorMessage('Nenhuma conexão ativa encontrada para esta plataforma.');
+        // No connection found - go to beginning
+        setCurrentStep(0);
       }
     } catch (error) {
       console.error('Error fetching platform connection for add accounts:', error);
