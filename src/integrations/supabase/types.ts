@@ -6323,6 +6323,7 @@ export type Database = {
           scheduled_at: string | null
           status: string
           timezone: string | null
+          title: string | null
           updated_at: string | null
           utm_params: Json | null
           visibility: string | null
@@ -6366,6 +6367,7 @@ export type Database = {
           scheduled_at?: string | null
           status?: string
           timezone?: string | null
+          title?: string | null
           updated_at?: string | null
           utm_params?: Json | null
           visibility?: string | null
@@ -6409,6 +6411,7 @@ export type Database = {
           scheduled_at?: string | null
           status?: string
           timezone?: string | null
+          title?: string | null
           updated_at?: string | null
           utm_params?: Json | null
           visibility?: string | null

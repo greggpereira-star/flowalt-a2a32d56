@@ -88,15 +88,15 @@ const contentTypeIcons: Record<SocialContentType, React.ElementType> = {
   article: FileText,
 };
 
-const statusStyles: Record<SocialPostStatus, { bg: string; text: string; icon: React.ElementType }> = {
-  draft: { bg: 'bg-muted', text: 'text-muted-foreground', icon: FileText },
-  pending_approval: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock },
-  approved: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2 },
-  scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', icon: CalendarIcon },
-  publishing: { bg: 'bg-purple-100', text: 'text-purple-800', icon: Loader2 },
-  published: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2 },
-  failed: { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle },
-  archived: { bg: 'bg-gray-100', text: 'text-gray-800', icon: FileText },
+const statusStyles: Record<SocialPostStatus, { bg: string; text: string; icon: React.ElementType; label: string }> = {
+  draft: { bg: 'bg-muted', text: 'text-muted-foreground', icon: FileText, label: 'Rascunho' },
+  pending_approval: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock, label: 'Aprovação' },
+  approved: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2, label: 'Aprovado' },
+  scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', icon: CalendarIcon, label: 'Agendado' },
+  publishing: { bg: 'bg-purple-100', text: 'text-purple-800', icon: Loader2, label: 'Publicando' },
+  published: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2, label: 'Publicado' },
+  failed: { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle, label: 'Erro' },
+  archived: { bg: 'bg-gray-100', text: 'text-gray-800', icon: FileText, label: 'Arquivado' },
 };
 
 interface SocialCalendarProps {
@@ -193,8 +193,11 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
 
   const renderPost = (post: SocialPost) => {
     const PlatformIcon = platformIcons[post.platform];
-    const ContentIcon = contentTypeIcons[post.content_type];
     const statusStyle = statusStyles[post.status];
+    const StatusIcon = statusStyle.icon;
+    
+    // Display title if available, otherwise fall back to caption snippet
+    const displayText = post.title || post.caption?.substring(0, 25) || 'Sem título';
 
     return (
       <TooltipProvider key={post.id}>
@@ -206,30 +209,38 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
                 handlePostClick(post);
               }}
               className={cn(
-                "w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs truncate transition-all hover:opacity-80",
+                "w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-all hover:opacity-80",
                 statusStyle.bg
               )}
             >
               <PlatformIcon className="h-3 w-3 flex-shrink-0" style={{ color: platformColors[post.platform] }} />
-              <ContentIcon className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-              <span className={cn("truncate", statusStyle.text)}>
-                {post.caption?.substring(0, 20) || 'Sem legenda'}
+              <StatusIcon className={cn("h-3 w-3 flex-shrink-0", statusStyle.text)} />
+              <span className={cn("truncate flex-1 text-left", statusStyle.text)}>
+                {displayText}
               </span>
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-xs">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <PlatformIcon className="h-4 w-4" style={{ color: platformColors[post.platform] }} />
                 <span className="font-medium capitalize">{post.platform}</span>
                 <Badge variant="outline" className="text-[10px]">{post.content_type}</Badge>
               </div>
+              {post.title && (
+                <p className="font-medium text-sm">{post.title}</p>
+              )}
               {post.caption && (
                 <p className="text-xs text-muted-foreground line-clamp-3">{post.caption}</p>
               )}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {format(new Date(post.scheduled_at || post.created_at), "HH:mm", { locale: ptBR })}
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {format(new Date(post.scheduled_at || post.created_at), "HH:mm", { locale: ptBR })}
+                </div>
+                <Badge className={cn("text-[10px]", statusStyle.bg, statusStyle.text)}>
+                  {statusStyle.label}
+                </Badge>
               </div>
             </div>
           </TooltipContent>
