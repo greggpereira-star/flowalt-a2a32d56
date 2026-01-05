@@ -1322,20 +1322,40 @@ serve(async (req) => {
 
         if (result.success) {
           // Success - update post
-          await supabase
+          const updatePayload = {
+            status: "published",
+            published_at: new Date().toISOString(),
+            platform_post_id: result.platform_post_id,
+            platform_url: result.platform_url,
+            error_message: null,
+            error_code: null,
+            last_error_code: null,
+            last_error_message: null,
+            processing_completed_at: new Date().toISOString(),
+          };
+          
+          const { error: updateError, count: updateCount } = await supabase
             .from("social_posts")
-            .update({
-              status: "published",
-              published_at: new Date().toISOString(),
-              platform_post_id: result.platform_post_id,
-              platform_url: result.platform_url,
-              error_message: null,
-              error_code: null,
-              last_error_code: null,
-              last_error_message: null,
-              processing_completed_at: new Date().toISOString(),
-            })
-            .eq("id", post.id);
+            .update(updatePayload)
+            .eq("id", post.id)
+            .select("id");
+          
+          if (updateError) {
+            logger.error(`CRITICAL: Failed to update post ${post.id} to published status: ${updateError.message}`);
+            // Try again without the select
+            const { error: retryError } = await supabase
+              .from("social_posts")
+              .update(updatePayload)
+              .eq("id", post.id);
+            
+            if (retryError) {
+              logger.error(`CRITICAL: Retry also failed for post ${post.id}: ${retryError.message}`);
+            } else {
+              logger.info(`Retry succeeded for post ${post.id}`);
+            }
+          } else {
+            logger.info(`Successfully updated post ${post.id} to published status`);
+          }
 
           // Update job record
           if (jobRecord?.id) {
