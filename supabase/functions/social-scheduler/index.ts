@@ -1156,7 +1156,11 @@ serve(async (req) => {
     const now = new Date().toISOString();
     const lockTimeout = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min timeout
     
-    // Query: status = scheduled AND scheduled_at <= now AND (processing_started_at IS NULL OR processing_started_at < lockTimeout)
+    // CRITICAL: Only select posts that:
+    // 1. status = 'scheduled' 
+    // 2. scheduled_at <= now
+    // 3. platform_post_id IS NULL (not already published)
+    // This prevents republishing posts that already succeeded
     const { data: scheduledPosts, error: fetchError } = await supabase
       .from("social_posts")
       .select(`
@@ -1172,10 +1176,13 @@ serve(async (req) => {
         retry_count,
         max_retries,
         error_code,
-        processing_started_at
+        processing_started_at,
+        platform_post_id,
+        published_at
       `)
       .eq("status", "scheduled")
       .lte("scheduled_at", now)
+      .is("platform_post_id", null)  // CRITICAL: Only posts that have NOT been published
       .order("scheduled_at", { ascending: true })
       .limit(50);
 
@@ -1184,7 +1191,19 @@ serve(async (req) => {
     }
 
     // Filter posts that are not currently being processed (lock not held or expired)
+    // Also double-check platform_post_id is null (belt and suspenders)
     const availablePosts = (scheduledPosts || []).filter(post => {
+      // Skip if already has a platform post ID
+      if (post.platform_post_id) {
+        logger.warn(`Skipping post ${post.id} - already has platform_post_id: ${post.platform_post_id}`);
+        return false;
+      }
+      // Skip if already has published_at
+      if (post.published_at) {
+        logger.warn(`Skipping post ${post.id} - already has published_at: ${post.published_at}`);
+        return false;
+      }
+      // Check processing lock
       if (!post.processing_started_at) return true;
       return new Date(post.processing_started_at) < new Date(lockTimeout);
     });
@@ -1227,9 +1246,10 @@ serve(async (req) => {
         }
 
         // Verify we got the lock by checking if our job_id is set
+        // ALSO verify the post hasn't been published while we were acquiring lock
         const { data: verifyData, error: verifyError } = await supabase
           .from("social_posts")
-          .select("id, job_id, processing_started_at")
+          .select("id, job_id, processing_started_at, status, platform_post_id, published_at")
           .eq("id", post.id)
           .eq("job_id", jobId)
           .single();
@@ -1240,16 +1260,63 @@ serve(async (req) => {
           continue;
         }
 
-        logger.info(`Lock acquired for post ${post.id}`);
+        // CRITICAL: Check if post was already published (race condition protection)
+        if (verifyData.platform_post_id) {
+          logger.warn(`PREVENTED DUPLICATE: Post ${post.id} already has platform_post_id ${verifyData.platform_post_id}`);
+          // Clear our lock since we're not going to publish
+          await supabase
+            .from("social_posts")
+            .update({ 
+              processing_started_at: null,
+              job_id: null,
+              status: 'published'  // Ensure status is correct
+            })
+            .eq("id", post.id);
+          skippedCount++;
+          continue;
+        }
 
-        // Update status to publishing
-        const { error: publishingError } = await supabase
+        if (verifyData.published_at) {
+          logger.warn(`PREVENTED DUPLICATE: Post ${post.id} already has published_at ${verifyData.published_at}`);
+          await supabase
+            .from("social_posts")
+            .update({ 
+              processing_started_at: null,
+              job_id: null,
+              status: 'published'
+            })
+            .eq("id", post.id);
+          skippedCount++;
+          continue;
+        }
+
+        if (verifyData.status !== 'scheduled') {
+          logger.warn(`PREVENTED DUPLICATE: Post ${post.id} status is ${verifyData.status}, not scheduled`);
+          await supabase
+            .from("social_posts")
+            .update({ 
+              processing_started_at: null,
+              job_id: null
+            })
+            .eq("id", post.id);
+          skippedCount++;
+          continue;
+        }
+
+        logger.info(`Lock acquired for post ${post.id} - verified clean for publishing`);
+
+        // Update status to publishing atomically with additional safety check
+        const { data: publishingData, error: publishingError } = await supabase
           .from("social_posts")
           .update({ status: "publishing" })
-          .eq("id", post.id);
+          .eq("id", post.id)
+          .eq("status", "scheduled")  // Only if still scheduled
+          .is("platform_post_id", null)  // Only if not already published
+          .select("id")
+          .single();
         
-        if (publishingError) {
-          logger.error(`Failed to set publishing status for post ${post.id}: ${publishingError.message}`);
+        if (publishingError || !publishingData) {
+          logger.warn(`Could not set publishing status for post ${post.id} - may have been published by another process`);
           skippedCount++;
           continue;
         }
@@ -1327,7 +1394,9 @@ serve(async (req) => {
         const result = await publishToplatform(post, platformCreds as unknown as PlatformCredentials);
 
         if (result.success) {
-          // Success - update post
+          // Success - update post with ATOMIC safety check
+          // CRITICAL: Only update if the post is still in a publishing state
+          // This prevents overwriting if another process already handled it
           const updatePayload = {
             status: "published",
             published_at: new Date().toISOString(),
@@ -1338,29 +1407,46 @@ serve(async (req) => {
             last_error_code: null,
             last_error_message: null,
             processing_completed_at: new Date().toISOString(),
+            job_id: null,  // Clear job lock
+            processing_started_at: null,  // Clear processing lock
           };
           
-          const { error: updateError, count: updateCount } = await supabase
+          // Use atomic update with status check
+          const { data: updateData, error: updateError } = await supabase
             .from("social_posts")
             .update(updatePayload)
             .eq("id", post.id)
-            .select("id");
+            .eq("status", "publishing")  // Only if still in publishing state
+            .select("id")
+            .single();
           
-          if (updateError) {
-            logger.error(`CRITICAL: Failed to update post ${post.id} to published status: ${updateError.message}`);
-            // Try again without the select
-            const { error: retryError } = await supabase
+          if (updateError || !updateData) {
+            // Check if already published
+            const { data: checkData } = await supabase
               .from("social_posts")
-              .update(updatePayload)
-              .eq("id", post.id);
+              .select("id, status, platform_post_id")
+              .eq("id", post.id)
+              .single();
             
-            if (retryError) {
-              logger.error(`CRITICAL: Retry also failed for post ${post.id}: ${retryError.message}`);
+            if (checkData?.status === 'published' || checkData?.platform_post_id) {
+              logger.warn(`Post ${post.id} was already marked as published - this is a DUPLICATE DETECTION`);
+              // Still count as success since it was published
             } else {
-              logger.info(`Retry succeeded for post ${post.id}`);
+              logger.error(`CRITICAL: Failed to update post ${post.id} to published status: ${updateError?.message}`);
+              // Try without status check as fallback
+              const { error: retryError } = await supabase
+                .from("social_posts")
+                .update(updatePayload)
+                .eq("id", post.id);
+              
+              if (retryError) {
+                logger.error(`CRITICAL: Retry also failed for post ${post.id}: ${retryError.message}`);
+              } else {
+                logger.info(`Retry succeeded for post ${post.id}`);
+              }
             }
           } else {
-            logger.info(`Successfully updated post ${post.id} to published status`);
+            logger.info(`Successfully updated post ${post.id} to published status with platform_id ${result.platform_post_id}`);
           }
 
           // Update job record
