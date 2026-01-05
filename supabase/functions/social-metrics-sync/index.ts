@@ -220,6 +220,10 @@ interface AccountMetrics {
   posts_count: number;
   profile_views?: number;
   website_clicks?: number;
+  // Page-level insights (Facebook & Instagram)
+  page_reach?: number;
+  page_impressions?: number;
+  page_engagements?: number;
 }
 
 // Fetch account-level metrics (followers, etc.)
@@ -232,9 +236,8 @@ async function fetchAccountMetrics(
   try {
     switch (platform) {
       case 'instagram': {
-        // Instagram Business Account metrics - uses different fields than IG User
-        // For IG Business accounts connected via FB Page, use: followers_count, media_count
-        const fields = 'followers_count,media_count,username';
+        // Instagram Business Account metrics
+        const fields = 'followers_count,media_count,username,profile_views';
         const response = await fetch(
           `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
         );
@@ -248,15 +251,38 @@ async function fetchAccountMetrics(
         const data = await response.json();
         console.log(`Fetched IG account metrics:`, JSON.stringify(data));
         
+        // Fetch IG insights (reach, impressions) - last 28 days
+        let pageReach = 0;
+        let pageImpressions = 0;
+        try {
+          const insightsResponse = await fetch(
+            `https://graph.facebook.com/v24.0/${accountId}/insights?metric=reach,impressions&period=day&since=${Math.floor(Date.now()/1000) - 28*86400}&until=${Math.floor(Date.now()/1000)}&access_token=${accessToken}`
+          );
+          if (insightsResponse.ok) {
+            const insightsData = await insightsResponse.json();
+            for (const item of insightsData.data || []) {
+              const values = item.values || [];
+              const sum = values.reduce((acc: number, v: { value?: number }) => acc + (v.value || 0), 0);
+              if (item.name === 'reach') pageReach = sum;
+              if (item.name === 'impressions') pageImpressions = sum;
+            }
+          }
+        } catch (e) {
+          console.log('Could not fetch IG insights:', e);
+        }
+        
         return {
           followers: data.followers_count || 0,
-          following: 0, // IG Business doesn't expose following count via API
+          following: 0,
           posts_count: data.media_count || 0,
+          profile_views: data.profile_views,
+          page_reach: pageReach,
+          page_impressions: pageImpressions,
         };
       }
 
       case 'facebook': {
-        // Facebook Page metrics
+        // Facebook Page basic metrics
         const fields = 'followers_count,fan_count';
         const response = await fetch(
           `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
@@ -271,10 +297,35 @@ async function fetchAccountMetrics(
         const data = await response.json();
         console.log(`Fetched FB page metrics:`, JSON.stringify(data));
         
+        // Fetch Page insights - reach, impressions, engagements (last 28 days)
+        let pageReach = 0;
+        let pageImpressions = 0;
+        let pageEngagements = 0;
+        try {
+          const insightsResponse = await fetch(
+            `https://graph.facebook.com/v24.0/${accountId}/insights?metric=page_impressions_unique,page_impressions,page_post_engagements&period=day&since=${Math.floor(Date.now()/1000) - 28*86400}&until=${Math.floor(Date.now()/1000)}&access_token=${accessToken}`
+          );
+          if (insightsResponse.ok) {
+            const insightsData = await insightsResponse.json();
+            for (const item of insightsData.data || []) {
+              const values = item.values || [];
+              const sum = values.reduce((acc: number, v: { value?: number }) => acc + (v.value || 0), 0);
+              if (item.name === 'page_impressions_unique') pageReach = sum;
+              if (item.name === 'page_impressions') pageImpressions = sum;
+              if (item.name === 'page_post_engagements') pageEngagements = sum;
+            }
+          }
+        } catch (e) {
+          console.log('Could not fetch FB page insights:', e);
+        }
+        
         return {
           followers: data.followers_count || data.fan_count || 0,
-          following: 0, // Pages don't "follow" others
-          posts_count: 0, // Would need additional call
+          following: 0,
+          posts_count: 0,
+          page_reach: pageReach,
+          page_impressions: pageImpressions,
+          page_engagements: pageEngagements,
         };
       }
 

@@ -49,6 +49,8 @@ export const useSocialMetrics = (filters?: {
   clientId?: string;
   startDate?: string;
   endDate?: string;
+  platformConnectionId?: string;
+  platform?: string;
 }) => {
   const { currentWorkspace } = useWorkspace();
 
@@ -65,6 +67,14 @@ export const useSocialMetrics = (filters?: {
 
       if (filters?.clientId) {
         query = query.eq('client_id', filters.clientId);
+      }
+
+      if (filters?.platformConnectionId) {
+        query = query.eq('platform_connection_id', filters.platformConnectionId);
+      }
+
+      if (filters?.platform) {
+        query = query.eq('platform', filters.platform);
       }
 
       if (filters?.startDate) {
@@ -272,7 +282,13 @@ export const useSocialMetrics = (filters?: {
   };
 };
 
-export const useTopPosts = (limit: number = 5, filters?: { clientId?: string; startDate?: string; endDate?: string }) => {
+export const useTopPosts = (limit: number = 5, filters?: { 
+  clientId?: string; 
+  startDate?: string; 
+  endDate?: string;
+  platformConnectionId?: string;
+  platform?: string;
+}) => {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
@@ -289,6 +305,14 @@ export const useTopPosts = (limit: number = 5, filters?: { clientId?: string; st
 
       if (filters?.clientId) {
         query = query.eq('client_id', filters.clientId);
+      }
+
+      if (filters?.platformConnectionId) {
+        query = query.eq('platform_connection_id', filters.platformConnectionId);
+      }
+
+      if (filters?.platform) {
+        query = query.eq('platform', filters.platform);
       }
 
       if (filters?.startDate) {
