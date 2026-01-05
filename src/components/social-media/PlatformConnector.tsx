@@ -55,6 +55,7 @@ import {
   ExternalLink,
   Crown,
   Loader2,
+  UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -207,6 +208,7 @@ function ConnectedPlatformCard({
   onTest,
   onSelectAsset,
   onReconnect,
+  onAddAccounts,
   isRefreshing,
   isTesting,
   isSuperAdmin,
@@ -218,10 +220,13 @@ function ConnectedPlatformCard({
   onTest: () => void;
   onSelectAsset: () => void;
   onReconnect: () => void;
+  onAddAccounts: () => void;
   isRefreshing: boolean;
   isTesting: boolean;
   isSuperAdmin?: boolean;
 }) {
+  // Only show "Add accounts" for Meta platforms (Facebook/Instagram)
+  const isMetaPlatform = config.id === 'facebook' || config.id === 'instagram';
   const Icon = config.icon;
   const badgeProps = getStateBadgeProps(platform.computedState);
   
@@ -300,25 +305,45 @@ function ConnectedPlatformCard({
             )}
             
             {platform.computedState === 'CONNECTED' && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={onTest}
-                      disabled={isTesting}
-                    >
-                      {isTesting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Zap className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Testar conexão</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <>
+                {/* Add accounts button - only for Meta platforms */}
+                {isMetaPlatform && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={onAddAccounts}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Adicionar contas</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={onTest}
+                        disabled={isTesting}
+                      >
+                        {isTesting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Zap className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Testar conexão</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
             )}
             
             {(platform.computedState === 'EXPIRING') && (
@@ -530,7 +555,7 @@ export function PlatformConnector() {
   
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
-  const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect'>('connect');
+  const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect' | 'add_accounts'>('connect');
   const [initialOauthError, setInitialOauthError] = useState<{ code: string; description?: string } | null>(null);
 
   // Detect OAuth callback and auto-open wizard (and apply Meta invalid-scope fallback)
@@ -651,6 +676,12 @@ export function PlatformConnector() {
     setWizardOpen(true);
   };
 
+  const handleAddAccounts = (platformId: PlatformId, platformName: string) => {
+    setSelectedPlatform({ id: platformId, name: platformName });
+    setWizardMode('add_accounts');
+    setWizardOpen(true);
+  };
+
   const handleDisconnect = async () => {
     if (!disconnectDialog.platform) return;
 
@@ -720,6 +751,7 @@ export function PlatformConnector() {
                 onTest={() => handleTestConnection(connected.id)}
                 onSelectAsset={() => handleSelectAsset(connected, config.name)}
                 onReconnect={() => handleReconnect(config.id, config.name)}
+                onAddAccounts={() => handleAddAccounts(config.id, config.name)}
                 isRefreshing={refreshToken.isPending}
                 isTesting={testConnection.isPending}
                 isSuperAdmin={isSuperAdmin}
@@ -780,10 +812,12 @@ export function PlatformConnector() {
           platformName={selectedPlatform.name}
           isSuperAdmin={isSuperAdmin}
           initialOauthError={initialOauthError}
+          mode={wizardMode}
           onSuccess={() => {
             setSelectedPlatform(null);
             setInitialOauthError(null);
             queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
+            queryClient.invalidateQueries({ queryKey: ['platform-assets'] });
           }}
         />
       )}
