@@ -3,7 +3,7 @@
  * Provides live status updates for publishing jobs
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -155,7 +155,14 @@ export function useRealtimeSocialJobs(limit = 50) {
   const queryClient = useQueryClient();
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
-  const queryKey = ['social-jobs-realtime', currentWorkspace?.id];
+  // Stable query key
+  const queryKey = useMemo(
+    () => ['social-jobs-realtime', currentWorkspace?.id],
+    [currentWorkspace?.id]
+  );
+
+  // Use ref to track if subscription is active
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Initial data fetch
   const { data: jobs, isLoading, error, refetch } = useQuery({
@@ -176,14 +183,18 @@ export function useRealtimeSocialJobs(limit = 50) {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Set up realtime subscription
+  // Set up realtime subscription with stable dependencies
   useEffect(() => {
     if (!currentWorkspace?.id) return;
 
-    console.log('[Realtime] Setting up social_jobs subscription for workspace:', currentWorkspace.id);
+    // Don't recreate if already subscribed
+    if (subscriptionRef.current) return;
+
+    const channelName = `social-jobs-${currentWorkspace.id}`;
+    console.log('[Realtime] Setting up social_jobs subscription:', channelName);
 
     const channel = supabase
-      .channel(`social-jobs-${currentWorkspace.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -193,46 +204,23 @@ export function useRealtimeSocialJobs(limit = 50) {
           filter: `workspace_id=eq.${currentWorkspace.id}`,
         },
         (payload) => {
-          console.log('[Realtime] Received job update:', payload);
+          console.log('[Realtime] Received job update:', payload.eventType);
           
-          // Update the cache optimistically
-          queryClient.setQueryData(queryKey, (oldData: SocialJob[] | undefined) => {
-            if (!oldData) return oldData;
-
-            if (payload.eventType === 'INSERT') {
-              // Add new job at the beginning
-              return [payload.new as SocialJob, ...oldData].slice(0, limit);
-            }
-            
-            if (payload.eventType === 'UPDATE') {
-              // Update existing job
-              return oldData.map(job => 
-                job.id === (payload.new as SocialJob).id 
-                  ? payload.new as SocialJob 
-                  : job
-              );
-            }
-            
-            if (payload.eventType === 'DELETE') {
-              // Remove deleted job
-              return oldData.filter(job => job.id !== (payload.old as SocialJob).id);
-            }
-
-            return oldData;
-          });
-
+          // Invalidate queries to refetch
+          queryClient.invalidateQueries({ queryKey: ['social-jobs-realtime'] });
+          
           // Also invalidate related queries (posts may have changed status)
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
             const job = payload.new as SocialJob;
             if (job.status === 'completed' || job.status === 'failed') {
-              // Refresh posts data when a job completes
               queryClient.invalidateQueries({ queryKey: ['social-posts'] });
+              queryClient.invalidateQueries({ queryKey: ['social-posts-realtime'] });
             }
           }
         }
       )
       .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
+        console.log('[Realtime] Jobs subscription status:', status);
         if (status === 'SUBSCRIBED') {
           setRealtimeStatus('connected');
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
@@ -240,29 +228,37 @@ export function useRealtimeSocialJobs(limit = 50) {
         }
       });
 
+    subscriptionRef.current = channel;
+
     return () => {
-      console.log('[Realtime] Cleaning up social_jobs subscription');
-      supabase.removeChannel(channel);
+      if (subscriptionRef.current) {
+        console.log('[Realtime] Cleaning up social_jobs subscription');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [currentWorkspace?.id, queryClient, queryKey, limit]);
+  }, [currentWorkspace?.id]); // Only workspace ID as dependency
 
   // Group jobs by status for dashboard display
-  const jobStats = {
+  const jobStats = useMemo(() => ({
     pending: jobs?.filter(j => j.status === 'pending').length || 0,
     processing: jobs?.filter(j => j.status === 'processing').length || 0,
     completed: jobs?.filter(j => j.status === 'completed').length || 0,
     failed: jobs?.filter(j => j.status === 'failed').length || 0,
     total: jobs?.length || 0,
-  };
+  }), [jobs]);
 
   // Get recent failures with enhanced error info
-  const recentFailures = jobs
-    ?.filter(j => j.status === 'failed')
-    .slice(0, 5)
-    .map(job => ({
-      ...job,
-      errorInfo: getErrorInfo(job.error_code, job.error_message),
-    })) || [];
+  const recentFailures = useMemo(() => 
+    jobs
+      ?.filter(j => j.status === 'failed')
+      .slice(0, 5)
+      .map(job => ({
+        ...job,
+        errorInfo: getErrorInfo(job.error_code, job.error_message),
+      })) || [],
+    [jobs]
+  );
 
   return {
     jobs,
