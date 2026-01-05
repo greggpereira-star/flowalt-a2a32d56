@@ -163,22 +163,22 @@ export function useCreateOrUpdateCollaborator() {
     }: {
       memberId: string;
       full_name?: string;
-      cpf?: string;
-      rg?: string;
-      birth_date?: string;
-      hire_date?: string;
-      contract_type?: string;
-      bank_name?: string;
-      bank_agency?: string;
-      bank_account?: string;
-      pix_key?: string;
-      base_salary?: number;
-      partner_percentage?: number;
-      weekly_hours?: number;
+      cpf?: string | null;
+      rg?: string | null;
+      birth_date?: string | null;
+      hire_date?: string | null;
+      contract_type?: string | null;
+      bank_name?: string | null;
+      bank_agency?: string | null;
+      bank_account?: string | null;
+      pix_key?: string | null;
+      base_salary?: number | null;
+      partner_percentage?: number | null;
+      weekly_hours?: number | null;
       address?: Record<string, string>;
       emergency_contact?: Record<string, string>;
       documents?: Array<{ name: string; url: string; expiry_date?: string }>;
-      notes?: string;
+      notes?: string | null;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
