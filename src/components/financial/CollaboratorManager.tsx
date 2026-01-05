@@ -99,7 +99,18 @@ export function CollaboratorManager() {
       .toUpperCase();
   };
 
-  // Check for expiring documents
+  // Get display title based on role or function_title
+  const getDisplayTitle = (collab: CollaboratorDetails) => {
+    const member = collab?.member as any;
+    if (member?.function_title) return member.function_title;
+    // Fallback to role-based title
+    const role = member?.role;
+    if (role === 'owner') return 'Proprietário';
+    if (role === 'admin') return 'Administrador';
+    if (role === 'finance') return 'Financeiro';
+    if (role === 'coordinator') return 'Coordenador';
+    return '-';
+  };
   const getExpiringDocuments = (docs: CollaboratorDetails["documents"]) => {
     if (!docs || !Array.isArray(docs)) return [];
     const thirtyDaysFromNow = new Date();
@@ -300,7 +311,7 @@ export function CollaboratorManager() {
                             </TableCell>
                             <TableCell>
                               <div>
-                                <p>{collab?.member?.function_title || "-"}</p>
+                                <p>{getDisplayTitle(collab)}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {collab?.member?.department || "-"}
                                 </p>
