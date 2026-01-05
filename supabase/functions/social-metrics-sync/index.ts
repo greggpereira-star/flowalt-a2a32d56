@@ -403,9 +403,24 @@ serve(async (req) => {
     let accountsSynced = 0;
     const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
 
+    // Group assets by connection to batch updates and properly merge metrics
+    const assetsByConnection = new Map<string, typeof activeAssets>();
     for (const asset of activeAssets || []) {
+      const connectionId = asset.platform_connection_id;
+      if (!assetsByConnection.has(connectionId)) {
+        assetsByConnection.set(connectionId, []);
+      }
+      assetsByConnection.get(connectionId)!.push(asset);
+    }
+
+    for (const [connectionId, assets] of assetsByConnection) {
+      if (!assets || assets.length === 0) continue;
+      
       try {
-        const connection = (asset as unknown as Record<string, unknown>).social_platforms as Record<string, unknown> | undefined;
+        const firstAsset = assets[0];
+        if (!firstAsset) continue;
+        
+        const connection = (firstAsset as unknown as Record<string, unknown>).social_platforms as Record<string, unknown> | undefined;
         if (!connection?.access_token_encrypted) continue;
 
         // Skip if metrics were updated less than 4 hours ago
@@ -418,42 +433,67 @@ serve(async (req) => {
 
         const accessToken = decryptToken(connection.access_token_encrypted as string);
         
-        // Determine platform based on asset type
-        const platform = asset.asset_type === 'instagram_business' ? 'instagram' : 'facebook';
+        // Fetch current metrics from database to ensure we merge correctly
+        const { data: currentConnection } = await supabase
+          .from("social_platforms")
+          .select("account_metrics")
+          .eq("id", connection.id)
+          .single();
         
-        const accountMetrics = await fetchAccountMetrics(
-          platform,
-          asset.asset_id,
-          accessToken,
-          connection.platform_account_type as string
-        );
+        // Start with existing metrics to preserve data
+        const mergedMetrics: Record<string, unknown> = (currentConnection?.account_metrics as Record<string, unknown>) || {};
+        
+        // Process ALL assets for this connection
+        for (const asset of assets || []) {
+          if (!asset) continue;
+          // Determine platform based on asset type
+          const platform = asset.asset_type === 'instagram_business' ? 'instagram' : 'facebook';
+          
+          const accountMetrics = await fetchAccountMetrics(
+            platform,
+            asset.asset_id,
+            accessToken,
+            connection.platform_account_type as string
+          );
 
-        if (accountMetrics) {
-          // Update the connection with the metrics (merged if multiple assets)
-          const existingMetrics = (connection.account_metrics as Record<string, unknown>) || {};
-          const mergedMetrics = {
-            ...existingMetrics,
-            [asset.asset_type]: {
+          if (accountMetrics) {
+            // Use asset_id as unique key to support multiple assets of same type
+            // Format: asset_type:asset_id (e.g., "facebook_page:123456")
+            const metricKey = `${asset.asset_type}:${asset.asset_id}`;
+            mergedMetrics[metricKey] = {
               ...accountMetrics,
               asset_id: asset.asset_id,
               asset_name: asset.asset_name,
+              asset_type: asset.asset_type,
+            };
+            
+            // Also keep backward compatibility with simple asset_type key for single assets
+            // This ensures existing UIs that expect "instagram_business" key still work
+            if (asset.asset_type === 'instagram_business') {
+              mergedMetrics[asset.asset_type] = {
+                ...accountMetrics,
+                asset_id: asset.asset_id,
+                asset_name: asset.asset_name,
+              };
             }
-          };
-
-          await supabase
-            .from("social_platforms")
-            .update({
-              account_metrics: mergedMetrics,
-              account_metrics_updated_at: new Date().toISOString(),
-            })
-            .eq("id", connection.id);
-          
-          accountsSynced++;
-          logger.info(`Synced metrics for ${platform}/${asset.asset_name} (${asset.asset_id})`);
+            
+            accountsSynced++;
+            logger.info(`Synced metrics for ${platform}/${asset.asset_name} (${asset.asset_id})`);
+          }
         }
+
+        // Update connection with all merged metrics
+        await supabase
+          .from("social_platforms")
+          .update({
+            account_metrics: mergedMetrics,
+            account_metrics_updated_at: new Date().toISOString(),
+          })
+          .eq("id", connection.id);
+          
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown';
-        logger.error(`Error syncing asset ${asset.id}:`, { error: msg });
+        logger.error(`Error syncing connection ${connectionId}:`, { error: msg });
       }
     }
 
