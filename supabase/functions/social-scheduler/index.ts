@@ -1243,10 +1243,16 @@ serve(async (req) => {
         logger.info(`Lock acquired for post ${post.id}`);
 
         // Update status to publishing
-        await supabase
+        const { error: publishingError } = await supabase
           .from("social_posts")
           .update({ status: "publishing" })
           .eq("id", post.id);
+        
+        if (publishingError) {
+          logger.error(`Failed to set publishing status for post ${post.id}: ${publishingError.message}`);
+          skippedCount++;
+          continue;
+        }
 
         // Create job record
         const { data: jobRecord } = await supabase
