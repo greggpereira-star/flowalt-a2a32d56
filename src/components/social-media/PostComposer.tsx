@@ -4,7 +4,7 @@
  * Blueprint: Posts must be linked to a Card
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -90,12 +90,27 @@ export function PostComposer({ onClose, editPostId, defaultCardId }: PostCompose
   const [contentType, setContentType] = useState<SocialContentType>('feed');
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform | ''>('');
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date>();
   const [scheduledTime, setScheduledTime] = useState('12:00');
   const [activeTab, setActiveTab] = useState('compose');
 
-  const activePlatforms = platforms?.filter(p => p.is_active) || [];
+  const activePlatforms = platforms?.filter(p => p.is_active && p.connection_status === 'connected') || [];
+  
+  // Filter connections by selected platform
+  const availableConnections = platforms?.filter(
+    (p) => p.platform === selectedPlatform && p.is_active && p.connection_status === 'connected'
+  ) || [];
+
+  // Auto-select connection when platform changes
+  useEffect(() => {
+    if (selectedPlatform && availableConnections.length === 1) {
+      setSelectedConnectionId(availableConnections[0].id);
+    } else if (!selectedPlatform) {
+      setSelectedConnectionId('');
+    }
+  }, [selectedPlatform, availableConnections.length]);
 
   const handleAddHashtag = useCallback(() => {
     const tag = hashtagInput.trim().replace(/^#/, '');
@@ -189,12 +204,14 @@ export function PostComposer({ onClose, editPostId, defaultCardId }: PostCompose
       await createPost({
         card_id: selectedCardId,
         client_id: selectedCard?.client_id,
+        platform_connection_id: selectedConnectionId,
         platform: selectedPlatform,
         caption,
         hashtags,
         content_type: contentType,
         first_comment: firstComment || undefined,
         scheduled_at: scheduledAt,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         media_urls: media.map((m, i) => ({ url: m.url, type: m.type, order: i })),
       });
 

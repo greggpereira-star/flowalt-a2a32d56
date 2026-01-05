@@ -6301,6 +6301,7 @@ export type Database = {
           metrics_updated_at: string | null
           next_retry_at: string | null
           platform: string
+          platform_connection_id: string | null
           platform_post_id: string | null
           platform_url: string | null
           processing_completed_at: string | null
@@ -6343,6 +6344,7 @@ export type Database = {
           metrics_updated_at?: string | null
           next_retry_at?: string | null
           platform: string
+          platform_connection_id?: string | null
           platform_post_id?: string | null
           platform_url?: string | null
           processing_completed_at?: string | null
@@ -6385,6 +6387,7 @@ export type Database = {
           metrics_updated_at?: string | null
           next_retry_at?: string | null
           platform?: string
+          platform_connection_id?: string | null
           platform_post_id?: string | null
           platform_url?: string | null
           processing_completed_at?: string | null
@@ -6412,6 +6415,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_platform_connection_id_fkey"
+            columns: ["platform_connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_platforms"
             referencedColumns: ["id"]
           },
           {

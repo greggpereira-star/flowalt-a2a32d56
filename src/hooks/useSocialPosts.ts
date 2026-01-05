@@ -57,6 +57,7 @@ export interface SocialPost {
 export interface CreateSocialPostInput {
   card_id?: string | null; // Optional - posts can be created without a card
   client_id?: string | null;
+  platform_connection_id: string; // Required - must link to a connected account
   caption?: string;
   hashtags?: string[];
   media_urls?: { url: string; type: 'image' | 'video'; order: number }[];
@@ -163,6 +164,10 @@ export const useCreateSocialPost = () => {
     mutationFn: async (input: CreateSocialPostInput) => {
       if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
       if (!user?.id) throw new Error('Usuário não autenticado');
+      if (!input.platform_connection_id) throw new Error('Selecione uma conta conectada');
+
+      // Determine status based on whether there's a scheduled time
+      const status = input.scheduled_at ? 'scheduled' : 'draft';
 
       const { data, error } = await supabase
         .from('social_posts')
@@ -171,6 +176,7 @@ export const useCreateSocialPost = () => {
           created_by: user.id,
           card_id: input.card_id || null,
           client_id: input.client_id || null,
+          platform_connection_id: input.platform_connection_id,
           caption: input.caption,
           hashtags: input.hashtags,
           media_urls: input.media_urls,
@@ -179,6 +185,7 @@ export const useCreateSocialPost = () => {
           content_type: input.content_type,
           scheduled_at: input.scheduled_at,
           timezone: input.timezone,
+          status,
           content_pillar: input.content_pillar,
           funnel_stage: input.funnel_stage,
           campaign_name: input.campaign_name,
