@@ -52,6 +52,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import {
   useCreateSocialPost,
   useUpdateSocialPost,
@@ -508,23 +509,45 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       // Check if there's a pending connection that needs asset selection
       if (hasPendingConnection) {
         return (
-          <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-500/50 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <span className="text-sm">
-              A conexão {platformConfig[platform as SocialPlatform]?.name} está pendente de configuração. 
-              Complete a seleção de páginas/contas em Configurações → Redes Sociais.
-            </span>
+          <div className="flex flex-col gap-2 p-3 rounded-lg border border-amber-500/50 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm font-medium">
+                Conexão {platformConfig[platform as SocialPlatform]?.name} pendente de configuração
+              </span>
+            </div>
+            <p className="text-xs">
+              Complete a seleção de páginas/contas clicando em "Selecionar ativo" na página de Redes Sociais.
+            </p>
+            <Link 
+              to="/settings?tab=social" 
+              className="text-xs font-medium underline hover:no-underline"
+              onClick={() => onOpenChange(false)}
+            >
+              Ir para Configurações → Redes Sociais
+            </Link>
           </div>
         );
       }
       
       return (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span className="text-sm">
-            Nenhuma página/conta {platformConfig[platform as SocialPlatform]?.name} conectada. 
-            Conecte uma conta e selecione os portfolios/páginas em Configurações → Redes Sociais.
-          </span>
+        <div className="flex flex-col gap-2 p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm font-medium">
+              Nenhuma conta {platformConfig[platform as SocialPlatform]?.name} conectada
+            </span>
+          </div>
+          <p className="text-xs">
+            Conecte uma conta e selecione as páginas/contas que deseja usar para postagens.
+          </p>
+          <Link 
+            to="/settings?tab=social" 
+            className="text-xs font-medium underline hover:no-underline"
+            onClick={() => onOpenChange(false)}
+          >
+            Ir para Configurações → Redes Sociais
+          </Link>
         </div>
       );
     }
