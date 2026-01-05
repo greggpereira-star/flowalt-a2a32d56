@@ -431,6 +431,7 @@ export const useCalendarPosts = (startDate: string, endDate: string) => {
   return useSocialPosts({
     startDate,
     endDate,
-    status: ['scheduled', 'published', 'failed'],
+    // Include all relevant statuses: draft, scheduled, publishing (in progress), published, failed
+    status: ['draft', 'scheduled', 'publishing', 'published', 'failed'],
   });
 };
