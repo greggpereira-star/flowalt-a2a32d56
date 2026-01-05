@@ -10,6 +10,13 @@ export type SocialPostStatus = 'draft' | 'pending_approval' | 'approved' | 'sche
 export type ContentPillar = 'educational' | 'sales' | 'entertainment' | 'relationship' | 'institutional' | 'other';
 export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
 
+export interface SocialPostCreator {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+}
+
 export interface SocialPost {
   id: string;
   workspace_id: string;
@@ -53,6 +60,9 @@ export interface SocialPost {
   job_id: string | null;
   processing_started_at: string | null;
   processing_completed_at: string | null;
+  // Joined data for audit display
+  creator?: SocialPostCreator | null;
+  approver?: SocialPostCreator | null;
 }
 
 export interface CreateSocialPostInput {
@@ -128,10 +138,37 @@ export const useSocialPosts = (filters?: {
         query = query.lte('scheduled_at', filters.endDate);
       }
 
-      const { data, error } = await query;
+      const { data: posts, error } = await query;
 
       if (error) throw error;
-      return (data || []) as unknown as SocialPost[];
+      if (!posts || posts.length === 0) return [];
+
+      // Fetch creator/approver profiles
+      const userIds = new Set<string>();
+      posts.forEach(post => {
+        if (post.created_by) userIds.add(post.created_by);
+        if (post.approved_by) userIds.add(post.approved_by);
+      });
+
+      const profilesMap = new Map<string, SocialPostCreator>();
+      
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, avatar_url')
+          .in('id', Array.from(userIds));
+        
+        profiles?.forEach(p => profilesMap.set(p.id, p));
+      }
+
+      // Enrich posts with creator/approver data
+      const enrichedPosts = posts.map(post => ({
+        ...post,
+        creator: post.created_by ? profilesMap.get(post.created_by) || null : null,
+        approver: post.approved_by ? profilesMap.get(post.approved_by) || null : null,
+      }));
+
+      return enrichedPosts as unknown as SocialPost[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -143,14 +180,35 @@ export const useSocialPost = (postId: string | null) => {
     queryFn: async () => {
       if (!postId) return null;
 
-      const { data, error } = await supabase
+      const { data: post, error } = await supabase
         .from('social_posts')
         .select('*')
         .eq('id', postId)
         .single();
 
       if (error) throw error;
-      return data as unknown as SocialPost;
+      
+      // Fetch creator/approver profiles
+      const userIds = new Set<string>();
+      if (post.created_by) userIds.add(post.created_by);
+      if (post.approved_by) userIds.add(post.approved_by);
+
+      const profilesMap = new Map<string, SocialPostCreator>();
+      
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, avatar_url')
+          .in('id', Array.from(userIds));
+        
+        profiles?.forEach(p => profilesMap.set(p.id, p));
+      }
+
+      return {
+        ...post,
+        creator: post.created_by ? profilesMap.get(post.created_by) || null : null,
+        approver: post.approved_by ? profilesMap.get(post.approved_by) || null : null,
+      } as unknown as SocialPost;
     },
     enabled: !!postId,
   });
