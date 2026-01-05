@@ -2089,6 +2089,7 @@ export type Database = {
           is_active: boolean | null
           member_id: string
           notes: string | null
+          partner_percentage: number | null
           pix_key: string | null
           rg: string | null
           updated_at: string
@@ -2113,6 +2114,7 @@ export type Database = {
           is_active?: boolean | null
           member_id: string
           notes?: string | null
+          partner_percentage?: number | null
           pix_key?: string | null
           rg?: string | null
           updated_at?: string
@@ -2137,6 +2139,7 @@ export type Database = {
           is_active?: boolean | null
           member_id?: string
           notes?: string | null
+          partner_percentage?: number | null
           pix_key?: string | null
           rg?: string | null
           updated_at?: string

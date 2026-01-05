@@ -18,6 +18,7 @@ export interface CollaboratorDetails {
   bank_account: string | null;
   pix_key: string | null;
   base_salary: number | null;
+  partner_percentage: number | null;
   weekly_hours: number | null;
   address: Record<string, string> | null;
   emergency_contact: Record<string, string> | null;
@@ -172,6 +173,7 @@ export function useCreateOrUpdateCollaborator() {
       bank_account?: string;
       pix_key?: string;
       base_salary?: number;
+      partner_percentage?: number;
       weekly_hours?: number;
       address?: Record<string, string>;
       emergency_contact?: Record<string, string>;
