@@ -71,11 +71,19 @@ export const useAccountMetrics = (platformConnectionId: string | null) => {
     : null;
 
   // Flatten all asset metrics into an array
+  // Support both new format (asset_type:asset_id) and legacy format (asset_type)
   const assetsMetrics = selectedAccount?.account_metrics 
-    ? Object.entries(selectedAccount.account_metrics).map(([assetType, metrics]) => ({
-        assetType,
-        ...metrics,
-      }))
+    ? Object.entries(selectedAccount.account_metrics)
+        .filter(([key]) => !key.includes(':') || key.startsWith('instagram_business:') || key.startsWith('facebook_page:'))
+        .map(([key, metrics]) => {
+          const m = metrics as AccountMetricsData;
+          // For new format keys like "facebook_page:123", extract info
+          const [assetType] = key.split(':');
+          return {
+            assetType: (m as any).asset_type || assetType || key,
+            ...m,
+          };
+        })
     : [];
 
   // Calculate totals across all assets
