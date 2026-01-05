@@ -6279,7 +6279,7 @@ export type Database = {
           approved_by: string | null
           campaign_name: string | null
           caption: string | null
-          card_id: string
+          card_id: string | null
           client_id: string | null
           content_fingerprint: string | null
           content_pillar: string | null
@@ -6321,7 +6321,7 @@ export type Database = {
           approved_by?: string | null
           campaign_name?: string | null
           caption?: string | null
-          card_id: string
+          card_id?: string | null
           client_id?: string | null
           content_fingerprint?: string | null
           content_pillar?: string | null
@@ -6363,7 +6363,7 @@ export type Database = {
           approved_by?: string | null
           campaign_name?: string | null
           caption?: string | null
-          card_id?: string
+          card_id?: string | null
           client_id?: string | null
           content_fingerprint?: string | null
           content_pillar?: string | null

@@ -13,7 +13,7 @@ export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
 export interface SocialPost {
   id: string;
   workspace_id: string;
-  card_id: string; // Now required (NOT NULL in DB)
+  card_id: string | null; // Optional - posts can be created without a card
   client_id: string | null;
   caption: string | null;
   hashtags: string[];
@@ -55,7 +55,7 @@ export interface SocialPost {
 }
 
 export interface CreateSocialPostInput {
-  card_id: string; // Required - posts must be linked to a card (Blueprint)
+  card_id?: string | null; // Optional - posts can be created without a card
   client_id?: string | null;
   caption?: string;
   hashtags?: string[];
@@ -163,19 +163,14 @@ export const useCreateSocialPost = () => {
     mutationFn: async (input: CreateSocialPostInput) => {
       if (!currentWorkspace?.id) throw new Error('Workspace não selecionado');
       if (!user?.id) throw new Error('Usuário não autenticado');
-      
-      // Blueprint: card_id is required for social posts
-      if (!input.card_id) {
-        throw new Error('Selecione um card para vincular a postagem');
-      }
 
       const { data, error } = await supabase
         .from('social_posts')
         .insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
-          card_id: input.card_id,
-          client_id: input.client_id,
+          card_id: input.card_id || null,
+          client_id: input.client_id || null,
           caption: input.caption,
           hashtags: input.hashtags,
           media_urls: input.media_urls,
