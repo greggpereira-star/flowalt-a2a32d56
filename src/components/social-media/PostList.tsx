@@ -39,7 +39,10 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  User,
+  Calendar as CalendarIcon,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -172,7 +175,7 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                         )}
 
                         {/* Date Info */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                           {post.scheduled_at && (
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -181,8 +184,32 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                           )}
                           {post.published_at && (
                             <span className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
+                              <CheckCircle2 className="h-3 w-3 text-green-500" />
                               Publicado {format(new Date(post.published_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Audit Info */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                          {post.creator && (
+                            <span className="flex items-center gap-1" title={`Criado por ${post.creator.full_name || post.creator.email}`}>
+                              <User className="h-3 w-3" />
+                              <span className="truncate max-w-[150px]">
+                                {post.creator.full_name || post.creator.email?.split('@')[0]}
+                              </span>
+                            </span>
+                          )}
+                          {post.created_at && (
+                            <span className="flex items-center gap-1" title="Data de criação do agendamento">
+                              <CalendarIcon className="h-3 w-3" />
+                              Criado em {format(new Date(post.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          )}
+                          {post.retry_count > 0 && (
+                            <span className="flex items-center gap-1 text-amber-600" title="Tentativas de publicação">
+                              <RefreshCw className="h-3 w-3" />
+                              {post.retry_count} tentativa{post.retry_count > 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
