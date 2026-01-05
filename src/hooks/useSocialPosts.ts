@@ -23,6 +23,7 @@ export interface SocialPost {
   card_id: string | null; // Optional - posts can be created without a card
   client_id: string | null;
   platform_connection_id: string | null; // Link to social_platforms
+  title: string | null; // Title for calendar display
   caption: string | null;
   hashtags: string[];
   media_urls: unknown; // JSON type from DB
@@ -69,6 +70,7 @@ export interface CreateSocialPostInput {
   card_id?: string | null; // Optional - posts can be created without a card
   client_id?: string | null;
   platform_connection_id: string; // Required - must link to a connected account
+  title?: string; // Title for calendar display
   caption?: string;
   hashtags?: string[];
   media_urls?: { url: string; type: 'image' | 'video'; order: number }[];

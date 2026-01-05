@@ -145,6 +145,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [platform, setPlatform] = useState<SocialPlatform | ''>(defaultPlatform || '');
   const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [contentType, setContentType] = useState<SocialContentType | ''>('');
+  const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [hashtagsInput, setHashtagsInput] = useState('');
   const [scheduledDate, setScheduledDate] = useState<Date>();
@@ -180,6 +181,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     if (existingPost && isEditMode) {
       setPlatform(existingPost.platform);
       setContentType(existingPost.content_type);
+      setTitle(existingPost.title || '');
       setCaption(existingPost.caption || '');
       setHashtagsInput((existingPost.hashtags || []).join(', '));
       setContentPillar(existingPost.content_pillar || '');
@@ -229,6 +231,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setPlatform(defaultPlatform || '');
       setSelectedAssetId('');
       setContentType('');
+      setTitle('');
       setCaption('');
       setHashtagsInput('');
       setScheduledDate(undefined);
@@ -434,6 +437,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         const updateInput: UpdateSocialPostInput = {
           platform: platform as SocialPlatform,
           content_type: contentType as SocialContentType,
+          title: title || undefined,
           caption,
           hashtags,
           media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
@@ -457,6 +461,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           platform_connection_id: selectedAsset.platform_connection_id,
           platform: platform as SocialPlatform,
           content_type: contentType as SocialContentType,
+          title: title || undefined,
           caption,
           hashtags,
           media_urls: uploadedMedia.length > 0 ? uploadedMedia : undefined,
@@ -831,6 +836,24 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
             )}
 
             <Separator />
+
+            {/* Title - for calendar display */}
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Título da Postagem
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Lançamento Nova Coleção, Promoção Black Friday..."
+                maxLength={100}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este título aparecerá no calendário para facilitar a identificação da postagem.
+              </p>
+            </div>
 
             {/* Caption */}
             <div className="space-y-2">
