@@ -1155,6 +1155,40 @@ serve(async (req) => {
     // Find posts that are scheduled and due for publishing
     const now = new Date().toISOString();
     const lockTimeout = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min timeout
+    const stuckPublishingTimeout = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min for stuck publishing
+    
+    // RECOVERY: Reset posts stuck in 'publishing' state for more than 10 minutes
+    // This prevents posts from being lost if the publishing process crashes
+    const { data: stuckPosts, error: stuckError } = await supabase
+      .from("social_posts")
+      .select("id")
+      .eq("status", "publishing")
+      .is("platform_post_id", null)
+      .lt("updated_at", stuckPublishingTimeout);
+    
+    if (!stuckError && stuckPosts && stuckPosts.length > 0) {
+      logger.warn(`Found ${stuckPosts.length} posts stuck in publishing state, recovering...`);
+      
+      for (const stuckPost of stuckPosts) {
+        const { error: recoveryError } = await supabase
+          .from("social_posts")
+          .update({
+            status: "scheduled",
+            processing_started_at: null,
+            job_id: null,
+            last_error_message: "Recovered from stuck publishing state by scheduler",
+          })
+          .eq("id", stuckPost.id)
+          .eq("status", "publishing")
+          .is("platform_post_id", null);
+        
+        if (!recoveryError) {
+          logger.info(`Recovered stuck post ${stuckPost.id}`);
+        } else {
+          logger.error(`Failed to recover stuck post ${stuckPost.id}: ${recoveryError.message}`);
+        }
+      }
+    }
     
     // CRITICAL: Only select posts that:
     // 1. status = 'scheduled' 
