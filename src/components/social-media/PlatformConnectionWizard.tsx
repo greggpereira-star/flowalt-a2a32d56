@@ -59,6 +59,7 @@ interface PlatformConnectionWizardProps {
   isSuperAdmin?: boolean;
   initialOauthError?: { code: string; description?: string } | null;
   onSuccess?: () => void;
+  mode?: 'connect' | 'asset_select' | 'reconnect' | 'add_accounts';
 }
 
 // Platform-specific configurations
@@ -201,6 +202,7 @@ export function PlatformConnectionWizard({
   isSuperAdmin,
   initialOauthError,
   onSuccess,
+  mode = 'connect',
 }: PlatformConnectionWizardProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -247,10 +249,15 @@ export function PlatformConnectionWizard({
   // The parent component (PlatformConnector) handles detecting the OAuth callback and opening this wizard.
   useEffect(() => {
     if (open && currentWorkspace?.id) {
-      // Check if there's a pending connection for this platform
-      fetchPlatformConnection();
+      // For add_accounts mode, go directly to the select step and fetch assets
+      if (mode === 'add_accounts') {
+        fetchPlatformConnectionForAddAccounts();
+      } else {
+        // Check if there's a pending connection for this platform
+        fetchPlatformConnection();
+      }
     }
-  }, [open, currentWorkspace?.id, platformId]);
+  }, [open, currentWorkspace?.id, platformId, mode]);
 
   // If we were redirected back with an OAuth error, show a GOX message (Enterprise)
   useEffect(() => {
@@ -335,6 +342,91 @@ export function PlatformConnectionWizard({
     }
   };
 
+  // Fetch platform connection for "add accounts" mode - goes directly to asset selection
+  const fetchPlatformConnectionForAddAccounts = async () => {
+    if (!currentWorkspace?.id) return;
+    
+    try {
+      const { data: connections, error } = await supabase
+        .from('social_platforms')
+        .select('id, account_name, connection_status, platform_account_type')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('platform', platformId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      
+      if (connections && connections.length > 0) {
+        const conn = connections[0];
+        setPlatformConnectionId(conn.id);
+        setAccountName(conn.account_name || '');
+        
+        // Go directly to select step
+        const selectStepIndex = steps.findIndex(s => s.id === 'select');
+        if (selectStepIndex >= 0) {
+          setCurrentStep(selectStepIndex);
+          await fetchAssetsForAddAccounts(conn.id);
+        }
+      } else {
+        // No connection found
+        setErrorMessage('Nenhuma conexão ativa encontrada para esta plataforma.');
+      }
+    } catch (error) {
+      console.error('Error fetching platform connection for add accounts:', error);
+      setErrorMessage('Erro ao carregar conexão.');
+    }
+  };
+
+  // Fetch assets specifically for add accounts mode - shows already active assets as pre-selected
+  const fetchAssetsForAddAccounts = async (connectionId: string) => {
+    if (!currentWorkspace?.id) return;
+    
+    setIsFetchingAssets(true);
+    setErrorMessage(null);
+    
+    try {
+      // First, get already active assets
+      const { data: activeAssets, error: activeError } = await supabase
+        .from('social_platform_assets')
+        .select('asset_id')
+        .eq('platform_connection_id', connectionId)
+        .eq('is_active', true);
+
+      if (activeError) throw activeError;
+
+      // Fetch all available assets from the platform
+      const { data, error } = await supabase.functions.invoke('social-connection-assets', {
+        body: {
+          workspace_id: currentWorkspace.id,
+          platform_connection_id: connectionId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.assets) {
+        setAvailableAssets(data.assets);
+        
+        // Pre-select already active assets
+        const activeAssetIds = new Set(activeAssets?.map(a => a.asset_id) || []);
+        setSelectedAssetIds(activeAssetIds);
+        
+        if (data.assets.length === 0) {
+          setErrorMessage('Nenhum ativo adicional disponível. Todas as contas já estão conectadas ou você não tem acesso a mais páginas/contas.');
+        }
+      } else {
+        setErrorMessage(data.error_message || 'Erro ao buscar ativos');
+      }
+    } catch (error: any) {
+      console.error('Error fetching assets for add accounts:', error);
+      setErrorMessage(error.message || 'Erro ao buscar ativos da plataforma');
+    } finally {
+      setIsFetchingAssets(false);
+    }
+  };
+
   // Fetch available assets from the platform
   const fetchAssets = async (connectionId: string) => {
     if (!currentWorkspace?.id) return;
@@ -410,9 +502,12 @@ export function PlatformConnectionWizard({
   };
 
   // Activate selected assets when moving to next step
+  const [isActivating, setIsActivating] = useState(false);
+  
   const handleActivateAssets = async () => {
     if (!currentWorkspace?.id || !platformConnectionId || selectedAssetIds.size === 0) return;
     
+    setIsActivating(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-assets-activate', {
         body: {
@@ -442,6 +537,8 @@ export function PlatformConnectionWizard({
       console.error('Error activating assets:', error);
       setErrorMessage(error.message || 'Erro ao ativar ativos');
       return false;
+    } finally {
+      setIsActivating(false);
     }
   };
 
@@ -1055,10 +1152,12 @@ export function PlatformConnectionWizard({
           <div className="space-y-6">
             <div className="text-center py-4">
               <h3 className="text-lg font-semibold mb-2">
-                Selecione as Contas
+                {mode === 'add_accounts' ? 'Gerenciar Contas' : 'Selecione as Contas'}
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Escolha quais páginas, contas ou canais deseja usar para agendamento de posts:
+                {mode === 'add_accounts' 
+                  ? 'Marque as contas que deseja manter ativas. Novas contas serão adicionadas e contas desmarcadas serão desativadas:'
+                  : 'Escolha quais páginas, contas ou canais deseja usar para agendamento de posts:'}
               </p>
             </div>
 
@@ -1167,7 +1266,9 @@ export function PlatformConnectionWizard({
             {platformConnectionId && !isFetchingAssets && !requiresReauth && (
               <Button
                 variant="outline"
-                onClick={() => fetchAssets(platformConnectionId)}
+                onClick={() => mode === 'add_accounts' 
+                  ? fetchAssetsForAddAccounts(platformConnectionId) 
+                  : fetchAssets(platformConnectionId)}
                 className="w-full"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -1291,58 +1392,75 @@ export function PlatformConnectionWizard({
     }
   };
 
+  // Determine dialog title based on mode
+  const getDialogTitle = () => {
+    if (mode === 'add_accounts') {
+      return `Adicionar contas - ${platformName}`;
+    }
+    if (mode === 'reconnect') {
+      return `Reconectar ${platformName}`;
+    }
+    return `Conectar ${platformName}`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Conectar {platformName}
+            {getDialogTitle()}
           </DialogTitle>
           <DialogDescription>
-            {steps[currentStep]?.description}
+            {mode === 'add_accounts' 
+              ? 'Selecione as contas que deseja adicionar ou remover'
+              : steps[currentStep]?.description}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Passo {currentStep + 1} de {totalSteps}</span>
-            <span>{steps[currentStep]?.title}</span>
-          </div>
-          <Progress value={progress} className="h-1" />
-          
-          {/* Step indicators */}
-          <div className="flex items-center justify-between pt-2">
-            {steps.map((step, idx) => (
-              <div
-                key={step.id}
-                className={cn(
-                  "flex items-center gap-1",
-                  idx <= currentStep ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
-                    idx < currentStep
-                      ? "bg-primary text-primary-foreground"
-                      : idx === currentStep
-                      ? "border-2 border-primary text-primary"
-                      : "border border-muted-foreground/30"
-                  )}
-                >
-                  {idx < currentStep ? (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  ) : (
-                    idx + 1
-                  )}
-                </div>
+        {/* Progress - hide in add_accounts mode */}
+        {mode !== 'add_accounts' && (
+          <>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Passo {currentStep + 1} de {totalSteps}</span>
+                <span>{steps[currentStep]?.title}</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <Progress value={progress} className="h-1" />
+              
+              {/* Step indicators */}
+              <div className="flex items-center justify-between pt-2">
+                {steps.map((step, idx) => (
+                  <div
+                    key={step.id}
+                    className={cn(
+                      "flex items-center gap-1",
+                      idx <= currentStep ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+                        idx < currentStep
+                          ? "bg-primary text-primary-foreground"
+                          : idx === currentStep
+                          ? "border-2 border-primary text-primary"
+                          : "border border-muted-foreground/30"
+                      )}
+                    >
+                      {idx < currentStep ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        idx + 1
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        <Separator />
+            <Separator />
+          </>
+        )}
 
         {/* Step Content */}
         <div className="py-4">
@@ -1353,10 +1471,10 @@ export function PlatformConnectionWizard({
         <div className="flex items-center justify-between pt-4 border-t">
           <Button
             variant="ghost"
-            onClick={currentStep === 0 ? handleClose : handlePrevious}
+            onClick={mode === 'add_accounts' ? handleClose : (currentStep === 0 ? handleClose : handlePrevious)}
             disabled={isConnecting}
           >
-            {currentStep === 0 ? (
+            {mode === 'add_accounts' || currentStep === 0 ? (
               'Cancelar'
             ) : (
               <>
@@ -1366,7 +1484,29 @@ export function PlatformConnectionWizard({
             )}
           </Button>
 
-          {currentStep < totalSteps - 1 ? (
+          {/* For add_accounts mode on select step, show "Save" button that activates and closes */}
+          {mode === 'add_accounts' && steps[currentStep]?.id === 'select' ? (
+            <Button
+              onClick={async () => {
+                if (selectedAssetIds.size > 0) {
+                  const success = await handleActivateAssets();
+                  if (success) {
+                    handleFinishConnection();
+                  }
+                }
+              }}
+              disabled={selectedAssetIds.size === 0 || isActivating}
+            >
+              {isActivating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar Alterações'
+              )}
+            </Button>
+          ) : currentStep < totalSteps - 1 ? (
             <Button
               onClick={async () => {
                 // If on select step, activate assets before moving forward
