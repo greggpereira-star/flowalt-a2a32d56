@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { AppLayout } from '@/components/layout/AppLayout';
 import {
   Calendar,
@@ -24,22 +23,19 @@ import {
 import { SocialCalendar } from '@/components/social-media/SocialCalendar';
 import { PlatformConnector } from '@/components/social-media/PlatformConnector';
 import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
-import { PostComposer } from '@/components/social-media/PostComposer';
 import { PostList } from '@/components/social-media/PostList';
 import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPosts } from '@/hooks/useSocialPosts';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
-import { useSocialMetrics } from '@/hooks/useSocialMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
-
 import { CreateSocialPostDialog } from '@/components/social-media/CreateSocialPostDialog';
 
 export function MarketingPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('calendar');
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const { has, isLoading: entitlementsLoading, entitlements } = useEntitlementRegistry();
   const { data: scheduledPosts } = useSocialPosts({ status: 'scheduled' });
@@ -125,9 +121,9 @@ export function MarketingPage() {
             <Plug className="h-4 w-4 text-purple-500" />
             <span className="text-sm font-medium">{activePlatforms.length} plataformas</span>
           </div>
-          <Button onClick={() => setIsComposerOpen(true)}>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Novo Post
+            Nova Postagem
           </Button>
         </div>
       </div>
@@ -315,19 +311,20 @@ export function MarketingPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Post Composer Dialog */}
-      <Dialog open={isComposerOpen} onOpenChange={setIsComposerOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-          <PostComposer onClose={() => setIsComposerOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Post Dialog */}
+      {/* Create/Edit Post Dialog */}
       <CreateSocialPostDialog
-        open={!!editPostId}
-        onOpenChange={(open) => !open && setEditPostId(null)}
+        open={isCreateDialogOpen || !!editPostId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateDialogOpen(false);
+            setEditPostId(null);
+          }
+        }}
         editPostId={editPostId || undefined}
-        onSuccess={() => setEditPostId(null)}
+        onSuccess={() => {
+          setIsCreateDialogOpen(false);
+          setEditPostId(null);
+        }}
       />
     </div>
     </AppLayout>
