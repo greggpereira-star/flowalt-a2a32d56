@@ -407,23 +407,16 @@ export function PlatformConnectionWizard({
       if (error) throw error;
 
       if (data.success && data.assets) {
-        // Filter assets based on platform - Instagram shows only IG accounts, Facebook shows pages
-        let filteredAssets = data.assets;
-        if (platformId === 'instagram' && data.instagram) {
-          filteredAssets = data.instagram;
-        } else if (platformId === 'facebook' && data.pages) {
-          filteredAssets = data.pages;
-        }
-        
-        setAvailableAssets(filteredAssets);
+        // In add_accounts mode, show ALL assets so user can select from everything
+        // This allows users to add new accounts from the full list
+        setAvailableAssets(data.assets);
         
         // Pre-select already active assets
         const activeAssetIds = new Set(activeAssets?.map(a => a.asset_id) || []);
         setSelectedAssetIds(activeAssetIds);
         
-        if (filteredAssets.length === 0) {
-          const platformLabel = platformId === 'instagram' ? 'Instagram Business' : 'páginas';
-          setErrorMessage(`Nenhuma conta ${platformLabel} disponível. Verifique se você tem contas ${platformLabel} vinculadas.`);
+        if (data.assets.length === 0) {
+          setErrorMessage('Nenhuma conta disponível. Verifique se você tem páginas/contas vinculadas.');
         }
       } else {
         setErrorMessage(data.error_message || 'Erro ao buscar ativos');
