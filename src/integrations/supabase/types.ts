@@ -6111,6 +6111,8 @@ export type Database = {
         Row: {
           access_token_encrypted: string | null
           account_id: string
+          account_metrics: Json | null
+          account_metrics_updated_at: string | null
           account_name: string
           account_type: string | null
           asset_selected_at: string | null
@@ -6140,6 +6142,8 @@ export type Database = {
         Insert: {
           access_token_encrypted?: string | null
           account_id: string
+          account_metrics?: Json | null
+          account_metrics_updated_at?: string | null
           account_name: string
           account_type?: string | null
           asset_selected_at?: string | null
@@ -6169,6 +6173,8 @@ export type Database = {
         Update: {
           access_token_encrypted?: string | null
           account_id?: string
+          account_metrics?: Json | null
+          account_metrics_updated_at?: string | null
           account_name?: string
           account_type?: string | null
           asset_selected_at?: string | null

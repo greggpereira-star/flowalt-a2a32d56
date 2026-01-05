@@ -214,6 +214,103 @@ function createEmptyMetrics(): MetricsResponse {
   };
 }
 
+interface AccountMetrics {
+  followers: number;
+  following: number;
+  posts_count: number;
+  profile_views?: number;
+  website_clicks?: number;
+}
+
+// Fetch account-level metrics (followers, etc.)
+async function fetchAccountMetrics(
+  platform: string,
+  accountId: string,
+  accessToken: string,
+  assetType?: string
+): Promise<AccountMetrics | null> {
+  try {
+    switch (platform) {
+      case 'instagram': {
+        // Instagram Business Account metrics - uses different fields than IG User
+        // For IG Business accounts connected via FB Page, use: followers_count, media_count
+        const fields = 'followers_count,media_count,username';
+        const response = await fetch(
+          `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`Failed to fetch IG account metrics for ${accountId}:`, errorData.error?.message);
+          return null;
+        }
+        
+        const data = await response.json();
+        console.log(`Fetched IG account metrics:`, JSON.stringify(data));
+        
+        return {
+          followers: data.followers_count || 0,
+          following: 0, // IG Business doesn't expose following count via API
+          posts_count: data.media_count || 0,
+        };
+      }
+
+      case 'facebook': {
+        // Facebook Page metrics
+        const fields = 'followers_count,fan_count';
+        const response = await fetch(
+          `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`Failed to fetch FB page metrics for ${accountId}:`, errorData.error?.message);
+          return null;
+        }
+        
+        const data = await response.json();
+        console.log(`Fetched FB page metrics:`, JSON.stringify(data));
+        
+        return {
+          followers: data.followers_count || data.fan_count || 0,
+          following: 0, // Pages don't "follow" others
+          posts_count: 0, // Would need additional call
+        };
+      }
+
+      case 'youtube': {
+        // YouTube Channel stats
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${accountId}`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch YouTube channel metrics`);
+          return null;
+        }
+        
+        const data = await response.json();
+        const stats = data.items?.[0]?.statistics;
+        
+        return {
+          followers: parseInt(stats?.subscriberCount || '0'),
+          following: 0,
+          posts_count: parseInt(stats?.videoCount || '0'),
+          profile_views: parseInt(stats?.viewCount || '0'),
+        };
+      }
+
+      default:
+        return null;
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error fetching account metrics for ${platform}/${accountId}:`, errorMsg);
+    return null;
+  }
+}
+
 serve(async (req) => {
   const logger = new EdgeLogger("social-metrics-sync");
   
@@ -230,7 +327,60 @@ serve(async (req) => {
 
     logger.info("Starting metrics synchronization");
 
-    // Find posts published in the last 7 days that have a platform_post_id
+    // ==========================================
+    // PART 1: Sync account-level metrics (followers, etc.)
+    // ==========================================
+    const { data: activeAccounts } = await supabase
+      .from("social_platforms")
+      .select("id, workspace_id, platform, account_id, access_token_encrypted, platform_account_type, account_metrics_updated_at")
+      .eq("is_active", true)
+      .order("account_metrics_updated_at", { ascending: true, nullsFirst: true })
+      .limit(20);
+
+    let accountsSynced = 0;
+    const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
+
+    for (const account of activeAccounts || []) {
+      try {
+        // Skip if metrics were updated less than 4 hours ago
+        if (account.account_metrics_updated_at) {
+          const lastUpdate = new Date(account.account_metrics_updated_at).getTime();
+          if (lastUpdate > fourHoursAgo) {
+            continue;
+          }
+        }
+
+        if (!account.access_token_encrypted) continue;
+
+        const accessToken = decryptToken(account.access_token_encrypted);
+        const accountMetrics = await fetchAccountMetrics(
+          account.platform,
+          account.account_id,
+          accessToken,
+          account.platform_account_type
+        );
+
+        if (accountMetrics) {
+          await supabase
+            .from("social_platforms")
+            .update({
+              account_metrics: accountMetrics,
+              account_metrics_updated_at: new Date().toISOString(),
+            })
+            .eq("id", account.id);
+          
+          accountsSynced++;
+          logger.info(`Synced account metrics for ${account.platform}/${account.account_id}`);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown';
+        logger.error(`Error syncing account ${account.id}:`, { error: msg });
+      }
+    }
+
+    // ==========================================
+    // PART 2: Sync post-level metrics
+    // ==========================================
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     
     const { data: publishedPosts, error: fetchError } = await supabase
@@ -246,15 +396,15 @@ serve(async (req) => {
       throw new Error(`Failed to fetch published posts: ${fetchError.message}`);
     }
 
-    if (!publishedPosts || publishedPosts.length === 0) {
-      logger.info("No posts to sync metrics for");
+    if ((!publishedPosts || publishedPosts.length === 0) && accountsSynced === 0) {
+      logger.info("No posts or accounts to sync metrics for");
       return new Response(
-        JSON.stringify({ synced: 0 }),
+        JSON.stringify({ posts_synced: 0, accounts_synced: accountsSynced }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    logger.info(`Found ${publishedPosts.length} posts to sync`);
+    logger.info(`Found ${publishedPosts?.length || 0} posts to sync`);
 
     let syncedCount = 0;
     let errorCount = 0;
@@ -338,11 +488,12 @@ serve(async (req) => {
     }
 
     const duration = Date.now() - startTime;
-    logger.info(`Completed: ${syncedCount} synced, ${errorCount} errors in ${duration}ms`);
+    logger.info(`Completed: ${syncedCount} posts synced, ${accountsSynced} accounts synced, ${errorCount} errors in ${duration}ms`);
 
     return new Response(
       JSON.stringify({
-        synced: syncedCount,
+        posts_synced: syncedCount,
+        accounts_synced: accountsSynced,
         errors: errorCount,
         duration_ms: duration,
       }),
