@@ -34,10 +34,13 @@ import { useSocialMetrics } from '@/hooks/useSocialMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { AccessDeniedState } from '@/components/governance/AccessDeniedState';
 
+import { CreateSocialPostDialog } from '@/components/social-media/CreateSocialPostDialog';
+
 export function MarketingPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('calendar');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [editPostId, setEditPostId] = useState<string | null>(null);
   const { has, isLoading: entitlementsLoading, entitlements } = useEntitlementRegistry();
   const { data: scheduledPosts } = useSocialPosts({ status: 'scheduled' });
   const { data: publishedPosts } = useSocialPosts({ status: 'published' });
@@ -219,6 +222,7 @@ export function MarketingPage() {
             <CardContent>
               <PostList 
                 posts={scheduledPosts || []} 
+                onEdit={(postId) => setEditPostId(postId)}
                 emptyMessage="Nenhuma postagem agendada. Use o calendário ou clique em 'Novo Post' para agendar."
               />
             </CardContent>
@@ -317,6 +321,14 @@ export function MarketingPage() {
           <PostComposer onClose={() => setIsComposerOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* Edit Post Dialog */}
+      <CreateSocialPostDialog
+        open={!!editPostId}
+        onOpenChange={(open) => !open && setEditPostId(null)}
+        editPostId={editPostId || undefined}
+        onSuccess={() => setEditPostId(null)}
+      />
     </div>
     </AppLayout>
   );

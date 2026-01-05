@@ -110,6 +110,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
   const [platformFilter, setPlatformFilter] = useState<SocialPlatform | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<SocialPostStatus | 'all'>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -390,10 +391,25 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
         clientId={clientId}
       />
 
+      {/* Edit Dialog */}
+      <CreateSocialPostDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        editPostId={selectedPost?.id}
+        clientId={clientId}
+        onSuccess={() => {
+          setEditDialogOpen(false);
+          setSelectedPost(null);
+        }}
+      />
+
       <SocialPostDetailSheet
         post={selectedPost}
-        open={!!selectedPost}
+        open={!!selectedPost && !editDialogOpen}
         onOpenChange={(open) => !open && setSelectedPost(null)}
+        onEdit={() => {
+          setEditDialogOpen(true);
+        }}
       />
     </div>
   );
