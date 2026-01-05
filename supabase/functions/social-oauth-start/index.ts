@@ -357,16 +357,16 @@ serve(async (req) => {
     // ROLE CHECK - Only Owner, Admin, Coordinator can connect
     // ===========================================
     
-    const { data: memberRole } = await supabase
-      .from('workspace_members')
+    const { data: userRole } = await supabase
+      .from('user_roles')
       .select('role')
       .eq('workspace_id', workspace_id)
       .eq('user_id', user_id)
       .maybeSingle();
 
     const allowedRoles = ['super_admin', 'owner', 'admin', 'coordinator'];
-    if (!memberRole || !allowedRoles.includes(memberRole.role)) {
-      console.log(`OAuth blocked for user ${user_id}: insufficient role (${memberRole?.role || 'none'})`);
+    if (!userRole || !allowedRoles.includes(userRole.role)) {
+      console.log(`OAuth blocked for user ${user_id}: insufficient role (${userRole?.role || 'none'})`);
       
       await supabase.from('domain_events').insert({
         workspace_id,
@@ -376,7 +376,7 @@ serve(async (req) => {
         payload: {
           platform,
           reason: 'INSUFFICIENT_ROLE',
-          user_role: memberRole?.role || null,
+          user_role: userRole?.role || null,
           required_roles: allowedRoles,
           actor_id: user_id,
         },
