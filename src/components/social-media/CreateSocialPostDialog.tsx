@@ -333,7 +333,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       }));
 
     const input: CreateSocialPostInput = {
-      card_id: cardId || '',
+      card_id: cardId || null,
       client_id: clientId || null,
       platform: platform as SocialPlatform,
       content_type: contentType as SocialContentType,
