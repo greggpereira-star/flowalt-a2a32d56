@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +34,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCreateCard } from '@/hooks/useCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
-import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -92,7 +92,15 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   const { toast } = useToast();
   const createCard = useCreateCard();
   const { data: members } = useWorkspaceMembers();
-  const { data: clients } = useClients();
+  const { data: clientCards } = useClientCards();
+  
+  // Use only active clients from client_cards (new system)
+  const clients = useMemo(() => {
+    if (!clientCards) return [];
+    return clientCards
+      .filter(c => c.status === 'active')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [clientCards]);
 
   // Form state
   const [mode, setMode] = useState<QuickAddMode>(initialMode);
@@ -376,14 +384,23 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
             {/* Client */}
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <Select value={clientId} onValueChange={setClientId}>
+              <Select value={clientId || '__none__'} onValueChange={(v) => setClientId(v === '__none__' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar cliente..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients?.map((client) => (
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
-                      {client.name}
+                      <div className="flex items-center gap-2">
+                        {client.color && (
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: client.color }}
+                          />
+                        )}
+                        {client.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
