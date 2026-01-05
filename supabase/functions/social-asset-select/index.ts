@@ -63,7 +63,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (!roleData || !['owner', 'admin', 'coordinator'].includes(roleData.role)) {
+    if (!roleData || !['super_admin', 'owner', 'admin', 'coordinator'].includes(roleData.role)) {
       return new Response(
         JSON.stringify({ 
           ok: false, 
