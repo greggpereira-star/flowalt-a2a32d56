@@ -3,7 +3,7 @@
  * Provides live status updates when posts are published or fail
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -20,11 +20,25 @@ export function useRealtimeSocialPosts(options: UseRealtimeSocialPostsOptions = 
   const queryClient = useQueryClient();
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
-  const statusArray = status 
-    ? (Array.isArray(status) ? status : [status])
-    : undefined;
+  // Stabilize status array to prevent infinite re-renders
+  const statusKey = useMemo(() => {
+    if (!status) return '';
+    return Array.isArray(status) ? status.sort().join(',') : status;
+  }, [status]);
 
-  const queryKey = ['social-posts-realtime', currentWorkspace?.id, statusArray?.join(',')];
+  const statusArray = useMemo(() => {
+    if (!status) return undefined;
+    return Array.isArray(status) ? status : [status];
+  }, [statusKey]);
+
+  // Stable query key
+  const queryKey = useMemo(
+    () => ['social-posts-realtime', currentWorkspace?.id, statusKey],
+    [currentWorkspace?.id, statusKey]
+  );
+
+  // Use ref to track if subscription is active
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Initial data fetch
   const { data: posts, isLoading, error, refetch } = useQuery({
@@ -51,14 +65,18 @@ export function useRealtimeSocialPosts(options: UseRealtimeSocialPostsOptions = 
     enabled: !!currentWorkspace?.id,
   });
 
-  // Set up realtime subscription
+  // Set up realtime subscription - stable dependencies
   useEffect(() => {
     if (!currentWorkspace?.id) return;
 
-    console.log('[Realtime] Setting up social_posts subscription for workspace:', currentWorkspace.id);
+    // Don't recreate if already subscribed
+    if (subscriptionRef.current) return;
+
+    const channelName = `social-posts-${currentWorkspace.id}-${statusKey || 'all'}`;
+    console.log('[Realtime] Setting up social_posts subscription:', channelName);
 
     const channel = supabase
-      .channel(`social-posts-${currentWorkspace.id}-${statusArray?.join('-') || 'all'}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -68,7 +86,7 @@ export function useRealtimeSocialPosts(options: UseRealtimeSocialPostsOptions = 
           filter: `workspace_id=eq.${currentWorkspace.id}`,
         },
         (payload) => {
-          console.log('[Realtime] Received post update:', payload.eventType, payload);
+          console.log('[Realtime] Received post update:', payload.eventType);
           
           const newPost = payload.new as SocialPost;
           const oldPost = payload.old as SocialPost;
@@ -83,16 +101,11 @@ export function useRealtimeSocialPosts(options: UseRealtimeSocialPostsOptions = 
                 (oldPost && statusArray.includes(oldPost.status))
               ));
 
-            if (!isRelevant) {
-              console.log('[Realtime] Ignoring update - not relevant to status filter');
-              return;
-            }
+            if (!isRelevant) return;
           }
 
-          // Invalidate and refetch to get full data with joins
-          queryClient.invalidateQueries({ queryKey });
-          
-          // Also invalidate the standard social-posts queries
+          // Invalidate queries
+          queryClient.invalidateQueries({ queryKey: ['social-posts-realtime'] });
           queryClient.invalidateQueries({ queryKey: ['social-posts'] });
         }
       )
@@ -105,21 +118,26 @@ export function useRealtimeSocialPosts(options: UseRealtimeSocialPostsOptions = 
         }
       });
 
+    subscriptionRef.current = channel;
+
     return () => {
-      console.log('[Realtime] Cleaning up social_posts subscription');
-      supabase.removeChannel(channel);
+      if (subscriptionRef.current) {
+        console.log('[Realtime] Cleaning up social_posts subscription');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [currentWorkspace?.id, queryClient, queryKey, statusArray]);
+  }, [currentWorkspace?.id, statusKey]); // Stable dependencies only
 
   // Calculate stats
-  const stats = {
+  const stats = useMemo(() => ({
     total: posts?.length || 0,
     draft: posts?.filter(p => p.status === 'draft').length || 0,
     scheduled: posts?.filter(p => p.status === 'scheduled').length || 0,
     published: posts?.filter(p => p.status === 'published').length || 0,
     failed: posts?.filter(p => p.status === 'failed').length || 0,
     pending: posts?.filter(p => p.status === 'pending_approval').length || 0,
-  };
+  }), [posts]);
 
   return {
     posts,
