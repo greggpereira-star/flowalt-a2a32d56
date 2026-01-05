@@ -407,14 +407,23 @@ export function PlatformConnectionWizard({
       if (error) throw error;
 
       if (data.success && data.assets) {
-        setAvailableAssets(data.assets);
+        // Filter assets based on platform - Instagram shows only IG accounts, Facebook shows pages
+        let filteredAssets = data.assets;
+        if (platformId === 'instagram' && data.instagram) {
+          filteredAssets = data.instagram;
+        } else if (platformId === 'facebook' && data.pages) {
+          filteredAssets = data.pages;
+        }
+        
+        setAvailableAssets(filteredAssets);
         
         // Pre-select already active assets
         const activeAssetIds = new Set(activeAssets?.map(a => a.asset_id) || []);
         setSelectedAssetIds(activeAssetIds);
         
-        if (data.assets.length === 0) {
-          setErrorMessage('Nenhum ativo adicional disponível. Todas as contas já estão conectadas ou você não tem acesso a mais páginas/contas.');
+        if (filteredAssets.length === 0) {
+          const platformLabel = platformId === 'instagram' ? 'Instagram Business' : 'páginas';
+          setErrorMessage(`Nenhuma conta ${platformLabel} disponível. Verifique se você tem contas ${platformLabel} vinculadas.`);
         }
       } else {
         setErrorMessage(data.error_message || 'Erro ao buscar ativos');
@@ -455,14 +464,23 @@ export function PlatformConnectionWizard({
       }
 
       if (data.success && data.assets) {
-        setAvailableAssets(data.assets);
-        if (data.assets.length === 0) {
+        // Filter assets based on platform - Instagram shows only IG accounts, Facebook shows pages
+        let filteredAssets = data.assets;
+        if (platformId === 'instagram' && data.instagram) {
+          filteredAssets = data.instagram;
+        } else if (platformId === 'facebook' && data.pages) {
+          filteredAssets = data.pages;
+        }
+        
+        setAvailableAssets(filteredAssets);
+        if (filteredAssets.length === 0) {
           if (platformId === 'facebook' || platformId === 'instagram') {
+            const platformLabel = platformId === 'instagram' ? 'Instagram Business' : 'páginas do Facebook';
             setErrorMessage(
-              'Nenhum ativo retornado pela Meta para este login. Isso geralmente acontece quando:\n' +
+              `Nenhuma conta ${platformLabel} retornada pela Meta para este login. Isso geralmente acontece quando:\n` +
               '• você não entrou com o perfil que é admin da Página\n' +
               '• o app ainda não tem acesso aprovado/configurado para permissões de Páginas/Instagram (ex.: pages_read_engagement, pages_manage_posts, instagram_basic)\n\n' +
-              'Clique em “Atualizar Lista”. Se continuar vazio, reconecte. Se aparecer "Invalid Scopes", é configuração do app (admin/suporte).'
+              'Clique em "Atualizar Lista". Se continuar vazio, reconecte. Se aparecer "Invalid Scopes", é configuração do app (admin/suporte).'
             );
           } else {
             setErrorMessage('Nenhum ativo encontrado. Verifique se você tem páginas/canais/contas configurados.');
