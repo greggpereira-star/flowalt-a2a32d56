@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAccountMetrics, formatLastUpdated } from '@/hooks/useAccountMetrics';
+import { useConnectedAccountsWithMetrics, formatLastUpdated, AccountMetricsData } from '@/hooks/useAccountMetrics';
 import { formatMetricNumber } from '@/hooks/useSocialMetrics';
-import { Users, ImageIcon, Clock, Instagram, Facebook } from 'lucide-react';
+import { Users, ImageIcon, Clock, Instagram, Facebook, Eye, MousePointer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AccountMetricsCardProps {
+  assetId: string | null;
   platformConnectionId: string | null;
 }
 
@@ -15,20 +16,55 @@ const ASSET_TYPE_CONFIG: Record<string, { label: string; icon: typeof Instagram;
   facebook_page: { label: 'Facebook Page', icon: Facebook, color: 'bg-blue-600' },
 };
 
-export function AccountMetricsCard({ platformConnectionId }: AccountMetricsCardProps) {
-  const { assetsMetrics, totalFollowers, totalPosts, lastUpdated } = useAccountMetrics(platformConnectionId);
+export function AccountMetricsCard({ assetId, platformConnectionId }: AccountMetricsCardProps) {
+  const { data: accounts } = useConnectedAccountsWithMetrics();
 
-  if (!platformConnectionId || assetsMetrics.length === 0) {
+  // Find the specific asset by assetId
+  const assetData = React.useMemo(() => {
+    if (!assetId || !accounts) return null;
+
+    for (const account of accounts) {
+      if (!account.account_metrics) continue;
+      
+      for (const [key, metrics] of Object.entries(account.account_metrics)) {
+        const m = metrics as AccountMetricsData;
+        if (m.asset_id === assetId) {
+          const [assetType] = key.split(':');
+          return {
+            metrics: m,
+            assetType: (m as any).asset_type || assetType || key,
+            lastUpdated: account.account_metrics_updated_at,
+          };
+        }
+      }
+    }
+    return null;
+  }, [assetId, accounts]);
+
+  if (!assetId || !assetData) {
     return null;
   }
+
+  const { metrics, assetType, lastUpdated } = assetData;
+  const config = ASSET_TYPE_CONFIG[assetType] || { 
+    label: assetType, 
+    icon: Users, 
+    color: 'bg-gray-500' 
+  };
+  const Icon = config.icon;
 
   return (
     <Card className="border-2">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Métricas da Conta</CardTitle>
-            <CardDescription>Dados do perfil conectado</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2 rounded-lg text-white", config.color)}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{metrics.asset_name}</CardTitle>
+              <CardDescription>{config.label}</CardDescription>
+            </div>
           </div>
           <Badge variant="outline" className="text-xs">
             <Clock className="h-3 w-3 mr-1" />
@@ -37,15 +73,15 @@ export function AccountMetricsCard({ platformConnectionId }: AccountMetricsCardP
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Total Summary */}
+        {/* Main Metrics */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className="p-2 rounded-full bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{formatMetricNumber(totalFollowers)}</p>
-              <p className="text-xs text-muted-foreground">Seguidores Total</p>
+              <p className="text-2xl font-bold">{formatMetricNumber(metrics.followers || 0)}</p>
+              <p className="text-xs text-muted-foreground">Seguidores</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -53,47 +89,56 @@ export function AccountMetricsCard({ platformConnectionId }: AccountMetricsCardP
               <ImageIcon className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{formatMetricNumber(totalPosts)}</p>
-              <p className="text-xs text-muted-foreground">Publicações Total</p>
+              <p className="text-2xl font-bold">{formatMetricNumber(metrics.posts_count || 0)}</p>
+              <p className="text-xs text-muted-foreground">Publicações</p>
             </div>
           </div>
         </div>
 
-        {/* Per Asset Breakdown */}
-        {assetsMetrics.length > 1 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Por Plataforma</p>
-            <div className="space-y-2">
-              {assetsMetrics.map((asset) => {
-                const config = ASSET_TYPE_CONFIG[asset.assetType] || { 
-                  label: asset.assetType, 
-                  icon: Users, 
-                  color: 'bg-gray-500' 
-                };
-                const Icon = config.icon;
-                
-                return (
-                  <div 
-                    key={asset.asset_id} 
-                    className="flex items-center justify-between p-2 rounded-lg border"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={cn("p-1.5 rounded-md text-white", config.color)}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{asset.asset_name}</p>
-                        <p className="text-xs text-muted-foreground">{config.label}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold">{formatMetricNumber(asset.followers)}</p>
-                      <p className="text-xs text-muted-foreground">seguidores</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Additional Metrics for Facebook Pages */}
+        {assetType === 'facebook_page' && (metrics.page_reach || metrics.page_impressions || metrics.website_clicks) && (
+          <div className="grid grid-cols-3 gap-3">
+            {metrics.page_reach !== undefined && (
+              <div className="p-3 rounded-lg border text-center">
+                <Eye className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-lg font-semibold">{formatMetricNumber(metrics.page_reach)}</p>
+                <p className="text-xs text-muted-foreground">Alcance</p>
+              </div>
+            )}
+            {metrics.page_impressions !== undefined && (
+              <div className="p-3 rounded-lg border text-center">
+                <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-lg font-semibold">{formatMetricNumber(metrics.page_impressions)}</p>
+                <p className="text-xs text-muted-foreground">Impressões</p>
+              </div>
+            )}
+            {metrics.website_clicks !== undefined && (
+              <div className="p-3 rounded-lg border text-center">
+                <MousePointer className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-lg font-semibold">{formatMetricNumber(metrics.website_clicks)}</p>
+                <p className="text-xs text-muted-foreground">Cliques</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Additional Metrics for Instagram */}
+        {assetType === 'instagram_business' && (metrics.profile_views || metrics.website_clicks) && (
+          <div className="grid grid-cols-2 gap-3">
+            {metrics.profile_views !== undefined && (
+              <div className="p-3 rounded-lg border text-center">
+                <Eye className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-lg font-semibold">{formatMetricNumber(metrics.profile_views)}</p>
+                <p className="text-xs text-muted-foreground">Visitas ao Perfil</p>
+              </div>
+            )}
+            {metrics.website_clicks !== undefined && (
+              <div className="p-3 rounded-lg border text-center">
+                <MousePointer className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-lg font-semibold">{formatMetricNumber(metrics.website_clicks)}</p>
+                <p className="text-xs text-muted-foreground">Cliques no Site</p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

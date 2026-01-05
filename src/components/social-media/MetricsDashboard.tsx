@@ -249,7 +249,12 @@ export function MetricsDashboard() {
       {/* Account Metrics Card - Shows when specific asset is selected */}
       {selectedAsset !== 'all' && (() => {
         const assetData = individualAssets?.find(a => a.id === selectedAsset);
-        return assetData ? <AccountMetricsCard platformConnectionId={assetData.platform_connection_id} /> : null;
+        return assetData ? (
+          <AccountMetricsCard 
+            assetId={selectedAsset} 
+            platformConnectionId={assetData.platform_connection_id} 
+          />
+        ) : null;
       })()}
 
       {/* KPI Cards */}
