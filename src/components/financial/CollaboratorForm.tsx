@@ -116,24 +116,24 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
   }, [existingDetails, form]);
 
   const onSubmit = async (data: FormData) => {
-    const salary = data.base_salary ? parseCurrencyToNumber(data.base_salary) : undefined;
-    const percentage = data.partner_percentage ? parseFloat(data.partner_percentage) : undefined;
-    const hours = data.weekly_hours ? parseInt(data.weekly_hours) : undefined;
+    const salary = data.base_salary ? parseCurrencyToNumber(data.base_salary) : null;
+    const percentage = data.partner_percentage ? parseFloat(data.partner_percentage) : null;
+    const hours = data.weekly_hours ? parseInt(data.weekly_hours) : null;
 
     await updateCollaborator.mutateAsync({
       memberId,
       full_name: data.full_name,
-      cpf: data.cpf || undefined,
-      rg: data.rg || undefined,
-      birth_date: data.hire_date?.toISOString().split("T")[0],
-      hire_date: data.hire_date?.toISOString().split("T")[0],
-      contract_type: data.contract_type,
-      bank_name: data.bank_name || undefined,
-      bank_agency: data.bank_agency || undefined,
-      bank_account: data.bank_account || undefined,
-      pix_key: data.pix_key || undefined,
-      base_salary: data.contract_type === "socio" ? undefined : salary,
-      partner_percentage: data.contract_type === "socio" ? percentage : undefined,
+      cpf: data.cpf || null,
+      rg: data.rg || null,
+      birth_date: data.birth_date?.toISOString().split("T")[0] || null,
+      hire_date: data.hire_date?.toISOString().split("T")[0] || null,
+      contract_type: data.contract_type || null,
+      bank_name: data.bank_name || null,
+      bank_agency: data.bank_agency || null,
+      bank_account: data.bank_account || null,
+      pix_key: data.pix_key || null,
+      base_salary: data.contract_type === "socio" ? null : salary,
+      partner_percentage: data.contract_type === "socio" ? percentage : null,
       weekly_hours: hours,
       address: {
         street: data.street || "",
@@ -143,7 +143,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
         state: data.state || "",
         zip: data.zip || "",
       },
-      notes: data.notes || undefined,
+      notes: data.notes || null,
     });
 
     onSuccess?.();
