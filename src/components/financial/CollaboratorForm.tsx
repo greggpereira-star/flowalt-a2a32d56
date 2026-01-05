@@ -36,6 +36,7 @@ const collaboratorSchema = z.object({
   bank_account: z.string().optional(),
   pix_key: z.string().optional(),
   base_salary: z.string().optional(),
+  partner_percentage: z.string().optional(),
   weekly_hours: z.string().optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -71,6 +72,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
       bank_account: "",
       pix_key: "",
       base_salary: "",
+      partner_percentage: "",
       weekly_hours: "40",
       street: "",
       number: "",
@@ -81,6 +83,9 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
       notes: "",
     },
   });
+
+  const contractType = form.watch("contract_type");
+  const isPartner = contractType === "socio";
 
   // Populate form when data loads
   useEffect(() => {
@@ -97,6 +102,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
         bank_account: existingDetails.bank_account || "",
         pix_key: existingDetails.pix_key || "",
         base_salary: formatCurrencyFromNumber(existingDetails.base_salary || 0),
+        partner_percentage: existingDetails.partner_percentage?.toString() || "",
         weekly_hours: existingDetails.weekly_hours?.toString() || "40",
         street: (existingDetails.address as any)?.street || "",
         number: (existingDetails.address as any)?.number || "",
@@ -111,6 +117,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
 
   const onSubmit = async (data: FormData) => {
     const salary = data.base_salary ? parseCurrencyToNumber(data.base_salary) : undefined;
+    const percentage = data.partner_percentage ? parseFloat(data.partner_percentage) : undefined;
     const hours = data.weekly_hours ? parseInt(data.weekly_hours) : undefined;
 
     await updateCollaborator.mutateAsync({
@@ -118,14 +125,15 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
       full_name: data.full_name,
       cpf: data.cpf || undefined,
       rg: data.rg || undefined,
-      birth_date: data.birth_date?.toISOString().split("T")[0],
+      birth_date: data.hire_date?.toISOString().split("T")[0],
       hire_date: data.hire_date?.toISOString().split("T")[0],
       contract_type: data.contract_type,
       bank_name: data.bank_name || undefined,
       bank_agency: data.bank_agency || undefined,
       bank_account: data.bank_account || undefined,
       pix_key: data.pix_key || undefined,
-      base_salary: salary,
+      base_salary: data.contract_type === "socio" ? undefined : salary,
+      partner_percentage: data.contract_type === "socio" ? percentage : undefined,
       weekly_hours: hours,
       address: {
         street: data.street || "",
@@ -261,6 +269,7 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
                       <SelectItem value="pj">PJ</SelectItem>
                       <SelectItem value="estagio">Estágio</SelectItem>
                       <SelectItem value="freelancer">Freelancer</SelectItem>
+                      <SelectItem value="socio">Sócio</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -268,23 +277,46 @@ export function CollaboratorForm({ memberId, onSuccess }: CollaboratorFormProps)
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="base_salary"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Salário Base</FormLabel>
-                  <FormControl>
-                    <CurrencyInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isPartner ? (
+              <FormField
+                control={form.control}
+                name="base_salary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Salário Base</FormLabel>
+                    <FormControl>
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="0,00"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="partner_percentage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Porcentagem (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        placeholder="0,00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
