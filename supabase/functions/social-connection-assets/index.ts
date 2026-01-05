@@ -559,9 +559,31 @@ serve(async (req) => {
       .eq('platform_connection_id', platform_connection_id);
 
     if (result.assets.length > 0) {
+      // Map asset_type to the correct platform_id
+      // Instagram assets should have platform_id = 'instagram', not 'facebook'
+      const getPlatformIdFromAssetType = (assetType: string): string => {
+        switch (assetType) {
+          case 'instagram_business':
+            return 'instagram';
+          case 'facebook_page':
+            return 'facebook';
+          case 'youtube_channel':
+            return 'youtube';
+          case 'linkedin_personal':
+          case 'linkedin_organization':
+            return 'linkedin';
+          case 'tiktok_account':
+            return 'tiktok';
+          case 'twitter_account':
+            return 'twitter';
+          default:
+            return platformData.platform;
+        }
+      };
+
       const assetsToInsert = result.assets.map(asset => ({
         workspace_id,
-        platform_id: platformData.platform,
+        platform_id: getPlatformIdFromAssetType(asset.asset_type),
         platform_connection_id,
         asset_type: asset.asset_type,
         asset_id: asset.asset_id,
