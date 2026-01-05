@@ -109,12 +109,13 @@ const UnauthorizedAccess = () => {
 export default function SettingsPage() {
   usePageTracking('settings');
   const navigate = useNavigate();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { canManageWorkspace, canViewSettings, isAdmin, isCoordinator, isSuperAdmin } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Check if user has basic settings access
-  const hasAccess = canViewSettings || isAdmin || isCoordinator;
+  // Check if user has basic settings access - but only after workspace context is ready
+  // When workspace is loading, permissions will be false, so we need to wait
+  const hasAccess = workspaceLoading || canViewSettings || isAdmin || isCoordinator;
 
   const initialTab = useMemo(() => {
     const tab = searchParams.get('tab');
