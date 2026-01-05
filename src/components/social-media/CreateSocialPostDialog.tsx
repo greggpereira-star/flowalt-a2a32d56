@@ -152,7 +152,6 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [scheduledTime, setScheduledTime] = useState('12:00');
   const [contentPillar, setContentPillar] = useState<ContentPillar | ''>('');
   const [funnelStage, setFunnelStage] = useState<FunnelStage | ''>('');
-  const [campaignName, setCampaignName] = useState('');
   const [utmSource, setUtmSource] = useState('');
   const [utmMedium, setUtmMedium] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
@@ -186,7 +185,6 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setHashtagsInput((existingPost.hashtags || []).join(', '));
       setContentPillar(existingPost.content_pillar || '');
       setFunnelStage(existingPost.funnel_stage || '');
-      setCampaignName(existingPost.campaign_name || '');
       
       if (existingPost.utm_params) {
         setUtmSource(existingPost.utm_params.utm_source || '');
@@ -238,7 +236,6 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setScheduledTime('12:00');
       setContentPillar('');
       setFunnelStage('');
-      setCampaignName('');
       setUtmSource('');
       setUtmMedium('');
       setUtmCampaign('');
@@ -411,7 +408,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       ? {
           utm_source: utmSource || platform,
           utm_medium: utmMedium || 'social',
-          utm_campaign: utmCampaign || campaignName,
+          utm_campaign: utmCampaign || title || 'campanha',
         }
       : undefined;
 
@@ -445,7 +442,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           content_pillar: contentPillar as ContentPillar || undefined,
           funnel_stage: funnelStage as FunnelStage || undefined,
-          campaign_name: campaignName || undefined,
+          campaign_name: title || undefined,
           utm_params: utmParams,
           // Reset status to scheduled if there's a scheduled time
           status: scheduledAt ? 'scheduled' : 'draft',
@@ -469,7 +466,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           content_pillar: contentPillar as ContentPillar || undefined,
           funnel_stage: funnelStage as FunnelStage || undefined,
-          campaign_name: campaignName || undefined,
+          campaign_name: title || undefined,
           utm_params: utmParams,
         };
 
@@ -986,15 +983,6 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="campaign" className="text-xs text-muted-foreground">Nome da Campanha</Label>
-                <Input
-                  id="campaign"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="Ex: Black Friday 2024"
-                />
-              </div>
             </div>
 
             {/* UTM Builder */}
@@ -1028,7 +1016,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
                       <Input
                         value={utmCampaign}
                         onChange={(e) => setUtmCampaign(e.target.value)}
-                        placeholder={campaignName || 'campanha'}
+                        placeholder={title || 'campanha'}
                       />
                     </div>
                   </div>
