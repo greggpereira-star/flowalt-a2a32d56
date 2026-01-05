@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useCreateCard } from '@/hooks/useCards';
-import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useDefaultWorkflow, useWorkflowStages } from '@/hooks/useWorkflow';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +69,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 }) => {
   const { toast: toastHook } = useToast();
   const createCard = useCreateCard();
-  const { data: clients } = useClients();
+  const { data: clientCards } = useClientCards();
   const { data: spaces } = useSpaces();
   const { data: defaultWorkflow } = useDefaultWorkflow();
   const { data: stages } = useWorkflowStages(defaultWorkflow?.id);
@@ -213,7 +213,15 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
     setBriefingData(prev => ({ ...prev, [field]: value }));
   };
 
-  const selectedClient = clients?.find(c => c.id === clientId);
+  // Use only active clients from client_cards (new system)
+  const activeClients = useMemo(() => {
+    if (!clientCards) return [];
+    return clientCards
+      .filter(c => c.status === 'active')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [clientCards]);
+
+  const selectedClient = activeClients.find(c => c.id === clientId);
   const selectedSpace = spaces?.find(s => s.id === spaceId);
 
   return (
@@ -307,9 +315,17 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Nenhum</SelectItem>
-                        {clients?.map((client) => (
+                        {activeClients.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
-                            {client.name}
+                            <div className="flex items-center gap-2">
+                              {client.color && (
+                                <div 
+                                  className="w-2 h-2 rounded-full" 
+                                  style={{ backgroundColor: client.color }}
+                                />
+                              )}
+                              {client.name}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>

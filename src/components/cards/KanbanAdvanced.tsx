@@ -89,7 +89,7 @@ import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useDependencies } from '@/hooks/useDependencies';
 import { useCapacity } from '@/hooks/useCapacity';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
-import { useClients } from '@/hooks/useClients';
+import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
@@ -153,7 +153,15 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard();
   const { data: members } = useWorkspaceMembers();
-  const { data: clients } = useClients();
+  const { data: clientCards } = useClientCards();
+  
+  // Use only active clients from client_cards (new system)
+  const clients = useMemo(() => {
+    if (!clientCards) return [];
+    return clientCards
+      .filter(c => c.status === 'active')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [clientCards]);
   const { data: dependencies } = useDependencies();
   const { userSummaries } = useCapacity(cards);
 
@@ -559,7 +567,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         return URGENCY_OPTIONS.find(u => u.value === key)?.label || key;
       case 'client':
         if (key === 'no-client') return 'Sem Cliente';
-        const client = clients?.find(c => c.id === key);
+        const client = clients.find(c => c.id === key);
         return client?.name || key;
       default:
         return key;
@@ -866,7 +874,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                     Cliente
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    {clients?.map(client => (
+                    {clients.map(client => (
                       <DropdownMenuCheckboxItem
                         key={client.id}
                         checked={filters.clients.includes(client.id)}
