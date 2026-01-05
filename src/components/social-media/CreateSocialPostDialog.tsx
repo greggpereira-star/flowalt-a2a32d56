@@ -554,47 +554,117 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       );
     }
 
-    if (availableAssets.length === 1) {
-      const asset = availableAssets[0];
-      return (
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/10">
-          {asset.asset_meta?.profile_picture_url && (
+    // Helper to render asset avatar/icon
+    const renderAssetAvatar = (asset: AssetWithConnection, size: 'sm' | 'md' = 'sm') => {
+      const PlatformIcon = platformConfig[platform as SocialPlatform]?.icon;
+      const platformColor = platformConfig[platform as SocialPlatform]?.color;
+      const sizeClasses = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+      const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
+      
+      if (asset.asset_meta?.profile_picture_url) {
+        return (
+          <div className="relative">
             <img 
               src={asset.asset_meta.profile_picture_url} 
               alt={asset.asset_name}
-              className="w-8 h-8 rounded-full"
+              className={cn(sizeClasses, "rounded-full object-cover border-2 border-background shadow-sm")}
+              onError={(e) => {
+                // Fallback to icon on error
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
             />
-          )}
-          <div className="flex-1">
-            <span className="text-sm font-medium">{asset.asset_name}</span>
-            <span className="text-xs text-muted-foreground block capitalize">
-              {asset.asset_type.replace('_', ' ')}
+            <div className={cn(sizeClasses, "rounded-full flex items-center justify-center hidden")} style={{ backgroundColor: platformColor + '20' }}>
+              {PlatformIcon && <PlatformIcon className={iconSize} style={{ color: platformColor }} />}
+            </div>
+            <div 
+              className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border-2 border-background"
+              style={{ backgroundColor: platformColor }}
+            >
+              {PlatformIcon && <PlatformIcon className="h-2.5 w-2.5 text-white" />}
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="relative">
+          <div 
+            className={cn(sizeClasses, "rounded-full flex items-center justify-center")} 
+            style={{ backgroundColor: platformColor + '20' }}
+          >
+            {PlatformIcon && <PlatformIcon className={iconSize} style={{ color: platformColor }} />}
+          </div>
+          <div 
+            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border-2 border-background"
+            style={{ backgroundColor: platformColor }}
+          >
+            {PlatformIcon && <PlatformIcon className="h-2.5 w-2.5 text-white" />}
+          </div>
+        </div>
+      );
+    };
+
+    // Format asset type label
+    const getAssetTypeLabel = (assetType: string) => {
+      const labels: Record<string, string> = {
+        'facebook_page': 'Página do Facebook',
+        'instagram_business': 'Instagram Business',
+        'linkedin_company': 'Empresa LinkedIn',
+        'youtube_channel': 'Canal YouTube',
+        'tiktok_account': 'Conta TikTok',
+        'twitter_account': 'Conta X',
+      };
+      return labels[assetType] || assetType.replace('_', ' ');
+    };
+
+    if (availableAssets.length === 1) {
+      const asset = availableAssets[0];
+      return (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/50 bg-primary/5">
+          {renderAssetAvatar(asset, 'md')}
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium block truncate">{asset.asset_name}</span>
+            <span className="text-xs text-muted-foreground block">
+              {getAssetTypeLabel(asset.asset_type)}
             </span>
           </div>
+          <Badge variant="outline" className="text-xs shrink-0 bg-primary/10 text-primary border-primary/30">
+            Conectado
+          </Badge>
         </div>
       );
     }
 
+    // Get currently selected asset for display in trigger
+    const selectedAsset = availableAssets.find(a => a.id === selectedAssetId);
+
     return (
       <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecionar página/conta" />
+        <SelectTrigger className="h-auto min-h-[48px]">
+          {selectedAsset ? (
+            <div className="flex items-center gap-3 py-1">
+              {renderAssetAvatar(selectedAsset)}
+              <div className="flex-1 min-w-0 text-left">
+                <span className="text-sm font-medium block truncate">{selectedAsset.asset_name}</span>
+                <span className="text-xs text-muted-foreground block">
+                  {getAssetTypeLabel(selectedAsset.asset_type)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Selecionar página/conta</span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {availableAssets.map((asset) => (
-            <SelectItem key={asset.id} value={asset.id}>
-              <div className="flex items-center gap-2">
-                {asset.asset_meta?.profile_picture_url && (
-                  <img 
-                    src={asset.asset_meta.profile_picture_url} 
-                    alt={asset.asset_name}
-                    className="w-5 h-5 rounded-full"
-                  />
-                )}
-                <div>
-                  <span className="font-medium">{asset.asset_name}</span>
-                  <span className="text-xs text-muted-foreground ml-2 capitalize">
-                    ({asset.asset_type.replace('_', ' ')})
+            <SelectItem key={asset.id} value={asset.id} className="py-2">
+              <div className="flex items-center gap-3">
+                {renderAssetAvatar(asset)}
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium block truncate">{asset.asset_name}</span>
+                  <span className="text-xs text-muted-foreground block">
+                    {getAssetTypeLabel(asset.asset_type)}
                   </span>
                 </div>
               </div>
