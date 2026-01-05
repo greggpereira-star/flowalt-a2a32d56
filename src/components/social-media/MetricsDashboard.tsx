@@ -6,7 +6,7 @@ import { useSocialMetrics, useTopPosts, formatMetricNumber } from '@/hooks/useSo
 import { useClients } from '@/hooks/useClients';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
-import { useConnectedAccountsWithMetrics } from '@/hooks/useAccountMetrics';
+import { useIndividualAssets } from '@/hooks/useAccountMetrics';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
 import { EmptyPlatformState } from './EmptyPlatformState';
 import { AccountMetricsCard } from './AccountMetricsCard';
@@ -103,12 +103,12 @@ export function MetricsDashboard() {
   const { has } = useEntitlementRegistry();
   const { data: clients } = useClients();
   const { data: connectedPlatforms, isLoading: platformsLoading } = useSocialPlatforms();
-  const { data: connectedAccounts } = useConnectedAccountsWithMetrics();
+  const { assets: individualAssets } = useIndividualAssets();
   
   const [dateRange, setDateRange] = useState<DateRange>('7d');
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
-  const [selectedAccount, setSelectedAccount] = useState<string>('all');
+  const [selectedAsset, setSelectedAsset] = useState<string>('all');
 
   const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
 
@@ -130,11 +130,16 @@ export function MetricsDashboard() {
       default:
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     }
+
+    // Find the platform_connection_id for the selected asset
+    const selectedAssetData = selectedAsset !== 'all' 
+      ? individualAssets?.find(a => a.id === selectedAsset)
+      : null;
     
     return {
       clientId: selectedClient !== 'all' ? selectedClient : undefined,
       startDate,
-      platformConnectionId: selectedAccount !== 'all' ? selectedAccount : undefined,
+      platformConnectionId: selectedAssetData?.platform_connection_id,
       platform: selectedPlatform !== 'all' ? selectedPlatform : undefined,
     };
   };
@@ -183,18 +188,18 @@ export function MetricsDashboard() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        {/* Account Selector - Primary Filter */}
-        <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+        {/* Asset Selector - Shows each Instagram/Facebook individually */}
+        <Select value={selectedAsset} onValueChange={setSelectedAsset}>
           <SelectTrigger className="w-[220px]">
             <SelectValue placeholder="Selecionar conta" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as contas</SelectItem>
-            {connectedAccounts?.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
+            {individualAssets?.map((asset) => (
+              <SelectItem key={asset.id} value={asset.id}>
                 <div className="flex items-center">
-                  {getPlatformIcon(account.platform)}
-                  <span>{account.account_name}</span>
+                  {getPlatformIcon(asset.platform)}
+                  <span>{asset.name}</span>
                 </div>
               </SelectItem>
             ))}
@@ -241,10 +246,11 @@ export function MetricsDashboard() {
         </Select>
       </div>
 
-      {/* Account Metrics Card - Shows when specific account is selected */}
-      {selectedAccount !== 'all' && (
-        <AccountMetricsCard platformConnectionId={selectedAccount} />
-      )}
+      {/* Account Metrics Card - Shows when specific asset is selected */}
+      {selectedAsset !== 'all' && (() => {
+        const assetData = individualAssets?.find(a => a.id === selectedAsset);
+        return assetData ? <AccountMetricsCard platformConnectionId={assetData.platform_connection_id} /> : null;
+      })()}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

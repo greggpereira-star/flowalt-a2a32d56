@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useMemo } from 'react';
 
 export interface AccountMetricsData {
   followers: number;
@@ -26,6 +27,16 @@ export interface ConnectedAccount {
   account_metrics: Record<string, AccountMetricsData> | null;
   account_metrics_updated_at: string | null;
   platform_account_type?: string;
+}
+
+// Individual asset for dropdown selection
+export interface AssetOption {
+  id: string; // asset_id
+  platform_connection_id: string;
+  platform: 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube';
+  asset_type: string; // instagram_business, facebook_page, etc.
+  name: string;
+  followers: number;
 }
 
 /**
@@ -58,6 +69,58 @@ export const useConnectedAccountsWithMetrics = () => {
     },
     enabled: !!currentWorkspace?.id,
   });
+};
+
+/**
+ * Get individual assets for dropdown - shows each Instagram, Facebook Page individually
+ */
+export const useIndividualAssets = () => {
+  const { data: accounts, isLoading } = useConnectedAccountsWithMetrics();
+
+  const assets = useMemo(() => {
+    if (!accounts) return [];
+
+    const result: AssetOption[] = [];
+    const seen = new Set<string>();
+
+    for (const account of accounts) {
+      if (!account.account_metrics) continue;
+
+      for (const [key, metrics] of Object.entries(account.account_metrics)) {
+        const m = metrics as AccountMetricsData;
+        const assetId = m.asset_id;
+
+        // Skip duplicates
+        if (seen.has(assetId)) continue;
+        seen.add(assetId);
+
+        // Determine platform type from key or asset_type
+        const [assetType] = key.split(':');
+        const actualAssetType = (m as any).asset_type || assetType || key;
+
+        // Determine display platform
+        let platform: AssetOption['platform'] = account.platform as AssetOption['platform'];
+        if (actualAssetType.includes('instagram')) {
+          platform = 'instagram';
+        } else if (actualAssetType.includes('facebook')) {
+          platform = 'facebook';
+        }
+
+        result.push({
+          id: assetId,
+          platform_connection_id: account.id,
+          platform,
+          asset_type: actualAssetType,
+          name: m.asset_name || account.account_name,
+          followers: m.followers || 0,
+        });
+      }
+    }
+
+    return result;
+  }, [accounts]);
+
+  return { assets, isLoading };
 };
 
 /**
