@@ -563,16 +563,20 @@ export function PlatformConnectionWizard({
   };
 
   const handleValidateConnection = async () => {
-    if (!selectedAccount) return;
-    
+    if (!platformConnectionId) {
+      setConnectionStatus('error');
+      setErrorMessage('Conexão não encontrada. Volte e selecione a conta novamente.');
+      return;
+    }
+
     setIsValidating(true);
     setConnectionStatus('connecting');
     setErrorMessage(null);
-    
+
     try {
-      // Call the real connection test edge function
+      // IMPORTANT: social-connection-test expects the platform connection id (social_platforms.id)
       const { data, error } = await supabase.functions.invoke('social-connection-test', {
-        body: { platform_id: selectedAccount.id },
+        body: { platform_id: platformConnectionId },
       });
 
       if (error) {
@@ -581,11 +585,12 @@ export function PlatformConnectionWizard({
 
       if (data.success) {
         setConnectionStatus('success');
-        setAccountName(data.account_name || selectedAccount.name);
+        // Prefer backend returned name, fallback to selectedAccount (asset name)
+        setAccountName(data.account_name || selectedAccount?.name || '');
       } else {
         setConnectionStatus('error');
-        setErrorMessage(data.error_message || 'Falha na validação');
-        
+        setErrorMessage(data.gox_message || data.error_message || 'Falha na validação');
+
         if (data.requires_reconnect) {
           toast.error('Token expirado', {
             description: 'Você precisa reconectar a plataforma.',
