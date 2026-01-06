@@ -608,7 +608,12 @@ serve(async (req) => {
     } else {
       scopesToUse = [...config.scopes];
     }
-    
+
+    // Ensure Business Login can enumerate business assets/portfolios when available.
+    // This permission is required for some Business Manager flows.
+    if (isMetaProvider && !scopesToUse.includes('business_management')) {
+      scopesToUse = ['business_management', ...scopesToUse];
+    }
     const { error: stateError } = await supabase
       .from('oauth_states')
       .upsert({
