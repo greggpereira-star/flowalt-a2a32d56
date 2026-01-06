@@ -683,26 +683,51 @@ export function PlatformConnectionWizard({
           sessionStorage.setItem('meta_oauth_scope_strategy', scopeStrategy);
         }
         
-        // Redirect to OAuth provider - Facebook blocks iframes, so we must handle this carefully
+        // Redirect to OAuth provider
+        // CRITICAL: Facebook/Meta sets X-Frame-Options: DENY, which means OAuth pages
+        // cannot be displayed in any iframe. We MUST navigate the top-level window.
         try {
-          // Check if we're in an iframe (preview environment)
-          const isInIframe = window.self !== window.top;
+          // Detect iframe context safely
+          let isInIframe = false;
+          try {
+            isInIframe = window.self !== window.top;
+          } catch {
+            // SecurityError means we're in a cross-origin iframe
+            isInIframe = true;
+          }
           
           if (isInIframe) {
-            // In iframe: try to navigate top-level window first, fallback to new tab
-            try {
-              window.top!.location.href = data.auth_url;
-            } catch {
-              // Cross-origin iframe - open in new tab
-              window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+            // We're in an iframe (Lovable preview, embedded app, etc.)
+            // Facebook BLOCKS all iframe redirects with X-Frame-Options: DENY
+            // We MUST open in a new tab - this is the only reliable solution
+            console.log('[OAuth] Detected iframe context, opening OAuth in new tab');
+            const newWindow = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+            
+            if (!newWindow) {
+              // Popup was blocked - show user-friendly message
+              toast.error('Popup bloqueado', {
+                description: 'Permita popups para este site e tente novamente.',
+                duration: 5000,
+              });
+              setConnectionStatus('idle');
+              setIsConnecting(false);
+              return;
             }
           } else {
-            // Not in iframe: navigate directly
+            // Not in iframe: navigate directly (safest and best UX)
             window.location.href = data.auth_url;
           }
-        } catch {
-          // Last resort: open in new tab
-          window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+        } catch (navError) {
+          console.error('[OAuth] Navigation error:', navError);
+          // Fallback: try opening in new tab
+          const newWindow = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+          if (!newWindow) {
+            toast.error('Não foi possível abrir a autenticação', {
+              description: 'Tente novamente ou abra em uma nova aba.',
+            });
+            setConnectionStatus('error');
+            setIsConnecting(false);
+          }
         }
       } else {
         throw new Error('Nenhuma URL de autenticação recebida. Verifique as credenciais da plataforma.');
@@ -1058,15 +1083,7 @@ export function PlatformConnectionWizard({
                     Siga os passos abaixo para conectar sua conta:
                   </p>
 
-                  {mode === 'add_accounts' && isMetaPlatform && (
-                    <Alert className="text-left mb-4">
-                      <Info className="h-4 w-4" />
-                      <AlertTitle>Adicionar páginas de outro portfólio</AlertTitle>
-                      <AlertDescription className="text-xs">
-                        Para conectar páginas de outro portfólio empresarial, na tela do Facebook/Meta clique em "Não é você?" para trocar de conta ou em "Editar configurações" para selecionar outros ativos.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+{/* Alert removed - system is generic for all clients */}
                 </div>
 
                 <div className="space-y-3">
