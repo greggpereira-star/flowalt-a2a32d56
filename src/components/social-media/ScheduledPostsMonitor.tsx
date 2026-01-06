@@ -34,6 +34,7 @@ interface ScheduledPost {
   id: string;
   title: string;
   platform: string;
+  platform_connection_id: string | null;
   content_type: string;
   status: string;
   scheduled_at: string;
@@ -46,6 +47,11 @@ interface ScheduledPost {
   platform_url: string | null;
   created_at: string;
   updated_at: string;
+  // Joined from social_platforms
+  platform_info?: {
+    account_name: string | null;
+    account_id: string | null;
+  };
 }
 
 const platformIcons: Record<string, React.ReactNode> = {
@@ -118,13 +124,14 @@ export function ScheduledPostsMonitor() {
   const queryClient = useQueryClient();
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
-  // Fetch posts with relevant statuses
+  // Fetch posts with relevant statuses and platform info
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['scheduled-posts-monitor', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       
-      const { data, error } = await supabase
+      // First, fetch posts
+      const { data: postsData, error: postsError } = await supabase
         .from('social_posts')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
@@ -132,8 +139,27 @@ export function ScheduledPostsMonitor() {
         .order('scheduled_at', { ascending: true })
         .limit(50);
       
-      if (error) throw error;
-      return (data || []) as unknown as ScheduledPost[];
+      if (postsError) throw postsError;
+      
+      // Fetch platform info for accounts
+      const { data: platformsData } = await supabase
+        .from('social_platforms')
+        .select('id, account_name, account_id')
+        .eq('workspace_id', currentWorkspace.id);
+      
+      const platformsMap = new Map(
+        (platformsData || []).map((p: any) => [p.id, { account_name: p.account_name, account_id: p.account_id }])
+      );
+      
+      // Merge platform info with posts
+      const postsWithInfo = (postsData || []).map((post: any) => ({
+        ...post,
+        platform_info: post.platform_connection_id 
+          ? platformsMap.get(post.platform_connection_id) 
+          : undefined
+      }));
+      
+      return postsWithInfo as ScheduledPost[];
     },
     enabled: !!currentWorkspace?.id,
     refetchInterval: 10000, // Refetch every 10 seconds
@@ -263,17 +289,35 @@ export function ScheduledPostsMonitor() {
               Falhas recentes ({failedPosts.length})
             </div>
             {failedPosts.slice(0, 3).map(post => (
-              <div key={post.id} className="flex items-center gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{post.title || 'Post'}</p>
-                  <p className="text-xs text-red-400 truncate">
-                    {post.error_message || post.error_code || 'Erro desconhecido'}
-                  </p>
+              <div key={post.id} className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 space-y-2">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{post.title || 'Post'}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <span className="flex items-center gap-1">
+                        {platformIcons[post.platform]}
+                        <span className="capitalize">{post.platform}</span>
+                      </span>
+                      {post.platform_info?.account_name && (
+                        <>
+                          <span>•</span>
+                          <span className="font-medium text-foreground/80">
+                            @{post.platform_info.account_name}
+                          </span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span className="capitalize">{post.content_type || 'feed'}</span>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-red-500 flex-shrink-0">
+                    {post.retry_count > 0 ? `${post.retry_count} tentativas` : 'Falhou'}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-red-500">
-                  {post.retry_count > 0 ? `${post.retry_count} tentativas` : 'Falhou'}
-                </Badge>
+                <p className="text-xs text-red-400 pl-7 truncate">
+                  {post.error_message || post.error_code || 'Erro desconhecido'}
+                </p>
               </div>
             ))}
           </div>
