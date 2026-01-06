@@ -44,13 +44,20 @@ import {
   Calendar as CalendarIcon,
   RefreshCw,
   Sparkles,
-  PartyPopper
+  PartyPopper,
+  Video
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { SocialPost, SocialPlatform, SocialPostStatus } from '@/hooks/useSocialPosts';
+import type { SocialPost, SocialPlatform, SocialPostStatus, MediaItem } from '@/hooks/useSocialPosts';
 import { useDeleteSocialPost, useUpdateSocialPost } from '@/hooks/useSocialPosts';
+
+// Helper function to safely parse media_urls
+const getMediaItems = (mediaUrls: unknown): MediaItem[] => {
+  if (!mediaUrls || !Array.isArray(mediaUrls)) return [];
+  return mediaUrls as MediaItem[];
+};
 
 interface PostListProps {
   posts: SocialPost[];
@@ -152,35 +159,69 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
       <div className="space-y-4">
         {posts.map(post => {
           const statusConfig = STATUS_CONFIG[post.status];
-          const firstMedia = post.media_urls?.[0];
+          const mediaItems = getMediaItems(post.media_urls);
+          const firstMedia = mediaItems[0];
           const isPublished = post.status === 'published';
           const isFailed = post.status === 'failed';
           const isScheduled = post.status === 'scheduled';
+          const isVideo = firstMedia?.type === 'video';
 
           return (
             <Card 
               key={post.id} 
               className={cn(
                 "overflow-hidden transition-all",
-                isPublished && "border-green-200 bg-gradient-to-r from-green-50/50 to-transparent shadow-sm",
-                isFailed && "border-red-200 bg-gradient-to-r from-red-50/30 to-transparent",
-                isScheduled && "border-blue-200 bg-gradient-to-r from-blue-50/30 to-transparent",
+                isPublished && "border-green-200 bg-gradient-to-r from-green-50/50 to-transparent shadow-sm dark:border-green-800/50 dark:from-green-950/30",
+                isFailed && "border-red-200 bg-gradient-to-r from-red-50/30 to-transparent dark:border-red-800/50 dark:from-red-950/30",
+                isScheduled && "border-blue-200 bg-gradient-to-r from-blue-50/30 to-transparent dark:border-blue-800/50 dark:from-blue-950/30",
                 !isPublished && !isFailed && !isScheduled && "hover:shadow-md"
               )}
             >
               <CardContent className="p-0">
                 <div className="flex">
                   {/* Media Preview with status indicator */}
-                  <div className="relative w-32 h-32 flex-shrink-0 bg-muted">
+                  <div className="relative w-32 h-32 flex-shrink-0 bg-muted overflow-hidden">
                     {firstMedia ? (
-                      <img 
-                        src={firstMedia.url} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
-                      />
+                      isVideo ? (
+                        <div className="w-full h-full relative">
+                          <video
+                            src={firstMedia.url}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="bg-black/60 rounded-full p-2">
+                              <Video className="h-5 w-5 text-white" />
+                            </div>
+                          </div>
+                          {mediaItems.length > 1 && (
+                            <span className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                              +{mediaItems.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full relative">
+                          <img 
+                            src={firstMedia.url} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.classList.add('fallback');
+                            }}
+                          />
+                          {mediaItems.length > 1 && (
+                            <span className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                              +{mediaItems.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      )
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
                       </div>
                     )}
                     

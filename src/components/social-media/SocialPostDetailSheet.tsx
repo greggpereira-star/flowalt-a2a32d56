@@ -36,7 +36,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { SocialPost, SocialPlatform, SocialPostStatus } from '@/hooks/useSocialPosts';
+import type { SocialPost, SocialPlatform, SocialPostStatus, MediaItem } from '@/hooks/useSocialPosts';
 import { useDeleteSocialPost, useApproveSocialPost, useScheduleSocialPost } from '@/hooks/useSocialPosts';
 
 interface SocialPostDetailSheetProps {
@@ -126,6 +126,11 @@ export function SocialPostDetailSheet({
     await approvePost.mutateAsync(post.id);
   };
 
+  // Parse media_urls safely
+  const mediaItems: MediaItem[] = Array.isArray(post.media_urls) 
+    ? (post.media_urls as MediaItem[]) 
+    : [];
+
   const metrics = post.metrics || {};
   const hasMetrics = Object.keys(metrics).length > 0;
 
@@ -157,6 +162,68 @@ export function SocialPostDetailSheet({
 
         <ScrollArea className="h-[calc(100vh-180px)] mt-6">
           <div className="space-y-6 pr-4">
+            {/* Media Preview */}
+            {mediaItems.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Mídia
+                </label>
+                {mediaItems.length === 1 ? (
+                  // Single media - large preview
+                  <div className="relative rounded-lg overflow-hidden bg-muted aspect-square max-w-sm">
+                    {mediaItems[0].type === 'video' ? (
+                      <video
+                        src={mediaItems[0].url}
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={mediaItems[0].url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  // Multiple media - grid layout
+                  <div className="grid grid-cols-2 gap-2">
+                    {mediaItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="relative rounded-lg overflow-hidden bg-muted aspect-square"
+                      >
+                        {item.type === 'video' ? (
+                          <div className="w-full h-full flex items-center justify-center bg-muted/80">
+                            <Video className="h-8 w-8 text-muted-foreground" />
+                            <span className="absolute bottom-1 right-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">
+                              Vídeo
+                            </span>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                          />
+                        )}
+                        <span className="absolute top-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">
+                          {index + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Error Message */}
             {post.status === 'failed' && post.error_message && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
