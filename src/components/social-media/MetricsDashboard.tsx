@@ -33,12 +33,14 @@ import {
   Users,
   Heart,
   MessageCircle,
+  Share2,
   TrendingUp,
   TrendingDown,
   Minus,
   Instagram,
   Facebook,
   RefreshCw,
+  UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -170,7 +172,11 @@ export function MetricsDashboard() {
   // Calculate metrics based on selected asset or aggregate all
   const selectedAccountMetrics = React.useMemo(() => {
     if (!accountMetrics || accountMetrics.length === 0) {
-      return { totalFollowers: 0, totalReach: 0, totalImpressions: 0, totalEngagements: 0, postsCount: 0 };
+      return { 
+        totalFollowers: 0, totalReach: 0, totalImpressions: 0, totalEngagements: 0, 
+        postsCount: 0, likesCount: 0, commentsCount: 0, sharesCount: 0,
+        accountsEngaged: 0, follows: 0, unfollows: 0
+      };
     }
 
     // If a specific asset is selected, find its metrics
@@ -188,6 +194,12 @@ export function MetricsDashboard() {
               page_impressions?: number; 
               page_engagements?: number;
               posts_count?: number;
+              likes_count?: number;
+              comments_count?: number;
+              shares_count?: number;
+              accounts_engaged?: number;
+              follows?: number;
+              unfollows?: number;
             };
             if (m.asset_id === asset.asset_external_id) {
               return {
@@ -196,6 +208,12 @@ export function MetricsDashboard() {
                 totalImpressions: m.page_impressions || 0,
                 totalEngagements: m.page_engagements || 0,
                 postsCount: m.posts_count || 0,
+                likesCount: m.likes_count || 0,
+                commentsCount: m.comments_count || 0,
+                sharesCount: m.shares_count || 0,
+                accountsEngaged: m.accounts_engaged || 0,
+                follows: m.follows || 0,
+                unfollows: m.unfollows || 0,
               };
             }
           }
@@ -204,11 +222,9 @@ export function MetricsDashboard() {
     }
 
     // Aggregate all metrics
-    let totalFollowers = 0;
-    let totalReach = 0;
-    let totalImpressions = 0;
-    let totalEngagements = 0;
-    let postsCount = 0;
+    let totalFollowers = 0, totalReach = 0, totalImpressions = 0, totalEngagements = 0;
+    let postsCount = 0, likesCount = 0, commentsCount = 0, sharesCount = 0;
+    let accountsEngaged = 0, follows = 0, unfollows = 0;
     const seen = new Set<string>();
 
     for (const account of accountMetrics) {
@@ -222,6 +238,12 @@ export function MetricsDashboard() {
           page_impressions?: number; 
           page_engagements?: number;
           posts_count?: number;
+          likes_count?: number;
+          comments_count?: number;
+          shares_count?: number;
+          accounts_engaged?: number;
+          follows?: number;
+          unfollows?: number;
         };
         
         // Deduplicate by asset_id
@@ -233,10 +255,20 @@ export function MetricsDashboard() {
         totalImpressions += m.page_impressions || 0;
         totalEngagements += m.page_engagements || 0;
         postsCount += m.posts_count || 0;
+        likesCount += m.likes_count || 0;
+        commentsCount += m.comments_count || 0;
+        sharesCount += m.shares_count || 0;
+        accountsEngaged += m.accounts_engaged || 0;
+        follows += m.follows || 0;
+        unfollows += m.unfollows || 0;
       }
     }
 
-    return { totalFollowers, totalReach, totalImpressions, totalEngagements, postsCount };
+    return { 
+      totalFollowers, totalReach, totalImpressions, totalEngagements, 
+      postsCount, likesCount, commentsCount, sharesCount,
+      accountsEngaged, follows, unfollows
+    };
   }, [accountMetrics, selectedAsset, individualAssets]);
 
   // Handle manual sync - optionally filter by selected asset
@@ -474,21 +506,57 @@ export function MetricsDashboard() {
         />
         <MetricCard
           title="Alcance (28 dias)"
-          value={hasPostData ? summary.totalReach : selectedAccountMetrics.totalReach}
+          value={selectedAccountMetrics.totalReach}
           icon={Eye}
         />
         <MetricCard
-          title="Impressões (28 dias)"
-          value={hasPostData ? summary.totalImpressions : selectedAccountMetrics.totalImpressions}
+          title="Views (28 dias)"
+          value={selectedAccountMetrics.totalImpressions}
           icon={Eye}
         />
         <MetricCard
           title="Taxa de Engajamento"
           value={selectedAccountMetrics.totalFollowers > 0 
             ? (selectedAccountMetrics.totalEngagements / selectedAccountMetrics.totalFollowers) * 100 
-            : summary.avgEngagementRate}
+            : 0}
           icon={TrendingUp}
           format="percent"
+        />
+      </div>
+
+      {/* Engagement Metrics Row */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <MetricCard
+          title="Curtidas"
+          value={selectedAccountMetrics.likesCount}
+          icon={Heart}
+        />
+        <MetricCard
+          title="Comentários"
+          value={selectedAccountMetrics.commentsCount}
+          icon={MessageCircle}
+        />
+        <MetricCard
+          title="Compartilhamentos"
+          value={selectedAccountMetrics.sharesCount}
+          icon={Share2}
+        />
+        <MetricCard
+          title="Contas Engajadas"
+          value={selectedAccountMetrics.accountsEngaged}
+          icon={Users}
+        />
+        <MetricCard
+          title="Novos Seguidores"
+          value={selectedAccountMetrics.follows}
+          icon={UserPlus}
+          trend={selectedAccountMetrics.follows > selectedAccountMetrics.unfollows ? 1 : -1}
+        />
+        <MetricCard
+          title="Crescimento Líquido"
+          value={selectedAccountMetrics.follows - selectedAccountMetrics.unfollows}
+          icon={TrendingUp}
+          trend={selectedAccountMetrics.follows - selectedAccountMetrics.unfollows}
         />
       </div>
 
