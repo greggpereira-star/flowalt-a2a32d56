@@ -39,9 +39,6 @@ import {
   Instagram,
   Facebook,
   RefreshCw,
-  Download,
-  AlertTriangle,
-  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -122,7 +119,6 @@ export function MetricsDashboard() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
   const [selectedAsset, setSelectedAsset] = useState<string>('all');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
 
   const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
 
@@ -184,34 +180,6 @@ export function MetricsDashboard() {
       });
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  // Handle import historical posts
-  const handleImportPosts = async () => {
-    setIsImporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('social-posts-import');
-      
-      if (error) throw error;
-      
-      // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['social-metrics-posts'] });
-      await queryClient.invalidateQueries({ queryKey: ['social-top-posts'] });
-      
-      toast({
-        title: "Importação concluída",
-        description: `${data?.posts_imported || 0} posts importados, ${data?.posts_skipped || 0} já existentes.`,
-      });
-    } catch (error) {
-      console.error('Import error:', error);
-      toast({
-        title: "Erro na importação",
-        description: "Não foi possível importar os posts. Verifique as permissões da conta.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsImporting(false);
     }
   };
 
@@ -303,41 +271,6 @@ export function MetricsDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Info Alert about data - with import button */}
-      {!hasPostData && hasAccountData && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 flex items-center justify-between">
-            <span>Dados de Posts Históricos</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleImportPosts}
-              disabled={isImporting}
-              className="ml-4 bg-white hover:bg-amber-100"
-            >
-              <Download className={cn("h-4 w-4 mr-2", isImporting && "animate-bounce")} />
-              {isImporting ? 'Importando...' : 'Importar Posts do Facebook/Instagram'}
-            </Button>
-          </AlertTitle>
-          <AlertDescription className="text-amber-700 text-sm mt-2">
-            As métricas de contas (seguidores, alcance) estão disponíveis. Clique no botão acima para importar os posts existentes 
-            das suas páginas do Facebook e Instagram com suas métricas (curtidas, comentários, compartilhamentos).
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Success alert when we have data */}
-      {hasPostData && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Dados Sincronizados</AlertTitle>
-          <AlertDescription className="text-green-700 text-sm">
-            {posts?.length || 0} posts importados com métricas reais do Facebook/Instagram.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         {/* Asset Selector - Shows each Instagram/Facebook individually */}
@@ -525,7 +458,7 @@ export function MetricsDashboard() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                  <AlertTriangle className="h-8 w-8" />
+                  <Minus className="h-8 w-8" />
                   <p>Publique posts para ver esta distribuição</p>
                 </div>
               )}
@@ -544,9 +477,8 @@ export function MetricsDashboard() {
           <div className="space-y-4">
             {(!topPosts || topPosts.length === 0) && (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
-                <AlertTriangle className="h-8 w-8" />
+                <Minus className="h-8 w-8" />
                 <p>Nenhum post publicado no período selecionado</p>
-                <p className="text-xs">Clique em "Importar Posts" para trazer os posts existentes das suas páginas</p>
               </div>
             )}
             {topPosts?.slice(0, 5).map((post, index) => (
