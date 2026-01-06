@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.social-places-search]
 verify_jwt = false
+
+[functions.social-posts-import]
+verify_jwt = false
