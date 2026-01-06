@@ -27,53 +27,50 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
   const { currentWorkspace } = useWorkspace();
 
   const { data: dailyMetrics, isLoading: isLoadingDaily } = useQuery({
-    queryKey: ['analytics-daily', currentWorkspace?.id, dateRange.start, dateRange.end],
+    queryKey: ['analytics-daily', currentWorkspace?.id, dateRange.start.toISOString(), dateRange.end.toISOString()],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
       const startStr = dateRange.start.toISOString();
       const endStr = dateRange.end.toISOString();
 
-      // Get cards created per day
-      const { data: cardsCreated } = await supabase
-        .from('cards')
-        .select('created_at')
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('created_at', startStr)
-        .lte('created_at', endStr);
+      // Fetch all data in parallel
+      const [cardsCreatedRes, cardsCompletedRes, timeEntriesRes, workspaceCardsRes, commentsRes] = await Promise.all([
+        supabase
+          .from('cards')
+          .select('created_at')
+          .eq('workspace_id', currentWorkspace.id)
+          .gte('created_at', startStr)
+          .lte('created_at', endStr),
+        supabase
+          .from('cards')
+          .select('completed_at')
+          .eq('workspace_id', currentWorkspace.id)
+          .not('completed_at', 'is', null)
+          .gte('completed_at', startStr)
+          .lte('completed_at', endStr),
+        supabase
+          .from('time_entries')
+          .select('started_at, duration_seconds')
+          .eq('workspace_id', currentWorkspace.id)
+          .gte('started_at', startStr)
+          .lte('started_at', endStr),
+        supabase
+          .from('cards')
+          .select('id')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
+          .from('comments')
+          .select('created_at, card_id')
+          .gte('created_at', startStr)
+          .lte('created_at', endStr),
+      ]);
 
-      // Get cards completed per day
-      const { data: cardsCompleted } = await supabase
-        .from('cards')
-        .select('completed_at')
-        .eq('workspace_id', currentWorkspace.id)
-        .not('completed_at', 'is', null)
-        .gte('completed_at', startStr)
-        .lte('completed_at', endStr);
-
-      // Get time entries per day
-      const { data: timeEntries } = await supabase
-        .from('time_entries')
-        .select('started_at, duration_seconds')
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('started_at', startStr)
-        .lte('started_at', endStr);
-
-      // Get comments per day
-      const { data: comments } = await supabase
-        .from('comments')
-        .select('created_at, card_id')
-        .gte('created_at', startStr)
-        .lte('created_at', endStr);
-
-      // Filter comments by workspace
-      const { data: workspaceCards } = await supabase
-        .from('cards')
-        .select('id')
-        .eq('workspace_id', currentWorkspace.id);
-
-      const cardIds = new Set(workspaceCards?.map(c => c.id) || []);
-      const workspaceComments = comments?.filter(c => cardIds.has(c.card_id)) || [];
+      const cardsCreated = cardsCreatedRes.data || [];
+      const cardsCompleted = cardsCompletedRes.data || [];
+      const timeEntries = timeEntriesRes.data || [];
+      const cardIds = new Set((workspaceCardsRes.data || []).map(c => c.id));
+      const workspaceComments = (commentsRes.data || []).filter(c => cardIds.has(c.card_id));
 
       // Build daily metrics
       const dailyData: Record<string, AnalyticsData> = {};
@@ -95,7 +92,7 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       }
 
       // Aggregate cards created
-      cardsCreated?.forEach(card => {
+      cardsCreated.forEach(card => {
         const dateKey = card.created_at.split('T')[0];
         if (dailyData[dateKey]) {
           dailyData[dateKey].cards_created++;
@@ -103,7 +100,7 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       });
 
       // Aggregate cards completed
-      cardsCompleted?.forEach(card => {
+      cardsCompleted.forEach(card => {
         if (card.completed_at) {
           const dateKey = card.completed_at.split('T')[0];
           if (dailyData[dateKey]) {
@@ -113,7 +110,7 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       });
 
       // Aggregate time entries
-      timeEntries?.forEach(entry => {
+      timeEntries.forEach(entry => {
         const dateKey = entry.started_at.split('T')[0];
         if (dailyData[dateKey]) {
           dailyData[dateKey].hours_logged += entry.duration_seconds / 3600;
@@ -131,182 +128,169 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 60 * 1000, // Cache for 1 minute
   });
 
   const { data: teamStats, isLoading: isLoadingTeam } = useQuery({
-    queryKey: ['analytics-team', currentWorkspace?.id, dateRange.start, dateRange.end],
+    queryKey: ['analytics-team', currentWorkspace?.id, dateRange.start.toISOString(), dateRange.end.toISOString()],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
       const startStr = dateRange.start.toISOString();
       const endStr = dateRange.end.toISOString();
 
-      // Get workspace members
-      const { data: members } = await supabase
-        .from('workspace_members')
-        .select(`
-          user_id,
-          profiles:user_id (
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('is_active', true);
-
-      if (!members) return [];
-
-      const stats: TeamMemberStats[] = [];
-
-      for (const member of members) {
-        const profile = member.profiles as any;
-
-        // Cards created by user
-        const { count: cardsCreated } = await supabase
-          .from('cards')
-          .select('*', { count: 'exact', head: true })
+      // Fetch all data in parallel (avoid N+1 queries!)
+      const [membersRes, cardsRes, timeEntriesRes, commentsRes] = await Promise.all([
+        supabase
+          .from('workspace_members')
+          .select(`
+            user_id,
+            profiles:user_id (
+              full_name,
+              avatar_url
+            )
+          `)
           .eq('workspace_id', currentWorkspace.id)
-          .eq('created_by', member.user_id)
-          .gte('created_at', startStr)
-          .lte('created_at', endStr);
-
-        // Cards completed (where user is owner)
-        const { count: cardsCompleted } = await supabase
+          .eq('is_active', true),
+        supabase
           .from('cards')
-          .select('*', { count: 'exact', head: true })
+          .select('id, created_by, owner_id, created_at, completed_at')
           .eq('workspace_id', currentWorkspace.id)
-          .eq('owner_id', member.user_id)
-          .not('completed_at', 'is', null)
-          .gte('completed_at', startStr)
-          .lte('completed_at', endStr);
-
-        // Total cards assigned
-        const { count: totalAssigned } = await supabase
-          .from('cards')
-          .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', currentWorkspace.id)
-          .eq('owner_id', member.user_id)
-          .gte('created_at', startStr)
-          .lte('created_at', endStr);
-
-        // Time entries
-        const { data: timeEntries } = await supabase
+          .or(`created_at.gte.${startStr},completed_at.gte.${startStr}`),
+        supabase
           .from('time_entries')
-          .select('duration_seconds')
+          .select('user_id, duration_seconds')
           .eq('workspace_id', currentWorkspace.id)
-          .eq('user_id', member.user_id)
           .gte('started_at', startStr)
-          .lte('started_at', endStr);
-
-        const hoursLogged = (timeEntries || []).reduce(
-          (sum, e) => sum + e.duration_seconds / 3600,
-          0
-        );
-
-        // Get workspace cards for comment filtering
-        const { data: workspaceCards } = await supabase
-          .from('cards')
-          .select('id')
-          .eq('workspace_id', currentWorkspace.id);
-
-        const cardIds = workspaceCards?.map(c => c.id) || [];
-
-        // Comments
-        const { count: commentsCount } = await supabase
+          .lte('started_at', endStr),
+        supabase
           .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', member.user_id)
-          .in('card_id', cardIds)
+          .select('user_id, card_id')
           .gte('created_at', startStr)
-          .lte('created_at', endStr);
+          .lte('created_at', endStr),
+      ]);
 
-        stats.push({
+      const members = membersRes.data || [];
+      const cards = cardsRes.data || [];
+      const timeEntries = timeEntriesRes.data || [];
+      const comments = commentsRes.data || [];
+
+      // Filter cards by date range
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+
+      const cardsInRange = cards.filter(c => {
+        const createdAt = new Date(c.created_at);
+        return createdAt >= startDate && createdAt <= endDate;
+      });
+
+      const cardIds = new Set(cards.map(c => c.id));
+      const workspaceComments = comments.filter(c => cardIds.has(c.card_id));
+
+      // Aggregate stats per member
+      const stats: TeamMemberStats[] = members.map(member => {
+        const profile = member.profiles as any;
+        
+        // Cards created by user
+        const cardsCreated = cardsInRange.filter(c => c.created_by === member.user_id).length;
+        
+        // Cards completed (where user is owner)
+        const cardsCompleted = cards.filter(c => 
+          c.owner_id === member.user_id && 
+          c.completed_at && 
+          new Date(c.completed_at) >= startDate && 
+          new Date(c.completed_at) <= endDate
+        ).length;
+        
+        // Total cards assigned to user in period
+        const totalAssigned = cardsInRange.filter(c => c.owner_id === member.user_id).length;
+        
+        // Hours logged
+        const hoursLogged = timeEntries
+          .filter(e => e.user_id === member.user_id)
+          .reduce((sum, e) => sum + e.duration_seconds / 3600, 0);
+        
+        // Comments count
+        const commentsCount = workspaceComments.filter(c => c.user_id === member.user_id).length;
+
+        return {
           user_id: member.user_id,
           full_name: profile?.full_name || 'Usuário',
           avatar_url: profile?.avatar_url,
-          cards_created: cardsCreated || 0,
-          cards_completed: cardsCompleted || 0,
+          cards_created: cardsCreated,
+          cards_completed: cardsCompleted,
           hours_logged: Math.round(hoursLogged * 10) / 10,
-          comments: commentsCount || 0,
+          comments: commentsCount,
           completion_rate: totalAssigned 
-            ? Math.round(((cardsCompleted || 0) / totalAssigned) * 100) 
+            ? Math.round((cardsCompleted / totalAssigned) * 100) 
             : 0,
-        });
-      }
+        };
+      });
 
       return stats.sort((a, b) => b.cards_completed - a.cards_completed);
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 60 * 1000,
   });
 
   const { data: summaryStats, isLoading: isLoadingSummary } = useQuery({
-    queryKey: ['analytics-summary', currentWorkspace?.id, dateRange.start, dateRange.end],
+    queryKey: ['analytics-summary', currentWorkspace?.id, dateRange.start.toISOString(), dateRange.end.toISOString()],
     queryFn: async () => {
       if (!currentWorkspace?.id) return null;
 
       const startStr = dateRange.start.toISOString();
       const endStr = dateRange.end.toISOString();
 
-      // Total cards created
-      const { count: totalCardsCreated } = await supabase
-        .from('cards')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('created_at', startStr)
-        .lte('created_at', endStr);
+      // Fetch all summary data in parallel
+      const [cardsCreatedRes, cardsCompletedRes, timeEntriesRes, badgesRes] = await Promise.all([
+        supabase
+          .from('cards')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', currentWorkspace.id)
+          .gte('created_at', startStr)
+          .lte('created_at', endStr),
+        supabase
+          .from('cards')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', currentWorkspace.id)
+          .not('completed_at', 'is', null)
+          .gte('completed_at', startStr)
+          .lte('completed_at', endStr),
+        supabase
+          .from('time_entries')
+          .select('user_id, duration_seconds')
+          .eq('workspace_id', currentWorkspace.id)
+          .gte('started_at', startStr)
+          .lte('started_at', endStr),
+        supabase
+          .from('user_badges')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', currentWorkspace.id)
+          .gte('earned_at', startStr)
+          .lte('earned_at', endStr),
+      ]);
 
-      // Total cards completed
-      const { count: totalCardsCompleted } = await supabase
-        .from('cards')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', currentWorkspace.id)
-        .not('completed_at', 'is', null)
-        .gte('completed_at', startStr)
-        .lte('completed_at', endStr);
+      const totalCardsCreated = cardsCreatedRes.count || 0;
+      const totalCardsCompleted = cardsCompletedRes.count || 0;
+      const timeEntries = timeEntriesRes.data || [];
+      const badgesEarned = badgesRes.count || 0;
 
-      // Total hours logged
-      const { data: allTimeEntries } = await supabase
-        .from('time_entries')
-        .select('duration_seconds')
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('started_at', startStr)
-        .lte('started_at', endStr);
-
-      const totalHours = (allTimeEntries || []).reduce(
-        (sum, e) => sum + e.duration_seconds / 3600,
-        0
-      );
-
-      // Active users (who did something in the period)
-      const { data: activeUsers } = await supabase
-        .from('time_entries')
-        .select('user_id')
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('started_at', startStr)
-        .lte('started_at', endStr);
-
-      const uniqueActiveUsers = new Set(activeUsers?.map(u => u.user_id) || []);
-
-      // Badges earned
-      const { count: badgesEarned } = await supabase
-        .from('user_badges')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('earned_at', startStr)
-        .lte('earned_at', endStr);
+      const totalHours = timeEntries.reduce((sum, e) => sum + e.duration_seconds / 3600, 0);
+      const uniqueActiveUsers = new Set(timeEntries.map(u => u.user_id));
 
       return {
-        totalCardsCreated: totalCardsCreated || 0,
-        totalCardsCompleted: totalCardsCompleted || 0,
+        totalCardsCreated,
+        totalCardsCompleted,
         totalHours: Math.round(totalHours * 10) / 10,
         activeUsers: uniqueActiveUsers.size,
-        badgesEarned: badgesEarned || 0,
+        badgesEarned,
         completionRate: totalCardsCreated 
-          ? Math.round(((totalCardsCompleted || 0) / totalCardsCreated) * 100) 
+          ? Math.round((totalCardsCompleted / totalCardsCreated) * 100) 
           : 0,
       };
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 60 * 1000,
   });
 
   return {
