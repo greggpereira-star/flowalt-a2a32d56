@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Clock, 
-  Users, 
-  CheckCircle2, 
+import {
+  BarChart3,
+  TrendingUp,
+  Clock,
+  Users,
+  CheckCircle2,
   FileText,
   Award,
   Calendar
@@ -61,7 +61,8 @@ export default function AnalyticsPage() {
     }
   };
 
-  const dateRange = getDateRange(dateRangeOption);
+  // IMPORTANT: memoize dateRange to avoid infinite refetch loops (now changes on every render)
+  const dateRange = useMemo(() => getDateRange(dateRangeOption), [dateRangeOption]);
   const { dailyMetrics, teamStats, summaryStats, isLoading } = useAnalytics(dateRange);
 
   const getInitials = (name: string) => {
