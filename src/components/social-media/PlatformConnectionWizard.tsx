@@ -683,18 +683,26 @@ export function PlatformConnectionWizard({
           sessionStorage.setItem('meta_oauth_scope_strategy', scopeStrategy);
         }
         
-        // Redirect to OAuth provider
+        // Redirect to OAuth provider - Facebook blocks iframes, so we must handle this carefully
         try {
-          if (window.top && window.top !== window) {
-            window.top.location.href = data.auth_url;
+          // Check if we're in an iframe (preview environment)
+          const isInIframe = window.self !== window.top;
+          
+          if (isInIframe) {
+            // In iframe: try to navigate top-level window first, fallback to new tab
+            try {
+              window.top!.location.href = data.auth_url;
+            } catch {
+              // Cross-origin iframe - open in new tab
+              window.open(data.auth_url, '_blank', 'noopener,noreferrer');
+            }
           } else {
+            // Not in iframe: navigate directly
             window.location.href = data.auth_url;
           }
         } catch {
-          const win = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
-          if (!win) {
-            window.location.href = data.auth_url;
-          }
+          // Last resort: open in new tab
+          window.open(data.auth_url, '_blank', 'noopener,noreferrer');
         }
       } else {
         throw new Error('Nenhuma URL de autenticação recebida. Verifique as credenciais da plataforma.');
@@ -1051,14 +1059,11 @@ export function PlatformConnectionWizard({
                   </p>
 
                   {mode === 'add_accounts' && isMetaPlatform && (
-                    <Alert className="text-left">
+                    <Alert className="text-left mb-4">
                       <Info className="h-4 w-4" />
                       <AlertTitle>Adicionar páginas de outro portfólio</AlertTitle>
-                      <AlertDescription className="text-xs whitespace-pre-wrap">
-                        Para aparecerem páginas como Vitaherb/Peticolé, você precisa autenticar com o perfil do Facebook que é admin dessas páginas.
-                        Na tela do Facebook/Meta:
-                        • clique em “Não é você?” para trocar de conta, se necessário
-                        • clique em “Editar configurações” e marque as páginas/ativos do outro portfólio
+                      <AlertDescription className="text-xs">
+                        Para conectar páginas de outro portfólio empresarial, na tela do Facebook/Meta clique em "Não é você?" para trocar de conta ou em "Editar configurações" para selecionar outros ativos.
                       </AlertDescription>
                     </Alert>
                   )}
