@@ -27,6 +27,7 @@ import { PlatformConnector } from '@/components/social-media/PlatformConnector';
 import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
 import { PostList } from '@/components/social-media/PostList';
 import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
+import { SocialReportsPage } from '@/components/social-media/SocialReportsPage';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
@@ -331,25 +332,9 @@ export function MarketingPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="reports" className="flex-1 m-0 p-6">
+        <TabsContent value="reports" className="flex-1 m-0 p-6 overflow-auto">
           {hasSocialReports ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Relatórios
-                  <Badge className="ml-2">Enterprise</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Gere relatórios detalhados por cliente, período e plataforma
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center py-12 text-muted-foreground">
-                  Gerador de relatórios disponível em breve
-                </p>
-              </CardContent>
-            </Card>
+            <SocialReportsPage />
           ) : (
             <EntitlementGate entitlementKey="social_reports">
               <div />

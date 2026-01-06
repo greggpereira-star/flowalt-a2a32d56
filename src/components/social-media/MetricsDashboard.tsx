@@ -167,37 +167,77 @@ export function MetricsDashboard() {
     }
   }, [selectedAsset, selectedAssetHasMetrics, isSyncing, syncAssetMetrics]);
 
-  // Calculate aggregated metrics from account_metrics
-  const aggregatedAccountMetrics = React.useMemo(() => {
+  // Calculate metrics based on selected asset or aggregate all
+  const selectedAccountMetrics = React.useMemo(() => {
     if (!accountMetrics || accountMetrics.length === 0) {
-      return { totalFollowers: 0, totalReach: 0, totalImpressions: 0, totalEngagements: 0 };
+      return { totalFollowers: 0, totalReach: 0, totalImpressions: 0, totalEngagements: 0, postsCount: 0 };
     }
 
+    // If a specific asset is selected, find its metrics
+    if (selectedAsset !== 'all') {
+      const asset = individualAssets?.find(a => a.id === selectedAsset);
+      if (asset) {
+        for (const account of accountMetrics) {
+          if (!account.account_metrics) continue;
+          
+          for (const [, metrics] of Object.entries(account.account_metrics)) {
+            const m = metrics as unknown as { 
+              asset_id?: string;
+              followers?: number; 
+              page_reach?: number; 
+              page_impressions?: number; 
+              page_engagements?: number;
+              posts_count?: number;
+            };
+            if (m.asset_id === asset.asset_external_id) {
+              return {
+                totalFollowers: m.followers || 0,
+                totalReach: m.page_reach || 0,
+                totalImpressions: m.page_impressions || 0,
+                totalEngagements: m.page_engagements || 0,
+                postsCount: m.posts_count || 0,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // Aggregate all metrics
     let totalFollowers = 0;
     let totalReach = 0;
     let totalImpressions = 0;
     let totalEngagements = 0;
+    let postsCount = 0;
+    const seen = new Set<string>();
 
     for (const account of accountMetrics) {
       if (!account.account_metrics) continue;
       
       for (const [, metrics] of Object.entries(account.account_metrics)) {
-        const m = metrics as unknown as { followers?: number; page_reach?: number; page_impressions?: number; page_engagements?: number };
+        const m = metrics as unknown as { 
+          asset_id?: string;
+          followers?: number; 
+          page_reach?: number; 
+          page_impressions?: number; 
+          page_engagements?: number;
+          posts_count?: number;
+        };
+        
+        // Deduplicate by asset_id
+        if (m.asset_id && seen.has(m.asset_id)) continue;
+        if (m.asset_id) seen.add(m.asset_id);
+        
         totalFollowers += m.followers || 0;
         totalReach += m.page_reach || 0;
         totalImpressions += m.page_impressions || 0;
         totalEngagements += m.page_engagements || 0;
+        postsCount += m.posts_count || 0;
       }
     }
 
-    // Deduplicate (same metrics appear twice in some cases)
-    return { 
-      totalFollowers: Math.round(totalFollowers / 2), 
-      totalReach: Math.round(totalReach / 2), 
-      totalImpressions: Math.round(totalImpressions / 2), 
-      totalEngagements: Math.round(totalEngagements / 2) 
-    };
-  }, [accountMetrics]);
+    return { totalFollowers, totalReach, totalImpressions, totalEngagements, postsCount };
+  }, [accountMetrics, selectedAsset, individualAssets]);
 
   // Handle manual sync - optionally filter by selected asset
   const handleSyncMetrics = async () => {
@@ -279,7 +319,7 @@ export function MetricsDashboard() {
 
   // Check if we have real data
   const hasPostData = posts && posts.length > 0;
-  const hasAccountData = aggregatedAccountMetrics.totalFollowers > 0;
+  const hasAccountData = selectedAccountMetrics.totalFollowers > 0;
 
   // Get platform icon
   const getPlatformIcon = (platform: string) => {
@@ -423,28 +463,30 @@ export function MetricsDashboard() {
       {/* KPI Cards - Show account metrics if no post data */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <MetricCard
-          title="Seguidores Totais"
-          value={hasAccountData ? aggregatedAccountMetrics.totalFollowers : summary.totalReach}
+          title={selectedAsset !== 'all' ? "Seguidores" : "Seguidores Totais"}
+          value={hasAccountData ? selectedAccountMetrics.totalFollowers : summary.totalReach}
           icon={Users}
         />
         <MetricCard
-          title={hasPostData ? "Alcance Total" : "Alcance (28 dias)"}
-          value={hasPostData ? summary.totalReach : aggregatedAccountMetrics.totalReach}
+          title="Publicações"
+          value={selectedAccountMetrics.postsCount || 0}
           icon={Eye}
         />
         <MetricCard
-          title={hasPostData ? "Impressões" : "Impressões (28 dias)"}
-          value={hasPostData ? summary.totalImpressions : aggregatedAccountMetrics.totalImpressions}
+          title="Alcance (28 dias)"
+          value={hasPostData ? summary.totalReach : selectedAccountMetrics.totalReach}
           icon={Eye}
         />
         <MetricCard
-          title={hasPostData ? "Curtidas" : "Engajamentos"}
-          value={hasPostData ? summary.totalLikes : aggregatedAccountMetrics.totalEngagements}
-          icon={Heart}
+          title="Impressões (28 dias)"
+          value={hasPostData ? summary.totalImpressions : selectedAccountMetrics.totalImpressions}
+          icon={Eye}
         />
         <MetricCard
           title="Taxa de Engajamento"
-          value={summary.avgEngagementRate}
+          value={selectedAccountMetrics.totalFollowers > 0 
+            ? (selectedAccountMetrics.totalEngagements / selectedAccountMetrics.totalFollowers) * 100 
+            : summary.avgEngagementRate}
           icon={TrendingUp}
           format="percent"
         />
