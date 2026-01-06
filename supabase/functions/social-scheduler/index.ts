@@ -77,34 +77,79 @@ function getMediaUrl(media: unknown, type: 'image' | 'video'): string | null {
 }
 
 // Poll for container status (IG requires this)
+// Error 2207082 and similar indicate media processing issues - need detailed error capture
 async function pollContainerStatus(
   containerId: string,
   accessToken: string,
-  maxAttempts = 10,
-  delayMs = 3000
-): Promise<{ ready: boolean; error?: string }> {
+  maxAttempts = 20,  // Increased for video processing
+  delayMs = 5000     // Increased delay for video
+): Promise<{ ready: boolean; error?: string; errorCode?: string }> {
+  console.log(`[pollContainerStatus] Starting poll for container ${containerId}, max attempts: ${maxAttempts}`);
+  
   for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(
-      `https://graph.facebook.com/v${GRAPH_VERSION}/${containerId}?fields=status_code,status&access_token=${accessToken}`
-    );
-    
-    if (!response.ok) {
-      return { ready: false, error: 'Failed to check container status' };
+    try {
+      // Request more fields for better error diagnosis
+      const response = await fetch(
+        `https://graph.facebook.com/v${GRAPH_VERSION}/${containerId}?fields=id,status_code,status&access_token=${accessToken}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData?.error?.message || 'Failed to check container status';
+        const errorSubcode = errorData?.error?.error_subcode;
+        console.error(`[pollContainerStatus] HTTP ${response.status} on attempt ${i + 1}: ${errorMsg} (subcode: ${errorSubcode})`);
+        
+        // If it's a specific error code, return it for better handling
+        if (errorSubcode) {
+          return { 
+            ready: false, 
+            error: `Error: ${errorData?.error?.error_user_msg || errorMsg} (code ${errorSubcode})`,
+            errorCode: errorSubcode.toString()
+          };
+        }
+        return { ready: false, error: errorMsg };
+      }
+      
+      const data = await response.json();
+      console.log(`[pollContainerStatus] Attempt ${i + 1}/${maxAttempts}: status_code=${data.status_code}, status=${data.status || 'N/A'}`);
+      
+      if (data.status_code === 'FINISHED') {
+        console.log(`[pollContainerStatus] Container ${containerId} is FINISHED`);
+        return { ready: true };
+      } else if (data.status_code === 'ERROR') {
+        // Parse error details from status string
+        // Format usually: "An unknown error occurred." or "Media upload has failed with error code XXXX"
+        const statusMsg = data.status || 'Container processing failed';
+        const codeMatch = statusMsg.match(/error code (\d+)/i);
+        const errorCode = codeMatch ? codeMatch[1] : undefined;
+        
+        console.error(`[pollContainerStatus] Container ${containerId} ERROR: ${statusMsg}`);
+        return { 
+          ready: false, 
+          error: `Error: ${statusMsg}`,
+          errorCode 
+        };
+      } else if (data.status_code === 'IN_PROGRESS') {
+        console.log(`[pollContainerStatus] Container ${containerId} still processing...`);
+      } else if (data.status_code === 'EXPIRED') {
+        console.error(`[pollContainerStatus] Container ${containerId} EXPIRED`);
+        return { ready: false, error: 'Container expired. Please try again.' };
+      }
+      
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    } catch (fetchError) {
+      console.error(`[pollContainerStatus] Fetch error on attempt ${i + 1}:`, fetchError);
+      // Continue trying unless we've exhausted attempts
+      if (i === maxAttempts - 1) {
+        return { ready: false, error: 'Network error during container status check' };
+      }
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
-    
-    const data = await response.json();
-    
-    if (data.status_code === 'FINISHED') {
-      return { ready: true };
-    } else if (data.status_code === 'ERROR') {
-      return { ready: false, error: data.status || 'Container processing failed' };
-    }
-    
-    // Wait before next check
-    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
   
-  return { ready: false, error: 'Container processing timeout' };
+  console.error(`[pollContainerStatus] Container ${containerId} timed out after ${maxAttempts} attempts`);
+  return { ready: false, error: `Container processing timeout after ${maxAttempts * delayMs / 1000}s. Video may be too large or invalid format.` };
 }
 
 // ============================================
@@ -537,12 +582,17 @@ async function publishInstagramFeed(
   accessToken: string,
   post: SocialPost
 ): Promise<PublishResult> {
+  console.log(`[publishInstagramFeed] Starting feed post for IG user ${igUserId}`);
+  
   const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
   const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
   
   const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
   const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+  const isVideo = !!videoUrl;
   const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
+
+  console.log(`[publishInstagramFeed] Media type: ${isVideo ? 'video' : 'image'}, URL: ${isVideo ? videoUrl : imageUrl}`);
 
   const containerParams = new URLSearchParams();
   containerParams.set('caption', caption);
@@ -563,6 +613,7 @@ async function publishInstagramFeed(
   }
 
   // Step 1: Create container
+  console.log(`[publishInstagramFeed] Creating container...`);
   const containerResponse = await fetch(
     `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
     { method: 'POST', body: containerParams }
@@ -570,29 +621,43 @@ async function publishInstagramFeed(
 
   if (!containerResponse.ok) {
     const error = await containerResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_CONTAINER_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to create media container';
+    
+    console.error(`[publishInstagramFeed] Container creation failed: ${errorMsg} (code: ${errorCode})`);
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_CONTAINER_ERROR',
-      error_message: error.error?.message || 'Failed to create media container',
-      retryable: true,
+      error_code: errorCode,
+      error_message: errorMsg,
+      retryable: !['2207026', '2207004', '2207005', '2207009'].includes(errorCode),
     };
   }
 
   const containerResult = await containerResponse.json();
   const creationId = containerResult.id;
+  console.log(`[publishInstagramFeed] Container created: ${creationId}`);
 
   // Step 2: Poll for container ready
-  const pollResult = await pollContainerStatus(creationId, accessToken);
+  // Videos need more time: 40 attempts * 5s = 200 seconds max
+  const maxAttempts = isVideo ? 40 : 20;
+  const pollDelay = 5000;
+  
+  console.log(`[publishInstagramFeed] Polling with ${maxAttempts} attempts, ${pollDelay}ms delay`);
+  const pollResult = await pollContainerStatus(creationId, accessToken, maxAttempts, pollDelay);
+  
   if (!pollResult.ready) {
+    console.error(`[publishInstagramFeed] Container processing failed: ${pollResult.error}`);
     return {
       success: false,
-      error_code: 'IG_CONTAINER_PROCESSING',
+      error_code: pollResult.errorCode || 'IG_CONTAINER_PROCESSING',
       error_message: pollResult.error || 'Container processing failed',
-      retryable: true,
+      retryable: !pollResult.errorCode || !['2207026', '2207004', '2207005', '2207009'].includes(pollResult.errorCode),
     };
   }
 
   // Step 3: Publish
+  console.log(`[publishInstagramFeed] Container ready, publishing...`);
   const publishParams = new URLSearchParams();
   publishParams.set('creation_id', creationId);
   publishParams.set('access_token', accessToken);
@@ -604,15 +669,22 @@ async function publishInstagramFeed(
 
   if (!publishResponse.ok) {
     const error = await publishResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_PUBLISH_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to publish';
+    
+    console.error(`[publishInstagramFeed] Publish failed: ${errorMsg} (code: ${errorCode})`);
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_PUBLISH_ERROR',
-      error_message: error.error?.message || 'Failed to publish',
+      error_code: errorCode,
+      error_message: errorMsg,
       retryable: true,
     };
   }
 
   const publishResult = await publishResponse.json();
+  console.log(`[publishInstagramFeed] Post published successfully: ${publishResult.id}`);
+  
   return {
     success: true,
     platform_post_id: publishResult.id,
@@ -625,6 +697,8 @@ async function publishInstagramReel(
   accessToken: string,
   post: SocialPost
 ): Promise<PublishResult> {
+  console.log(`[publishInstagramReel] Starting reel publish for IG user ${igUserId}`);
+  
   const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
   const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
 
@@ -637,12 +711,20 @@ async function publishInstagramReel(
     };
   }
 
+  console.log(`[publishInstagramReel] Video URL: ${videoUrl}`);
   const caption = post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : '');
 
   // Get cover image if available
   const coverMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
   const coverUrl = coverMedia ? getMediaUrl(coverMedia, 'image') : null;
 
+  // Instagram Reel requirements:
+  // - Max 300MB file size
+  // - Max 15 minutes duration
+  // - Min 3 seconds duration
+  // - H.264 or HEVC codec
+  // - MP4 or MOV container
+  
   // Create Reel container
   const containerBody: Record<string, string> = {
     video_url: videoUrl,
@@ -653,8 +735,10 @@ async function publishInstagramReel(
 
   if (coverUrl) {
     containerBody.cover_url = coverUrl;
+    console.log(`[publishInstagramReel] Cover URL: ${coverUrl}`);
   }
 
+  console.log(`[publishInstagramReel] Creating container...`);
   const containerResponse = await fetch(
     `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media`,
     {
@@ -666,29 +750,61 @@ async function publishInstagramReel(
 
   if (!containerResponse.ok) {
     const error = await containerResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_REEL_CONTAINER_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to create Reel container';
+    
+    console.error(`[publishInstagramReel] Container creation failed: ${errorMsg} (code: ${errorCode})`);
+    
+    // Check for specific video errors
+    if (errorCode === '2207052') {
+      return {
+        success: false,
+        error_code: errorCode,
+        error_message: 'Could not download video from URL. Make sure the video URL is publicly accessible.',
+        retryable: true,
+      };
+    }
+    if (errorCode === '2207026') {
+      return {
+        success: false,
+        error_code: errorCode,
+        error_message: 'Video format not supported. Use MP4 or MOV with H.264 codec, 3s-15min duration, max 300MB.',
+        retryable: false,
+      };
+    }
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_REEL_CONTAINER_ERROR',
-      error_message: error.error?.message || 'Failed to create Reel container',
-      retryable: true,
+      error_code: errorCode,
+      error_message: errorMsg,
+      retryable: !['2207026', '2207004', '2207005', '2207009'].includes(errorCode),
     };
   }
 
   const containerResult = await containerResponse.json();
   const creationId = containerResult.id;
+  console.log(`[publishInstagramReel] Container created: ${creationId}`);
 
-  // Poll for processing (Reels take longer)
-  const pollResult = await pollContainerStatus(creationId, accessToken, 20, 5000);
+  // Poll for processing - Reels can be up to 15 minutes, need longer timeout
+  // 60 attempts * 5 seconds = 5 minutes max wait
+  const maxAttempts = 60;
+  const pollDelay = 5000;
+  
+  console.log(`[publishInstagramReel] Polling with ${maxAttempts} attempts, ${pollDelay}ms delay`);
+  const pollResult = await pollContainerStatus(creationId, accessToken, maxAttempts, pollDelay);
+  
   if (!pollResult.ready) {
+    console.error(`[publishInstagramReel] Container processing failed: ${pollResult.error}`);
     return {
       success: false,
-      error_code: 'IG_REEL_PROCESSING',
+      error_code: pollResult.errorCode || 'IG_REEL_PROCESSING',
       error_message: pollResult.error || 'Reel processing failed',
-      retryable: true,
+      retryable: !pollResult.errorCode || !['2207026', '2207004', '2207005', '2207009'].includes(pollResult.errorCode),
     };
   }
 
   // Publish
+  console.log(`[publishInstagramReel] Container ready, publishing...`);
   const publishResponse = await fetch(
     `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
     {
@@ -703,15 +819,22 @@ async function publishInstagramReel(
 
   if (!publishResponse.ok) {
     const error = await publishResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_REEL_PUBLISH_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to publish Reel';
+    
+    console.error(`[publishInstagramReel] Publish failed: ${errorMsg} (code: ${errorCode})`);
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_REEL_PUBLISH_ERROR',
-      error_message: error.error?.message || 'Failed to publish Reel',
+      error_code: errorCode,
+      error_message: errorMsg,
       retryable: true,
     };
   }
 
   const publishResult = await publishResponse.json();
+  console.log(`[publishInstagramReel] Reel published successfully: ${publishResult.id}`);
+  
   return {
     success: true,
     platform_post_id: publishResult.id,
@@ -724,11 +847,16 @@ async function publishInstagramStory(
   accessToken: string,
   post: SocialPost
 ): Promise<PublishResult> {
+  console.log(`[publishInstagramStory] Starting story publish for IG user ${igUserId}`);
+  
   const imageMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'image'));
   const videoMedia = post.media_urls?.find((m: unknown) => getMediaUrl(m, 'video'));
   
   const imageUrl = imageMedia ? getMediaUrl(imageMedia, 'image') : null;
   const videoUrl = videoMedia ? getMediaUrl(videoMedia, 'video') : null;
+  const isVideo = !!videoUrl;
+
+  console.log(`[publishInstagramStory] Media type: ${isVideo ? 'video' : 'image'}, URL: ${isVideo ? videoUrl : imageUrl}`);
 
   const containerBody: Record<string, string> = {
     media_type: 'STORIES',
@@ -736,9 +864,17 @@ async function publishInstagramStory(
   };
 
   if (videoUrl) {
+    // Instagram Story video requirements:
+    // - Max 100MB file size
+    // - Max 60 seconds duration
+    // - Min 3 seconds duration
+    // - H.264 or HEVC codec
+    // - MP4 or MOV container
     containerBody.video_url = videoUrl;
+    console.log(`[publishInstagramStory] Creating video story container`);
   } else if (imageUrl) {
     containerBody.image_url = imageUrl;
+    console.log(`[publishInstagramStory] Creating image story container`);
   } else {
     return {
       success: false,
@@ -760,28 +896,66 @@ async function publishInstagramStory(
 
   if (!containerResponse.ok) {
     const error = await containerResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_STORY_CONTAINER_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to create Story container';
+    
+    console.error(`[publishInstagramStory] Container creation failed: ${errorMsg} (code: ${errorCode})`);
+    
+    // Check for specific video errors
+    if (errorCode === '2207052') {
+      return {
+        success: false,
+        error_code: errorCode,
+        error_message: 'Could not download video from URL. Make sure the video URL is publicly accessible and valid.',
+        retryable: true,
+      };
+    }
+    if (errorCode === '2207026') {
+      return {
+        success: false,
+        error_code: errorCode,
+        error_message: 'Video format not supported. Use MP4 or MOV with H.264 codec, max 60 seconds, max 100MB.',
+        retryable: false,
+      };
+    }
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_STORY_CONTAINER_ERROR',
-      error_message: error.error?.message || 'Failed to create Story container',
+      error_code: errorCode,
+      error_message: errorMsg,
       retryable: true,
     };
   }
 
   const containerResult = await containerResponse.json();
   const creationId = containerResult.id;
+  console.log(`[publishInstagramStory] Container created: ${creationId}`);
 
-  // Poll for processing
-  const pollResult = await pollContainerStatus(creationId, accessToken);
+  // Poll for processing - videos need more time and longer intervals
+  // For video stories: max 60 attempts * 5 seconds = 5 minutes max wait
+  // For images: default 20 attempts * 5 seconds = 100 seconds max wait  
+  const maxAttempts = isVideo ? 60 : 20;
+  const pollDelay = 5000; // 5 seconds between polls
+  
+  console.log(`[publishInstagramStory] Starting poll with ${maxAttempts} attempts, ${pollDelay}ms delay`);
+  const pollResult = await pollContainerStatus(creationId, accessToken, maxAttempts, pollDelay);
+  
   if (!pollResult.ready) {
+    console.error(`[publishInstagramStory] Container processing failed: ${pollResult.error}`);
+    
+    // Determine if error is retryable based on error code
+    const isRetryable = !pollResult.errorCode || !['2207026', '2207004', '2207005', '2207009'].includes(pollResult.errorCode);
+    
     return {
       success: false,
-      error_code: 'IG_STORY_PROCESSING',
+      error_code: pollResult.errorCode || 'IG_STORY_PROCESSING',
       error_message: pollResult.error || 'Story processing failed',
-      retryable: true,
+      retryable: isRetryable,
     };
   }
 
+  console.log(`[publishInstagramStory] Container ready, publishing...`);
+  
   // Publish
   const publishResponse = await fetch(
     `https://graph.facebook.com/v${GRAPH_VERSION}/${igUserId}/media_publish`,
@@ -797,15 +971,22 @@ async function publishInstagramStory(
 
   if (!publishResponse.ok) {
     const error = await publishResponse.json();
+    const errorCode = error.error?.error_subcode?.toString() || error.error?.code?.toString() || 'IG_STORY_PUBLISH_ERROR';
+    const errorMsg = error.error?.error_user_msg || error.error?.message || 'Failed to publish Story';
+    
+    console.error(`[publishInstagramStory] Publish failed: ${errorMsg} (code: ${errorCode})`);
+    
     return {
       success: false,
-      error_code: error.error?.code?.toString() || 'IG_STORY_PUBLISH_ERROR',
-      error_message: error.error?.message || 'Failed to publish Story',
+      error_code: errorCode,
+      error_message: errorMsg,
       retryable: true,
     };
   }
 
   const publishResult = await publishResponse.json();
+  console.log(`[publishInstagramStory] Story published successfully: ${publishResult.id}`);
+  
   return {
     success: true,
     platform_post_id: publishResult.id,
