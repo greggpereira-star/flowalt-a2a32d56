@@ -635,6 +635,8 @@ export function PlatformConnectionWizard({
           workspace_id: currentWorkspace.id,
           return_url: `${window.location.origin}${window.location.pathname}`,
           scope_strategy: isMetaPlatform ? scopeStrategy : undefined,
+          // When adding accounts/pages, force Meta to show login again so the user can switch profile/portfolio
+          meta_auth_type: isMetaPlatform && mode === 'add_accounts' ? 'reauthenticate' : 'rerequest',
         },
       });
 
@@ -1047,6 +1049,19 @@ export function PlatformConnectionWizard({
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
                     Siga os passos abaixo para conectar sua conta:
                   </p>
+
+                  {mode === 'add_accounts' && isMetaPlatform && (
+                    <Alert className="text-left">
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Adicionar páginas de outro portfólio</AlertTitle>
+                      <AlertDescription className="text-xs whitespace-pre-wrap">
+                        Para aparecerem páginas como Vitaherb/Peticolé, você precisa autenticar com o perfil do Facebook que é admin dessas páginas.
+                        Na tela do Facebook/Meta:
+                        • clique em “Não é você?” para trocar de conta, se necessário
+                        • clique em “Editar configurações” e marque as páginas/ativos do outro portfólio
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
 
                 <div className="space-y-3">
