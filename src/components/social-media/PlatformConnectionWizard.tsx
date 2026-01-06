@@ -630,7 +630,9 @@ export function PlatformConnectionWizard({
     };
 
     if (isMetaPlatform && isInIframe) {
-      preopenedOAuthWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      // IMPORTANT: Do NOT use 'noopener' here - we need to keep reference to navigate the window later
+      // We use a named window so we can reference it and set the location after getting auth_url
+      preopenedOAuthWindow = window.open('about:blank', 'oauth_popup');
       if (!preopenedOAuthWindow) {
         toast.error('Popup bloqueado', {
           description: 'Permita popups para este site e tente novamente.',
@@ -640,6 +642,8 @@ export function PlatformConnectionWizard({
         setIsConnecting(false);
         return;
       }
+      // Show loading message while we fetch the auth URL
+      preopenedOAuthWindow.document.write('<html><body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;"><p>Carregando autenticação...</p></body></html>');
     }
 
     try {
