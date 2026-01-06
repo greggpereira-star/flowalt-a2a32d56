@@ -376,13 +376,25 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    logger.info("Starting metrics synchronization");
+    // Parse request body for optional filters
+    let assetIdFilter: string | null = null;
+    let forceSync = false;
+    
+    try {
+      const body = await req.json();
+      assetIdFilter = body.asset_id || null;
+      forceSync = body.force === true;
+    } catch {
+      // No body or invalid JSON - proceed without filter
+    }
+
+    logger.info("Starting metrics synchronization", { assetIdFilter, forceSync });
 
     // ==========================================
     // PART 1: Sync account-level metrics (followers, etc.)
     // Uses social_platform_assets to get the real IG/FB accounts
     // ==========================================
-    const { data: activeAssets } = await supabase
+    let assetsQuery = supabase
       .from("social_platform_assets")
       .select(`
         id, 
@@ -397,11 +409,18 @@ serve(async (req) => {
         )
       `)
       .eq("is_active", true)
-      .in("asset_type", ["instagram_business", "facebook_page"])
-      .limit(20);
+      .in("asset_type", ["instagram_business", "facebook_page"]);
+    
+    // Apply asset filter if provided
+    if (assetIdFilter) {
+      assetsQuery = assetsQuery.eq("id", assetIdFilter);
+    }
+    
+    const { data: activeAssets } = await assetsQuery.limit(20);
 
     let accountsSynced = 0;
-    const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
+    // Skip 4-hour check if force sync is requested
+    const fourHoursAgo = forceSync ? Date.now() : (Date.now() - 4 * 60 * 60 * 1000);
 
     // Group assets by connection to batch updates and properly merge metrics
     const assetsByConnection = new Map<string, typeof activeAssets>();
