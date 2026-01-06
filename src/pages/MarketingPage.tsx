@@ -28,6 +28,7 @@ import { MetricsDashboard } from '@/components/social-media/MetricsDashboard';
 import { PostList } from '@/components/social-media/PostList';
 import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
 import { SocialReportsPage } from '@/components/social-media/SocialReportsPage';
+import { SocialAIInsights } from '@/components/social-media/SocialAIInsights';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
@@ -306,25 +307,9 @@ export function MarketingPage() {
           <SocialJobsPanel />
         </TabsContent>
 
-        <TabsContent value="insights" className="flex-1 m-0 p-6">
+        <TabsContent value="insights" className="flex-1 m-0 p-6 overflow-auto">
           {hasSocialInsights ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  Insights com IA
-                  <Badge className="ml-2">Enterprise</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Análises inteligentes e sugestões baseadas em dados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center py-12 text-muted-foreground">
-                  Insights serão gerados automaticamente conforme você publica conteúdo
-                </p>
-              </CardContent>
-            </Card>
+            <SocialAIInsights />
           ) : (
             <EntitlementGate entitlementKey="social_insights_ai">
               <div />
