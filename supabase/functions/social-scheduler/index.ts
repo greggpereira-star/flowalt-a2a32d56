@@ -1759,10 +1759,11 @@ serve(async (req) => {
           successCount++;
           logger.info(`Published post ${post.id} to ${post.platform}`);
         } else {
-          // Failed - check if retryable
+        // Failed - check if retryable
+          // MAX_RETRIES = 2: After 2 failed attempts, stop trying and emit permanent failure alert
           const isRetryable = result.retryable !== false && classifyError(result.error_code || 'UNKNOWN');
           const newRetryCount = (post.retry_count || 0) + 1;
-          const maxRetries = post.max_retries || 5;
+          const maxRetries = 2; // CRITICAL: Only 2 attempts then stop and alert
 
           if (isRetryable && newRetryCount < maxRetries) {
             // Schedule retry with exponential backoff (5min, 15min, 45min, 2h15m, 6h45m)
@@ -1835,22 +1836,31 @@ serve(async (req) => {
                 .eq("id", jobRecord.id);
             }
 
-            // Emit failure event
+            // Get account info for the alert
+            const accountName = (platformCreds as any)?.account_name || 'Unknown';
+            const postCaption = post.caption?.substring(0, 50) || 'Sem legenda';
+
+            // Emit PERMANENT failure event (will appear in Work Radar)
             await supabase.from("domain_events").insert({
               workspace_id: post.workspace_id,
-              event_type: "social_post.failed",
+              event_type: "social_post.permanently_failed",
               entity_type: "social_post",
               entity_id: post.id,
               payload: {
                 reason: isRetryable ? "max_retries_exceeded" : "non_retryable_error",
                 platform: post.platform,
+                account_name: accountName,
+                post_caption: postCaption,
                 error_code: result.error_code,
                 error_message: result.error_message,
                 retry_count: newRetryCount,
                 card_id: post.card_id,
                 job_id: jobId,
+                requires_attention: true,
               },
             });
+
+            logger.warn(`PERMANENT FAILURE: Post ${post.id} to @${accountName} failed after ${newRetryCount} attempts. Alert emitted.`);
 
             failedCount++;
             logger.error(`Post ${post.id} failed after ${newRetryCount} attempts: ${result.error_message}`);
