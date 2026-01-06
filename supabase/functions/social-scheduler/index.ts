@@ -1550,6 +1550,7 @@ serve(async (req) => {
           .single();
 
         // Get platform credentials for this workspace
+        // CRITICAL: Check both is_active AND connection_status to ensure the account is properly connected
         const { data: platformCreds } = await supabase
           .from("social_platforms")
           .select("*")
@@ -1558,14 +1559,17 @@ serve(async (req) => {
           .eq("is_active", true)
           .single();
 
+        // Validate platform connection status
         if (!platformCreds) {
           const errorResult = {
-            status: "error",
+            status: "failed",
             error_message: "Nenhuma conexão ativa encontrada para esta plataforma",
             error_code: "NO_CREDENTIALS",
             last_error_code: "NO_CREDENTIALS",
             last_error_message: "No active platform connection found",
             processing_completed_at: new Date().toISOString(),
+            processing_started_at: null,
+            job_id: null,
           };
 
           await supabase
@@ -1604,6 +1608,65 @@ serve(async (req) => {
           failedCount++;
           continue;
         }
+
+        // NEW VALIDATION: Check if the connection is properly connected (not disconnected or expired)
+        const connectionStatus = (platformCreds as any).connection_status;
+        const accountName = (platformCreds as any).account_name || 'Unknown';
+        
+        if (connectionStatus && connectionStatus !== 'connected' && connectionStatus !== 'pending_assets') {
+          logger.warn(`Platform connection for post ${post.id} has status '${connectionStatus}' - account @${accountName} needs reconnection`);
+          
+          const errorResult = {
+            status: "failed",
+            error_message: `Conta @${accountName} desconectada. Por favor, reconecte a conta para continuar publicando.`,
+            error_code: "ACCOUNT_DISCONNECTED",
+            last_error_code: "ACCOUNT_DISCONNECTED",
+            last_error_message: `Account ${accountName} has connection_status='${connectionStatus}'. Token may be expired or revoked.`,
+            processing_completed_at: new Date().toISOString(),
+            processing_started_at: null,
+            job_id: null,
+          };
+
+          await supabase
+            .from("social_posts")
+            .update(errorResult)
+            .eq("id", post.id);
+
+          // Update job record
+          if (jobRecord?.id) {
+            await supabase
+              .from("social_jobs")
+              .update({
+                status: "failed",
+                error_code: "ACCOUNT_DISCONNECTED",
+                error_message: `Account @${accountName} is ${connectionStatus}`,
+                latency_ms: Date.now() - postStartTime,
+                completed_at: new Date().toISOString(),
+              })
+              .eq("id", jobRecord.id);
+          }
+
+          // Emit domain event
+          await supabase.from("domain_events").insert({
+            workspace_id: post.workspace_id,
+            event_type: "social_post.failed",
+            entity_type: "social_post",
+            entity_id: post.id,
+            payload: {
+              reason: "account_disconnected",
+              platform: post.platform,
+              account_name: accountName,
+              connection_status: connectionStatus,
+              card_id: post.card_id,
+              job_id: jobId,
+            },
+          });
+
+          failedCount++;
+          continue;
+        }
+
+        logger.info(`Platform connection validated for post ${post.id}: @${accountName} status=${connectionStatus || 'connected'}`);
 
         // Attempt to publish
         const result = await publishToplatform(post, platformCreds as unknown as PlatformCredentials);
