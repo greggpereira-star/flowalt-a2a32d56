@@ -154,11 +154,17 @@ export function MetricsDashboard() {
     };
   }, [accountMetrics]);
 
-  // Handle manual sync
+  // Handle manual sync - optionally filter by selected asset
   const handleSyncMetrics = async () => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('social-metrics-sync');
+      // Build request body with optional asset filter
+      const body: { asset_id?: string; force?: boolean } = { force: true };
+      if (selectedAsset !== 'all') {
+        body.asset_id = selectedAsset;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('social-metrics-sync', { body });
       
       if (error) throw error;
       
@@ -166,10 +172,17 @@ export function MetricsDashboard() {
       await queryClient.invalidateQueries({ queryKey: ['connected-accounts-metrics'] });
       await queryClient.invalidateQueries({ queryKey: ['social-metrics-posts'] });
       await queryClient.invalidateQueries({ queryKey: ['social-top-posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['platform-assets'] });
+      
+      const accountName = selectedAsset !== 'all' 
+        ? individualAssets?.find(a => a.id === selectedAsset)?.name 
+        : null;
       
       toast({
         title: "Sincronização concluída",
-        description: `${data?.accounts_synced || 0} contas e ${data?.posts_synced || 0} posts sincronizados.`,
+        description: accountName 
+          ? `Métricas de ${accountName} atualizadas.`
+          : `${data?.accounts_synced || 0} contas sincronizadas.`,
       });
     } catch (error) {
       console.error('Sync error:', error);
