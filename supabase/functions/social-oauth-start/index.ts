@@ -309,7 +309,7 @@ serve(async (req) => {
     // Use service role for database operations
     const supabase = supabaseAdmin;
 
-    const { platform, workspace_id, return_url, scope_strategy } = await req.json();
+    const { platform, workspace_id, return_url, scope_strategy, meta_auth_type } = await req.json();
 
     if (!platform || !workspace_id) {
       return new Response(
@@ -664,9 +664,14 @@ serve(async (req) => {
       params.set('code_challenge', codeChallenge);
       params.set('code_challenge_method', 'S256');
       
-      // Add auth_type=rerequest to force permission dialog
-      // This is critical for re-auth flows when user didn't grant all scopes
-      params.set('auth_type', 'rerequest');
+      // Meta auth behavior
+      // - rerequest: re-open permissions dialog (default)
+      // - reauthenticate: forces login again (useful to switch Facebook profile / business portfolio)
+      const allowedAuthTypes = new Set(['rerequest', 'reauthenticate']);
+      const authType = (typeof meta_auth_type === 'string' && allowedAuthTypes.has(meta_auth_type))
+        ? meta_auth_type
+        : 'rerequest';
+      params.set('auth_type', authType);
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
