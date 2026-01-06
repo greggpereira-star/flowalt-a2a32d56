@@ -414,22 +414,31 @@ export function PlatformConnectionWizard({
         },
       });
 
+      console.log('[Assets:add_accounts] response:', {
+        success: data?.success,
+        assets: data?.assets?.length,
+        pages: data?.pages?.length,
+        instagram: data?.instagram?.length,
+        reason_code: data?.reason_code,
+        error_code: data?.error_code,
+      });
+
       if (error) throw error;
 
       if (data.success && data.assets) {
         // In add_accounts mode, show ALL assets so user can select from everything
         // This allows users to add new accounts from the full list
         setAvailableAssets(data.assets);
-        
+
         // Pre-select already active assets
         const activeAssetIds = new Set(activeAssets?.map(a => a.asset_id) || []);
         setSelectedAssetIds(activeAssetIds);
-        
+
         if (data.assets.length === 0) {
-          setErrorMessage('Nenhuma conta disponível. Verifique se você tem páginas/contas vinculadas.');
+          setErrorMessage(data.reason_message || 'Nenhuma conta disponível. Verifique suas permissões.');
         }
       } else {
-        setErrorMessage(data.error_message || 'Erro ao buscar ativos');
+        setErrorMessage(data.reason_message || data.error_message || 'Erro ao buscar ativos');
       }
     } catch (error: any) {
       console.error('Error fetching assets for add accounts:', error);
@@ -663,7 +672,7 @@ export function PlatformConnectionWizard({
         }
       }
 
-      // Call the OAuth start edge function
+      // Call the OAuth start backend function
       const { data, error } = await supabase.functions.invoke('social-oauth-start', {
         body: {
           platform: platformId,
@@ -673,6 +682,16 @@ export function PlatformConnectionWizard({
           // When adding accounts/pages, force Meta to show login again so the user can switch profile/portfolio
           meta_auth_type: isMetaPlatform && mode === 'add_accounts' ? 'reauthenticate' : 'rerequest',
         },
+      });
+
+      console.log('[OAuth] start response:', {
+        platform: platformId,
+        mode,
+        scopeStrategy,
+        isInIframe,
+        hasPreopenedWindow: !!preopenedOAuthWindow,
+        hasAuthUrl: !!data?.auth_url,
+        error_code: data?.error_code,
       });
 
       // Handle edge function errors
