@@ -4,6 +4,7 @@
  */
 
 export { SocialCalendar } from './SocialCalendar';
+export { SocialAIInsights } from './SocialAIInsights';
 export { PlatformConnector } from './PlatformConnector';
 export { PlatformConnectionWizard } from './PlatformConnectionWizard';
 export { MetricsDashboard } from './MetricsDashboard';
