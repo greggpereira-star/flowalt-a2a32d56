@@ -29,6 +29,7 @@ import { PostList } from '@/components/social-media/PostList';
 import { SocialJobsPanel } from '@/components/social-media/SocialJobsPanel';
 import { SocialReportsPage } from '@/components/social-media/SocialReportsPage';
 import { SocialAIInsights } from '@/components/social-media/SocialAIInsights';
+import { ScheduledPostsMonitor } from '@/components/social-media/ScheduledPostsMonitor';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { EntitlementGate } from '@/components/billing/EntitlementGate';
@@ -254,24 +255,34 @@ export function MarketingPage() {
         </TabsContent>
 
         <TabsContent value="scheduled" className="flex-1 m-0 p-6 overflow-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Postagens Agendadas
-              </CardTitle>
-              <CardDescription>
-                Visualize e gerencie suas postagens programadas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PostList 
-                posts={scheduledPosts || []} 
-                onEdit={(postId) => setEditPostId(postId)}
-                emptyMessage="Nenhuma postagem agendada. Use o calendário ou clique em 'Novo Post' para agendar."
-              />
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Monitor Panel */}
+            <div className="lg:col-span-1">
+              <ScheduledPostsMonitor />
+            </div>
+            
+            {/* Scheduled Posts List */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Postagens Agendadas
+                  </CardTitle>
+                  <CardDescription>
+                    Visualize e gerencie suas postagens programadas
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PostList 
+                    posts={scheduledPosts || []} 
+                    onEdit={(postId) => setEditPostId(postId)}
+                    emptyMessage="Nenhuma postagem agendada. Use o calendário ou clique em 'Novo Post' para agendar."
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="published" className="flex-1 m-0 p-6 overflow-auto">

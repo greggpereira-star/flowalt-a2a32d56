@@ -17,3 +17,4 @@ export { SocialAccessMessage, useSocialAccessCheck, type SocialBlockReason } fro
 export { SocialJobsPanel } from './SocialJobsPanel';
 export { EmptyPlatformState, EmptyStateInline } from './EmptyPlatformState';
 export { SocialReportsPage } from './SocialReportsPage';
+export { ScheduledPostsMonitor } from './ScheduledPostsMonitor';
