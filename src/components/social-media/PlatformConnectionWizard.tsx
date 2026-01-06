@@ -238,6 +238,8 @@ export function PlatformConnectionWizard({
   const [missingScopes, setMissingScopes] = useState<string[]>([]);
   const [grantedScopes, setGrantedScopes] = useState<string[]>([]);
   const [requestedScopes, setRequestedScopes] = useState<string[]>([]);
+  // Track whether OAuth was completed in this session (for add_accounts mode)
+  const [oauthCompletedInSession, setOauthCompletedInSession] = useState(false);
   
   const config = PLATFORM_CONFIGS[platformId];
   const steps = config.steps;
@@ -249,15 +251,62 @@ export function PlatformConnectionWizard({
   // The parent component (PlatformConnector) handles detecting the OAuth callback and opening this wizard.
   useEffect(() => {
     if (open && currentWorkspace?.id) {
-      // For add_accounts mode, go directly to the select step and fetch assets
+      // Check if we're returning from OAuth (parent passes this info via URL or props)
+      const urlParams = new URLSearchParams(window.location.search);
+      const oauthSuccess = urlParams.get('oauth_success') === 'true';
+      const oauthPlatform = urlParams.get('platform');
+      const isReturningFromOAuth = oauthSuccess && oauthPlatform === platformId;
+
       if (mode === 'add_accounts') {
-        fetchPlatformConnectionForAddAccounts();
+        if (isReturningFromOAuth) {
+          // OAuth completed successfully - go to select step and fetch new assets
+          setOauthCompletedInSession(true);
+          fetchPlatformConnectionAfterOAuth();
+        } else {
+          // First time opening - go to auth step
+          fetchPlatformConnectionForAddAccounts();
+        }
       } else {
-        // Check if there's a pending connection for this platform
+        // Normal connect mode - check if there's a pending connection for this platform
         fetchPlatformConnection();
       }
     }
   }, [open, currentWorkspace?.id, platformId, mode]);
+
+  // Fetch connection after OAuth callback (for add_accounts mode)
+  const fetchPlatformConnectionAfterOAuth = async () => {
+    if (!currentWorkspace?.id) return;
+    
+    try {
+      const { data: connections, error } = await supabase
+        .from('social_platforms')
+        .select('id, account_name, connection_status, platform_account_type')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('platform', platformId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      
+      if (connections && connections.length > 0) {
+        const conn = connections[0];
+        setPlatformConnectionId(conn.id);
+        setAccountName(conn.account_name || '');
+        
+        // Go to select step and fetch NEW assets from the updated OAuth token
+        const selectStepIndex = steps.findIndex(s => s.id === 'select');
+        if (selectStepIndex >= 0) {
+          setCurrentStep(selectStepIndex);
+          // Use fetchAssetsForAddAccounts to get fresh assets and preserve existing selections
+          await fetchAssetsForAddAccounts(conn.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching platform connection after OAuth:', error);
+      setErrorMessage('Erro ao carregar conexão após autenticação.');
+    }
+  };
 
   // If we were redirected back with an OAuth error, show a GOX message (Enterprise)
   useEffect(() => {
@@ -1103,13 +1152,13 @@ export function PlatformConnectionWizard({
               <>
                 <div className="text-center py-4">
                   <h3 className="text-lg font-semibold mb-2">
-                    Autenticação
+                    {mode === 'add_accounts' ? 'Reconectar para adicionar páginas' : 'Autenticação'}
                   </h3>
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
-                    Siga os passos abaixo para conectar sua conta:
+                    {mode === 'add_accounts' 
+                      ? 'Para adicionar páginas de outro portfólio, você precisa se autenticar novamente no Facebook/Meta e selecionar os novos ativos.'
+                      : 'Siga os passos abaixo para conectar sua conta:'}
                   </p>
-
-{/* Alert removed - system is generic for all clients */}
                 </div>
 
                 <div className="space-y-3">
@@ -1605,6 +1654,7 @@ export function PlatformConnectionWizard({
               }}
               disabled={
                 (steps[currentStep].id === 'auth' && requiresSetup) ||
+                (steps[currentStep].id === 'auth' && mode === 'add_accounts' && !oauthCompletedInSession) ||
                 (steps[currentStep].id === 'select' && selectedAssetIds.size === 0)
               }
             >
