@@ -140,7 +140,8 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       const endStr = dateRange.end.toISOString();
 
       // Fetch all data in parallel (avoid N+1 queries!)
-      const [membersRes, cardsRes, timeEntriesRes, commentsRes] = await Promise.all([
+      // NOTE: keep card queries bounded by the selected range to prevent huge payloads.
+      const [membersRes, cardsCreatedRes, cardsCompletedRes, timeEntriesRes, commentsRes] = await Promise.all([
         supabase
           .from('workspace_members')
           .select(`
@@ -154,9 +155,17 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
           .eq('is_active', true),
         supabase
           .from('cards')
-          .select('id, created_by, owner_id, created_at, completed_at')
+          .select('id, created_by, owner_id, created_at')
           .eq('workspace_id', currentWorkspace.id)
-          .or(`created_at.gte.${startStr},completed_at.gte.${startStr}`),
+          .gte('created_at', startStr)
+          .lte('created_at', endStr),
+        supabase
+          .from('cards')
+          .select('id, owner_id, completed_at')
+          .eq('workspace_id', currentWorkspace.id)
+          .not('completed_at', 'is', null)
+          .gte('completed_at', startStr)
+          .lte('completed_at', endStr),
         supabase
           .from('time_entries')
           .select('user_id, duration_seconds')
@@ -171,46 +180,31 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       ]);
 
       const members = membersRes.data || [];
-      const cards = cardsRes.data || [];
+      const cardsCreatedInRange = cardsCreatedRes.data || [];
+      const cardsCompletedInRange = cardsCompletedRes.data || [];
       const timeEntries = timeEntriesRes.data || [];
       const comments = commentsRes.data || [];
 
-      // Filter cards by date range
-      const startDate = new Date(startStr);
-      const endDate = new Date(endStr);
-
-      const cardsInRange = cards.filter(c => {
-        const createdAt = new Date(c.created_at);
-        return createdAt >= startDate && createdAt <= endDate;
-      });
-
-      const cardIds = new Set(cards.map(c => c.id));
+      // Filter comments to cards that appear in the selected period.
+      // (This avoids needing an extra "all cards in workspace" query.)
+      const cardIds = new Set<string>([
+        ...cardsCreatedInRange.map(c => c.id),
+        ...cardsCompletedInRange.map(c => c.id),
+      ]);
       const workspaceComments = comments.filter(c => cardIds.has(c.card_id));
 
       // Aggregate stats per member
       const stats: TeamMemberStats[] = members.map(member => {
         const profile = member.profiles as any;
-        
-        // Cards created by user
-        const cardsCreated = cardsInRange.filter(c => c.created_by === member.user_id).length;
-        
-        // Cards completed (where user is owner)
-        const cardsCompleted = cards.filter(c => 
-          c.owner_id === member.user_id && 
-          c.completed_at && 
-          new Date(c.completed_at) >= startDate && 
-          new Date(c.completed_at) <= endDate
-        ).length;
-        
-        // Total cards assigned to user in period
-        const totalAssigned = cardsInRange.filter(c => c.owner_id === member.user_id).length;
-        
-        // Hours logged
+
+        const cardsCreated = cardsCreatedInRange.filter(c => c.created_by === member.user_id).length;
+        const cardsCompleted = cardsCompletedInRange.filter(c => c.owner_id === member.user_id).length;
+        const totalAssigned = cardsCreatedInRange.filter(c => c.owner_id === member.user_id).length;
+
         const hoursLogged = timeEntries
           .filter(e => e.user_id === member.user_id)
           .reduce((sum, e) => sum + e.duration_seconds / 3600, 0);
-        
-        // Comments count
+
         const commentsCount = workspaceComments.filter(c => c.user_id === member.user_id).length;
 
         return {
@@ -221,11 +215,12 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
           cards_completed: cardsCompleted,
           hours_logged: Math.round(hoursLogged * 10) / 10,
           comments: commentsCount,
-          completion_rate: totalAssigned 
-            ? Math.round((cardsCompleted / totalAssigned) * 100) 
+          completion_rate: totalAssigned
+            ? Math.round((cardsCompleted / totalAssigned) * 100)
             : 0,
         };
       });
+
 
       return stats.sort((a, b) => b.cards_completed - a.cards_completed);
     },
