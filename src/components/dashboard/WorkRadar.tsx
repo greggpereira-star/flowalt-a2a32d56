@@ -10,6 +10,8 @@ import {
   Calendar,
   Zap,
   ArrowRight,
+  Instagram,
+  Share2,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +26,16 @@ const formatDuration = (seconds: number): string => {
   if (hours === 0) return `${minutes}m`;
   return `${hours}h ${minutes}m`;
 };
+
+interface FailedSocialPost {
+  id: string;
+  caption: string | null;
+  platform: string;
+  error_message: string | null;
+  retry_count: number | null;
+  updated_at: string;
+  account_name?: string;
+}
 
 export const WorkRadar: React.FC = () => {
   const navigate = useNavigate();
@@ -124,8 +136,51 @@ export const WorkRadar: React.FC = () => {
     enabled: !!currentWorkspace?.id,
   });
 
-  const isLoading = cardsLoading || timersLoading || eventsLoading;
+  // Fetch failed social media posts (retry_count >= 2 means permanently failed)
+  const { data: failedSocialPosts, isLoading: socialLoading } = useQuery({
+    queryKey: ['work-radar-social-failures', currentWorkspace?.id],
+    queryFn: async (): Promise<FailedSocialPost[]> => {
+      if (!currentWorkspace?.id) return [];
+
+      // Get posts that failed after 2+ attempts (permanently failed)
+      const { data: posts } = await supabase
+        .from('social_posts')
+        .select(`
+          id, 
+          caption, 
+          platform, 
+          error_message, 
+          retry_count, 
+          updated_at,
+          platform_connection_id
+        `)
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('status', 'failed')
+        .gte('retry_count', 2)
+        .order('updated_at', { ascending: false })
+        .limit(5);
+
+      if (!posts || posts.length === 0) return [];
+
+      // Get account names from social_platforms
+      const connectionIds = [...new Set(posts.map(p => p.platform_connection_id).filter(Boolean))];
+      const { data: platforms } = await supabase
+        .from('social_platforms')
+        .select('id, account_name')
+        .in('id', connectionIds);
+
+      return posts.map(post => ({
+        ...post,
+        account_name: platforms?.find(p => p.id === post.platform_connection_id)?.account_name,
+      }));
+    },
+    enabled: !!currentWorkspace?.id,
+    refetchInterval: 60000,
+  });
+
+  const isLoading = cardsLoading || timersLoading || eventsLoading || socialLoading;
   const criticalCount = criticalCards?.length || 0;
+  const failedSocialCount = failedSocialPosts?.length || 0;
 
   if (isLoading) {
     return (
@@ -135,7 +190,8 @@ export const WorkRadar: React.FC = () => {
             <Skeleton className="h-5 w-5" />
             <Skeleton className="h-5 w-32" />
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-4 gap-6">
+            <Skeleton className="h-24" />
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
@@ -160,7 +216,7 @@ export const WorkRadar: React.FC = () => {
         </p>
 
         {/* 3 Column Grid */}
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-4 gap-6">
           {/* Column 1: Atenção Urgente */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -243,7 +299,54 @@ export const WorkRadar: React.FC = () => {
             )}
           </div>
 
-          {/* Column 3: Agenda de Hoje */}
+          {/* Column 3: Falhas de Social Media */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Share2 className="h-3.5 w-3.5 text-pink-600" />
+              <span className="text-xs font-medium text-pink-600">Falhas de Publicação</span>
+              {failedSocialCount > 0 && (
+                <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full bg-pink-500 text-white">
+                  {failedSocialCount}
+                </Badge>
+              )}
+            </div>
+
+            {failedSocialCount === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                Nenhuma falha de publicação
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {failedSocialPosts?.slice(0, 3).map(post => (
+                  <div
+                    key={post.id}
+                    onClick={() => navigate('/marketing')}
+                    className="p-3 rounded-lg cursor-pointer transition-all duration-200 bg-pink-500/5 border-l-3 border-l-pink-500 hover:bg-pink-500/10 hover:translate-x-0.5"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {post.platform === 'instagram' ? (
+                        <Instagram className="h-3 w-3 text-pink-600" />
+                      ) : (
+                        <Share2 className="h-3 w-3 text-pink-600" />
+                      )}
+                      <span className="text-[10px] font-medium text-pink-600">
+                        {post.account_name ? `@${post.account_name}` : post.platform}
+                      </span>
+                    </div>
+                    <p className="text-xs text-foreground truncate mb-0.5">
+                      {post.caption?.substring(0, 40) || 'Sem legenda'}
+                      {(post.caption?.length || 0) > 40 && '...'}
+                    </p>
+                    <p className="text-[10px] text-pink-600">
+                      {post.retry_count || 0} tentativas falharam
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Column 4: Agenda de Hoje */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5 text-blue-600" />
