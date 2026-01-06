@@ -17,6 +17,13 @@ export interface AccountMetricsData {
   page_reach?: number;
   page_impressions?: number;
   page_engagements?: number;
+  accounts_engaged?: number;
+  total_interactions?: number;
+  likes_count?: number;
+  comments_count?: number;
+  shares_count?: number;
+  follows?: number;
+  unfollows?: number;
   asset_id: string;
   asset_name: string;
 }

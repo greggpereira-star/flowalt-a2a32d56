@@ -224,6 +224,14 @@ interface AccountMetrics {
   page_reach?: number;
   page_impressions?: number;
   page_engagements?: number;
+  // New Instagram metrics
+  accounts_engaged?: number;
+  total_interactions?: number;
+  likes_count?: number;
+  comments_count?: number;
+  shares_count?: number;
+  follows?: number;
+  unfollows?: number;
 }
 
 // Fetch account-level metrics (followers, etc.)
@@ -236,8 +244,7 @@ async function fetchAccountMetrics(
   try {
     switch (platform) {
       case 'instagram': {
-        // Instagram Business Account metrics
-        // Note: profile_views is NOT available for IG Business accounts via Graph API
+        // Instagram Business Account basic metrics
         const fields = 'followers_count,media_count,username';
         const response = await fetch(
           `https://graph.facebook.com/v24.0/${accountId}?fields=${fields}&access_token=${accessToken}`
@@ -252,33 +259,117 @@ async function fetchAccountMetrics(
         const data = await response.json();
         console.log(`Fetched IG account metrics:`, JSON.stringify(data));
         
-        // Fetch IG insights (reach, impressions) - last 28 days
+        // Initialize metrics
         let pageReach = 0;
         let pageImpressions = 0;
+        let accountsEngaged = 0;
+        let totalInteractions = 0;
+        let likesCount = 0;
+        let commentsCount = 0;
+        let sharesCount = 0;
+        let follows = 0;
+        let unfollows = 0;
+        
+        // Calculate date range - last 28 days
+        const now = Math.floor(Date.now() / 1000);
+        const since = now - (28 * 86400);
+        
+        // NEW API FORMAT: Fetch reach and views with metric_type=total_value
         try {
-          const insightsResponse = await fetch(
-            `https://graph.facebook.com/v24.0/${accountId}/insights?metric=reach,impressions&period=day&since=${Math.floor(Date.now()/1000) - 28*86400}&until=${Math.floor(Date.now()/1000)}&access_token=${accessToken}`
-          );
-          if (insightsResponse.ok) {
-            const insightsData = await insightsResponse.json();
-            for (const item of insightsData.data || []) {
-              const values = item.values || [];
-              const sum = values.reduce((acc: number, v: { value?: number }) => acc + (v.value || 0), 0);
-              if (item.name === 'reach') pageReach = sum;
-              if (item.name === 'impressions') pageImpressions = sum;
+          const reachUrl = `https://graph.facebook.com/v24.0/${accountId}/insights?metric=reach,views&metric_type=total_value&period=day&since=${since}&until=${now}&access_token=${accessToken}`;
+          console.log(`Fetching IG reach/views insights for ${accountId}`);
+          
+          const reachResponse = await fetch(reachUrl);
+          const reachText = await reachResponse.text();
+          
+          if (reachResponse.ok) {
+            const reachData = JSON.parse(reachText);
+            console.log(`IG reach/views response:`, JSON.stringify(reachData).substring(0, 500));
+            
+            for (const item of reachData.data || []) {
+              if (item.name === 'reach' && item.total_value?.value) {
+                pageReach = item.total_value.value;
+              }
+              if (item.name === 'views' && item.total_value?.value) {
+                pageImpressions = item.total_value.value;
+              }
+            }
+          } else {
+            console.error(`IG reach/views error for ${accountId}:`, reachText.substring(0, 300));
+          }
+        } catch (e) {
+          console.error('Error fetching IG reach/views:', e);
+        }
+        
+        // Fetch engagement metrics: accounts_engaged, total_interactions, likes, comments, shares
+        try {
+          const engagementUrl = `https://graph.facebook.com/v24.0/${accountId}/insights?metric=accounts_engaged,total_interactions,likes,comments,shares&metric_type=total_value&period=day&since=${since}&until=${now}&access_token=${accessToken}`;
+          console.log(`Fetching IG engagement insights for ${accountId}`);
+          
+          const engagementResponse = await fetch(engagementUrl);
+          const engagementText = await engagementResponse.text();
+          
+          if (engagementResponse.ok) {
+            const engagementData = JSON.parse(engagementText);
+            console.log(`IG engagement response:`, JSON.stringify(engagementData).substring(0, 500));
+            
+            for (const item of engagementData.data || []) {
+              const value = item.total_value?.value || 0;
+              if (item.name === 'accounts_engaged') accountsEngaged = value;
+              if (item.name === 'total_interactions') totalInteractions = value;
+              if (item.name === 'likes') likesCount = value;
+              if (item.name === 'comments') commentsCount = value;
+              if (item.name === 'shares') sharesCount = value;
+            }
+          } else {
+            console.error(`IG engagement error for ${accountId}:`, engagementText.substring(0, 300));
+          }
+        } catch (e) {
+          console.error('Error fetching IG engagement:', e);
+        }
+        
+        // Fetch follows and unfollows (requires 100+ followers)
+        try {
+          const followsUrl = `https://graph.facebook.com/v24.0/${accountId}/insights?metric=follows_and_unfollows&metric_type=total_value&breakdown=follow_type&period=day&since=${since}&until=${now}&access_token=${accessToken}`;
+          
+          const followsResponse = await fetch(followsUrl);
+          if (followsResponse.ok) {
+            const followsData = await followsResponse.json();
+            console.log(`IG follows response:`, JSON.stringify(followsData).substring(0, 500));
+            
+            for (const item of followsData.data || []) {
+              if (item.name === 'follows_and_unfollows' && item.total_value?.breakdowns) {
+                for (const breakdown of item.total_value.breakdowns) {
+                  for (const result of breakdown.results || []) {
+                    const followType = result.dimension_values?.[0];
+                    if (followType === 'FOLLOWER') follows = result.value || 0;
+                    if (followType === 'NON_FOLLOWER') unfollows = result.value || 0;
+                  }
+                }
+              }
             }
           }
         } catch (e) {
-          console.log('Could not fetch IG insights:', e);
+          console.log('Could not fetch IG follows (may need 100+ followers):', e);
         }
         
-        return {
+        const result = {
           followers: data.followers_count || 0,
           following: 0,
           posts_count: data.media_count || 0,
           page_reach: pageReach,
           page_impressions: pageImpressions,
+          accounts_engaged: accountsEngaged,
+          page_engagements: totalInteractions,
+          likes_count: likesCount,
+          comments_count: commentsCount,
+          shares_count: sharesCount,
+          follows,
+          unfollows,
         };
+        
+        console.log(`Final IG metrics for ${accountId}:`, JSON.stringify(result));
+        return result;
       }
 
       case 'facebook': {
