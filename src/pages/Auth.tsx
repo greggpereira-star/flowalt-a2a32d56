@@ -47,8 +47,9 @@ const Auth: React.FC = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      const from = (location.state as any)?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      const from = (location.state as any)?.from;
+      const redirectTo = from ? `${from.pathname}${from.search || ''}` : '/';
+      navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, location]);
 
