@@ -32,6 +32,7 @@ import FirstAccessPage from "./pages/FirstAccessPage";
 import PlatformAdminPage from "./pages/PlatformAdminPage";
 import SecurityAuditPage from "./pages/SecurityAuditPage";
 import MarketingPage from "./pages/MarketingPage";
+import OAuthBridgePage from "./pages/OAuthBridgePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import DataDeletionPage from "./pages/DataDeletionPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/invite/:token" element={<AcceptInvitePage />} />
               <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
+              <Route path="/oauth/bridge" element={<AuthGuard><OAuthBridgePage /></AuthGuard>} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/first-access" element={<AuthGuard><FirstAccessPage /></AuthGuard>} />
               <Route path="/platform" element={<AuthGuard><PlatformAdminPage /></AuthGuard>} />
