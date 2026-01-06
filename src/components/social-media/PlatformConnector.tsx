@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,12 +27,14 @@ import {
   useTestPlatformConnection,
   type PlatformWithState,
 } from '@/hooks/useSocialPlatforms';
+import { usePlatformAssets, type AssetWithConnection } from '@/hooks/usePlatformAssets';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformConnectionWizard } from './PlatformConnectionWizard';
 import { SmokeTestConsole } from './SmokeTestConsole';
+import { ConnectedAssetsModal } from './ConnectedAssetsModal';
 import type { PlatformState } from '@/lib/social/platform-state';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -56,6 +58,8 @@ import {
   Crown,
   Loader2,
   UserPlus,
+  Eye,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -209,9 +213,11 @@ function ConnectedPlatformCard({
   onSelectAsset,
   onReconnect,
   onAddAccounts,
+  onViewAssets,
   isRefreshing,
   isTesting,
   isSuperAdmin,
+  assetsCount,
 }: {
   platform: PlatformWithState;
   config: PlatformConfig;
@@ -221,24 +227,16 @@ function ConnectedPlatformCard({
   onSelectAsset: () => void;
   onReconnect: () => void;
   onAddAccounts: () => void;
+  onViewAssets: () => void;
   isRefreshing: boolean;
   isTesting: boolean;
   isSuperAdmin?: boolean;
+  assetsCount: number;
 }) {
   // Only show "Add accounts" for Meta platforms (Facebook/Instagram)
   const isMetaPlatform = config.id === 'facebook' || config.id === 'instagram';
   const Icon = config.icon;
   const badgeProps = getStateBadgeProps(platform.computedState);
-  
-  // Don't show fake account names
-  const showAccountName = platform.computedState === 'CONNECTED' || 
-    platform.computedState === 'EXPIRING' || 
-    platform.computedState === 'EXPIRED' ||
-    platform.computedState === 'ERROR';
-  
-  const hasValidAccountName = platform.account_name && 
-    !platform.account_name.includes('account_') &&
-    !platform.account_name.includes('_account');
 
   return (
     <Card className="relative overflow-hidden ring-2 ring-primary/20">
@@ -263,13 +261,28 @@ function ConnectedPlatformCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {/* Account name - only show if valid */}
-          {showAccountName && hasValidAccountName && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium truncate">
-                @{platform.account_name}
-              </span>
-            </div>
+          {/* Connected accounts count - improved UI */}
+          {(platform.computedState === 'CONNECTED' || 
+            platform.computedState === 'EXPIRING' || 
+            platform.computedState === 'EXPIRED' ||
+            platform.computedState === 'ERROR') && assetsCount > 0 && (
+            <button
+              onClick={onViewAssets}
+              className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left group"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                <Layers className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {assetsCount} {assetsCount === 1 ? 'conta conectada' : 'contas conectadas'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Clique para ver detalhes
+                </p>
+              </div>
+              <Eye className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
           )}
           
           {/* GOX Message for error states */}
@@ -541,6 +554,9 @@ export function PlatformConnector() {
     isSuperAdmin,
   } = useSocialPlatformsWithState();
   
+  // Fetch assets for all platforms
+  const { data: allAssets } = usePlatformAssets();
+  
   const disconnectPlatform = useDisconnectPlatform();
   const refreshToken = useRefreshPlatformToken();
   const testConnection = useTestPlatformConnection();
@@ -557,6 +573,19 @@ export function PlatformConnector() {
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
   const [wizardMode, setWizardMode] = useState<'connect' | 'asset_select' | 'reconnect' | 'add_accounts'>('connect');
   const [initialOauthError, setInitialOauthError] = useState<{ code: string; description?: string } | null>(null);
+  const [assetsModalOpen, setAssetsModalOpen] = useState(false);
+  const [assetsModalPlatform, setAssetsModalPlatform] = useState<{ id: PlatformId; name: string } | null>(null);
+
+  // Compute assets grouped by platform
+  const assetsByPlatform = useMemo(() => {
+    if (!allAssets) return {};
+    return allAssets.reduce((acc, asset) => {
+      const platform = asset.platform_id;
+      if (!acc[platform]) acc[platform] = [];
+      acc[platform].push(asset);
+      return acc;
+    }, {} as Record<string, AssetWithConnection[]>);
+  }, [allAssets]);
 
   // Detect OAuth callback and auto-open wizard (and apply Meta invalid-scope fallback)
   useEffect(() => {
@@ -739,6 +768,7 @@ export function PlatformConnector() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {PLATFORMS.map((config) => {
           const connected = getConnectedPlatform(config.id);
+          const platformAssets = assetsByPlatform[config.id] || [];
 
           if (connected) {
             return (
@@ -752,9 +782,14 @@ export function PlatformConnector() {
                 onSelectAsset={() => handleSelectAsset(connected, config.name)}
                 onReconnect={() => handleReconnect(config.id, config.name)}
                 onAddAccounts={() => handleAddAccounts(config.id, config.name)}
+                onViewAssets={() => {
+                  setAssetsModalPlatform({ id: config.id, name: config.name });
+                  setAssetsModalOpen(true);
+                }}
                 isRefreshing={refreshToken.isPending}
                 isTesting={testConnection.isPending}
                 isSuperAdmin={isSuperAdmin}
+                assetsCount={platformAssets.length}
               />
             );
           }
@@ -819,6 +854,17 @@ export function PlatformConnector() {
             queryClient.invalidateQueries({ queryKey: ['social-platforms'] });
             queryClient.invalidateQueries({ queryKey: ['platform-assets'] });
           }}
+        />
+      )}
+
+      {/* Connected Assets Modal */}
+      {assetsModalPlatform && (
+        <ConnectedAssetsModal
+          open={assetsModalOpen}
+          onOpenChange={setAssetsModalOpen}
+          platformName={assetsModalPlatform.name}
+          platformId={assetsModalPlatform.id}
+          assets={assetsByPlatform[assetsModalPlatform.id] || []}
         />
       )}
     </div>

@@ -2,10 +2,11 @@
  * Hook for fetching account-level metrics from connected social platforms
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { usePlatformAssets } from './usePlatformAssets';
 
 export interface AccountMetricsData {
   followers: number;
@@ -31,7 +32,8 @@ export interface ConnectedAccount {
 
 // Individual asset for dropdown selection
 export interface AssetOption {
-  id: string; // asset_id
+  id: string; // asset_id from social_platform_assets
+  asset_external_id: string; // external asset_id (e.g. Instagram Business ID)
   platform_connection_id: string;
   platform: 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube';
   asset_type: string; // instagram_business, facebook_page, etc.
@@ -73,54 +75,68 @@ export const useConnectedAccountsWithMetrics = () => {
 
 /**
  * Get individual assets for dropdown - shows each Instagram, Facebook Page individually
+ * Now uses usePlatformAssets for more reliable and up-to-date data
  */
 export const useIndividualAssets = () => {
-  const { data: accounts, isLoading } = useConnectedAccountsWithMetrics();
+  const { data: platformAssets, isLoading: assetsLoading } = usePlatformAssets();
+  const { data: accounts, isLoading: accountsLoading } = useConnectedAccountsWithMetrics();
+  const queryClient = useQueryClient();
 
+  // Merge asset data with metrics from accounts
   const assets = useMemo(() => {
-    if (!accounts) return [];
+    if (!platformAssets) return [];
 
     const result: AssetOption[] = [];
     const seen = new Set<string>();
 
-    for (const account of accounts) {
-      if (!account.account_metrics) continue;
+    for (const asset of platformAssets) {
+      // Skip duplicates
+      if (seen.has(asset.id)) continue;
+      seen.add(asset.id);
 
-      for (const [key, metrics] of Object.entries(account.account_metrics)) {
-        const m = metrics as AccountMetricsData;
-        const assetId = m.asset_id;
+      // Find matching metrics from accounts
+      const account = accounts?.find(a => a.id === asset.platform_connection_id);
+      let followers = 0;
 
-        // Skip duplicates
-        if (seen.has(assetId)) continue;
-        seen.add(assetId);
-
-        // Determine platform type from key or asset_type
-        const [assetType] = key.split(':');
-        const actualAssetType = (m as any).asset_type || assetType || key;
-
-        // Determine display platform
-        let platform: AssetOption['platform'] = account.platform as AssetOption['platform'];
-        if (actualAssetType.includes('instagram')) {
-          platform = 'instagram';
-        } else if (actualAssetType.includes('facebook')) {
-          platform = 'facebook';
+      if (account?.account_metrics) {
+        // Look for metrics matching this asset
+        for (const [, metrics] of Object.entries(account.account_metrics)) {
+          const m = metrics as AccountMetricsData;
+          if (m.asset_id === asset.asset_id) {
+            followers = m.followers || 0;
+            break;
+          }
         }
-
-        result.push({
-          id: assetId,
-          platform_connection_id: account.id,
-          platform,
-          asset_type: actualAssetType,
-          name: m.asset_name || account.account_name,
-          followers: m.followers || 0,
-        });
       }
+
+      // Fallback to asset_meta followers
+      if (followers === 0 && asset.asset_meta?.followers_count) {
+        followers = asset.asset_meta.followers_count;
+      }
+
+      result.push({
+        id: asset.id,
+        asset_external_id: asset.asset_id,
+        platform_connection_id: asset.platform_connection_id,
+        platform: asset.platform_id as AssetOption['platform'],
+        asset_type: asset.asset_type,
+        name: asset.asset_name,
+        followers,
+      });
     }
 
     return result;
-  }, [accounts]);
+  }, [platformAssets, accounts]);
 
-  return { assets, isLoading };
+  // Auto-refresh when assets change
+  useEffect(() => {
+    if (platformAssets && platformAssets.length > 0) {
+      // Invalidate connected accounts metrics to ensure data sync
+      queryClient.invalidateQueries({ queryKey: ['connected-accounts-metrics'] });
+    }
+  }, [platformAssets?.length, queryClient]);
+
+  return { assets, isLoading: assetsLoading || accountsLoading };
 };
 
 /**
