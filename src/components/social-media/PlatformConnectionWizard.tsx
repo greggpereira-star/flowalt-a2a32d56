@@ -258,9 +258,11 @@ export function PlatformConnectionWizard({
       const isReturningFromOAuth = oauthSuccess && oauthPlatform === platformId;
 
       if (mode === 'add_accounts') {
+        // IMPORTANT: reset per-session gating when opening the wizard
+        setOauthCompletedInSession(isReturningFromOAuth);
+
         if (isReturningFromOAuth) {
           // OAuth completed successfully - go to select step and fetch new assets
-          setOauthCompletedInSession(true);
           fetchPlatformConnectionAfterOAuth();
         } else {
           // First time opening - go to auth step
