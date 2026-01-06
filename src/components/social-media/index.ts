@@ -15,3 +15,4 @@ export { PostList } from './PostList';
 export { SocialAccessMessage, useSocialAccessCheck, type SocialBlockReason } from './SocialAccessMessage';
 export { SocialJobsPanel } from './SocialJobsPanel';
 export { EmptyPlatformState, EmptyStateInline } from './EmptyPlatformState';
+export { SocialReportsPage } from './SocialReportsPage';
