@@ -24,6 +24,12 @@ export interface UserTag {
   [key: string]: string | number; // Index signature for JSON compatibility
 }
 
+export interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
+  order?: number;
+}
+
 export interface SocialPost {
   id: string;
   workspace_id: string;
