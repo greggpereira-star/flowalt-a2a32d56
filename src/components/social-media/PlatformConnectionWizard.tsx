@@ -608,11 +608,8 @@ export function PlatformConnectionWizard({
 
     const isMetaPlatform = platformId === 'facebook' || platformId === 'instagram';
 
-    // IMPORTANT: In embedded/preview environments (iframes), Facebook blocks OAuth pages
-    // (X-Frame-Options: DENY). Also, popup blockers can block window.open after awaits.
-    // Solution: pre-open a blank tab synchronously (still within the user gesture),
-    // then navigate it once we get the auth_url.
-    let preopenedOAuthWindow: Window | null = null;
+    // Detect iframe context. In the editor preview, the app runs inside an iframe.
+    // Facebook/Meta OAuth cannot run inside iframes (X-Frame-Options: DENY).
     let isInIframe = false;
     try {
       isInIframe = window.self !== window.top;
@@ -621,19 +618,20 @@ export function PlatformConnectionWizard({
       isInIframe = true;
     }
 
-    const closePreopenedOAuthWindow = () => {
-      try {
-        preopenedOAuthWindow?.close();
-      } catch {
-        // ignore
-      }
-    };
-
+    // If we're in an iframe and the provider is Meta, do the OAuth from a top-level tab
+    // using a same-origin bridge page (avoids ERR_BLOCKED_BY_RESPONSE and popup timing issues).
     if (isMetaPlatform && isInIframe) {
-      // IMPORTANT: Do NOT use 'noopener' here - we need to keep reference to navigate the window later
-      // We use a named window so we can reference it and set the location after getting auth_url
-      preopenedOAuthWindow = window.open('about:blank', 'oauth_popup');
-      if (!preopenedOAuthWindow) {
+      const qs = new URLSearchParams();
+      qs.set('platform', platformId);
+      qs.set('workspace_id', currentWorkspace.id);
+      qs.set('return_path', `${window.location.pathname}${window.location.search}`);
+      qs.set('scope_strategy', scopeStrategy);
+      qs.set('meta_auth_type', mode === 'add_accounts' ? 'reauthenticate' : 'rerequest');
+
+      const bridgeUrl = `${window.location.origin}/oauth/bridge?${qs.toString()}`;
+      const win = window.open(bridgeUrl, '_blank', 'noopener,noreferrer');
+
+      if (!win) {
         toast.error('Popup bloqueado', {
           description: 'Permita popups para este site e tente novamente.',
           duration: 5000,
@@ -642,8 +640,10 @@ export function PlatformConnectionWizard({
         setIsConnecting(false);
         return;
       }
-      // Show loading message while we fetch the auth URL
-      preopenedOAuthWindow.document.write('<html><body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;"><p>Carregando autenticação...</p></body></html>');
+
+      setConnectionStatus('idle');
+      setIsConnecting(false);
+      return;
     }
 
     try {
@@ -660,14 +660,13 @@ export function PlatformConnectionWizard({
           if (preflight?.detected_issue) {
             const goxCode = mapApiErrorToGox(preflight.detected_issue.code);
             const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: !!isSuperAdmin, platform: platformName });
-            
+
             if (preflight.detected_issue.code === 'PROVIDER_NOT_CONFIGURED') {
               setRequiresSetup(true);
             }
             setConnectionStatus('error');
             setErrorMessage(goxMessage.message);
             setIsConnecting(false);
-            closePreopenedOAuthWindow();
             return;
           }
         } catch (preflightError) {
@@ -693,7 +692,6 @@ export function PlatformConnectionWizard({
         mode,
         scopeStrategy,
         isInIframe,
-        hasPreopenedWindow: !!preopenedOAuthWindow,
         hasAuthUrl: !!data?.auth_url,
         error_code: data?.error_code,
       });
@@ -705,18 +703,17 @@ export function PlatformConnectionWizard({
         setConnectionStatus('error');
         setErrorMessage(errorMsg);
         setIsConnecting(false);
-        closePreopenedOAuthWindow();
         return;
       }
 
       // Handle application-level errors in response
       if (data?.error || data?.error_code) {
         console.log('OAuth response error:', data);
-        
+
         // Map API error to GOX message
         const goxCode = mapApiErrorToGox(data.error_code || data.error);
         const goxMessage = getGoxMessage(goxCode, { isSuperAdmin: !!isSuperAdmin, platform: platformName });
-        
+
         if (data.requires_setup) {
           setRequiresSetup(true);
           setSetupInstructions(data.setup_instructions || []);
@@ -733,7 +730,6 @@ export function PlatformConnectionWizard({
         }
         setConnectionStatus('error');
         setIsConnecting(false);
-        closePreopenedOAuthWindow();
         return;
       }
 
@@ -744,32 +740,10 @@ export function PlatformConnectionWizard({
         }
         
         // Redirect to OAuth provider
-        // NOTE: In iframe contexts, Facebook cannot be displayed (X-Frame-Options: DENY).
-        // We pre-open a new tab synchronously (preopenedOAuthWindow) to avoid popup blockers.
+        // In iframe contexts, we already opened /oauth/bridge in a new tab and returned earlier.
+        // So at this point we can always perform a normal top-level navigation.
         try {
-          if (preopenedOAuthWindow) {
-            console.log('[OAuth] Using pre-opened window for OAuth navigation');
-            preopenedOAuthWindow.location.href = data.auth_url;
-            preopenedOAuthWindow.focus();
-            return;
-          }
-
-          if (isInIframe) {
-            console.log('[OAuth] Iframe context, opening OAuth in new tab');
-            const newWindow = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
-            if (!newWindow) {
-              toast.error('Popup bloqueado', {
-                description: 'Permita popups para este site e tente novamente.',
-                duration: 5000,
-              });
-              setConnectionStatus('idle');
-              setIsConnecting(false);
-              return;
-            }
-          } else {
-            // Not in iframe: navigate directly (best UX)
-            window.location.href = data.auth_url;
-          }
+          window.location.href = data.auth_url;
         } catch (navError) {
           console.error('[OAuth] Navigation error:', navError);
           const newWindow = window.open(data.auth_url, '_blank', 'noopener,noreferrer');
@@ -779,7 +753,6 @@ export function PlatformConnectionWizard({
             });
             setConnectionStatus('error');
             setIsConnecting(false);
-            closePreopenedOAuthWindow();
           }
         }
       } else {
@@ -790,7 +763,6 @@ export function PlatformConnectionWizard({
       setConnectionStatus('error');
       setErrorMessage(error.message || 'Erro ao iniciar autenticação');
       setIsConnecting(false);
-      closePreopenedOAuthWindow();
     }
   };
 
