@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -119,8 +119,53 @@ export function MetricsDashboard() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
   const [selectedAsset, setSelectedAsset] = useState<string>('all');
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncedAssetsRef = useRef<Set<string>>(new Set());
 
   const hasConnectedPlatforms = connectedPlatforms && connectedPlatforms.length > 0;
+
+  // Check if selected asset has metrics
+  const selectedAssetHasMetrics = React.useMemo(() => {
+    if (selectedAsset === 'all') return true;
+    
+    const asset = individualAssets?.find(a => a.id === selectedAsset);
+    if (!asset) return true;
+    
+    // Check if there are metrics for this asset's connection
+    const connection = accountMetrics?.find(c => c.id === asset.platform_connection_id);
+    if (!connection?.account_metrics) return false;
+    
+    // Check if we have data for this specific asset
+    const assetMetrics = connection.account_metrics as Record<string, unknown>;
+    return Object.keys(assetMetrics).length > 0;
+  }, [selectedAsset, individualAssets, accountMetrics]);
+
+  // Auto-sync when selecting an asset that has no metrics
+  const syncAssetMetrics = useCallback(async (assetId: string) => {
+    if (syncedAssetsRef.current.has(assetId)) return;
+    
+    syncedAssetsRef.current.add(assetId);
+    setIsSyncing(true);
+    
+    try {
+      await supabase.functions.invoke('social-metrics-sync', { 
+        body: { asset_id: assetId, force: true } 
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: ['connected-accounts-metrics'] });
+      await queryClient.invalidateQueries({ queryKey: ['platform-assets'] });
+    } catch (error) {
+      console.error('Auto-sync error:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [queryClient]);
+
+  // Trigger auto-sync when asset is selected without metrics
+  useEffect(() => {
+    if (selectedAsset !== 'all' && !selectedAssetHasMetrics && !isSyncing) {
+      syncAssetMetrics(selectedAsset);
+    }
+  }, [selectedAsset, selectedAssetHasMetrics, isSyncing, syncAssetMetrics]);
 
   // Calculate aggregated metrics from account_metrics
   const aggregatedAccountMetrics = React.useMemo(() => {
@@ -343,18 +388,26 @@ export function MetricsDashboard() {
           </SelectContent>
         </Select>
 
-        {/* Sync Button */}
+        {/* Refresh Button - subtle, for force update */}
         <Button 
-          variant="outline" 
-          size="sm" 
+          variant="ghost" 
+          size="icon" 
           onClick={handleSyncMetrics}
           disabled={isSyncing}
           className="ml-auto"
+          title="Atualizar métricas"
         >
-          <RefreshCw className={cn("h-4 w-4 mr-2", isSyncing && "animate-spin")} />
-          {isSyncing ? 'Sincronizando...' : 'Sincronizar Métricas'}
+          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
         </Button>
       </div>
+
+      {/* Loading indicator when syncing */}
+      {isSyncing && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>Sincronizando métricas...</span>
+        </div>
+      )}
 
       {/* Account Metrics Card - Shows when specific asset is selected */}
       {selectedAsset !== 'all' && (() => {
