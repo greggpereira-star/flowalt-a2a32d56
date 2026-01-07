@@ -421,7 +421,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
             )}
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
+          <div className="flex-1 overflow-y-auto px-6 scrollbar-minimal">
             <div className="space-y-4 py-4">
               {/* Title */}
               <div className="space-y-1.5">
@@ -626,7 +626,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="px-6 py-4 border-t shrink-0 flex-row gap-2">
             {editingEvent && (
