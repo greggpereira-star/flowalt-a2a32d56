@@ -161,11 +161,13 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
       await createCard.mutateAsync({
         title,
         space_id: spaceId,
+        folder_id: folderId,
         description: description || undefined,
         status,
         urgency,
         due_date: dueDate?.toISOString(),
         client_id: clientId || undefined,
+        card_type: mode === 'quick' ? 'quick' : 'full',
       });
 
       toast({ title: 'Card criado com sucesso!' });

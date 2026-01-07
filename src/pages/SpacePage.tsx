@@ -706,7 +706,7 @@ const SpacePage: React.FC = () => {
         open={quickAddOpen}
         onOpenChange={setQuickAddOpen}
         spaceId={spaceId!}
-        folderId={selectedFolder || undefined}
+        folderId={activeFolderId || selectedFolder || undefined}
         defaultStatus={defaultStatus}
         initialMode={quickAddInitialMode}
       />
