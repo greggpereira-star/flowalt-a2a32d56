@@ -37,6 +37,7 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import DataDeletionPage from "./pages/DataDeletionPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
 import BirthdaysPage from "./pages/BirthdaysPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/invite/:token" element={<AcceptInvitePage />} />
               <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
+              <Route path="/complete-profile" element={<AuthGuard><CompleteProfilePage /></AuthGuard>} />
               <Route path="/oauth/bridge" element={<AuthGuard><OAuthBridgePage /></AuthGuard>} />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/first-access" element={<AuthGuard><FirstAccessPage /></AuthGuard>} />
