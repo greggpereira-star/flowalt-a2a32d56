@@ -427,8 +427,10 @@ export const useDeleteCard = () => {
 
       return cardId;
     },
-    onSuccess: () => {
+    onSuccess: (cardId) => {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['filtered-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['card', cardId] });
     },
   });
 };
