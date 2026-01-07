@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,9 @@ import {
   useCreateEvent,
   useUpdateEvent,
   useDeleteEvent,
+  useEventParticipants,
+  useAddParticipant,
+  useRemoveParticipant,
   type Event,
   type EventType,
 } from '@/hooks/useEvents';
@@ -98,6 +102,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
+  const addParticipant = useAddParticipant();
+  const removeParticipant = useRemoveParticipant();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -161,11 +167,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
     setDialogOpen(true);
   };
 
-  const handleEventClick = (event: Event, e: React.MouseEvent) => {
+  const handleEventClick = async (event: Event, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingEvent(event);
     const startDate = parseISO(event.start_time);
     const endDate = parseISO(event.end_time);
+    
+    // Load existing participants
+    const { data: existingParticipants } = await supabase
+      .from('event_participants')
+      .select('user_id')
+      .eq('event_id', event.id);
+    
+    const participantIds = existingParticipants?.map(p => p.user_id) || [];
+    
     setFormData({
       title: event.title,
       description: event.description || '',
@@ -177,7 +192,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
       all_day: event.all_day,
       location: event.location || '',
       space_id: event.space_id || '',
-      participant_ids: [],
+      participant_ids: participantIds,
     });
     setDialogOpen(true);
     onEventClick?.(event);
@@ -210,6 +225,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           location: formData.location || null,
           space_id: formData.space_id || null,
         });
+        
+        // Sync participants - get current, find diff, add/remove
+        const { data: currentParticipants } = await supabase
+          .from('event_participants')
+          .select('user_id')
+          .eq('event_id', editingEvent.id);
+        
+        const currentIds = currentParticipants?.map(p => p.user_id) || [];
+        const toAdd = formData.participant_ids.filter(id => !currentIds.includes(id));
+        const toRemove = currentIds.filter(id => !formData.participant_ids.includes(id));
+        
+        // Add new participants
+        for (const userId of toAdd) {
+          await addParticipant.mutateAsync({ event_id: editingEvent.id, user_id: userId });
+        }
+        
+        // Remove old participants
+        for (const userId of toRemove) {
+          await removeParticipant.mutateAsync({ event_id: editingEvent.id, user_id: userId });
+        }
+        
         toast.success('Evento atualizado');
       } else {
         await createEvent.mutateAsync({
@@ -498,6 +534,77 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                 value={formData.location}
                 onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
               />
+            </div>
+
+            {/* Participants Selection */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Participantes
+              </Label>
+              <div className="border rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                {members && members.length > 0 ? (
+                  members.map(member => {
+                    const isSelected = formData.participant_ids.includes(member.user_id);
+                    return (
+                      <label
+                        key={member.user_id}
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors',
+                          isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData(f => ({
+                                ...f,
+                                participant_ids: [...f.participant_ids, member.user_id],
+                              }));
+                            } else {
+                              setFormData(f => ({
+                                ...f,
+                                participant_ids: f.participant_ids.filter(id => id !== member.user_id),
+                              }));
+                            }
+                          }}
+                          className="rounded border-muted-foreground"
+                        />
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={(member as any).profile?.avatar_url} />
+                          <AvatarFallback className="text-xs">
+                            {((member as any).profile?.full_name || (member as any).profile?.email || 'U')
+                              .split(' ')
+                              .map((n: string) => n[0])
+                              .join('')
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {(member as any).profile?.full_name || (member as any).profile?.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {member.role}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Nenhum membro disponível
+                  </p>
+                )}
+              </div>
+              {formData.participant_ids.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {formData.participant_ids.length} participante(s) selecionado(s)
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
