@@ -409,230 +409,242 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
         setDialogOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <DialogTitle className="text-lg">
               {editingEvent ? 'Editar Evento' : 'Novo Evento'}
             </DialogTitle>
-            <DialogDescription>
-              {selectedDate && !editingEvent && (
-                <>Criando evento para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</>
-              )}
-            </DialogDescription>
+            {selectedDate && !editingEvent && (
+              <DialogDescription className="text-sm">
+                {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+              </DialogDescription>
+            )}
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título *</Label>
-              <Input
-                id="title"
-                placeholder="Nome do evento"
-                value={formData.title}
-                onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select
-                  value={formData.event_type}
-                  onValueChange={(v) => setFormData(f => ({ ...f, event_type: v as EventType }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(EVENT_TYPE_CONFIG).map(([type, config]) => (
-                      <SelectItem key={type} value={type}>
-                        <div className="flex items-center gap-2">
-                          <config.icon className="h-4 w-4" />
-                          {config.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Espaço</Label>
-                <Select
-                  value={formData.space_id}
-                  onValueChange={(v) => setFormData(f => ({ ...f, space_id: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {spaces?.map(space => (
-                      <SelectItem key={space.id} value={space.id}>
-                        {space.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="all_day"
-                checked={formData.all_day}
-                onCheckedChange={(c) => setFormData(f => ({ ...f, all_day: c }))}
-              />
-              <Label htmlFor="all_day">Dia inteiro</Label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data Início *</Label>
+          <ScrollArea className="flex-1 px-6">
+            <div className="space-y-4 py-4">
+              {/* Title */}
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-sm font-medium">Título *</Label>
                 <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                  id="title"
+                  placeholder="Nome do evento"
+                  value={formData.title}
+                  onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
+                  className="h-9"
                 />
               </div>
-              {!formData.all_day && (
-                <div className="space-y-2">
-                  <Label>Hora Início</Label>
-                  <Input
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData(f => ({ ...f, start_time: e.target.value }))}
-                  />
-                </div>
-              )}
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data Fim</Label>
+              {/* Type + Space - Inline */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Tipo</Label>
+                  <Select
+                    value={formData.event_type}
+                    onValueChange={(v) => setFormData(f => ({ ...f, event_type: v as EventType }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EVENT_TYPE_CONFIG).map(([type, config]) => (
+                        <SelectItem key={type} value={type}>
+                          <div className="flex items-center gap-2">
+                            <config.icon className="h-3.5 w-3.5" />
+                            {config.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Espaço</Label>
+                  <Select
+                    value={formData.space_id}
+                    onValueChange={(v) => setFormData(f => ({ ...f, space_id: v }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Opcional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {spaces?.map(space => (
+                        <SelectItem key={space.id} value={space.id}>
+                          {space.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* All Day Toggle */}
+              <div className="flex items-center gap-2 py-1">
+                <Switch
+                  id="all_day"
+                  checked={formData.all_day}
+                  onCheckedChange={(c) => setFormData(f => ({ ...f, all_day: c }))}
+                />
+                <Label htmlFor="all_day" className="text-sm cursor-pointer">Dia inteiro</Label>
+              </div>
+
+              {/* Date/Time - Compact Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Início *</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                      className="h-9 flex-1"
+                    />
+                    {!formData.all_day && (
+                      <Input
+                        type="time"
+                        value={formData.start_time}
+                        onChange={(e) => setFormData(f => ({ ...f, start_time: e.target.value }))}
+                        className="h-9 w-24"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Fim</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData(f => ({ ...f, end_date: e.target.value }))}
+                      className="h-9 flex-1"
+                    />
+                    {!formData.all_day && (
+                      <Input
+                        type="time"
+                        value={formData.end_time}
+                        onChange={(e) => setFormData(f => ({ ...f, end_time: e.target.value }))}
+                        className="h-9 w-24"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-1.5">
+                <Label htmlFor="location" className="text-sm font-medium flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  Local
+                </Label>
                 <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData(f => ({ ...f, end_date: e.target.value }))}
+                  id="location"
+                  placeholder="Local ou link da reunião"
+                  value={formData.location}
+                  onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
+                  className="h-9"
                 />
               </div>
-              {!formData.all_day && (
-                <div className="space-y-2">
-                  <Label>Hora Fim</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData(f => ({ ...f, end_time: e.target.value }))}
-                  />
+
+              {/* Participants - Collapsible Style */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  Participantes
+                  {formData.participant_ids.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      {formData.participant_ids.length}
+                    </Badge>
+                  )}
+                </Label>
+                <div className="border rounded-lg max-h-32 overflow-y-auto">
+                  {members && members.length > 0 ? (
+                    <div className="divide-y">
+                      {members.map(member => {
+                        const isSelected = formData.participant_ids.includes(member.user_id);
+                        return (
+                          <label
+                            key={member.user_id}
+                            className={cn(
+                              'flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors',
+                              isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(f => ({
+                                    ...f,
+                                    participant_ids: [...f.participant_ids, member.user_id],
+                                  }));
+                                } else {
+                                  setFormData(f => ({
+                                    ...f,
+                                    participant_ids: f.participant_ids.filter(id => id !== member.user_id),
+                                  }));
+                                }
+                              }}
+                              className="rounded border-muted-foreground h-3.5 w-3.5"
+                            />
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={(member as any).profile?.avatar_url} />
+                              <AvatarFallback className="text-[10px]">
+                                {((member as any).profile?.full_name || (member as any).profile?.email || 'U')
+                                  .split(' ')
+                                  .map((n: string) => n[0])
+                                  .join('')
+                                  .toUpperCase()
+                                  .slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm truncate flex-1">
+                              {(member as any).profile?.full_name || (member as any).profile?.email}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-3">
+                      Nenhum membro
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Local</Label>
-              <Input
-                id="location"
-                placeholder="Local ou link da reunião"
-                value={formData.location}
-                onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
-              />
-            </div>
-
-            {/* Participants Selection */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Participantes
-              </Label>
-              <div className="border rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto">
-                {members && members.length > 0 ? (
-                  members.map(member => {
-                    const isSelected = formData.participant_ids.includes(member.user_id);
-                    return (
-                      <label
-                        key={member.user_id}
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors',
-                          isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData(f => ({
-                                ...f,
-                                participant_ids: [...f.participant_ids, member.user_id],
-                              }));
-                            } else {
-                              setFormData(f => ({
-                                ...f,
-                                participant_ids: f.participant_ids.filter(id => id !== member.user_id),
-                              }));
-                            }
-                          }}
-                          className="rounded border-muted-foreground"
-                        />
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src={(member as any).profile?.avatar_url} />
-                          <AvatarFallback className="text-xs">
-                            {((member as any).profile?.full_name || (member as any).profile?.email || 'U')
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {(member as any).profile?.full_name || (member as any).profile?.email}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {member.role}
-                          </p>
-                        </div>
-                      </label>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-2">
-                    Nenhum membro disponível
-                  </p>
-                )}
               </div>
-              {formData.participant_ids.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {formData.participant_ids.length} participante(s) selecionado(s)
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Detalhes do evento..."
-                value={formData.description}
-                onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
-              />
+              {/* Description */}
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-sm font-medium">Descrição</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Detalhes do evento..."
+                  value={formData.description}
+                  onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
+                  className="resize-none h-16"
+                />
+              </div>
             </div>
-          </div>
+          </ScrollArea>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="px-6 py-4 border-t shrink-0 flex-row gap-2">
             {editingEvent && (
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={handleDelete}
                 disabled={deleteEvent.isPending}
-                className="sm:mr-auto"
+                className="mr-auto"
               >
                 Excluir
               </Button>
             )}
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button
+              size="sm"
               onClick={handleSubmit}
               disabled={createEvent.isPending || updateEvent.isPending}
             >
