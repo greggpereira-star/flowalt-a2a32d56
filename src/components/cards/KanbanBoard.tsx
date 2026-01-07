@@ -92,7 +92,11 @@ const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
   
   const indicators = [];
   
-  if (!card.briefing_completed) {
+  // Only show briefing indicator for 'full' cards that don't have briefing completed
+  // Quick cards (card_type === 'quick') never show briefing indicator
+  const isQuickCard = (card as any).card_type === 'quick';
+  
+  if (!isQuickCard && !card.briefing_completed) {
     indicators.push(
       <Tooltip key="briefing">
         <TooltipTrigger asChild>

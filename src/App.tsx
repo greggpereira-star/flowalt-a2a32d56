@@ -36,6 +36,7 @@ import OAuthBridgePage from "./pages/OAuthBridgePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import DataDeletionPage from "./pages/DataDeletionPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
+import BirthdaysPage from "./pages/BirthdaysPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/clients/:clientId" element={<AuthGuard><ClientsPage /></AuthGuard>} />
               <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
               <Route path="/marketing" element={<AuthGuard><MarketingPage /></AuthGuard>} />
+              <Route path="/birthdays" element={<AuthGuard><BirthdaysPage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </WorkspaceProvider>

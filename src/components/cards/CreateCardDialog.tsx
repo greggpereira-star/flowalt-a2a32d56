@@ -184,10 +184,10 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Prazo</Label>
+                <Label htmlFor="dueDate">Prazo (data e hora)</Label>
                 <Input
                   id="dueDate"
-                  type="date"
+                  type="datetime-local"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
