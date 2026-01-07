@@ -28,6 +28,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, UrgencyBadge } from './CardBadges';
@@ -44,11 +51,13 @@ import { NextBestAction } from './NextBestAction';
 import { CardFinancialTab } from './CardFinancialTab';
 import { CardKitTab } from './CardKitTab';
 import { CardInvitePanel } from './CardInvitePanel';
-import { AccessDeniedState } from '@/components/governance';
+import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
 import { SocialPostButton } from '@/components/social-media/SocialPostButton';
 import { useSocialPostsByCard } from '@/hooks/useSocialPosts';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   CalendarIcon,
   FileText,
@@ -74,16 +83,18 @@ import {
   Building2,
   BanknoteIcon,
   Share2,
+  MoreVertical,
+  Trash2,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useCard, useUpdateCard, type Card } from '@/hooks/useCards';
+import { useCard, useUpdateCard, useDeleteCard, type Card } from '@/hooks/useCards';
 import { useSpace } from '@/hooks/useSpaces';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useComments } from '@/hooks/useComments';
 import { useAttachments } from '@/hooks/useAttachments';
-import { useRunningTimer, useStartTimer, useStopTimer } from '@/hooks/useTimeEntries';
+import { useTimeEntries, useRunningTimer, useStartTimer, useStopTimer } from '@/hooks/useTimeEntries';
 import { useCardDependencies } from '@/hooks/useDependencies';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
@@ -132,15 +143,21 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { data: checklists } = useChecklists(cardId || undefined);
   const { data: comments } = useComments(cardId || undefined);
   const { data: attachments } = useAttachments(cardId || undefined);
+  const { data: timeEntries } = useTimeEntries(cardId || undefined);
   const { data: runningTimer } = useRunningTimer(cardId || undefined);
   const { data: cardDependencies } = useCardDependencies(cardId || undefined);
   const { data: legacyClients } = useClients();
   const { data: clientCards } = useClientCards();
   const { data: socialPosts } = useSocialPostsByCard(cardId);
   const { has } = useEntitlementRegistry();
+  const { isOwner, isAdmin, isCoordinator, canDeleteCards } = usePermissions();
+  const { user } = useAuth();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
   const updateCard = useUpdateCard();
+  const deleteCard = useDeleteCard();
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
@@ -215,6 +232,26 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const checklistProgress = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
   const commentsCount = comments?.length || 0;
   const attachmentsCount = attachments?.length || 0;
+  const timeEntriesCount = timeEntries?.length || 0;
+  
+  // Check if card has history (for archive vs delete decision)
+  const hasHistory = checklistTotal > 0 || commentsCount > 0 || attachmentsCount > 0 || timeEntriesCount > 0;
+  
+  // Permission check for delete - owner, admin, coordinator, or card creator
+  const isCardCreator = card?.created_by === user?.id;
+  const canDelete = isOwner || isAdmin || isCoordinator || canDeleteCards || isCardCreator;
+  
+  // Handle delete
+  const handleDelete = async () => {
+    if (!card) return;
+    try {
+      await deleteCard.mutateAsync(card.id);
+      toast.success(hasHistory ? 'Card arquivado' : 'Card excluído');
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Erro ao excluir card');
+    }
+  };
 
   // Sync state with card data
   useEffect(() => {
@@ -412,39 +449,61 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                   )}
                 </div>
                 
-                {/* Timer Button */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={runningTimer ? 'default' : 'outline'}
-                        size="sm"
-                        className={cn(
-                          'h-7 gap-1.5 text-xs',
-                          runningTimer && 'bg-primary hover:bg-primary/90'
-                        )}
-                        onClick={handleToggleTimer}
-                      >
-                        {runningTimer ? (
-                          <>
-                            <Pause className="h-3 w-3" />
-                            <span className="font-mono text-[10px]">
-                              {formatDistanceToNow(new Date(runningTimer.started_at), { locale: ptBR })}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-3 w-3" />
-                            Iniciar
-                          </>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="text-xs">
-                      {runningTimer ? 'Pausar timer' : 'Iniciar timer'}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <div className="flex items-center gap-2">
+                  {/* Timer Button */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={runningTimer ? 'default' : 'outline'}
+                          size="sm"
+                          className={cn(
+                            'h-7 gap-1.5 text-xs',
+                            runningTimer && 'bg-primary hover:bg-primary/90'
+                          )}
+                          onClick={handleToggleTimer}
+                        >
+                          {runningTimer ? (
+                            <>
+                              <Pause className="h-3 w-3" />
+                              <span className="font-mono text-[10px]">
+                                {formatDistanceToNow(new Date(runningTimer.started_at), { locale: ptBR })}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3" />
+                              Iniciar
+                            </>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-xs">
+                        {runningTimer ? 'Pausar timer' : 'Iniciar timer'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  {/* More Actions Menu */}
+                  {canDelete && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => setDeleteDialogOpen(true)}
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {hasHistory ? 'Arquivar card' : 'Excluir card'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               </div>
 
               {/* Title Section */}
@@ -1129,6 +1188,26 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
           </div>
         )}
       </SheetContent>
+      
+      {/* Delete Confirmation Dialog */}
+      {card && (
+        <DestructiveActionGuard
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          entityType="card"
+          entityId={card.id}
+          entityName={card.title}
+          createdBy={card.created_by}
+          hasHistory={hasHistory}
+          dependentItems={[
+            ...(checklistTotal > 0 ? [{ type: 'checklist(s)', count: checklistTotal }] : []),
+            ...(commentsCount > 0 ? [{ type: 'comentário(s)', count: commentsCount }] : []),
+            ...(attachmentsCount > 0 ? [{ type: 'anexo(s)', count: attachmentsCount }] : []),
+            ...(timeEntriesCount > 0 ? [{ type: 'entrada(s) de tempo', count: timeEntriesCount }] : []),
+          ]}
+          onConfirm={handleDelete}
+        />
+      )}
     </Sheet>
   );
 };
