@@ -28,10 +28,9 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
-import { SocialMediaTreeNav } from '@/components/social-media/SocialMediaTreeNav';
+import { SpaceTreeNav } from '@/components/spaces/SpaceTreeNav';
 import {
   LayoutDashboard,
-  FolderKanban,
   Clock,
   Calendar,
   Users,
@@ -42,12 +41,7 @@ import {
   Plus,
   Sparkles,
   Building2,
-  Palette,
-  Video,
   Share2,
-  Target,
-  Briefcase,
-  Folder,
   DollarSign,
   PieChart,
   Trophy,
@@ -56,16 +50,6 @@ import {
   Plug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const spaceIconMap: Record<string, React.ElementType> = {
-  'palette': Palette,
-  'video': Video,
-  'share-2': Share2,
-  'target': Target,
-  'briefcase': Briefcase,
-  'layout-dashboard': LayoutDashboard,
-  'folder': Folder,
-};
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/' },
@@ -123,10 +107,6 @@ export const AppSidebar: React.FC = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
-  };
-
-  const getSpaceIcon = (iconName: string) => {
-    return spaceIconMap[iconName] || Folder;
   };
 
   return (
@@ -205,37 +185,17 @@ export const AppSidebar: React.FC = () => {
                   <Skeleton className="h-8 w-full" />
                 </>
               ) : spaces && spaces.length > 0 ? (
-                spaces.map((space) => {
-                  const Icon = getSpaceIcon(space.icon);
-                  const isSocialMedia = space.type === 'social_media';
-                  const isActive = location.pathname === `/space/${space.id}`;
-
-                  // Render tree navigation for social_media spaces
-                  if (isSocialMedia) {
-                    return (
-                      <SidebarMenuItem key={space.id}>
-                        <SocialMediaTreeNav
-                          spaceId={space.id}
-                          spaceName={space.name}
-                          spaceColor={space.color}
-                        />
-                      </SidebarMenuItem>
-                    );
-                  }
-
-                  // Regular space link
-                  return (
-                    <SidebarMenuItem key={space.id}>
-                      <SidebarMenuButton
-                        onClick={() => navigate(`/space/${space.id}`)}
-                        isActive={isActive}
-                      >
-                        <Icon className="h-4 w-4" style={{ color: space.color }} />
-                        <span>{space.name}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })
+                spaces.map((space) => (
+                  <SidebarMenuItem key={space.id}>
+                    <SpaceTreeNav
+                      spaceId={space.id}
+                      spaceName={space.name}
+                      spaceColor={space.color}
+                      spaceIcon={space.icon}
+                      spaceType={space.type}
+                    />
+                  </SidebarMenuItem>
+                ))
               ) : (
                 <p className="px-2 py-1 text-xs text-muted-foreground">
                   Nenhum espaço
