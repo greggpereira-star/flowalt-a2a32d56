@@ -167,6 +167,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         estimated_hours: estimatedHours ? parseFloat(estimatedHours) : undefined,
         briefing_data: isBriefingValid ? briefingData : undefined,
         briefing_completed: isBriefingValid,
+        card_type: 'full', // DemandFormDialog always creates full cards with briefing process
         workflow_id: defaultWorkflow?.id,
         current_stage: firstStage?.id,
       });
@@ -335,10 +336,10 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dueDate">Prazo</Label>
+                    <Label htmlFor="dueDate">Prazo (data e hora)</Label>
                     <Input
                       id="dueDate"
-                      type="date"
+                      type="datetime-local"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
                     />

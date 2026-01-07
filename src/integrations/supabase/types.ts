@@ -1187,6 +1187,7 @@ export type Database = {
           actual_hours: number | null
           briefing_completed: boolean | null
           briefing_data: Json | null
+          card_type: string
           client_id: string | null
           completed_at: string | null
           created_at: string
@@ -1213,6 +1214,7 @@ export type Database = {
           actual_hours?: number | null
           briefing_completed?: boolean | null
           briefing_data?: Json | null
+          card_type?: string
           client_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1239,6 +1241,7 @@ export type Database = {
           actual_hours?: number | null
           briefing_completed?: boolean | null
           briefing_data?: Json | null
+          card_type?: string
           client_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -5713,6 +5716,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birthday: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -5723,6 +5727,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -5733,6 +5738,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           email?: string
           full_name?: string | null

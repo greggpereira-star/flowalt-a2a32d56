@@ -294,14 +294,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const handleStatusChange = async (newStatus: CardStatus) => {
     if (!card) return;
 
-    const briefingRequired = !card.briefing_completed;
-    const advancingPastBriefing =
-      ['in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
-      ['backlog', 'todo'].includes(status);
+    // Quick cards can move freely without briefing requirement
+    const isQuickCard = (card as any).card_type === 'quick';
+    
+    if (!isQuickCard) {
+      const briefingRequired = !card.briefing_completed;
+      const advancingPastBriefing =
+        ['in_progress', 'review', 'approved', 'delivered'].includes(newStatus) &&
+        ['backlog', 'todo'].includes(status);
 
-    if (briefingRequired && advancingPastBriefing) {
-      toast.error('Complete o briefing antes de avançar o card');
-      return;
+      if (briefingRequired && advancingPastBriefing) {
+        toast.error('Complete o briefing antes de avançar o card');
+        return;
+      }
     }
 
     setStatus(newStatus);
@@ -398,7 +403,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 <div className="flex items-center gap-2">
                   <StatusBadge status={status} />
                   <UrgencyBadge urgency={urgency} />
-                  {!card.briefing_completed && (
+                  {/* Only show Brief badge for full cards without briefing */}
+                  {(card as any).card_type !== 'quick' && !card.briefing_completed && (
                     <Badge variant="outline" className="text-warning border-warning/50 text-[10px] h-5">
                       <AlertCircle className="w-3 h-3 mr-1" />
                       Brief
@@ -801,33 +807,22 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-xs text-muted-foreground">Prazo</label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                'h-10 w-full justify-start text-left font-normal',
-                                !dueDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dueDate ? format(dueDate, 'dd/MM/yyyy') : 'Definir prazo'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={dueDate}
-                              onSelect={(date) => {
-                                setDueDate(date);
-                                handleSave({ due_date: date ? date.toISOString() : null });
-                              }}
-                              locale={ptBR}
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <label className="text-xs text-muted-foreground">Prazo (data e hora)</label>
+                        <Input
+                          type="datetime-local"
+                          value={dueDate ? format(dueDate, "yyyy-MM-dd'T'HH:mm") : ''}
+                          onChange={(e) => {
+                            const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                            setDueDate(newDate);
+                            handleSave({ due_date: newDate ? newDate.toISOString() : null });
+                          }}
+                          className="h-10"
+                        />
+                        {dueDate && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Entrega: {format(dueDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-2">

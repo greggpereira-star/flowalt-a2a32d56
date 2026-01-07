@@ -42,8 +42,9 @@ interface QuickAddData {
   title: string;
   status: CardStatus;
   urgency: CardUrgency;
-  due_date?: string;
+  due_date?: string; // ISO datetime with time
   owner_id?: string;
+  card_type: 'quick'; // Always quick for inline add
 }
 
 const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string; icon?: string }[] = [
@@ -83,6 +84,7 @@ export const KanbanInlineQuickAdd: React.FC<KanbanInlineQuickAddProps> = ({
       urgency,
       due_date: dueDate?.toISOString(),
       owner_id: ownerId || undefined,
+      card_type: 'quick', // Quick cards don't require briefing
     });
 
     // Reset form
@@ -136,20 +138,7 @@ export const KanbanInlineQuickAdd: React.FC<KanbanInlineQuickAddProps> = ({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pr-20 h-10 text-sm"
-          disabled={isLoading}
         />
-        {title && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <Badge 
-              variant="outline" 
-              className="h-6 gap-1 text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20"
-            >
-              <FileQuestion className="h-3 w-3" />
-              Brief pendente
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* Quick options */}

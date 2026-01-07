@@ -49,7 +49,9 @@ export const KanbanQuickFilters: React.FC<KanbanQuickFiltersProps> = ({
     return dueDate && isToday(dueDate) && c.status !== 'delivered';
   }).length;
   const blockedCount = cards.filter(c => blockedCardIds.has(c.id)).length;
+  // Only count 'full' cards (not quick cards) for briefing filter
   const noBriefingCount = cards.filter(c => 
+    (c as any).card_type !== 'quick' &&
     !c.briefing_completed && 
     !['delivered', 'approved'].includes(c.status)
   ).length;
@@ -182,7 +184,9 @@ export const applyQuickFilter = (
     case 'blocked':
       return cards.filter(c => blockedCardIds.has(c.id));
     case 'no-briefing':
+      // Only filter 'full' cards - quick cards don't need briefing
       return cards.filter(c => 
+        (c as any).card_type !== 'quick' &&
         !c.briefing_completed && 
         !['delivered', 'approved'].includes(c.status)
       );

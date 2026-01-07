@@ -8,6 +8,8 @@ import type { Json } from '@/integrations/supabase/types';
 import { triggerWebhook } from '@/lib/webhookTrigger';
 
 
+export type CardType = 'quick' | 'full';
+
 export interface Card {
   id: string;
   workspace_id: string;
@@ -17,7 +19,7 @@ export interface Card {
   description: string | null;
   status: CardStatus;
   urgency: CardUrgency;
-  due_date: string | null;
+  due_date: string | null; // ISO datetime with time (e.g., 2026-01-25T18:00:00Z)
   completed_at: string | null;
   owner_id: string | null;
   briefing_completed: boolean;
@@ -29,6 +31,8 @@ export interface Card {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Card type: 'quick' bypasses briefing/validations, 'full' requires complete process
+  card_type: CardType;
   // Workflow fields
   workflow_id: string | null;
   current_stage: string | null;
@@ -44,13 +48,14 @@ export interface CreateCardInput {
   description?: string;
   status?: CardStatus;
   urgency?: CardUrgency;
-  due_date?: string;
+  due_date?: string; // ISO datetime with time
   client_id?: string;
   estimated_hours?: number;
   briefing_data?: any;
   briefing_completed?: boolean;
   workflow_id?: string;
   current_stage?: string;
+  card_type?: CardType; // 'quick' or 'full' - defaults to 'full'
 }
 
 export const useCards = (spaceId: string | undefined) => {
@@ -212,6 +217,10 @@ export const useCreateCard = () => {
         }
       }
 
+      // For quick cards, always mark briefing as completed (not required)
+      const cardType = input.card_type || 'full';
+      const briefingCompleted = cardType === 'quick' ? true : (input.briefing_completed ?? false);
+
       const { error: cardError } = await supabase
         .from('cards')
         .insert({
@@ -228,7 +237,8 @@ export const useCreateCard = () => {
           created_by: user.id,
           estimated_hours: input.estimated_hours,
           briefing_data: input.briefing_data,
-          briefing_completed: input.briefing_completed,
+          briefing_completed: briefingCompleted,
+          card_type: cardType,
           workflow_id: workflowId,
           current_stage: currentStage,
           stage_entered_at: currentStage ? new Date().toISOString() : null,
