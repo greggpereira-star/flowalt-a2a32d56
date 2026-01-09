@@ -117,6 +117,732 @@ export type Database = {
           },
         ]
       }
+      altcontrol_approval_requests: {
+        Row: {
+          approver_id: string
+          comment: string | null
+          created_at: string
+          decided_at: string | null
+          decision: string | null
+          id: string
+          proposal_id: string
+          status: string
+        }
+        Insert: {
+          approver_id: string
+          comment?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision?: string | null
+          id?: string
+          proposal_id: string
+          status?: string
+        }
+        Update: {
+          approver_id?: string
+          comment?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision?: string | null
+          id?: string
+          proposal_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_approval_requests_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_approval_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_level_order: number | null
+          min_level_order: number
+          name: string
+          notify_by_email: boolean
+          notify_in_app: boolean
+          required_approvers_count: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_level_order?: number | null
+          min_level_order?: number
+          name: string
+          notify_by_email?: boolean
+          notify_in_app?: boolean
+          required_approvers_count?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_level_order?: number | null
+          min_level_order?: number
+          name?: string
+          notify_by_email?: boolean
+          notify_in_app?: boolean
+          required_approvers_count?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_approval_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_approval_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_approvers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_senior: boolean
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_senior?: boolean
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_senior?: boolean
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_approvers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_approvers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_contract_services: {
+        Row: {
+          contract_id: string
+          created_at: string
+          hours_allocated: number
+          id: string
+          service_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          hours_allocated: number
+          id?: string
+          service_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          hours_allocated?: number
+          id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_contract_services_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_contract_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_contracts: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          contracted_hours: number
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          level_id: string | null
+          monthly_value: number
+          proposal_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          contracted_hours: number
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          level_id?: string | null
+          monthly_value: number
+          proposal_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          contracted_hours?: number
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          level_id?: string | null
+          monthly_value?: number
+          proposal_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_contracts_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_cost_params: {
+        Row: {
+          base_hourly_cost: number
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          name: string
+          overhead_percent: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          base_hourly_cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          overhead_percent?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          base_hourly_cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          overhead_percent?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_cost_params_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_cost_params_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_levels: {
+        Row: {
+          block_pdf_before_approval: boolean
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          max_cost_per_hour: number
+          max_hours: number
+          max_monthly_price: number
+          min_cost_per_hour: number
+          min_hours: number
+          min_monthly_price: number
+          name: string
+          requires_reinforced_approval: boolean
+          target_margin_percent: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          block_pdf_before_approval?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_cost_per_hour: number
+          max_hours: number
+          max_monthly_price: number
+          min_cost_per_hour: number
+          min_hours: number
+          min_monthly_price: number
+          name: string
+          requires_reinforced_approval?: boolean
+          target_margin_percent?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          block_pdf_before_approval?: boolean
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_cost_per_hour?: number
+          max_hours?: number
+          max_monthly_price?: number
+          min_cost_per_hour?: number
+          min_hours?: number
+          min_monthly_price?: number
+          name?: string
+          requires_reinforced_approval?: boolean
+          target_margin_percent?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_levels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_levels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_monthly_hours: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          realized_hours: number
+          updated_at: string
+          updated_by: string | null
+          year_month: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          realized_hours?: number
+          updated_at?: string
+          updated_by?: string | null
+          year_month: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          realized_hours?: number
+          updated_at?: string
+          updated_by?: string | null
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_monthly_hours_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_proposal_history: {
+        Row: {
+          action: string
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          from_status: string | null
+          id: string
+          metadata: Json | null
+          proposal_id: string
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          proposal_id: string
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          proposal_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_proposal_history_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_proposal_items: {
+        Row: {
+          created_at: string
+          hours_per_month: number
+          id: string
+          notes: string | null
+          proposal_id: string
+          service_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hours_per_month: number
+          id?: string
+          notes?: string | null
+          proposal_id: string
+          service_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hours_per_month?: number
+          id?: string
+          notes?: string | null
+          proposal_id?: string
+          service_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_proposal_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_proposal_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_proposals: {
+        Row: {
+          approval_comment: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calculated_level_id: string | null
+          client_id: string | null
+          client_name: string
+          created_at: string
+          created_by: string | null
+          estimated_cost: number | null
+          estimated_margin_percent: number | null
+          final_price: number | null
+          id: string
+          lost_at: string | null
+          lost_reason: string | null
+          notes: string | null
+          pdf_generated_at: string | null
+          pdf_url: string | null
+          proposal_number: number
+          seller_id: string
+          sent_at: string | null
+          status: string
+          submitted_at: string | null
+          suggested_max_price: number | null
+          suggested_min_price: number | null
+          total_hours: number
+          updated_at: string
+          won_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          approval_comment?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calculated_level_id?: string | null
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          estimated_cost?: number | null
+          estimated_margin_percent?: number | null
+          final_price?: number | null
+          id?: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          notes?: string | null
+          pdf_generated_at?: string | null
+          pdf_url?: string | null
+          proposal_number?: number
+          seller_id: string
+          sent_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          suggested_max_price?: number | null
+          suggested_min_price?: number | null
+          total_hours?: number
+          updated_at?: string
+          won_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          approval_comment?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calculated_level_id?: string | null
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          estimated_cost?: number | null
+          estimated_margin_percent?: number | null
+          final_price?: number | null
+          id?: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          notes?: string | null
+          pdf_generated_at?: string | null
+          pdf_url?: string | null
+          proposal_number?: number
+          seller_id?: string
+          sent_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          suggested_max_price?: number | null
+          suggested_min_price?: number | null
+          total_hours?: number
+          updated_at?: string
+          won_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_proposals_calculated_level_id_fkey"
+            columns: ["calculated_level_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_services: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          minimum_level_id: string | null
+          name: string
+          requires_minimum_level: boolean
+          service_type: string
+          suggested_max_hours: number | null
+          suggested_min_hours: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          minimum_level_id?: string | null
+          name: string
+          requires_minimum_level?: boolean
+          service_type?: string
+          suggested_max_hours?: number | null
+          suggested_min_hours?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          minimum_level_id?: string | null
+          name?: string
+          requires_minimum_level?: boolean
+          service_type?: string
+          suggested_max_hours?: number | null
+          suggested_min_hours?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_services_minimum_level_id_fkey"
+            columns: ["minimum_level_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altcontrol_services_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "altcontrol_services_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_snapshots: {
         Row: {
           created_at: string
@@ -10064,6 +10790,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_has_workspace_access: { Args: { ws_id: string }; Returns: boolean }
+      user_is_workspace_admin: { Args: { ws_id: string }; Returns: boolean }
       user_wants_notification: {
         Args: { p_category: string; p_user_id: string }
         Returns: boolean
