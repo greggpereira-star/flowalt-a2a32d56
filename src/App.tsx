@@ -39,6 +39,11 @@ import TermsOfServicePage from "./pages/TermsOfServicePage";
 import BirthdaysPage from "./pages/BirthdaysPage";
 import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
+import { AltControlPage } from "./pages/altcontrol/AltControlPage";
+import { NewProposalPage } from "./pages/altcontrol/NewProposalPage";
+import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
+import { ApprovalDetailPage } from "./pages/altcontrol/ApprovalDetailPage";
+import { ContractDetailPage } from "./pages/altcontrol/ContractDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +89,11 @@ const App = () => (
               <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
               <Route path="/marketing" element={<AuthGuard><MarketingPage /></AuthGuard>} />
               <Route path="/birthdays" element={<AuthGuard><BirthdaysPage /></AuthGuard>} />
+              <Route path="/altcontrol/*" element={<AuthGuard><AltControlPage /></AuthGuard>} />
+              <Route path="/altcontrol/proposals/new" element={<AuthGuard><NewProposalPage /></AuthGuard>} />
+              <Route path="/altcontrol/proposals/:proposalId" element={<AuthGuard><ProposalDetailPage /></AuthGuard>} />
+              <Route path="/altcontrol/approvals/:proposalId" element={<AuthGuard><ApprovalDetailPage /></AuthGuard>} />
+              <Route path="/altcontrol/contracts/:contractId" element={<AuthGuard><ContractDetailPage /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </WorkspaceProvider>

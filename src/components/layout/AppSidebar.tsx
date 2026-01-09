@@ -48,6 +48,7 @@ import {
   TrendingUp,
   UserCircle,
   Plug,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +64,7 @@ const mainNavItems = [
 const getManagementItems = (hasIntegrationAccess: boolean, hasSocialPublish: boolean) => {
   const items = [
     { icon: Users, label: 'Coordenação', path: '/coordination' },
+    { icon: Calculator, label: 'AltControl', path: '/altcontrol' },
     { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
     { icon: DollarSign, label: 'Financeiro', path: '/financial' },
     { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
