@@ -182,6 +182,60 @@ export const NewProposalPage: React.FC = () => {
     );
   }
 
+  const activeServices = services?.filter(s => s.is_active) || [];
+  const activeLevels = levels?.filter(l => l.is_active) || [];
+  const hasNoConfig = activeServices.length === 0 || activeLevels.length === 0;
+
+  // Show configuration required message
+  if (hasNoConfig) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/altcontrol/proposals')}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold">Nova Proposta</h2>
+            <p className="text-sm text-muted-foreground">Orçamentador Inteligente</p>
+          </div>
+        </div>
+
+        <Card className="border-dashed">
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Configuração Necessária</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Antes de criar propostas, é necessário configurar o orçamentador com níveis e serviços.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                {activeLevels.length === 0 && (
+                  <Button onClick={() => navigate('/altcontrol/settings')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Configurar Níveis
+                  </Button>
+                )}
+                {activeServices.length === 0 && (
+                  <Button 
+                    variant={activeLevels.length === 0 ? "outline" : "default"}
+                    onClick={() => navigate('/altcontrol/settings/services')}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Configurar Serviços
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
