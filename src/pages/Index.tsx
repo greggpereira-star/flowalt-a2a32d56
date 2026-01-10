@@ -7,6 +7,7 @@ import { WorkRadar } from '@/components/dashboard/WorkRadar';
 import { BirthdayBanner } from '@/components/notices/BirthdayBanner';
 import { HolidayBanner } from '@/components/notices/HolidayBanner';
 import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
+import { AltControlPendingWidget } from '@/components/altcontrol/AltControlPendingWidget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -267,7 +268,7 @@ const Index: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -290,6 +291,9 @@ const Index: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* AltControl Widget */}
+          <AltControlPendingWidget variant="combined" />
 
           <Card>
             <CardHeader>
