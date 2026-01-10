@@ -871,7 +871,8 @@ export const useAltControlContracts = (filters?: { status?: string }) => {
           services:altcontrol_contract_services(
             *,
             service:altcontrol_services(*)
-          )
+          ),
+          monthly_hours:altcontrol_monthly_hours(*)
         `)
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
