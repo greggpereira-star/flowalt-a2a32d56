@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 const notificationIcons: Record<string, React.ReactNode> = {
   webhook_failure: <AlertTriangle className="h-4 w-4 text-destructive" />,
@@ -23,14 +24,25 @@ const notificationIcons: Record<string, React.ReactNode> = {
   mention: <AtSign className="h-4 w-4 text-blue-500" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
   workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
+  altcontrol_approval_pending: <FileText className="h-4 w-4 text-amber-500" />,
+  altcontrol_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
+  altcontrol_needs_adjustment: <XCircle className="h-4 w-4 text-destructive" />,
 };
 
 export function NotificationCenter() {
+  const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.is_read) {
       markAsRead.mutate(notification.id);
+    }
+    
+    // Navigate based on notification type
+    if (notification.type === 'altcontrol_approval_pending' && notification.metadata?.proposal_id) {
+      navigate(`/altcontrol/approvals/${notification.metadata.proposal_id}`);
+    } else if ((notification.type === 'altcontrol_approved' || notification.type === 'altcontrol_needs_adjustment') && notification.metadata?.proposal_id) {
+      navigate(`/altcontrol/proposals/${notification.metadata.proposal_id}`);
     }
   };
 
