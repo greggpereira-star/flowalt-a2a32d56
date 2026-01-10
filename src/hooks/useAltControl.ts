@@ -921,18 +921,56 @@ export const useConvertToContract = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ proposalId, startDate }: { proposalId: string; startDate: string }) => {
+    mutationFn: async ({ 
+      proposalId, 
+      startDate,
+      createSpace = true,
+      createClientCard = false,
+    }: { 
+      proposalId: string; 
+      startDate: string;
+      createSpace?: boolean;
+      createClientCard?: boolean;
+    }) => {
       // Get proposal with items
       const { data: proposal, error: proposalError } = await supabase
         .from('altcontrol_proposals')
         .select(`
           *,
-          items:altcontrol_proposal_items(*)
+          items:altcontrol_proposal_items(
+            *,
+            service:altcontrol_services(*)
+          )
         `)
         .eq('id', proposalId)
         .single();
 
       if (proposalError) throw proposalError;
+
+      let clientId = proposal.client_id;
+
+      // Create client card if requested and doesn't exist
+      if (createClientCard && !clientId) {
+        const { data: newClient, error: clientError } = await supabase
+          .from('client_cards')
+          .insert({
+            workspace_id: currentWorkspace?.id,
+            name: proposal.client_name,
+            status: 'active',
+            created_by: user?.id,
+          })
+          .select()
+          .single();
+
+        if (clientError) throw clientError;
+        clientId = newClient.id;
+
+        // Update proposal with new client_id
+        await supabase
+          .from('altcontrol_proposals')
+          .update({ client_id: clientId })
+          .eq('id', proposalId);
+      }
 
       // Create contract
       const { data: contract, error: contractError } = await supabase
@@ -940,7 +978,7 @@ export const useConvertToContract = () => {
         .insert({
           workspace_id: currentWorkspace?.id,
           proposal_id: proposalId,
-          client_id: proposal.client_id,
+          client_id: clientId,
           client_name: proposal.client_name,
           level_id: proposal.calculated_level_id,
           contracted_hours: proposal.total_hours,
@@ -967,6 +1005,86 @@ export const useConvertToContract = () => {
         if (servicesError) throw servicesError;
       }
 
+      // Create Space integrated with the Flowalt model
+      let spaceId: string | null = null;
+      if (createSpace && currentWorkspace?.id) {
+        const { data: space, error: spaceError } = await supabase
+          .from('spaces')
+          .insert([{
+            workspace_id: currentWorkspace.id,
+            name: proposal.client_name,
+            type: 'custom' as const,
+            icon: 'building-2',
+            color: '#6366f1',
+            description: `Espaço operacional do cliente ${proposal.client_name}`,
+          }])
+          .select()
+          .single();
+
+        if (spaceError) {
+          console.error('Error creating space:', spaceError);
+        } else {
+          spaceId = space.id;
+
+          // Create folders per service type
+          const serviceTypeMap = new Map<string, { name: string; icon: string; color: string; hours: number }>();
+          
+          proposal.items?.forEach((item: any) => {
+            const service = item.service;
+            if (service) {
+              const type = service.service_type || 'project';
+              const existing = serviceTypeMap.get(type);
+              if (existing) {
+                existing.hours += item.hours_per_month;
+              } else {
+                const typeConfig = {
+                  strategy: { name: 'Estratégia', icon: 'target', color: '#8b5cf6' },
+                  recurring: { name: 'Recorrente', icon: 'repeat', color: '#10b981' },
+                  project: { name: 'Projetos', icon: 'folder-kanban', color: '#f59e0b' },
+                };
+                const config = typeConfig[type as keyof typeof typeConfig] || typeConfig.project;
+                serviceTypeMap.set(type, { ...config, hours: item.hours_per_month });
+              }
+            }
+          });
+
+          // Also create individual service folders
+          const foldersToCreate: any[] = [];
+          let sortOrder = 0;
+
+          // Add type-based folders first
+          serviceTypeMap.forEach((config, type) => {
+            foldersToCreate.push({
+              workspace_id: currentWorkspace.id,
+              space_id: spaceId,
+              name: `${config.name} (${config.hours}h)`,
+              icon: config.icon,
+              color: config.color,
+              sort_order: sortOrder++,
+            });
+          });
+
+          // Add individual service folders
+          proposal.items?.forEach((item: any) => {
+            if (item.service) {
+              foldersToCreate.push({
+                workspace_id: currentWorkspace.id,
+                space_id: spaceId,
+                name: item.service.name,
+                icon: 'file-text',
+                color: '#64748b',
+                description: `${item.hours_per_month}h/mês`,
+                sort_order: sortOrder++,
+              });
+            }
+          });
+
+          if (foldersToCreate.length > 0) {
+            await supabase.from('folders').insert(foldersToCreate);
+          }
+        }
+      }
+
       // Update proposal status
       const { error: updateError } = await supabase
         .from('altcontrol_proposals')
@@ -978,12 +1096,27 @@ export const useConvertToContract = () => {
 
       if (updateError) throw updateError;
 
-      return contract;
+      // Add history
+      await supabase
+        .from('altcontrol_proposal_history')
+        .insert({
+          proposal_id: proposalId,
+          action: 'converted_to_contract',
+          from_status: 'approved',
+          to_status: 'won',
+          metadata: { contract_id: contract.id, space_id: spaceId },
+          created_by: user?.id,
+        });
+
+      return { contract, spaceId, clientId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['altcontrol-proposals'] });
       queryClient.invalidateQueries({ queryKey: ['altcontrol-contracts'] });
-      toast.success('Contrato criado com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['spaces'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['client-cards'] });
+      toast.success('Contrato criado e espaço configurado!');
     },
     onError: (error) => {
       toast.error('Erro ao criar contrato: ' + error.message);

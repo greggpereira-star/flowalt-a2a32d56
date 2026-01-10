@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAltControlProposal, useUpdateProposal, useSubmitForApproval, useAltControlLevels, AltControlProposalItem } from '@/hooks/useAltControl';
+import { useAltControlProposal, useUpdateProposal, useSubmitForApproval, useAltControlLevels, useConvertToContract, AltControlProposalItem } from '@/hooks/useAltControl';
 import { useAltControlNotifications } from '@/hooks/useAltControlNotifications';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ConvertToContractModal } from '@/components/altcontrol/ConvertToContractModal';
 import {
   ChevronLeft,
   FileText,
@@ -25,6 +26,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowUp,
+  FileCheck2,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -48,10 +50,12 @@ export const ProposalDetailPage: React.FC = () => {
   const { data: levels } = useAltControlLevels();
   const updateProposal = useUpdateProposal();
   const submitForApproval = useSubmitForApproval();
+  const convertToContract = useConvertToContract();
   const { notifyApprovers } = useAltControlNotifications();
 
   const [isEditing, setIsEditing] = useState(false);
   const [finalPrice, setFinalPrice] = useState<number | undefined>(undefined);
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   React.useEffect(() => {
     if (proposal?.final_price) {
@@ -93,6 +97,7 @@ export const ProposalDetailPage: React.FC = () => {
   const canEdit = proposal.status === 'draft' || proposal.status === 'needs_adjustment';
   const canSubmitForApproval = canEdit && proposal.total_hours > 0;
   const canGeneratePdf = proposal.status === 'approved' || proposal.status === 'sent' || proposal.status === 'won';
+  const canConvertToContract = proposal.status === 'approved' || proposal.status === 'sent';
 
   const handleSubmitForApproval = async () => {
     if (!proposalId) return;
@@ -114,6 +119,18 @@ export const ProposalDetailPage: React.FC = () => {
 
   const handleDuplicate = () => {
     toast.info('Funcionalidade de duplicar proposta em desenvolvimento');
+  };
+
+  const handleConvertToContract = async (data: { startDate: string; createSpace: boolean; createClientCard: boolean }) => {
+    if (!proposalId) return;
+    const result = await convertToContract.mutateAsync({
+      proposalId,
+      startDate: data.startDate,
+      createSpace: data.createSpace,
+      createClientCard: data.createClientCard,
+    });
+    setShowConvertModal(false);
+    navigate(`/altcontrol/contracts/${result.contract.id}`);
   };
 
   return (
@@ -147,9 +164,15 @@ export const ProposalDetailPage: React.FC = () => {
             Duplicar
           </Button>
           {canGeneratePdf && (
-            <Button size="sm" onClick={handleGeneratePdf}>
+            <Button variant="outline" size="sm" onClick={handleGeneratePdf}>
               <Download className="mr-2 h-4 w-4" />
               Gerar PDF
+            </Button>
+          )}
+          {canConvertToContract && (
+            <Button size="sm" onClick={() => setShowConvertModal(true)} className="bg-green-600 hover:bg-green-700">
+              <FileCheck2 className="mr-2 h-4 w-4" />
+              Converter em Contrato
             </Button>
           )}
           {canSubmitForApproval && (
@@ -479,6 +502,15 @@ export const ProposalDetailPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Convert to Contract Modal */}
+      <ConvertToContractModal
+        open={showConvertModal}
+        onOpenChange={setShowConvertModal}
+        proposal={proposal}
+        onConfirm={handleConvertToContract}
+        isLoading={convertToContract.isPending}
+      />
     </div>
   );
 };
