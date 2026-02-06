@@ -1,8 +1,11 @@
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, EditorContent, Editor, ReactRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import Mention from '@tiptap/extension-mention';
+import { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
+import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { 
   Bold, 
   Italic, 
@@ -23,7 +26,11 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { MentionList, MentionListRef, type MentionSuggestion } from './mention-list';
+
+// Re-export MentionSuggestion type
+export type { MentionSuggestion } from './mention-list';
 
 // Emojis mais utilizados organizados por categoria
 const EMOJI_CATEGORIES = {
@@ -33,7 +40,7 @@ const EMOJI_CATEGORIES = {
   'Status': ['🚀', '⏳', '⏰', '📅', '✔️', '❗', '🔔', '💬', '📊', '📈'],
 };
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -42,6 +49,8 @@ interface RichTextEditorProps {
   minHeight?: string;
   maxHeight?: string;
   autoFocus?: boolean;
+  mentionSuggestions?: MentionSuggestion[];
+  onMentionsChange?: (mentionIds: string[]) => void;
 }
 
 interface ToolbarButtonProps {
@@ -204,6 +213,97 @@ const EditorToolbar = ({ editor, disabled }: { editor: Editor | null; disabled?:
   );
 };
 
+// Create the mention suggestion configuration
+const createMentionSuggestion = (suggestions: MentionSuggestion[]) => ({
+  items: ({ query }: { query: string }) => {
+    return suggestions
+      .filter((item) =>
+        item.name.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 8);
+  },
+
+  render: () => {
+    let component: ReactRenderer<MentionListRef> | null = null;
+    let popup: TippyInstance[] | null = null;
+
+    return {
+      onStart: (props: SuggestionProps<MentionSuggestion>) => {
+        component = new ReactRenderer(MentionList, {
+          props: {
+            items: props.items || [],
+            command: props.command,
+          },
+          editor: props.editor,
+        });
+
+        if (!props.clientRect) {
+          return;
+        }
+
+        popup = tippy('body', {
+          getReferenceClientRect: props.clientRect as () => DOMRect,
+          appendTo: () => document.body,
+          content: component.element,
+          showOnCreate: true,
+          interactive: true,
+          trigger: 'manual',
+          placement: 'bottom-start',
+        });
+      },
+
+      onUpdate(props: SuggestionProps<MentionSuggestion>) {
+        component?.updateProps({
+          items: props.items || [],
+          command: props.command,
+        });
+
+        if (!props.clientRect) {
+          return;
+        }
+
+        popup?.[0]?.setProps({
+          getReferenceClientRect: props.clientRect as () => DOMRect,
+        });
+      },
+
+      onKeyDown(props: SuggestionKeyDownProps) {
+        if (props.event.key === 'Escape') {
+          popup?.[0]?.hide();
+          return true;
+        }
+
+        return component?.ref?.onKeyDown(props) || false;
+      },
+
+      onExit() {
+        popup?.[0]?.destroy();
+        component?.destroy();
+      },
+    };
+  },
+});
+
+// Extract mention IDs from editor content
+const extractMentionIds = (editor: Editor | null): string[] => {
+  if (!editor) return [];
+  
+  const mentions: string[] = [];
+  const json = editor.getJSON();
+  
+  const traverse = (node: { type?: string; attrs?: { id?: string }; content?: unknown[] }) => {
+    if (node.type === 'mention' && node.attrs?.id) {
+      mentions.push(node.attrs.id);
+    }
+    if (node.content && Array.isArray(node.content)) {
+      node.content.forEach(traverse);
+    }
+  };
+  
+  traverse(json);
+  return [...new Set(mentions)];
+};
+
 export function RichTextEditor({
   value = '',
   onChange,
@@ -213,7 +313,11 @@ export function RichTextEditor({
   minHeight = '120px',
   maxHeight = '400px',
   autoFocus = false,
+  mentionSuggestions = [],
+  onMentionsChange,
 }: RichTextEditorProps) {
+  const mentionsRef = useRef<string[]>([]);
+  
   // Helper to safely parse content - handles both JSON and plain text
   const parseContent = useCallback((content: string) => {
     if (!content) return '';
@@ -244,6 +348,15 @@ export function RichTextEditor({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
       }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
+        },
+        suggestion: createMentionSuggestion(mentionSuggestions),
+        renderLabel({ node }) {
+          return `@${node.attrs.label ?? node.attrs.id}`;
+        },
+      }),
     ],
     content: parseContent(value),
     editable: !disabled,
@@ -251,8 +364,15 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       const json = JSON.stringify(editor.getJSON());
       onChange?.(json);
+      
+      // Track mentions
+      const newMentions = extractMentionIds(editor);
+      if (JSON.stringify(newMentions) !== JSON.stringify(mentionsRef.current)) {
+        mentionsRef.current = newMentions;
+        onMentionsChange?.(newMentions);
+      }
     },
-  });
+  }, [mentionSuggestions]);
 
   // Sync external value changes
   useEffect(() => {
@@ -304,6 +424,7 @@ export function RichTextEditor({
           '[&_.ProseMirror_ul]:my-1 [&_.ProseMirror_ul]:pl-5',
           '[&_.ProseMirror_ol]:my-1 [&_.ProseMirror_ol]:pl-5',
           '[&_.ProseMirror_li]:my-0.5',
+          '[&_.mention-chip]:bg-primary/15 [&_.mention-chip]:text-primary',
         )}
         style={{
           '--min-height': minHeight,
@@ -316,7 +437,7 @@ export function RichTextEditor({
 
 // Hook para usar o editor em contextos mais avançados
 export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'>) {
-  const { value = '', onChange, placeholder, disabled, autoFocus } = options;
+  const { value = '', onChange, placeholder, disabled, autoFocus, mentionSuggestions = [] } = options;
 
   const editor = useEditor({
     extensions: [
@@ -337,6 +458,15 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
         placeholder: placeholder || 'Escreva aqui...',
         emptyEditorClass: 'is-editor-empty',
       }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
+        },
+        suggestion: createMentionSuggestion(mentionSuggestions),
+        renderLabel({ node }) {
+          return `@${node.attrs.label ?? node.attrs.id}`;
+        },
+      }),
     ],
     content: (() => {
       if (!value) return '';
@@ -352,7 +482,7 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
       const json = JSON.stringify(editor.getJSON());
       onChange?.(json);
     },
-  });
+  }, [mentionSuggestions]);
 
   return editor;
 }
