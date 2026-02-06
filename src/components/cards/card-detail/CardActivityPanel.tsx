@@ -172,22 +172,22 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Premium Composer */}
-      <div className="flex-shrink-0 px-2 py-2 bg-gradient-to-t from-background to-transparent">
+      {/* Composer */}
+      <div className="flex-shrink-0 px-2 py-2 border-t border-border/30 bg-background/40 backdrop-blur-sm">
         <div className="mx-auto w-full">
-          <div className="flex items-end gap-1.5 rounded-full border border-border/40 bg-muted/30 pl-2.5 pr-1.5 py-1.5 focus-within:border-primary/25 focus-within:bg-muted/40 transition-colors">
+          <div className="flex items-end gap-2 rounded-2xl border border-border/50 bg-muted/20 p-1.5 shadow-sm focus-within:border-primary/25 focus-within:bg-muted/30 transition-colors">
             <div className="flex-1 min-w-0">
               <RichTextEditor
                 value={newComment}
                 onChange={setNewComment}
                 placeholder="Mensagem… (@ para mencionar)"
-                minHeight="22px"
-                maxHeight="96px"
+                minHeight="20px"
+                maxHeight="104px"
                 mentionSuggestions={mentionSuggestions}
                 onMentionsChange={setCurrentMentions}
                 showToolbar={false}
                 className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
-                contentClassName="px-2 py-1"
+                contentClassName="px-2 py-1 text-[12px] leading-snug"
               />
             </div>
 
@@ -195,10 +195,10 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               size="icon"
               variant="ghost"
               className={cn(
-                "h-7 w-7 rounded-full flex-shrink-0 transition-colors",
+                "h-9 w-9 rounded-xl p-0 flex-shrink-0 transition-colors",
                 !isRichTextEmpty(newComment) && !createComment.isPending
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  : "bg-background/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground",
               )}
               onClick={handleSubmit}
               disabled={isRichTextEmpty(newComment) || createComment.isPending}
@@ -206,9 +206,9 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               title="Enviar"
             >
               {createComment.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-3.5 w-3.5" />
+                <Send className="h-4 w-4" />
               )}
             </Button>
           </div>

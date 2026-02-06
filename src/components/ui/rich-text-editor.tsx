@@ -230,7 +230,7 @@ const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionS
 
   render: () => {
     let component: ReactRenderer<MentionListRef> | null = null;
-    let popup: TippyInstance[] | null = null;
+    let popup: TippyInstance | null = null;
 
     return {
       onStart: (props: SuggestionProps<MentionSuggestion>) => {
@@ -246,14 +246,20 @@ const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionS
           return;
         }
 
-        popup = tippy('body', {
+        const editorDom = props.editor?.view?.dom as HTMLElement | null;
+        const dialogContent = editorDom?.closest?.('[data-radix-dialog-content]') as HTMLElement | null;
+        const fallbackContainer = editorDom?.parentElement as HTMLElement | null;
+        const container = dialogContent || fallbackContainer || document.body;
+
+        popup = tippy(container, {
           getReferenceClientRect: props.clientRect as () => DOMRect,
-          appendTo: () => document.body,
+          appendTo: () => container,
           content: component.element,
           showOnCreate: true,
           interactive: true,
           trigger: 'manual',
           placement: 'bottom-start',
+          zIndex: 100000,
         });
       },
 
@@ -267,14 +273,14 @@ const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionS
           return;
         }
 
-        popup?.[0]?.setProps({
+        popup?.setProps({
           getReferenceClientRect: props.clientRect as () => DOMRect,
         });
       },
 
       onKeyDown(props: SuggestionKeyDownProps) {
         if (props.event.key === 'Escape') {
-          popup?.[0]?.hide();
+          popup?.hide();
           return true;
         }
 
@@ -282,7 +288,7 @@ const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionS
       },
 
       onExit() {
-        popup?.[0]?.destroy();
+        popup?.destroy();
         component?.destroy();
       },
     };
