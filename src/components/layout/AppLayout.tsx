@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { NotificationToast } from '@/components/notifications/NotificationToast';
 import { NoticesCenter } from '@/components/notices/NoticesCenter';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
@@ -69,6 +70,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
         {/* Feedback Widget */}
         <FeedbackWidget />
+        
+        {/* Realtime Toast Notifications */}
+        <NotificationToast />
       </SidebarInset>
     </SidebarProvider>
   );
