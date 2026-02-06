@@ -1,16 +1,18 @@
 import React from 'react';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge, UrgencyBadge } from './CardBadges';
+import { UrgencyBadge } from './CardBadges';
 import { CardRiskIndicators } from './CardRiskIndicators';
 import { RiskRadar } from './RiskRadar';
+import { CardQuickActions } from './CardQuickActions';
+import { CardAssignees, type Assignee } from './CardAssignees';
 import { VisibilityIcon } from '@/components/governance';
 import { Calendar, Clock, Building2, BanknoteIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card } from '@/hooks/useCards';
+import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
 interface TaskCardProps {
   card: Card;
@@ -20,6 +22,12 @@ interface TaskCardProps {
   ownerUtilization?: number;
   clientName?: string;
   clientColor?: string;
+  assignees?: Assignee[];
+  onStatusChange?: (status: CardStatus) => void;
+  onUrgencyChange?: (urgency: CardUrgency) => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+  showQuickActions?: boolean;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -30,10 +38,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   ownerUtilization = 0,
   clientName,
   clientColor,
+  assignees = [],
+  onStatusChange,
+  onUrgencyChange,
+  onDuplicate,
+  onDelete,
+  showQuickActions = true,
 }) => {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
   const isBillable = !!card.client_id;
+
+  const hasQuickActions = showQuickActions && onStatusChange && onUrgencyChange && onDuplicate && onDelete;
 
   return (
     <CardUI
@@ -60,8 +76,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       )}
 
-      {/* Risk Radar - compact indicator in top right */}
-      <div className="absolute top-2 right-2 z-10">
+      {/* Top right actions area */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+        {/* Quick actions button */}
+        {hasQuickActions && (
+          <CardQuickActions
+            card={card}
+            onStatusChange={onStatusChange}
+            onUrgencyChange={onUrgencyChange}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+          />
+        )}
+        
+        {/* Risk Radar */}
         <RiskRadar 
           card={card} 
           isBlocked={isBlocked} 
@@ -70,7 +98,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         />
       </div>
 
-      <CardHeader className={cn("p-3 pb-2 pr-8", clientColor && "pt-4")}>
+      <CardHeader className={cn("p-3 pb-2 pr-12", clientColor && "pt-4")}>
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
             {card.title}
@@ -137,12 +165,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             )}
           </div>
 
-          {/* Avatar placeholder */}
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-              {card.owner_id ? 'U' : '?'}
-            </AvatarFallback>
-          </Avatar>
+          {/* Assignees avatars */}
+          <CardAssignees assignees={assignees} maxVisible={2} size="sm" />
         </div>
       </CardContent>
     </CardUI>
