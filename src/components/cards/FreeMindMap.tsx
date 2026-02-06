@@ -82,7 +82,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     if (stored) {
       return stored;
     }
-    return [DEFAULT_ROOT_NODE];
+    return [{ ...DEFAULT_ROOT_NODE }];
   });
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -97,6 +97,9 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Tracks which viewId the current `nodes` state belongs to (prevents overwriting storage when viewId changes)
+  const nodesViewIdRef = useRef(viewId);
   
   // Use ref to prevent stale closures
   const nodesRef = useRef(nodes);
@@ -107,10 +110,37 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   // Auto-save to localStorage when nodes change
   useEffect(() => {
     if (nodes.length > 0) {
-      saveNodesToStorage(viewId, nodes);
+      saveNodesToStorage(nodesViewIdRef.current, nodes);
       setHasUnsavedChanges(false);
     }
-  }, [nodes, viewId]);
+  }, [nodes]);
+
+  // When viewId changes, load nodes for that view instead of overwriting its storage key
+  useEffect(() => {
+    if (nodesViewIdRef.current === viewId) return;
+
+    const stored = loadNodesFromStorage(viewId);
+    const nextNodes: MindMapNode[] =
+      stored && stored.length > 0
+        ? stored
+        : initialNodes && initialNodes.length > 0
+          ? initialNodes
+          : [{ ...DEFAULT_ROOT_NODE }];
+
+    // Switch the active storage key only when we've loaded the corresponding document
+    nodesViewIdRef.current = viewId;
+    setNodes(nextNodes);
+
+    // Reset per-document UI state
+    setSelectedNodeId(null);
+    setEditingNodeId(null);
+    setEditText('');
+    setDraggingNodeId(null);
+    setIsPanning(false);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setHasUnsavedChanges(false);
+  }, [viewId, initialNodes]);
 
   // Get all descendants of a node
   const getDescendants = useCallback((nodeId: string): string[] => {
@@ -246,14 +276,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
 
   // Manual save
   const handleManualSave = useCallback(() => {
-    saveNodesToStorage(viewId, nodes);
+    saveNodesToStorage(nodesViewIdRef.current, nodes);
     onSave?.(nodes);
     setHasUnsavedChanges(false);
     toast({
       title: 'Mapa salvo!',
       description: 'Seu mapa mental foi salvo com sucesso.',
     });
-  }, [viewId, nodes, onSave, toast]);
+  }, [nodes, onSave, toast]);
 
   // Handle wheel zoom
   useEffect(() => {
