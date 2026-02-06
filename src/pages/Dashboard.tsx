@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import {
   Users,
   Calendar,
   Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
@@ -57,6 +59,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const Dashboard: React.FC = () => {
   usePageTracking('dashboard');
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
 
   // Fetch cards for the workspace
@@ -363,17 +366,23 @@ const Dashboard: React.FC = () => {
                     .map((card) => (
                       <div
                         key={card.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                        onClick={() => navigate(`/spaces/${card.space_id}/cards/${card.id}`)}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors group"
                       >
-                        <div>
-                          <p className="font-medium">{card.title}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate group-hover:text-primary transition-colors">
+                            {card.title}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Prazo: {format(new Date(card.due_date!), "dd 'de' MMMM", { locale: ptBR })}
                           </p>
                         </div>
-                        <Badge variant="destructive">
-                          {STATUS_LABELS[card.status]}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">
+                            {STATUS_LABELS[card.status]}
+                          </Badge>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                       </div>
                     ))}
                 </div>
