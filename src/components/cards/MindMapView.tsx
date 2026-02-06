@@ -1,24 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 import { 
-  ChevronDown, 
   ChevronRight, 
-  Circle, 
+  ChevronDown,
   Folder,
-  AlertCircle,
-  Clock,
-  CheckCircle2,
-  FileText,
-  Sparkles,
-  Eye,
-  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
@@ -30,134 +16,86 @@ interface MindMapViewProps {
   folderName?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
-  backlog: { label: 'Backlog', color: 'text-muted-foreground', bgColor: 'bg-muted', icon: Circle },
-  briefing: { label: 'Briefing', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30', icon: FileText },
-  todo: { label: 'A Fazer', color: 'text-primary', bgColor: 'bg-primary/10', icon: Clock },
-  in_progress: { label: 'Em Progresso', color: 'text-yellow-600', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30', icon: Sparkles },
-  review: { label: 'Revisão', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30', icon: Eye },
-  approved: { label: 'Aprovado', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30', icon: CheckCircle2 },
-  delivered: { label: 'Entregue', color: 'text-green-700', bgColor: 'bg-green-200 dark:bg-green-900/50', icon: Package },
-  done: { label: 'Concluído', color: 'text-green-700', bgColor: 'bg-green-200 dark:bg-green-900/50', icon: CheckCircle2 },
+const STATUS_CONFIG: Record<string, { label: string; color: string; lineColor: string }> = {
+  backlog: { label: 'Backlog', color: 'bg-gray-400', lineColor: '#9ca3af' },
+  briefing: { label: 'Briefing', color: 'bg-blue-500', lineColor: '#3b82f6' },
+  todo: { label: 'A Fazer', color: 'bg-purple-500', lineColor: '#a855f7' },
+  in_progress: { label: 'Em Progresso', color: 'bg-yellow-500', lineColor: '#eab308' },
+  review: { label: 'Revisão', color: 'bg-orange-500', lineColor: '#f97316' },
+  approved: { label: 'Aprovado', color: 'bg-green-500', lineColor: '#22c55e' },
+  delivered: { label: 'Entregue', color: 'bg-emerald-600', lineColor: '#059669' },
+  done: { label: 'Concluído', color: 'bg-green-600', lineColor: '#16a34a' },
 };
 
-const URGENCY_COLORS: Record<string, string> = {
-  critical: 'border-l-red-500',
-  high: 'border-l-orange-500',
-  medium: 'border-l-yellow-500',
-  low: 'border-l-green-500',
-};
-
-interface StatusGroupProps {
-  status: string;
-  cards: Card[];
-  onCardClick: (card: Card) => void;
-  depth: number;
+interface MindMapNodeProps {
+  card: Card;
+  onClick: () => void;
+  statusColor: string;
 }
 
-const StatusGroup: React.FC<StatusGroupProps> = ({ status, cards, onCardClick, depth }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
-  const Icon = config.icon;
-
-  if (cards.length === 0) return null;
-
+const MindMapNode: React.FC<MindMapNodeProps> = ({ card, onClick, statusColor }) => {
   return (
-    <div className="relative">
-      {/* Connection line from parent */}
-      <div 
-        className={cn(
-          "absolute top-4 h-px bg-border",
-          depth === 1 ? "-left-8 w-8" : "-left-6 w-6"
-        )} 
-      />
-      
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-2 h-auto py-2 px-3",
-              config.bgColor
-            )}
-          >
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4 flex-shrink-0" />
-            ) : (
-              <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            )}
-            <Icon className={cn("h-4 w-4 flex-shrink-0", config.color)} />
-            <span className={cn("font-medium", config.color)}>{config.label}</span>
-            <Badge variant="secondary" className="ml-auto">
-              {cards.length}
-            </Badge>
-          </Button>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="ml-6 pl-4 border-l-2 border-border/50 space-y-1 mt-1">
-            {cards.map(card => (
-              <CardNode 
-                key={card.id} 
-                card={card} 
-                onClick={() => onCardClick(card)} 
-              />
-            ))}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-2 bg-card border rounded-lg shadow-sm hover:shadow-md hover:border-primary/50 transition-all text-left min-w-[180px] max-w-[280px]"
+    >
+      <div className={cn("w-2.5 h-2.5 rounded-sm flex-shrink-0", statusColor)} />
+      <span className="text-sm font-medium truncate">{card.title}</span>
+    </button>
   );
 };
 
-interface CardNodeProps {
-  card: Card;
-  onClick: () => void;
+interface StatusBranchProps {
+  status: string;
+  cards: Card[];
+  onCardClick: (card: Card) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
+  setRef: (el: HTMLDivElement | null) => void;
 }
 
-const CardNode: React.FC<CardNodeProps> = ({ card, onClick }) => {
-  const urgencyClass = card.urgency ? URGENCY_COLORS[card.urgency] : '';
-  const isOverdue = card.due_date && new Date(card.due_date) < new Date() && 
-    !['done', 'delivered', 'approved'].includes(card.status);
+const StatusBranch: React.FC<StatusBranchProps> = ({ 
+  status, 
+  cards, 
+  onCardClick, 
+  isExpanded, 
+  onToggle,
+  setRef,
+}) => {
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
 
   return (
-    <div className="relative">
-      {/* Connection line */}
-      <div className="absolute top-3 -left-4 w-4 h-px bg-border" />
-      
+    <div ref={setRef} className="flex items-start gap-3">
+      {/* Status node */}
       <button
-        onClick={onClick}
-        className={cn(
-          "w-full text-left p-2 rounded-md border bg-card transition-all",
-          "hover:shadow-md hover:border-primary/50",
-          urgencyClass && `border-l-4 ${urgencyClass}`
-        )}
+        onClick={onToggle}
+        className="flex items-center gap-2 px-3 py-2 bg-card border rounded-lg shadow-sm hover:shadow-md transition-all min-w-[140px]"
       >
-        <div className="flex items-start gap-2">
-          <Circle className="h-2 w-2 mt-1.5 flex-shrink-0 fill-current text-muted-foreground" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{card.title}</p>
-            {(card.due_date || isOverdue) && (
-              <div className="flex items-center gap-1 mt-1">
-                {isOverdue && (
-                  <AlertCircle className="h-3 w-3 text-destructive" />
-                )}
-                {card.due_date && (
-                  <span className={cn(
-                    "text-xs",
-                    isOverdue ? "text-destructive" : "text-muted-foreground"
-                  )}>
-                    {new Date(card.due_date).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'short',
-                    })}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+        <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
+        <span className="text-sm font-medium">{config.label}</span>
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {cards.length}
+        </Badge>
       </button>
+
+      {/* Cards */}
+      {isExpanded && cards.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {cards.map((card) => (
+            <MindMapNode
+              key={card.id}
+              card={card}
+              onClick={() => onCardClick(card)}
+              statusColor={config.color}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -168,7 +106,11 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   spaceName = 'Espaço',
   folderName,
 }) => {
-  const [showAll, setShowAll] = useState(true);
+  const [expandedStatuses, setExpandedStatuses] = useState<Set<string>>(new Set(['in_progress', 'todo', 'review']));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const branchRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Group cards by status
   const cardsByStatus = useMemo(() => {
@@ -189,19 +131,86 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   const statusOrder = ['backlog', 'briefing', 'todo', 'in_progress', 'review', 'approved', 'delivered', 'done'];
   const orderedStatuses = statusOrder.filter(s => cardsByStatus[s]?.length > 0);
 
-  // Stats
-  const stats = useMemo(() => {
-    const overdue = cards.filter(c => 
-      c.due_date && 
-      new Date(c.due_date) < new Date() && 
-      !['done', 'delivered', 'approved'].includes(c.status)
-    ).length;
+  const toggleStatus = (status: string) => {
+    setExpandedStatuses(prev => {
+      const next = new Set(prev);
+      if (next.has(status)) {
+        next.delete(status);
+      } else {
+        next.add(status);
+      }
+      return next;
+    });
+  };
 
-    const urgent = cards.filter(c => c.urgency === 'critical').length;
-    const inProgress = cards.filter(c => c.status === 'in_progress').length;
+  const setBranchRef = useCallback((status: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      branchRefs.current.set(status, el);
+    } else {
+      branchRefs.current.delete(status);
+    }
+  }, []);
 
-    return { total: cards.length, overdue, urgent, inProgress };
-  }, [cards]);
+  // Draw connection lines
+  useEffect(() => {
+    const drawLines = () => {
+      if (!svgRef.current || !rootRef.current || !containerRef.current) return;
+
+      const svg = svgRef.current;
+      const container = containerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const rootRect = rootRef.current.getBoundingClientRect();
+
+      // Clear existing paths
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
+
+      // Set SVG size
+      svg.setAttribute('width', String(containerRect.width));
+      svg.setAttribute('height', String(containerRect.height));
+
+      // Draw lines to each branch
+      orderedStatuses.forEach((status) => {
+        const branchEl = branchRefs.current.get(status);
+        if (!branchEl) return;
+
+        const branchRect = branchEl.getBoundingClientRect();
+        const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
+
+        // Calculate positions relative to container
+        const startX = rootRect.right - containerRect.left;
+        const startY = rootRect.top + rootRect.height / 2 - containerRect.top;
+        const endX = branchRect.left - containerRect.left;
+        const endY = branchRect.top + 20 - containerRect.top;
+
+        // Create curved path
+        const midX = startX + (endX - startX) / 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+        path.setAttribute('stroke', config.lineColor);
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+
+        svg.appendChild(path);
+      });
+    };
+
+    // Initial draw
+    const timer = setTimeout(drawLines, 100);
+
+    // Redraw on resize
+    const resizeObserver = new ResizeObserver(drawLines);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
+  }, [orderedStatuses, expandedStatuses, cards]);
 
   if (cards.length === 0) {
     return (
@@ -216,51 +225,42 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 min-w-[600px]">
-        {/* Central Node */}
-        <div className="flex items-start">
+      <div 
+        ref={containerRef}
+        className="relative p-8 min-w-[800px] min-h-[500px]"
+      >
+        {/* SVG for connection lines */}
+        <svg
+          ref={svgRef}
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+
+        {/* Mind map content */}
+        <div className="relative flex items-start gap-12" style={{ zIndex: 1 }}>
           {/* Root node */}
-          <div className="flex-shrink-0">
-            <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-lg min-w-[200px]">
-              <div className="flex items-center gap-2 mb-2">
-                <Folder className="h-5 w-5" />
-                <span className="font-semibold">{folderName || spaceName}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-primary-foreground/20 rounded px-2 py-1">
-                  <span className="opacity-80">Total:</span> {stats.total}
-                </div>
-                {stats.inProgress > 0 && (
-                  <div className="bg-yellow-500/30 rounded px-2 py-1">
-                    <span className="opacity-80">Em prog:</span> {stats.inProgress}
-                  </div>
-                )}
-                {stats.overdue > 0 && (
-                  <div className="bg-red-500/30 rounded px-2 py-1">
-                    <span className="opacity-80">Atrasados:</span> {stats.overdue}
-                  </div>
-                )}
-                {stats.urgent > 0 && (
-                  <div className="bg-orange-500/30 rounded px-2 py-1">
-                    <span className="opacity-80">Urgentes:</span> {stats.urgent}
-                  </div>
-                )}
-              </div>
-            </div>
+          <div 
+            ref={rootRef}
+            className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground rounded-xl shadow-lg min-w-[180px]"
+          >
+            <Folder className="h-5 w-5" />
+            <span className="font-semibold">{folderName || spaceName}</span>
+            <Badge variant="secondary" className="ml-auto bg-primary-foreground/20 text-primary-foreground">
+              {cards.length}
+            </Badge>
           </div>
 
-          {/* Main connection line */}
-          <div className="w-8 h-px bg-border mt-8 flex-shrink-0" />
-
-          {/* Status branches */}
-          <div className="flex-1 space-y-2">
-            {orderedStatuses.map((status, index) => (
-              <StatusGroup
+          {/* Branches */}
+          <div className="flex flex-col gap-3">
+            {orderedStatuses.map((status) => (
+              <StatusBranch
                 key={status}
                 status={status}
                 cards={cardsByStatus[status] || []}
                 onCardClick={onCardClick}
-                depth={1}
+                isExpanded={expandedStatuses.has(status)}
+                onToggle={() => toggleStatus(status)}
+                setRef={setBranchRef(status)}
               />
             ))}
           </div>
@@ -268,14 +268,17 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
 
         {/* Legend */}
         <div className="mt-8 pt-4 border-t">
-          <p className="text-xs text-muted-foreground mb-2">Legenda de urgência:</p>
+          <p className="text-xs text-muted-foreground mb-2">Status:</p>
           <div className="flex flex-wrap gap-3">
-            {Object.entries(URGENCY_COLORS).map(([urgency, colorClass]) => (
-              <div key={urgency} className="flex items-center gap-1">
-                <div className={cn("w-3 h-3 rounded", colorClass.replace('border-l-', 'bg-'))} />
-                <span className="text-xs text-muted-foreground capitalize">{urgency}</span>
-              </div>
-            ))}
+            {orderedStatuses.map((status) => {
+              const config = STATUS_CONFIG[status];
+              return (
+                <div key={status} className="flex items-center gap-1.5">
+                  <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
+                  <span className="text-xs text-muted-foreground">{config.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
