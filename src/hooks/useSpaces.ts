@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SpaceType } from '@/lib/supabase';
 import type { SpaceTemplate } from '@/lib/spaceTemplates';
+import type { UserSpaceTemplate } from '@/hooks/useSpaceTemplateActions';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -81,6 +82,7 @@ export const useCreateSpace = () => {
       icon?: string;
       color?: string;
       template?: SpaceTemplate;
+      userTemplate?: UserSpaceTemplate;
     }) => {
       if (!currentWorkspace?.id) throw new Error('No workspace selected');
 
@@ -100,9 +102,13 @@ export const useCreateSpace = () => {
 
       if (error) throw error;
 
-      // 2. Apply template structure ONLY for social_media template
+      // 2. Apply user template if selected
+      if (space.userTemplate) {
+        await applyUserTemplateToSpace(newSpace.id, currentWorkspace.id, space.userTemplate);
+      }
+      // 3. Apply system template structure ONLY for social_media template
       // Other templates start blank - user creates their own structure
-      if (space.template && space.template.id === 'social_media' && space.template.folders.length > 0) {
+      else if (space.template && space.template.id === 'social_media' && space.template.folders.length > 0) {
         await applyTemplateToSpace(newSpace.id, currentWorkspace.id, space.template, user?.id);
       }
 
@@ -188,6 +194,73 @@ async function applyTemplateToSpace(
           customFields: customFieldsJson,
           templateId: template.id,
         } as Json,
+      })
+      .eq('id', spaceId);
+  }
+}
+
+/**
+ * Apply user-created template to a space (creates folders and views from saved config)
+ */
+async function applyUserTemplateToSpace(
+  spaceId: string,
+  workspaceId: string,
+  userTemplate: UserSpaceTemplate
+) {
+  // Create folders from user template config
+  for (let i = 0; i < userTemplate.folders_config.length; i++) {
+    const folderConfig = userTemplate.folders_config[i];
+    
+    // Create folder
+    const { data: folder, error: folderError } = await supabase
+      .from('folders')
+      .insert({
+        workspace_id: workspaceId,
+        space_id: spaceId,
+        name: folderConfig.name,
+        icon: folderConfig.icon,
+        color: folderConfig.color,
+        description: folderConfig.description || null,
+        sort_order: i,
+      })
+      .select()
+      .single();
+
+    if (folderError) {
+      console.error('Error creating folder from user template:', folderError);
+      continue;
+    }
+
+    // Create views for this folder
+    if (folderConfig.views && folderConfig.views.length > 0) {
+      const viewsToInsert = folderConfig.views.map((v, idx) => ({
+        workspace_id: workspaceId,
+        folder_id: folder.id,
+        name: v.name,
+        view_type: v.view_type,
+        view_config: JSON.parse(JSON.stringify(v.view_config || {})),
+        sort_order: idx,
+      }));
+
+      const { error: viewsError } = await supabase
+        .from('folder_views')
+        .insert(viewsToInsert);
+
+      if (viewsError) {
+        console.error('Error creating views from user template:', viewsError);
+      }
+    }
+  }
+
+  // Update space settings with custom fields if present
+  if (userTemplate.custom_fields_config.length > 0) {
+    await supabase
+      .from('spaces')
+      .update({
+        settings: JSON.parse(JSON.stringify({
+          customFields: userTemplate.custom_fields_config,
+          templateId: userTemplate.id,
+        })),
       })
       .eq('id', spaceId);
   }
