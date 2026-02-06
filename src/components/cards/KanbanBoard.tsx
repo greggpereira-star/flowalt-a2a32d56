@@ -47,6 +47,7 @@ interface KanbanBoardProps {
   onCardClick: (card: Card) => void;
   onAddCard: (status: CardStatus) => void;
   visibleStatuses?: CardStatus[];
+  columnLabels?: Record<CardStatus, string>;
 }
 
 // Droppable column component
@@ -156,6 +157,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onCardClick,
   onAddCard,
   visibleStatuses = defaultStatuses,
+  columnLabels,
 }) => {
   const { toast } = useToast();
   const { currentRole } = useWorkspace();
@@ -531,7 +533,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         status === 'delivered' && 'bg-status-delivered ring-status-delivered/30',
                       )}
                     />
-                    <span className="text-sm font-semibold">{config.label}</span>
+                    <span className="text-sm font-semibold">{columnLabels?.[status] || config.label}</span>
                     <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
                       {columnCards.length}
                     </Badge>

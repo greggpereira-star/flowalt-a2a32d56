@@ -8,6 +8,7 @@ import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
 import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
+import { KanbanWithColumns } from '@/components/cards/KanbanWithColumns';
 import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
 import { ListView } from '@/components/cards/ListView';
 import { CalendarBoardView } from '@/components/cards/CalendarBoardView';
@@ -530,13 +531,12 @@ const SpacePage: React.FC = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : view === 'kanban' ? (
-              <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
-                <KanbanBoard
-                  cards={filteredCards}
-                  onCardClick={handleCardClick}
-                  onAddCard={handleAddCard}
-                />
-              </div>
+              <KanbanWithColumns
+                cards={filteredCards}
+                onCardClick={handleCardClick}
+                onAddCard={handleAddCard}
+                viewId={activeViewId}
+              />
             ) : view === 'kanban-advanced' ? (
               <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
                 <KanbanAdvanced
