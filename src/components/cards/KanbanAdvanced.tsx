@@ -93,6 +93,7 @@ import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import type { Assignee } from './CardAssignees';
 import { isPast, isToday } from 'date-fns';
 
 interface KanbanAdvancedProps {
@@ -154,6 +155,21 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const createCard = useCreateCard();
   const { data: members } = useWorkspaceMembers();
   const { data: clientCards } = useClientCards();
+  
+  // Build a map of user_id -> assignee info for quick lookup
+  const memberMap = useMemo(() => {
+    const map = new Map<string, Assignee>();
+    members?.forEach(member => {
+      if (member.profile) {
+        map.set(member.user_id, {
+          id: member.user_id,
+          name: member.profile.full_name || member.profile.email,
+          avatar_url: member.profile.avatar_url,
+        });
+      }
+    });
+    return map;
+  }, [members]);
   
   // Use only active clients from client_cards (new system)
   const clients = useMemo(() => {
@@ -607,6 +623,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     const ownerUtilization = card.owner_id 
       ? userSummaries.find(u => u.userId === card.owner_id)?.utilizationPercent || 0
       : 0;
+    const assignees: Assignee[] = card.owner_id && memberMap.has(card.owner_id)
+      ? [memberMap.get(card.owner_id)!]
+      : [];
     
     return (
       <DraggableCard key={card.id} id={card.id} disabled={isSelectionMode}>
@@ -639,6 +658,11 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                 onClick={() => isSelectionMode ? toggleCardSelection(card.id) : onCardClick(card)}
                 isBlocked={isBlocked}
                 ownerUtilization={ownerUtilization}
+                assignees={assignees}
+                onStatusChange={(status) => handleStatusChange(card, status)}
+                onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                onDuplicate={() => handleDuplicate(card)}
+                onDelete={() => handleDelete(card)}
               />
             </div>
           </CardContextMenu>

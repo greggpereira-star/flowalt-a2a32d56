@@ -28,6 +28,7 @@ import { useChecklists } from '@/hooks/useChecklists';
 import { useCardDependencies } from '@/hooks/useDependencies';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { 
   useDefaultWorkflow, 
   useCompleteWorkflow, 
@@ -41,6 +42,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import type { Assignee } from './CardAssignees';
 
 interface KanbanBoardProps {
   cards: Card[];
@@ -169,6 +171,24 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Clients data for displaying client info on cards
   const { data: legacyClients } = useClients();
   const { data: clientCards } = useClientCards();
+  
+  // Members data for displaying assignees on cards
+  const { data: members } = useWorkspaceMembers();
+  
+  // Build a map of user_id -> assignee info for quick lookup
+  const memberMap = useMemo(() => {
+    const map = new Map<string, Assignee>();
+    members?.forEach(member => {
+      if (member.profile) {
+        map.set(member.user_id, {
+          id: member.user_id,
+          name: member.profile.full_name || member.profile.email,
+          avatar_url: member.profile.avatar_url,
+        });
+      }
+    });
+    return map;
+  }, [members]);
   
   // Build a map of client_id -> {name, color} for quick lookup
   const clientMap = useMemo(() => {
@@ -567,6 +587,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   ) : (
                     columnCards.map((card) => {
                       const clientInfo = card.client_id ? clientMap.get(card.client_id) : undefined;
+                      const assignees: Assignee[] = card.owner_id && memberMap.has(card.owner_id)
+                        ? [memberMap.get(card.owner_id)!]
+                        : [];
                       return (
                         <DraggableCard key={card.id} id={card.id}>
                           <CardContextMenu
@@ -587,6 +610,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 onClick={() => onCardClick(card)}
                                 clientName={clientInfo?.name}
                                 clientColor={clientInfo?.color || undefined}
+                                assignees={assignees}
+                                onStatusChange={(status) => handleStatusChange(card, status)}
+                                onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                                onDuplicate={() => handleDuplicate(card)}
+                                onDelete={() => handleDelete(card)}
                               />
                             </div>
                           </CardContextMenu>
