@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Sheet,
-  SheetContent,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -417,8 +419,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const isRestrictedNoAccess = !isLoading && !card;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col overflow-hidden bg-background">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="max-w-4xl w-[95vw] h-[90vh] max-h-[900px] p-0 flex flex-col overflow-hidden bg-background"
+        hideCloseButton
+      >
+        <VisuallyHidden.Root>
+          <DialogTitle>Detalhes do Card</DialogTitle>
+        </VisuallyHidden.Root>
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -436,7 +444,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
             {/* Header Section */}
             <div className="flex-shrink-0 bg-card">
               {/* Top Status Bar */}
-              <div className="flex items-center justify-between px-5 pr-14 py-3 border-b">
+              <div className="flex items-center justify-between px-5 py-3 border-b">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={status} />
                   <UrgencyBadge urgency={urgency} />
@@ -503,6 +511,16 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
+                  
+                  {/* Close Button */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -1187,7 +1205,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
             <p className="text-muted-foreground">Card não encontrado</p>
           </div>
         )}
-      </SheetContent>
+      </DialogContent>
       
       {/* Delete Confirmation Dialog */}
       {card && (
@@ -1208,6 +1226,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
           onConfirm={handleDelete}
         />
       )}
-    </Sheet>
+    </Dialog>
   );
 };
