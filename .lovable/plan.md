@@ -1,165 +1,139 @@
 
-# Plano: Habilitar Views Gantt, Calendário e Mapa Mental
+# Plano: Chat Fluido com Sistema de @Mencoes
 
-## Resumo
+## Visao Geral
 
-Remover as restrições "Em breve" e habilitar as views **Gantt**, **Calendário** e **Mapa Mental** para uso em todos os espaços.
-
----
-
-## Análise do Estado Atual
-
-| View | Componente Existente | Status |
-|------|---------------------|--------|
-| Kanban | `KanbanBoard.tsx`, `KanbanAdvanced.tsx` | Funcionando |
-| Lista | `ListView.tsx` | Funcionando |
-| Calendário | `CalendarView.tsx` (agenda), parcial em SpacePage | Placeholder |
-| Gantt | `GanttAdvanced.tsx` (coordenação) | Existe, não integrado |
-| Mapa Mental | Não existe | Precisa criar |
+O objetivo principal e implementar um sistema de mencoes (@) no chat dos cards, similar ao ClickUp, permitindo marcar membros do workspace diretamente nas conversas. Isso tornara o chat mais fluido e colaborativo.
 
 ---
 
-## Alterações Necessárias
+## O Que Sera Implementado
 
-### 1. Remover Restrição "Em breve" do Dialog
+### 1. Sistema de @Mencoes no Chat
 
-**Arquivo:** `src/components/social-media/CreateViewDialog.tsx`
+O usuario podera digitar "@" no campo de comentario e vera uma lista de sugestoes com os membros do workspace, podendo selecionar quem deseja mencionar.
 
-Remover a propriedade `coming: true` das opções Gantt e Mapa Mental no array `DEFAULT_VIEW_TYPES`.
+**Como funcionara:**
+- Ao digitar "@", aparece um popup com lista de membros
+- Filtragem automatica conforme digita o nome
+- Avatar e nome do membro sao exibidos
+- Clicar ou pressionar Enter seleciona a mencao
+- Mencoes aparecem destacadas no texto (estilo chip/badge)
+
+### 2. Visual do Chat Melhorado
+
+- Mensagens com mencoes exibem os nomes destacados
+- Layout mais limpo e moderno
+- Scroll automatico para novas mensagens
+- Indicador visual quando usuario e mencionado
 
 ---
 
-### 2. Adicionar View Types no SpacePage
-
-**Arquivo:** `src/pages/SpacePage.tsx`
-
-Adicionar 'gantt' e 'mindmap' ao type `ViewType`:
+## Etapas Tecnicas
 
 ```text
-type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'gantt' | 'mindmap' | ...
++-------------------+       +---------------------+       +-------------------+
+|  Instalar         | ----> |  Criar componente   | ----> |  Atualizar        |
+|  TipTap Mention   |       |  MentionList        |       |  RichTextEditor   |
++-------------------+       +---------------------+       +-------------------+
+                                     |
+                                     v
+                           +---------------------+
+                           |  Atualizar          |
+                           |  CommentsPanel      |
+                           +---------------------+
+                                     |
+                                     v
+                           +---------------------+
+                           |  Melhorar visual    |
+                           |  RichTextViewer     |
+                           +---------------------+
 ```
 
-Adicionar mapeamento no `getViewTypeFromConfig`:
+### Etapa 1: Adicionar Dependencias TipTap
 
-```text
-if (viewType === 'gantt') return 'gantt';
-if (viewType === 'mindmap') return 'mindmap';
+Instalar os pacotes necessarios para mencoes:
+- `@tiptap/extension-mention` - Extensao de mencoes
+- `@tiptap/suggestion` - Utilitario para autocomplete
+
+### Etapa 2: Criar Componente de Lista de Mencoes
+
+Novo arquivo `src/components/ui/mention-list.tsx`:
+- Componente que renderiza a lista de sugestoes
+- Recebe membros do workspace como props
+- Suporta navegacao por teclado (setas, Enter, Escape)
+- Exibe avatar + nome de cada membro
+- Filtra resultados conforme digitacao
+
+### Etapa 3: Atualizar RichTextEditor
+
+Modificar `src/components/ui/rich-text-editor.tsx`:
+- Adicionar extensao Mention do TipTap
+- Configurar o caractere trigger "@"
+- Conectar com componente MentionList
+- Renderizar mencoes como chips coloridos no texto
+
+Novas props adicionadas:
+```typescript
+interface RichTextEditorProps {
+  // ... props existentes
+  mentionSuggestions?: Array<{
+    id: string;
+    name: string;
+    avatar_url?: string | null;
+  }>;
+  onMentionsChange?: (mentionIds: string[]) => void;
+}
 ```
 
----
+### Etapa 4: Atualizar CommentsPanel
 
-### 3. Criar Componente de Calendário para Espaços
+Modificar `src/components/cards/CommentsPanel.tsx`:
+- Buscar membros do workspace usando `useWorkspaceMembers`
+- Passar lista de membros para o RichTextEditor
+- Capturar IDs dos usuarios mencionados
+- Salvar mencoes junto com o comentario (campo ja existe no banco)
+- Auto-scroll para novas mensagens
 
-**Novo arquivo:** `src/components/cards/CalendarBoardView.tsx`
+### Etapa 5: Atualizar RichTextViewer
 
-Componente que exibe cards em formato de calendário mensal, similar ao `CalendarView.tsx` mas focado em cards do espaço:
-
-- Grid de calendário mensal
-- Cards posicionados pela `due_date`
-- Navegação entre meses
-- Click em card abre detalhes
-
----
-
-### 4. Criar Componente de Mapa Mental
-
-**Novo arquivo:** `src/components/cards/MindMapView.tsx`
-
-Componente de visualização hierárquica de cards:
-
-- Nó central = Espaço ou Pasta
-- Nós secundários = Cards agrupados por status
-- Conexões visuais entre nós
-- Expansão/colapso de grupos
-- Click em card abre detalhes
+Modificar `src/components/ui/rich-text-viewer.tsx`:
+- Renderizar mencoes salvas com estilo destacado
+- Exibir "@NomeDoUsuario" em cor diferente
+- Tooltip opcional com informacoes do usuario
 
 ---
 
-### 5. Integrar Gantt no SpacePage
+## Arquivos a Serem Modificados/Criados
 
-**Arquivo:** `src/pages/SpacePage.tsx`
-
-Reutilizar o componente `GanttAdvanced.tsx` existente, adaptando para receber cards do espaço/pasta atual.
-
----
-
-### 6. Renderizar Views no SpacePage
-
-**Arquivo:** `src/pages/SpacePage.tsx`
-
-Adicionar condicionais para renderizar os novos componentes:
-
-```text
-} : view === 'calendar' ? (
-  <CalendarBoardView cards={filteredCards} onCardClick={handleCardClick} />
-) : view === 'gantt' ? (
-  <GanttAdvanced cards={filteredCards} dependencies={[]} onCardClick={...} />
-) : view === 'mindmap' ? (
-  <MindMapView cards={filteredCards} onCardClick={handleCardClick} spaceName={space.name} />
-) : (
-```
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `package.json` | Modificar | Adicionar dependencias TipTap |
+| `src/components/ui/mention-list.tsx` | Criar | Componente de sugestoes |
+| `src/components/ui/rich-text-editor.tsx` | Modificar | Integrar extensao Mention |
+| `src/components/ui/rich-text-viewer.tsx` | Modificar | Renderizar mencoes |
+| `src/components/cards/CommentsPanel.tsx` | Modificar | Integrar membros e mencoes |
 
 ---
 
-## Arquivos a Criar
+## Fluxo de Usuario Final
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/components/cards/CalendarBoardView.tsx` | Calendário de cards por due_date |
-| `src/components/cards/MindMapView.tsx` | Visualização hierárquica de cards |
-
-## Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/social-media/CreateViewDialog.tsx` | Remover `coming: true` |
-| `src/pages/SpacePage.tsx` | Adicionar types + renderização |
-| `src/components/spaces/EmptySpaceState.tsx` | Atualizar para incluir todas as views |
+1. Usuario abre um card e vai para aba "Chat"
+2. Comeca a digitar um comentario
+3. Digita "@" para mencionar alguem
+4. Popup aparece com lista de membros do workspace
+5. Usuario seleciona o membro (clique ou Enter)
+6. Mencao aparece como chip destacado no texto
+7. Usuario envia o comentario
+8. Comentario salvo com lista de IDs mencionados
+9. Na lista de comentarios, mencoes aparecem destacadas
 
 ---
 
-## Fluxo Final do Usuário
+## Consideracoes Sobre Sugestoes Adicionais
 
-```text
-1. Usuário clica em "Nova View" dentro de uma pasta
-   ↓
-2. Dialog mostra 5 opções habilitadas:
-   [Kanban] [Lista] [Calendário] [Gantt] [Mapa Mental]
-   ↓
-3. Usuário seleciona qualquer uma
-   ↓
-4. View é criada e renderizada corretamente
-```
+Voce mencionou outras melhorias como card centralizado/movel e reorganizacao visual do card. Essas sao mudancas maiores de UX que podem ser abordadas em um proximo passo, ja que o foco principal desta implementacao e o **chat com @mencoes**.
 
----
-
-## Detalhes Técnicos
-
-### CalendarBoardView
-- Usa `date-fns` para manipulação de datas (já instalado)
-- Grid 7 colunas × 5-6 linhas
-- Cards aparecem no dia da `due_date`
-- Suporte a drag-and-drop para mover datas
-
-### MindMapView
-- Layout radial ou hierárquico usando CSS Grid/Flexbox
-- Sem dependências externas adicionais
-- Cards agrupados por status no primeiro nível
-- Animações de expansão/colapso
-- Cores por status do card
-
-### GanttAdvanced Integration
-- Componente já existe e funciona bem
-- Precisa passar dependencies vazio `[]` inicialmente
-- Cards são mapeados por `start_date` e `due_date`
-
----
-
-## Estimativa
-
-- Remover restrições + integrar Gantt: ~15 min
-- CalendarBoardView: ~30 min
-- MindMapView: ~45 min
-- Testes e ajustes: ~15 min
-
-**Total: ~1h45min**
+Se desejar, posso criar um plano separado para:
+- Modal centralizado/redimensionavel para o card
+- Reorganizacao das abas priorizando prazo, briefing, tarefas e chat
