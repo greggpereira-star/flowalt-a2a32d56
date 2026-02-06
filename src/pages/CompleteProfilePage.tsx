@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Camera, Calendar, Check, Sparkles } from 'lucide-react';
+import { ImageCropper } from '@/components/ui/image-cropper';
+import { Loader2, Camera, Calendar, Check, Sparkles, Crop } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -24,8 +25,11 @@ const CompleteProfilePage: React.FC = () => {
 
   const [birthday, setBirthday] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
   // If profile is already complete, redirect
   React.useEffect(() => {
@@ -60,18 +64,31 @@ const CompleteProfilePage: React.FC = () => {
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 10MB for raw file, will be compressed after crop)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: 'Arquivo muito grande',
-        description: 'A imagem deve ter no máximo 5MB.',
+        description: 'A imagem deve ter no máximo 10MB.',
         variant: 'destructive',
       });
       return;
     }
 
+    // Store the original file and open cropper
     setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setTempImageSrc(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    setAvatarBlob(croppedBlob);
+    setAvatarPreview(URL.createObjectURL(croppedBlob));
+    
+    // Clean up temp image
+    if (tempImageSrc) {
+      URL.revokeObjectURL(tempImageSrc);
+      setTempImageSrc(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +97,7 @@ const CompleteProfilePage: React.FC = () => {
 
     // Validation
     const needsBirthday = !profileStatus?.hasBirthday && !birthday;
-    const needsAvatar = !profileStatus?.hasAvatar && !avatarFile && !avatarPreview;
+    const needsAvatar = !profileStatus?.hasAvatar && !avatarBlob && !avatarPreview;
 
     if (needsBirthday) {
       toast({
@@ -105,14 +122,16 @@ const CompleteProfilePage: React.FC = () => {
     try {
       let avatarUrl = profileStatus?.profile?.avatar_url;
 
-      // Upload avatar if new file selected
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const filePath = `${user.id}/avatar.${fileExt}`;
+      // Upload avatar if new cropped blob available
+      if (avatarBlob) {
+        const filePath = `${user.id}/avatar.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(filePath, avatarFile, { upsert: true });
+          .upload(filePath, avatarBlob, { 
+            upsert: true,
+            contentType: 'image/jpeg'
+          });
 
         if (uploadError) throw uploadError;
 
@@ -120,7 +139,8 @@ const CompleteProfilePage: React.FC = () => {
           .from('avatars')
           .getPublicUrl(filePath);
 
-        avatarUrl = urlData.publicUrl;
+        // Add cache buster to force refresh
+        avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       }
 
       // Update profile
@@ -231,9 +251,31 @@ const CompleteProfilePage: React.FC = () => {
               />
               
               <p className="text-xs text-muted-foreground">
-                Clique para selecionar uma foto (max 5MB)
+                Clique para selecionar uma foto. Tamanho recomendado: <strong>400×400px</strong> (quadrado)
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Crop className="h-3 w-3" />
+                Você poderá recortar e ajustar a imagem
               </p>
             </div>
+
+            {/* Image Cropper Dialog */}
+            {tempImageSrc && (
+              <ImageCropper
+                open={cropperOpen}
+                onOpenChange={(open) => {
+                  setCropperOpen(open);
+                  if (!open && tempImageSrc) {
+                    URL.revokeObjectURL(tempImageSrc);
+                    setTempImageSrc(null);
+                  }
+                }}
+                imageSrc={tempImageSrc}
+                onCropComplete={handleCropComplete}
+                aspectRatio={1}
+                suggestedSize={{ width: 400, height: 400 }}
+              />
+            )}
 
             {/* Birthday Input */}
             <div className="space-y-2">
