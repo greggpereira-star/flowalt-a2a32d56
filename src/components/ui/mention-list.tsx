@@ -34,22 +34,24 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     const selectItem = (index: number) => {
       const item = items[index];
       if (item) {
-        // Use setTimeout to ensure the command executes after state updates
-        setTimeout(() => {
-          command({ id: item.id, label: item.name });
-        }, 0);
+        // IMPORTANT: o TipTap Suggestion espera que o command rode de forma síncrona.
+        // Se atrasarmos (setTimeout), o suggestion pode sair/blur antes e a menção não insere.
+        command({ id: item.id, label: item.name });
       }
     };
 
     const upHandler = () => {
+      if (items.length === 0) return;
       setSelectedIndex((prevIndex) => (prevIndex + items.length - 1) % items.length);
     };
 
     const downHandler = () => {
+      if (items.length === 0) return;
       setSelectedIndex((prevIndex) => (prevIndex + 1) % items.length);
     };
 
     const enterHandler = () => {
+      if (items.length === 0) return;
       selectItem(selectedIndex);
     };
 
@@ -101,6 +103,8 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
                 'hover:bg-accent focus:outline-none',
                 index === selectedIndex && 'bg-accent'
               )}
+              // Mantém o foco no editor para o TipTap conseguir inserir a menção corretamente
+              onPointerDown={(e) => e.preventDefault()}
               onClick={() => selectItem(index)}
             >
               <Avatar className="h-7 w-7 flex-shrink-0">
