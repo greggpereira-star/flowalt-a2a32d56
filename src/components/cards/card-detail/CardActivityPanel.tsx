@@ -1,22 +1,15 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { CommentsPanel } from '../CommentsPanel';
 import {
-  Search,
-  Bell,
-  Filter,
-  Plus,
+  MessageCircle,
+  History,
+  Send,
   Paperclip,
   AtSign,
-  MoreHorizontal,
-  Send,
-  ChevronDown,
-  Activity,
-  MessageCircle,
+  Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,47 +20,38 @@ interface CardActivityPanelProps {
 export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   cardId,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'activity' | 'comments'>('comments');
+  const [activeTab, setActiveTab] = React.useState<'comments' | 'history'>('comments');
+  const [comment, setComment] = React.useState('');
 
   return (
     <div className="h-full flex flex-col bg-muted/20">
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Atividade</h3>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex gap-1 mt-3">
-          <Button
-            variant={activeTab === 'comments' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 text-xs gap-1.5"
+      {/* Header with tabs */}
+      <div className="flex-shrink-0 px-4 py-3 border-b bg-background/80 backdrop-blur-sm">
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+          <button
             onClick={() => setActiveTab('comments')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              activeTab === 'comments' 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <MessageCircle className="h-3 w-3" />
+            <MessageCircle className="h-3.5 w-3.5" />
             Comentários
-          </Button>
-          <Button
-            variant={activeTab === 'activity' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 text-xs gap-1.5"
-            onClick={() => setActiveTab('activity')}
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              activeTab === 'history' 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Activity className="h-3 w-3" />
+            <History className="h-3.5 w-3.5" />
             Histórico
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -77,39 +61,45 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
           {activeTab === 'comments' ? (
             <CommentsPanel cardId={cardId} />
           ) : (
-            <div className="space-y-4">
-              <p className="text-xs text-muted-foreground text-center py-8">
-                Histórico de atividades em breve...
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                <History className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Histórico em breve
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Acompanhe todas as alterações do card
               </p>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      {/* Quick add section */}
+      {/* Comment input - Fixed at bottom */}
       <div className="flex-shrink-0 border-t bg-background p-3">
-        <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-          <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
-            <Plus className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 p-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <Input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
             placeholder="Escreva um comentário..."
-            className="border-none bg-transparent h-7 text-sm focus-visible:ring-0 px-0"
+            className="flex-1 border-none bg-transparent h-8 text-sm focus-visible:ring-0 px-2"
           />
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <Sparkles className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <AtSign className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <Paperclip className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Paperclip className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <AtSign className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Smile className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="icon" className="h-6 w-6">
+            <Button 
+              size="icon" 
+              className="h-7 w-7 ml-1"
+              disabled={!comment.trim()}
+            >
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -118,14 +108,3 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
     </div>
   );
 };
-
-// Sparkles icon for the input
-const Sparkles = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-    <path d="M5 3v4"/>
-    <path d="M19 17v4"/>
-    <path d="M3 5h4"/>
-    <path d="M17 19h4"/>
-  </svg>
-);

@@ -6,9 +6,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { X, MoreHorizontal, Trash2, Copy, Archive, Sparkles, Hash } from 'lucide-react';
+import { X, MoreHorizontal, Trash2, Copy, Archive, Sparkles, Hash, ExternalLink, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CardDetailHeaderProps {
@@ -37,34 +38,45 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
   const shortId = cardId.substring(0, 8);
 
   return (
-    <div className="flex-shrink-0 border-b">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-muted/30">
+    <div className="flex-shrink-0">
+      {/* Compact top bar */}
+      <div className="flex items-center justify-between px-5 py-2.5 border-b bg-muted/30">
         <div className="flex items-center gap-2">
-          {/* Card type badge */}
-          <Badge variant="outline" className="h-6 gap-1.5 text-xs font-normal">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-            {cardType === 'quick' ? 'Rápido' : 'Tarefa'}
-          </Badge>
+          {/* Card type indicator */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              cardType === 'quick' ? "bg-warning" : "bg-primary"
+            )} />
+            <span className="font-medium">
+              {cardType === 'quick' ? 'Card Rápido' : 'Demanda'}
+            </span>
+          </div>
           
-          {/* Card ID */}
-          <Badge variant="secondary" className="h-6 gap-1 text-xs font-mono">
+          <span className="text-muted-foreground/40">•</span>
+          
+          {/* Card ID - copyable */}
+          <button 
+            onClick={() => navigator.clipboard.writeText(cardId)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
+            title="Copiar ID"
+          >
             <Hash className="h-3 w-3" />
             {shortId}
-          </Badge>
-          
-          {/* AI Button */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-6 gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10"
-          >
-            <Sparkles className="h-3 w-3" />
-            Pergunte à IA
-          </Button>
+          </button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          {/* AI Button */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">IA</span>
+          </Button>
+
           {canDelete && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -72,24 +84,29 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  Duplicar
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem className="gap-2 text-xs">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir em nova aba
                 </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2 text-xs">
+                  <Copy className="h-3.5 w-3.5" />
+                  Duplicar card
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={onDelete}
-                  className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                  className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   {hasHistory ? (
                     <>
-                      <Archive className="h-4 w-4" />
-                      Arquivar
+                      <Archive className="h-3.5 w-3.5" />
+                      Arquivar card
                     </>
                   ) : (
                     <>
-                      <Trash2 className="h-4 w-4" />
-                      Excluir
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir card
                     </>
                   )}
                 </DropdownMenuItem>
@@ -100,7 +117,7 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 w-7 p-0"
+            className="h-7 w-7 p-0 ml-1"
             onClick={onClose}
           >
             <X className="h-4 w-4" />
@@ -108,13 +125,13 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
         </div>
       </div>
 
-      {/* Title */}
-      <div className="px-6 py-4">
+      {/* Title area - Clean and prominent */}
+      <div className="px-5 py-4">
         <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           onBlur={onTitleBlur}
-          className="text-2xl font-bold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+          className="text-xl font-semibold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent placeholder:text-muted-foreground/50"
           placeholder="Título do card..."
         />
       </div>

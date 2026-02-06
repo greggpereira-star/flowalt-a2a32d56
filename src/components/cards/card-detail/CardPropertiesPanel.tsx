@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +15,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { CardPropertyRow } from './CardPropertyRow';
 import { StatusBadge, UrgencyBadge } from '../CardBadges';
 import {
   CircleDot,
@@ -25,12 +23,9 @@ import {
   Flag,
   Clock,
   Timer,
-  Link2,
-  Tags,
   Building2,
   Plus,
   BanknoteIcon,
-  ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -75,6 +70,21 @@ const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = 
   { value: 'critical', label: 'Urgente', color: 'text-destructive' },
 ];
 
+interface PropertyItemProps {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const PropertyItem: React.FC<PropertyItemProps> = ({ label, children, className }) => (
+  <div className={cn("space-y-1.5", className)}>
+    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+      {label}
+    </label>
+    <div>{children}</div>
+  </div>
+);
+
 export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   status,
   urgency,
@@ -93,97 +103,27 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   const selectedClient = clients.find(c => c.id === clientId);
 
   return (
-    <div className="space-y-1 py-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {/* Status */}
-      <CardPropertyRow icon={CircleDot} label="Status">
+      <PropertyItem label="Status">
         <Select value={status} onValueChange={onStatusChange}>
-          <SelectTrigger className="h-8 w-auto border-none bg-transparent hover:bg-muted/50 gap-2 px-2 -ml-2">
+          <SelectTrigger className="h-9 w-full border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
             <StatusBadge status={status} />
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={opt.value} />
-                </div>
+                <StatusBadge status={opt.value} />
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </CardPropertyRow>
-
-      {/* Assignees placeholder */}
-      <CardPropertyRow icon={Users} label="Responsáveis">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-xs bg-primary/20 text-primary">+</AvatarFallback>
-          </Avatar>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground">
-            <Plus className="h-3 w-3 mr-1" />
-            Adicionar
-          </Button>
-        </div>
-      </CardPropertyRow>
-
-      {/* Dates */}
-      <CardPropertyRow icon={CalendarIcon} label="Datas">
-        <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-7 px-2 text-xs font-normal -ml-2",
-                  !dueDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="h-3 w-3 mr-1.5" />
-                Início
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                locale={ptBR}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          
-          <ChevronRight className="h-3 w-3 text-muted-foreground" />
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-7 px-2 text-xs font-normal",
-                  dueDate ? "text-destructive hover:text-destructive" : "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="h-3 w-3 mr-1.5" />
-                {dueDate ? format(dueDate, 'dd/MM/yy', { locale: ptBR }) : 'Prazo'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dueDate}
-                onSelect={onDueDateChange}
-                locale={ptBR}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </CardPropertyRow>
+      </PropertyItem>
 
       {/* Priority */}
-      <CardPropertyRow icon={Flag} label="Prioridade">
+      <PropertyItem label="Prioridade">
         <Select value={urgency} onValueChange={onUrgencyChange}>
-          <SelectTrigger className="h-8 w-auto border-none bg-transparent hover:bg-muted/50 gap-2 px-2 -ml-2">
+          <SelectTrigger className="h-9 w-full border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
             <UrgencyBadge urgency={urgency} />
           </SelectTrigger>
           <SelectContent>
@@ -197,51 +137,56 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             ))}
           </SelectContent>
         </Select>
-      </CardPropertyRow>
+      </PropertyItem>
 
-      {/* Estimated time */}
-      <CardPropertyRow icon={Clock} label="Tempo estimado">
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            value={estimatedHours}
-            onChange={(e) => onEstimatedHoursChange(e.target.value)}
-            onBlur={onEstimatedHoursBlur}
-            placeholder="0"
-            className="h-7 w-16 text-xs border-none bg-transparent hover:bg-muted/50 focus:bg-muted/50 px-2 -ml-2"
-          />
-          <span className="text-xs text-muted-foreground">horas</span>
-        </div>
-      </CardPropertyRow>
-
-      {/* Tracked time */}
-      <CardPropertyRow icon={Timer} label="Tempo rastreado">
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground -ml-2">
-          <Plus className="h-3 w-3 mr-1" />
-          {actualHours > 0 ? `${actualHours.toFixed(1)}h registradas` : 'Adicionar hora'}
-        </Button>
-      </CardPropertyRow>
+      {/* Due Date */}
+      <PropertyItem label="Prazo">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 w-full justify-start text-left font-normal border-border/50 bg-muted/30 hover:bg-muted/50",
+                !dueDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              {dueDate ? format(dueDate, 'dd MMM yyyy', { locale: ptBR }) : 'Definir prazo'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dueDate}
+              onSelect={onDueDateChange}
+              locale={ptBR}
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </PropertyItem>
 
       {/* Client */}
-      <CardPropertyRow icon={Building2} label="Cliente">
+      <PropertyItem label="Cliente">
         <Select
           value={clientId || '__none__'}
           onValueChange={(v) => onClientChange(v === '__none__' ? null : v)}
         >
-          <SelectTrigger className="h-8 w-auto border-none bg-transparent hover:bg-muted/50 gap-2 px-2 -ml-2">
+          <SelectTrigger className="h-9 w-full border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
             {selectedClient ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 truncate">
                 {selectedClient.color && (
                   <div 
-                    className="w-2 h-2 rounded-full" 
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: selectedClient.color }}
                   />
                 )}
-                <span className="text-sm">{selectedClient.name}</span>
+                <span className="truncate text-sm">{selectedClient.name}</span>
               </div>
             ) : (
-              <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <BanknoteIcon className="h-3 w-3" />
+              <span className="text-sm text-muted-foreground flex items-center gap-2">
+                <BanknoteIcon className="h-3.5 w-3.5" />
                 Não faturável
               </span>
             )}
@@ -249,40 +194,78 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
           <SelectContent>
             <SelectItem value="__none__">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <BanknoteIcon className="h-3 w-3" />
-                Sem cliente (Não faturável)
+                <BanknoteIcon className="h-3.5 w-3.5" />
+                Sem cliente
               </div>
             </SelectItem>
             {clients.map((client) => (
               <SelectItem key={client.id} value={client.id}>
                 <div className="flex items-center gap-2">
-                  {client.color && (
+                  {client.color ? (
                     <div 
-                      className="w-2 h-2 rounded-full" 
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: client.color }}
                     />
+                  ) : (
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                   )}
-                  {!client.color && <Building2 className="h-3 w-3 text-muted-foreground" />}
                   {client.name}
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </CardPropertyRow>
+      </PropertyItem>
 
-      {/* Tags */}
-      <CardPropertyRow icon={Tags} label="Etiquetas">
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground -ml-2">
-          <Plus className="h-3 w-3 mr-1" />
-          Adicionar
+      {/* Assignees */}
+      <PropertyItem label="Responsáveis">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-full justify-start border-border/50 bg-muted/30 hover:bg-muted/50 text-muted-foreground"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-1">
+              <Avatar className="h-5 w-5 border-2 border-background">
+                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">+</AvatarFallback>
+              </Avatar>
+            </div>
+            <span className="text-sm">Adicionar</span>
+          </div>
         </Button>
-      </CardPropertyRow>
+      </PropertyItem>
 
-      {/* Relationships */}
-      <CardPropertyRow icon={Link2} label="Relacionamentos">
-        <span className="text-sm text-muted-foreground">Vazio</span>
-      </CardPropertyRow>
+      {/* Estimated Time */}
+      <PropertyItem label="Tempo Estimado">
+        <div className="flex items-center h-9 px-3 rounded-md border border-border/50 bg-muted/30">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+          <Input
+            type="number"
+            value={estimatedHours}
+            onChange={(e) => onEstimatedHoursChange(e.target.value)}
+            onBlur={onEstimatedHoursBlur}
+            placeholder="0"
+            className="h-7 w-12 text-sm border-none bg-transparent p-0 focus-visible:ring-0"
+          />
+          <span className="text-xs text-muted-foreground ml-1">horas</span>
+        </div>
+      </PropertyItem>
+
+      {/* Tracked Time */}
+      <PropertyItem label="Tempo Rastreado">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-full justify-start border-border/50 bg-muted/30 hover:bg-muted/50"
+        >
+          <Timer className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+          {actualHours > 0 ? (
+            <span className="text-sm">{actualHours.toFixed(1)}h</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">0h</span>
+          )}
+        </Button>
+      </PropertyItem>
     </div>
   );
 };
