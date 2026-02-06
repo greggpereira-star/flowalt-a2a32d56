@@ -34,16 +34,19 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     const selectItem = (index: number) => {
       const item = items[index];
       if (item) {
-        command({ id: item.id, label: item.name });
+        // Use setTimeout to ensure the command executes after state updates
+        setTimeout(() => {
+          command({ id: item.id, label: item.name });
+        }, 0);
       }
     };
 
     const upHandler = () => {
-      setSelectedIndex((selectedIndex + items.length - 1) % items.length);
+      setSelectedIndex((prevIndex) => (prevIndex + items.length - 1) % items.length);
     };
 
     const downHandler = () => {
-      setSelectedIndex((selectedIndex + 1) % items.length);
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % items.length);
     };
 
     const enterHandler = () => {
@@ -57,16 +60,19 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }: { event: KeyboardEvent }) => {
         if (event.key === 'ArrowUp') {
+          event.preventDefault();
           upHandler();
           return true;
         }
 
         if (event.key === 'ArrowDown') {
+          event.preventDefault();
           downHandler();
           return true;
         }
 
         if (event.key === 'Enter') {
+          event.preventDefault();
           enterHandler();
           return true;
         }
