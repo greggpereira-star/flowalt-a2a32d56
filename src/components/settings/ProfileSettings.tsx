@@ -40,26 +40,37 @@ export const ProfileSettings: React.FC = () => {
 
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarBlob: Blob) => {
-      if (!user?.id) throw new Error('User not found');
+      if (!user?.id) throw new Error('Usuário não encontrado. Faça login novamente.');
       
-      const filePath = `${user.id}/avatar.jpg`;
+      // Use a unique filename with timestamp to avoid caching issues
+      const timestamp = Date.now();
+      const filePath = `${user.id}/avatar-${timestamp}.jpg`;
+      
+      console.log('Uploading avatar for user:', user.id, 'to path:', filePath);
       
       // Upload to storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('avatars')
         .upload(filePath, avatarBlob, {
           upsert: true,
           contentType: 'image/jpeg'
         });
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
+      }
+      
+      console.log('Upload successful:', uploadData);
       
       // Get public URL with cache buster
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
       
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const avatarUrl = `${urlData.publicUrl}?t=${timestamp}`;
+      
+      console.log('Updating profile with avatar URL:', avatarUrl);
       
       // Update profile
       const { error: updateError } = await supabase
@@ -67,7 +78,10 @@ export const ProfileSettings: React.FC = () => {
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq('id', user.id);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw new Error(`Erro ao atualizar perfil: ${updateError.message}`);
+      }
       
       return avatarUrl;
     },
@@ -76,9 +90,9 @@ export const ProfileSettings: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['profile-complete'] });
       toast.success('Foto de perfil atualizada!');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error updating avatar:', error);
-      toast.error('Erro ao atualizar foto de perfil');
+      toast.error(error.message || 'Erro ao atualizar foto de perfil');
     },
   });
 
