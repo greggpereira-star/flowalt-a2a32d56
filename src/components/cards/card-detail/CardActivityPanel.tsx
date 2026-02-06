@@ -172,39 +172,46 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Premium Input */}
-      <div className="flex-shrink-0 p-1.5 bg-gradient-to-t from-background to-transparent">
-        <div className="flex gap-1.5 items-end bg-muted/40 rounded-lg p-1 border border-border/30 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all">
-          <div className="flex-1 min-w-0">
-            <RichTextEditor
-              value={newComment}
-              onChange={setNewComment}
-              placeholder="Mensagem... @mencionar"
-              minHeight="28px"
-              maxHeight="80px"
-              mentionSuggestions={mentionSuggestions}
-              onMentionsChange={setCurrentMentions}
-              className="text-[11px] [&_.ProseMirror]:text-[11px] [&_.ProseMirror]:py-0.5 [&_.ProseMirror]:px-1"
-            />
+      {/* Premium Composer */}
+      <div className="flex-shrink-0 px-2 py-2 bg-gradient-to-t from-background to-transparent">
+        <div className="mx-auto w-full">
+          <div className="flex items-end gap-1.5 rounded-full border border-border/40 bg-muted/30 pl-2.5 pr-1.5 py-1.5 focus-within:border-primary/25 focus-within:bg-muted/40 transition-colors">
+            <div className="flex-1 min-w-0">
+              <RichTextEditor
+                value={newComment}
+                onChange={setNewComment}
+                placeholder="Mensagem… (@ para mencionar)"
+                minHeight="22px"
+                maxHeight="96px"
+                mentionSuggestions={mentionSuggestions}
+                onMentionsChange={setCurrentMentions}
+                showToolbar={false}
+                className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
+                contentClassName="px-2 py-1"
+              />
+            </div>
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className={cn(
+                "h-7 w-7 rounded-full flex-shrink-0 transition-colors",
+                !isRichTextEmpty(newComment) && !createComment.isPending
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={handleSubmit}
+              disabled={isRichTextEmpty(newComment) || createComment.isPending}
+              aria-label="Enviar mensagem"
+              title="Enviar"
+            >
+              {createComment.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+            </Button>
           </div>
-          <Button 
-            size="icon" 
-            variant="ghost"
-            className={cn(
-              "h-6 w-6 rounded-md flex-shrink-0 transition-all",
-              !isRichTextEmpty(newComment) && !createComment.isPending
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            onClick={handleSubmit}
-            disabled={isRichTextEmpty(newComment) || createComment.isPending}
-          >
-            {createComment.isPending ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Send className="h-3 w-3" />
-            )}
-          </Button>
         </div>
       </div>
     </div>

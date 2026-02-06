@@ -46,6 +46,10 @@ export interface RichTextEditorProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Controla a barra de ferramentas (útil para modo chat/composer). */
+  showToolbar?: boolean;
+  /** Classes extras aplicadas ao EditorContent (padding/densidade). */
+  contentClassName?: string;
   minHeight?: string;
   maxHeight?: string;
   autoFocus?: boolean;
@@ -311,6 +315,8 @@ export function RichTextEditor({
   placeholder = 'Escreva aqui...',
   disabled = false,
   className,
+  showToolbar = true,
+  contentClassName,
   minHeight = '120px',
   maxHeight = '400px',
   autoFocus = false,
@@ -423,7 +429,7 @@ export function RichTextEditor({
       disabled && 'opacity-50 cursor-not-allowed',
       className
     )}>
-      <EditorToolbar editor={editor} disabled={disabled} />
+      {showToolbar ? <EditorToolbar editor={editor} disabled={disabled} /> : null}
       <EditorContent
         editor={editor}
         className={cn(
@@ -442,6 +448,7 @@ export function RichTextEditor({
           '[&_.ProseMirror_ol]:my-1 [&_.ProseMirror_ol]:pl-5',
           '[&_.ProseMirror_li]:my-0.5',
           '[&_.mention-chip]:bg-primary/15 [&_.mention-chip]:text-primary',
+          contentClassName,
         )}
         style={{
           '--min-height': minHeight,
