@@ -65,6 +65,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [currentRole, setCurrentRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   const fetchWorkspaces = async () => {
     // Keep provider in loading state while auth is still resolving.
@@ -82,6 +83,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setCurrentMember(null);
       setCurrentRole(null);
       setLoading(false);
+      setRoleLoading(false);
       return;
     }
 
@@ -97,6 +99,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!members || members.length === 0) {
         setWorkspaces([]);
         setLoading(false);
+        setRoleLoading(false);
         return;
       }
 
@@ -122,13 +125,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  // Fetch member info and role - track loading state separately
   useEffect(() => {
     const fetchMemberInfo = async () => {
       if (!user || !currentWorkspace) {
         setCurrentMember(null);
         setCurrentRole(null);
+        setRoleLoading(false);
         return;
       }
+
+      setRoleLoading(true);
 
       try {
         const { data: memberData } = await supabase
@@ -150,6 +157,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentRole(roleData?.role as AppRole || null);
       } catch (error) {
         console.error('Error fetching member info:', error);
+      } finally {
+        setRoleLoading(false);
       }
     };
 
@@ -165,6 +174,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     fetchWorkspaces();
   }, [user, authLoading]);
+
+  // Combined loading: both workspace and role must be loaded
+  const isFullyLoaded = !loading && !roleLoading;
 
   const createWorkspace = async (name: string, metadata?: WorkspaceMetadata): Promise<{ error: Error | null; workspace?: Workspace }> => {
     if (!user) return { error: new Error('User not authenticated') };
@@ -314,7 +326,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         currentWorkspace,
         currentMember,
         currentRole,
-        loading,
+        loading: !isFullyLoaded, // Only report as not loading when both workspace AND role are loaded
         setCurrentWorkspace,
         refreshWorkspaces: fetchWorkspaces,
         createWorkspace,
