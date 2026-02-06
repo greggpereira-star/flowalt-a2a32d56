@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { FileText, Sparkles, Save } from 'lucide-react';
+import { AlignLeft, Sparkles, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CardDescriptionSectionProps {
@@ -17,56 +17,51 @@ export const CardDescriptionSection: React.FC<CardDescriptionSectionProps> = ({
   onSave,
   isDirty,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const hasDescription = description && description.trim().length > 0;
-
-  if (!isEditing && !hasDescription) {
-    return (
-      <div className="space-y-3">
-        <button
-          onClick={() => setIsEditing(true)}
-          className="w-full flex items-center gap-3 py-3 px-4 rounded-lg border-2 border-dashed border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-muted/30 transition-all text-left group"
-        >
-          <FileText className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-            Adicionar descrição
-          </span>
-        </button>
-        
-        <button className="flex items-center gap-2 text-xs text-primary hover:underline">
-          <Sparkles className="h-3 w-3" />
-          <span>Escrever com IA</span>
-        </button>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-3">
-      <RichTextEditor
-        value={description}
-        onChange={onChange}
-        placeholder="Adicione uma descrição detalhada..."
-        minHeight="120px"
-        maxHeight="300px"
-      />
-      
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <button className="flex items-center gap-2 text-xs text-primary hover:underline">
-          <Sparkles className="h-3 w-3" />
-          <span>Escrever com IA</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <AlignLeft className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Descrição</h3>
+        </div>
         
-        {isDirty && (
+        <div className="flex items-center gap-2">
           <Button
+            variant="ghost"
             size="sm"
-            onClick={onSave}
-            className="h-7 gap-1.5 text-xs"
+            className="h-7 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
           >
-            <Save className="h-3 w-3" />
-            Salvar
+            <Sparkles className="h-3 w-3" />
+            Escrever com IA
           </Button>
+          
+          {isDirty && (
+            <Button
+              size="sm"
+              onClick={onSave}
+              className="h-7 gap-1.5 text-xs"
+            >
+              <Check className="h-3 w-3" />
+              Salvar
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      <div 
+        className={cn(
+          "rounded-lg border transition-all",
+          "border-border/50 hover:border-border focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20"
         )}
+      >
+        <RichTextEditor
+          value={description}
+          onChange={onChange}
+          placeholder="Adicione uma descrição detalhada para este card..."
+          minHeight="100px"
+          maxHeight="250px"
+        />
       </div>
     </div>
   );
