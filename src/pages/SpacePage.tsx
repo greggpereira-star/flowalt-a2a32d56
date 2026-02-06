@@ -10,6 +10,9 @@ import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 import { KanbanBoard } from '@/components/cards/KanbanBoard';
 import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
 import { ListView } from '@/components/cards/ListView';
+import { CalendarBoardView } from '@/components/cards/CalendarBoardView';
+import { MindMapView } from '@/components/cards/MindMapView';
+import { GanttAdvanced } from '@/components/coordination/GanttAdvanced';
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
 import { DemandFormDialog } from '@/components/cards/DemandFormDialog';
 import { QuickAddCard } from '@/components/cards/QuickAddCard';
@@ -78,7 +81,7 @@ import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 import type { FilterQuery } from '@/hooks/useCardFilters';
 
-type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'approvals' | 'checklist' | 'ideas';
+type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'gantt' | 'mindmap' | 'approvals' | 'checklist' | 'ideas';
 
 // Hook to fetch a specific folder view
 function useFolderView(viewId: string | null) {
@@ -170,6 +173,8 @@ const SpacePage: React.FC = () => {
     if (viewType === 'kanban') return 'kanban';
     if (viewType === 'calendar') return 'calendar';
     if (viewType === 'list') return 'list';
+    if (viewType === 'gantt') return 'gantt';
+    if (viewType === 'mindmap') return 'mindmap';
     return 'kanban';
   }, []);
 
@@ -545,6 +550,29 @@ const SpacePage: React.FC = () => {
               <div className="h-full p-4 overflow-auto">
                 <ListView cards={filteredCards} onCardClick={handleCardClick} />
               </div>
+            ) : view === 'calendar' ? (
+              <CalendarBoardView 
+                cards={filteredCards} 
+                onCardClick={handleCardClick}
+              />
+            ) : view === 'gantt' ? (
+              <div className="h-full overflow-auto">
+                <GanttAdvanced 
+                  cards={filteredCards} 
+                  dependencies={[]}
+                  onCardClick={(cardId) => {
+                    const card = filteredCards.find(c => c.id === cardId);
+                    if (card) handleCardClick(card);
+                  }}
+                />
+              </div>
+            ) : view === 'mindmap' ? (
+              <MindMapView 
+                cards={filteredCards} 
+                onCardClick={handleCardClick}
+                spaceName={space.name}
+                folderName={activeView?.name}
+              />
             ) : view === 'approvals' ? (
               <ApprovalsPendingView 
                 cards={filteredCards} 
@@ -565,7 +593,7 @@ const SpacePage: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">
-                  Visualização de calendário em breve
+                  Visualização não disponível
                 </p>
               </div>
             )}

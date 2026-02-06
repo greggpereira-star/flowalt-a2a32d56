@@ -79,7 +79,6 @@ const DEFAULT_VIEW_TYPES = [
     description: 'Timeline para projetos complexos',
     icon: 'bar-chart',
     view_type: 'gantt',
-    coming: true,
   },
   {
     id: 'mindmap',
@@ -87,7 +86,6 @@ const DEFAULT_VIEW_TYPES = [
     description: 'Visualização em árvore de ideias',
     icon: 'lightbulb',
     view_type: 'mindmap',
-    coming: true,
   },
 ];
 
@@ -243,7 +241,7 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
                   {viewOptions.map((option) => {
                     const Icon = getIcon(option.icon);
                     const isSelected = selectedTemplateId === option.id;
-                    const isComing = 'coming' in option && option.coming;
+                    const isComing = 'coming' in option && option.coming === true;
 
                     return (
                       <button
