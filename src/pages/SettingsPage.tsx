@@ -22,6 +22,7 @@ import { SpaceAccessControl } from '@/components/settings/SpaceAccessControl';
 import { BirthdaySettings } from '@/components/notices/BirthdaySettings';
 import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
 import { NoticesManager } from '@/components/notices/NoticesManager';
+import { ProfileSettings } from '@/components/settings/ProfileSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -299,9 +300,7 @@ export default function SettingsPage() {
 
           {/* User Profile */}
           <TabsContent value="profile">
-            <div className="space-y-6">
-              <BirthdaySettings />
-            </div>
+            <ProfileSettings />
           </TabsContent>
 
           {/* Workspace Management */}
