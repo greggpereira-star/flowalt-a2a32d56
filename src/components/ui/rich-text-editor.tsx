@@ -403,20 +403,29 @@ export function RichTextEditor({
     },
   });
 
-  // Sync external value changes
+  // Sync external value changes (including clearing)
   useEffect(() => {
-    if (editor && value) {
-      try {
-        const parsed = JSON.parse(value);
-        const currentContent = editor.getJSON();
-        if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
-          editor.commands.setContent(parsed);
-        }
-      } catch {
-        // If not valid JSON, treat as plain text
-        if (value !== editor.getText()) {
-          editor.commands.setContent(value);
-        }
+    if (!editor) return;
+    
+    // Handle clearing the editor when value is empty
+    if (!value || value === '' || value === '""') {
+      const currentText = editor.getText().trim();
+      if (currentText !== '') {
+        editor.commands.clearContent();
+      }
+      return;
+    }
+    
+    try {
+      const parsed = JSON.parse(value);
+      const currentContent = editor.getJSON();
+      if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
+        editor.commands.setContent(parsed);
+      }
+    } catch {
+      // If not valid JSON, treat as plain text
+      if (value !== editor.getText()) {
+        editor.commands.setContent(value);
       }
     }
   }, [value, editor]);

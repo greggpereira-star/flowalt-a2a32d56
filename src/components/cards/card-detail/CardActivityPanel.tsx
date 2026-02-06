@@ -184,21 +184,21 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
       </ScrollArea>
 
       {/* Composer */}
-      <div className="flex-shrink-0 px-2 py-2 border-t border-border/30 bg-background/40 backdrop-blur-sm">
+      <div className="flex-shrink-0 px-2 py-2 border-t border-border/30 bg-background/60">
         <div className="mx-auto w-full">
-          <div className="flex items-end gap-2 rounded-2xl border border-border/50 bg-muted/20 p-1.5 shadow-sm focus-within:border-primary/25 focus-within:bg-muted/30 transition-colors">
+          <div className="flex items-end gap-2 rounded-xl border border-border/40 bg-background p-1.5 shadow-sm focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
             <div className="flex-1 min-w-0">
               <RichTextEditor
                 value={newComment}
                 onChange={setNewComment}
                 placeholder="Mensagem… (@ para mencionar)"
-                minHeight="20px"
+                minHeight="24px"
                 maxHeight="104px"
                 mentionSuggestions={mentionSuggestions}
                 onMentionsChange={setCurrentMentions}
                 showToolbar={false}
-                className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
-                contentClassName="px-2 py-1 text-[12px] leading-snug"
+                className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent [&>div]:rounded-lg"
+                contentClassName="px-2 py-1.5 text-[13px] leading-relaxed"
               />
             </div>
 
