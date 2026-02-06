@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
   MessageCircle,
   History,
-  AtSign,
-  Paperclip,
-  Smile,
   Send,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useComments, useCreateComment } from '@/hooks/useComments';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RichTextEditor, type MentionSuggestion } from '@/components/ui/rich-text-editor';
+import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
 
 interface CardActivityPanelProps {
   cardId: string;
@@ -24,22 +24,49 @@ interface CardActivityPanelProps {
 export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   cardId,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'comments' | 'history'>('comments');
-  const [newComment, setNewComment] = React.useState('');
+  const [activeTab, setActiveTab] = useState<'comments' | 'history'>('comments');
+  const [newComment, setNewComment] = useState('');
+  const [currentMentions, setCurrentMentions] = useState<string[]>([]);
   const { user } = useAuth();
   const { data: comments, isLoading } = useComments(cardId);
+  const { data: workspaceMembers } = useWorkspaceMembers();
   const createComment = useCreateComment();
 
+  // Convert workspace members to mention suggestions
+  const mentionSuggestions: MentionSuggestion[] = useMemo(() => {
+    if (!workspaceMembers) return [];
+    return workspaceMembers
+      .filter(member => member.profile)
+      .map(member => ({
+        id: member.user_id,
+        name: member.profile?.full_name || member.profile?.email || 'Usuário',
+        avatar_url: member.profile?.avatar_url,
+      }));
+  }, [workspaceMembers]);
+
+  // Create a map for resolving mentions in viewer
+  const mentionResolver = useCallback((id: string) => {
+    const member = workspaceMembers?.find(m => m.user_id === id);
+    if (member?.profile) {
+      return {
+        name: member.profile.full_name || member.profile.email || 'Usuário',
+        avatar_url: member.profile.avatar_url,
+      };
+    }
+    return undefined;
+  }, [workspaceMembers]);
+
   const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+    if (isRichTextEmpty(newComment)) return;
 
     await createComment.mutateAsync({
       card_id: cardId,
       content: newComment,
-      mentions: [],
+      mentions: currentMentions,
     });
 
     setNewComment('');
+    setCurrentMentions([]);
   };
 
   const getInitials = (name: string | null | undefined): string => {
@@ -123,9 +150,13 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                           })}
                         </span>
                       </div>
-                      <p className="text-xs text-foreground/90 mt-0.5 break-words">
-                        {comment.content}
-                      </p>
+                      <div className="text-xs text-foreground/90 mt-0.5 break-words">
+                        <RichTextViewer 
+                          content={comment.content} 
+                          mentionResolver={mentionResolver}
+                          className="text-xs"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -144,45 +175,33 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Comment Input - Compact design */}
+      {/* Comment Input with RichTextEditor for @mentions */}
       <div className="flex-shrink-0 border-t bg-background p-2">
-        <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1.5 focus-within:border-primary/50 transition-colors">
-          <input
-            type="text"
-            placeholder="Escreva um comentário..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            className="flex-1 min-w-0 bg-transparent border-none text-xs placeholder:text-muted-foreground focus:outline-none"
-          />
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full">
-              <AtSign className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full">
-              <Paperclip className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full">
-              <Smile className="h-3.5 w-3.5" />
-            </Button>
-            <Button 
-              size="icon" 
-              className="h-6 w-6 rounded-full ml-0.5"
-              onClick={handleSubmit}
-              disabled={!newComment.trim() || createComment.isPending}
-            >
-              {createComment.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Send className="h-3 w-3" />
-              )}
-            </Button>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 min-w-0">
+            <RichTextEditor
+              value={newComment}
+              onChange={setNewComment}
+              placeholder="Escreva um comentário... Use @ para mencionar"
+              minHeight="40px"
+              maxHeight="120px"
+              mentionSuggestions={mentionSuggestions}
+              onMentionsChange={setCurrentMentions}
+              className="text-xs [&_.ProseMirror]:text-xs"
+            />
           </div>
+          <Button 
+            size="icon" 
+            className="h-8 w-8 rounded-full flex-shrink-0"
+            onClick={handleSubmit}
+            disabled={isRichTextEmpty(newComment) || createComment.isPending}
+          >
+            {createComment.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+          </Button>
         </div>
       </div>
     </div>
