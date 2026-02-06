@@ -37,8 +37,8 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       {
         id: 'root',
         text: 'Comece aqui 👋',
-        x: 400,
-        y: 300,
+        x: 300,
+        y: 250,
         parentId: null,
         color: '#3b82f6',
       },
@@ -55,7 +55,6 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
 
   // Get all descendants of a node
   const getDescendants = useCallback((nodeId: string): string[] => {
@@ -69,15 +68,15 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
     if (!parent) return;
 
     const siblings = nodes.filter(n => n.parentId === parentId);
-    const yOffset = (siblings.length - siblings.length / 2) * 60;
+    const yOffset = siblings.length * 70 - (siblings.length * 70) / 2;
     
     const newNode: MindMapNode = {
       id: generateId(),
       text: 'Novo nó',
-      x: parent.x + 200,
+      x: parent.x + 220,
       y: parent.y + yOffset,
       parentId,
-      color: NODE_COLORS[Math.floor(Math.random() * NODE_COLORS.length)],
+      color: NODE_COLORS[nodes.length % NODE_COLORS.length],
     };
 
     setNodes(prev => [...prev, newNode]);
@@ -87,7 +86,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
 
   // Delete node and all descendants
   const deleteNode = useCallback((nodeId: string) => {
-    if (nodeId === 'root') return; // Can't delete root
+    if (nodeId === 'root') return;
     const descendants = getDescendants(nodeId);
     setNodes(prev => prev.filter(n => n.id !== nodeId && !descendants.includes(n.id)));
     setSelectedNodeId(null);
@@ -155,9 +154,10 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
     setIsPanning(false);
   }, []);
 
-  // Handle pan start
+  // Handle pan start (only on background)
   const handlePanStart = useCallback((e: React.MouseEvent) => {
-    if (e.target === containerRef.current || e.target === svgRef.current) {
+    const target = e.target as HTMLElement;
+    if (target === containerRef.current || target.tagName === 'svg') {
       setIsPanning(true);
       setPanStart({
         x: e.clientX - pan.x,
@@ -194,7 +194,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleZoom]);
 
-  // Draw connections between nodes
+  // Render bezier connections between nodes
   const renderConnections = () => {
     return nodes
       .filter(node => node.parentId)
@@ -202,20 +202,21 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
         const parent = nodes.find(n => n.id === node.parentId);
         if (!parent) return null;
 
-        const startX = parent.x + 80; // Right side of parent
+        // Use actual node positions (center of node)
+        const startX = parent.x;
         const startY = parent.y;
-        const endX = node.x - 10; // Left side of child
+        const endX = node.x;
         const endY = node.y;
 
-        // Bezier curve control points
-        const midX = startX + (endX - startX) / 2;
+        // Bezier curve - horizontal flow
+        const controlOffset = Math.abs(endX - startX) * 0.5;
 
         return (
           <path
             key={`${parent.id}-${node.id}`}
-            d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
+            d={`M ${startX} ${startY} C ${startX + controlOffset} ${startY}, ${endX - controlOffset} ${endY}, ${endX} ${endY}`}
             stroke={node.color}
-            strokeWidth={2}
+            strokeWidth={2.5}
             fill="none"
             strokeLinecap="round"
           />
@@ -286,9 +287,9 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
           backgroundPosition: `${pan.x}px ${pan.y}px`,
         }}
       >
+        {/* SVG layer for connections */}
         <svg
-          ref={svgRef}
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none overflow-visible"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: '0 0',
@@ -297,9 +298,9 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
           {renderConnections()}
         </svg>
 
-        {/* Nodes */}
+        {/* Nodes layer */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: '0 0',
@@ -309,13 +310,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
             <div
               key={node.id}
               className={cn(
-                "absolute flex items-center gap-1 cursor-move select-none",
+                "absolute flex items-center gap-1 cursor-move select-none pointer-events-auto",
                 "transition-shadow duration-200",
                 selectedNodeId === node.id && "z-10"
               )}
               style={{
-                left: node.x - 80,
-                top: node.y - 18,
+                left: node.x,
+                top: node.y,
+                transform: 'translate(-50%, -50%)',
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -331,7 +333,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
               <div
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full bg-card border-2 shadow-sm",
-                  "hover:shadow-md transition-all",
+                  "hover:shadow-md transition-all whitespace-nowrap",
                   selectedNodeId === node.id && "ring-2 ring-primary ring-offset-2",
                   node.parentId === null && "bg-primary text-primary-foreground border-primary"
                 )}
@@ -339,7 +341,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
                   borderColor: node.parentId ? node.color : undefined,
                 }}
               >
-                <GripVertical className="h-3 w-3 opacity-40" />
+                <GripVertical className="h-3 w-3 opacity-40 flex-shrink-0" />
                 
                 {editingNodeId === node.id ? (
                   <Input
@@ -358,25 +360,22 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className="text-sm font-medium whitespace-nowrap">{node.text}</span>
+                  <span className="text-sm font-medium">{node.text}</span>
                 )}
               </div>
 
-              {/* Add child button */}
+              {/* Add child button - always visible when selected or hovered */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   addChildNode(node.id);
                 }}
                 className={cn(
-                  "flex items-center justify-center w-6 h-6 rounded-full",
-                  "bg-card border-2 shadow-sm hover:bg-accent transition-colors",
-                  "opacity-0 group-hover:opacity-100",
-                  selectedNodeId === node.id && "opacity-100"
+                  "flex items-center justify-center w-6 h-6 rounded-full ml-1",
+                  "bg-foreground text-background shadow-sm hover:scale-110 transition-transform",
                 )}
-                style={{ borderColor: node.color }}
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
           ))}
@@ -384,10 +383,10 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       </div>
 
       {/* Instructions */}
-      <div className="absolute bottom-4 left-4 z-20 text-xs text-muted-foreground bg-card/80 backdrop-blur-sm border rounded-lg p-2">
+      <div className="absolute bottom-4 left-4 z-20 text-xs text-muted-foreground bg-card/90 backdrop-blur-sm border rounded-lg p-3 space-y-1">
         <p><strong>Clique</strong> para selecionar • <strong>Duplo clique</strong> para editar</p>
         <p><strong>Arraste</strong> o nó para mover • <strong>+</strong> para adicionar filho</p>
-        <p><strong>Ctrl + Scroll</strong> para zoom</p>
+        <p><strong>Ctrl + Scroll</strong> para zoom • Arraste o fundo para mover</p>
       </div>
     </div>
   );
