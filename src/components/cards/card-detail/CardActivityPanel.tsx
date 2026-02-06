@@ -80,81 +80,82 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header with tabs */}
-      <div className="flex-shrink-0 px-3 py-2 border-b bg-background/80">
-        <div className="flex items-center gap-1 p-0.5 bg-muted/50 rounded-lg">
+    <div className="h-full flex flex-col bg-background/50">
+      {/* Minimal Header */}
+      <div className="flex-shrink-0 px-2 py-1.5 border-b border-border/50">
+        <div className="flex items-center gap-0.5 p-0.5 bg-muted/30 rounded-md">
           <button
             onClick={() => setActiveTab('comments')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all",
+              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
               activeTab === 'comments' 
                 ? "bg-background text-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             <MessageCircle className="h-3 w-3" />
-            Comentários
+            Chat
           </button>
           <button
             onClick={() => setActiveTab('history')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all",
+              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
               activeTab === 'history' 
                 ? "bg-background text-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             <History className="h-3 w-3" />
-            Histórico
+            Log
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-3">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-2">
           {activeTab === 'comments' ? (
             isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : comments?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="text-xs">Nenhum comentário ainda</p>
+              <div className="text-center py-6 text-muted-foreground">
+                <MessageCircle className="h-5 w-5 mx-auto mb-1 opacity-40" />
+                <p className="text-[10px]">Sem mensagens</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {comments?.map((comment) => (
-                  <div key={comment.id} className="flex gap-2">
-                    <Avatar className="h-6 w-6 flex-shrink-0">
+                  <div key={comment.id} className="group flex gap-1.5 hover:bg-muted/20 rounded p-1 -mx-1 transition-colors">
+                    <Avatar className="h-5 w-5 flex-shrink-0">
                       {comment.user?.avatar_url && (
                         <AvatarImage src={comment.user.avatar_url} />
                       )}
-                      <AvatarFallback className="text-[10px]">
+                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                         {getInitials(comment.user?.full_name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-medium">
-                          {comment.user?.full_name || 'Usuário'}
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[10px] font-semibold text-foreground/90 truncate">
+                          {comment.user?.full_name?.split(' ')[0] || 'User'}
                         </span>
                         <span
-                          className="text-[10px] text-muted-foreground"
+                          className="text-[9px] text-muted-foreground/60"
                           title={format(new Date(comment.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         >
                           {formatDistanceToNow(new Date(comment.created_at), {
-                            addSuffix: true,
+                            addSuffix: false,
                             locale: ptBR,
                           })}
                         </span>
                       </div>
-                      <div className="text-xs text-foreground/90 mt-0.5 break-words">
+                      <div className="text-[11px] text-foreground/80 leading-relaxed">
                         <RichTextViewer 
                           content={comment.content} 
                           mentionResolver={mentionResolver}
-                          className="text-xs"
+                          className="text-[11px] [&_p]:leading-relaxed"
                         />
                       </div>
                     </div>
@@ -163,43 +164,45 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                <History className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Histórico em breve
-              </p>
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <History className="h-4 w-4 text-muted-foreground/40 mb-1" />
+              <p className="text-[10px] text-muted-foreground/60">Em breve</p>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      {/* Comment Input with RichTextEditor for @mentions */}
-      <div className="flex-shrink-0 border-t bg-background p-2">
-        <div className="flex gap-2 items-end">
+      {/* Premium Input */}
+      <div className="flex-shrink-0 p-1.5 bg-gradient-to-t from-background to-transparent">
+        <div className="flex gap-1.5 items-end bg-muted/40 rounded-lg p-1 border border-border/30 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all">
           <div className="flex-1 min-w-0">
             <RichTextEditor
               value={newComment}
               onChange={setNewComment}
-              placeholder="Escreva um comentário... Use @ para mencionar"
-              minHeight="40px"
-              maxHeight="120px"
+              placeholder="Mensagem... @mencionar"
+              minHeight="28px"
+              maxHeight="80px"
               mentionSuggestions={mentionSuggestions}
               onMentionsChange={setCurrentMentions}
-              className="text-xs [&_.ProseMirror]:text-xs"
+              className="text-[11px] [&_.ProseMirror]:text-[11px] [&_.ProseMirror]:py-0.5 [&_.ProseMirror]:px-1"
             />
           </div>
           <Button 
             size="icon" 
-            className="h-8 w-8 rounded-full flex-shrink-0"
+            variant="ghost"
+            className={cn(
+              "h-6 w-6 rounded-md flex-shrink-0 transition-all",
+              !isRichTextEmpty(newComment) && !createComment.isPending
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "text-muted-foreground hover:text-foreground"
+            )}
             onClick={handleSubmit}
             disabled={isRichTextEmpty(newComment) || createComment.isPending}
           >
             {createComment.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-3 w-3" />
             )}
           </Button>
         </div>
