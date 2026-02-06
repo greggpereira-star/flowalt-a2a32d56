@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RestrictedBadge } from '@/components/governance';
 import { CreateFolderWithTemplateDialog } from '@/components/social-media/CreateFolderWithTemplateDialog';
 import { CreateViewDialog } from '@/components/social-media/CreateViewDialog';
+import { SaveSpaceAsTemplateDialog } from '@/components/spaces/SaveSpaceAsTemplateDialog';
 import { useToast } from '@/hooks/use-toast';
 import {
   ChevronDown,
@@ -55,6 +56,7 @@ import {
   Share2,
   Target,
   Briefcase,
+  Save,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -280,6 +282,7 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [createViewOpen, setCreateViewOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   
   const [deleteFolderDialog, setDeleteFolderDialog] = useState<{ open: boolean; folderId: string; folderName: string } | null>(null);
@@ -379,15 +382,37 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
         </div>
         <div className="flex items-center gap-0.5">
           {isAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-              onClick={() => setCreateFolderOpen(true)}
-              title="Adicionar Pasta"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={() => setCreateFolderOpen(true)}
+                title="Adicionar Pasta"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+              {folders && folders.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setSaveTemplateOpen(true)}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Salvar como Template
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -505,6 +530,16 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Save as Template Dialog */}
+      <SaveSpaceAsTemplateDialog
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        spaceId={spaceId}
+        spaceName={spaceName}
+        spaceIcon={spaceIcon}
+        spaceColor={spaceColor || '#6366f1'}
+      />
     </div>
   );
 };

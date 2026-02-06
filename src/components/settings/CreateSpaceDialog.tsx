@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { IconPicker } from './IconPicker';
 import { SpaceTemplatePreview } from './SpaceTemplatePreview';
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, Eye, AlertTriangle, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, Eye, AlertTriangle, Lock, Trash2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   SPACE_TEMPLATES, 
@@ -22,6 +23,7 @@ import {
 } from '@/lib/spaceTemplates';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useUserSpaceTemplates, useDeleteUserTemplate, type UserSpaceTemplate } from '@/hooks/useSpaceTemplateActions';
 
 interface CreateSpaceDialogProps {
   open: boolean;
@@ -52,6 +54,7 @@ type WizardStep = 1 | 2 | 3;
 export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: CreateSpaceDialogProps) {
   const [step, setStep] = useState<WizardStep>(1);
   const [selectedType, setSelectedType] = useState<SpaceTemplateType>('blank');
+  const [selectedUserTemplate, setSelectedUserTemplate] = useState<UserSpaceTemplate | null>(null);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('folder');
   const [color, setColor] = useState('#6366f1');
@@ -62,14 +65,27 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
   const explanation = explain('spaces_limit');
   const isAdmin = currentRole === 'owner' || currentRole === 'admin';
 
+  // User templates
+  const { data: userTemplates = [] } = useUserSpaceTemplates();
+  const deleteUserTemplate = useDeleteUserTemplate();
+
   const template = SPACE_TEMPLATES[selectedType];
   const hasStructure = templateHasStructure(selectedType);
 
   const handleTypeChange = (type: SpaceTemplateType) => {
     setSelectedType(type);
+    setSelectedUserTemplate(null); // Clear user template selection
     const newTemplate = SPACE_TEMPLATES[type];
     setIcon(newTemplate.defaultIcon);
     setColor(newTemplate.defaultColor);
+  };
+
+  const handleUserTemplateSelect = (userTemplate: UserSpaceTemplate) => {
+    setSelectedUserTemplate(userTemplate);
+    setSelectedType('blank'); // Reset system template selection
+    setIcon(userTemplate.icon);
+    setColor(userTemplate.color);
+    setName(userTemplate.name.replace('Template - ', ''));
   };
 
   const handleNext = () => {
@@ -104,6 +120,7 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
   const resetForm = () => {
     setStep(1);
     setSelectedType('blank');
+    setSelectedUserTemplate(null);
     setName('');
     setIcon(SPACE_TEMPLATES.blank.defaultIcon);
     setColor(SPACE_TEMPLATES.blank.defaultColor);
@@ -114,6 +131,11 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
       resetForm();
     }
     onOpenChange(newOpen);
+  };
+
+  const handleDeleteUserTemplate = async (templateKey: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await deleteUserTemplate.mutateAsync(templateKey);
   };
 
   const getStepTitle = () => {
@@ -185,50 +207,115 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
             )}
 
             {canCreateSpace && (
-              <RadioGroup
-                value={selectedType}
-                onValueChange={(value) => handleTypeChange(value as SpaceTemplateType)}
-                className="grid gap-3"
-              >
-                {Object.entries(SPACE_TEMPLATES).map(([type, config]) => {
-                  const Icon = config.icon;
-                  const isSelected = selectedType === type;
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {/* User Templates Section */}
+                {userTemplates.length > 0 && (
+                  <>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Seus Templates
+                      </h4>
+                      <div className="grid gap-2">
+                        {userTemplates.map((userTpl) => {
+                          const isSelected = selectedUserTemplate?.key === userTpl.key;
+                          return (
+                            <div
+                              key={userTpl.key}
+                              className={cn(
+                                'flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all group',
+                                isSelected
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                              )}
+                              onClick={() => handleUserTemplateSelect(userTpl)}
+                            >
+                              <div
+                                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                                style={{ backgroundColor: `${userTpl.color}20` }}
+                              >
+                                <Sparkles className="w-5 h-5" style={{ color: userTpl.color }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-foreground">{userTpl.name}</span>
+                                {userTpl.description && (
+                                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                                    {userTpl.description}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {userTpl.folders_config.length} pasta(s)
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                onClick={(e) => handleDeleteUserTemplate(userTpl.key, e)}
+                                disabled={deleteUserTemplate.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
-                  return (
-                    <label
-                      key={type}
-                      className={cn(
-                        'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                      )}
-                    >
-                      <RadioGroupItem value={type} className="mt-1" />
-                      <div
-                        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${config.defaultColor}20` }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: config.defaultColor }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{config.name}</span>
-                          {config.badge && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
-                              <Sparkles className="w-3 h-3" />
-                              {config.badge}
-                            </span>
+                {/* System Templates */}
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                    Templates do Sistema
+                  </h4>
+                  <RadioGroup
+                    value={selectedUserTemplate ? '' : selectedType}
+                    onValueChange={(value) => handleTypeChange(value as SpaceTemplateType)}
+                    className="grid gap-2"
+                  >
+                    {Object.entries(SPACE_TEMPLATES).map(([type, config]) => {
+                      const Icon = config.icon;
+                      const isSelected = !selectedUserTemplate && selectedType === type;
+
+                      return (
+                        <label
+                          key={type}
+                          className={cn(
+                            'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
+                            isSelected
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/50'
                           )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                          {config.description}
-                        </p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </RadioGroup>
+                        >
+                          <RadioGroupItem value={type} className="mt-1" />
+                          <div
+                            className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${config.defaultColor}20` }}
+                          >
+                            <Icon className="w-5 h-5" style={{ color: config.defaultColor }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">{config.name}</span>
+                              {config.badge && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                                  <Sparkles className="w-3 h-3" />
+                                  {config.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                              {config.description}
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </RadioGroup>
+                </div>
+              </div>
             )}
 
             <div className="flex justify-end pt-2">

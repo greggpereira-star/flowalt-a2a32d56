@@ -20,6 +20,7 @@ import { ApprovalsPendingView } from '@/components/social-media/ApprovalsPending
 import { WeeklyChecklistView } from '@/components/social-media/WeeklyChecklistView';
 import { IdeasBankView } from '@/components/social-media/IdeasBankView';
 import { FiltersToolbar } from '@/components/filters';
+import { EmptySpaceState } from '@/components/spaces/EmptySpaceState';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -340,6 +341,21 @@ const SpacePage: React.FC = () => {
   }
 
   const isSocialMedia = space.type === 'social_media';
+  const isEmptySpace = !foldersLoading && (!folders || folders.length === 0) && !activeViewId;
+
+  // Show empty state for blank spaces (except social_media which has auto-structure)
+  if (isEmptySpace && !isSocialMedia) {
+    return (
+      <AppLayout spaceId={spaceId}>
+        <EmptySpaceState
+          spaceId={spaceId!}
+          spaceName={space.name}
+          spaceColor={space.color}
+          spaceType={space.type}
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>

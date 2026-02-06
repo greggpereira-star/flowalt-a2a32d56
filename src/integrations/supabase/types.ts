@@ -7264,33 +7264,75 @@ export type Database = {
       }
       space_templates: {
         Row: {
+          color: string | null
           created_at: string
+          created_by: string | null
+          custom_fields_config: Json | null
           definition: Json
           description: string | null
+          folders_config: Json | null
+          icon: string | null
+          id: string | null
           is_optional: boolean
+          is_user_template: boolean | null
           key: string
           name: string
           updated_at: string
+          views_config: Json | null
+          workspace_id: string | null
         }
         Insert: {
+          color?: string | null
           created_at?: string
+          created_by?: string | null
+          custom_fields_config?: Json | null
           definition?: Json
           description?: string | null
+          folders_config?: Json | null
+          icon?: string | null
+          id?: string | null
           is_optional?: boolean
+          is_user_template?: boolean | null
           key: string
           name: string
           updated_at?: string
+          views_config?: Json | null
+          workspace_id?: string | null
         }
         Update: {
+          color?: string | null
           created_at?: string
+          created_by?: string | null
+          custom_fields_config?: Json | null
           definition?: Json
           description?: string | null
+          folders_config?: Json | null
+          icon?: string | null
+          id?: string | null
           is_optional?: boolean
+          is_user_template?: boolean | null
           key?: string
           name?: string
           updated_at?: string
+          views_config?: Json | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "space_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "space_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spaces: {
         Row: {

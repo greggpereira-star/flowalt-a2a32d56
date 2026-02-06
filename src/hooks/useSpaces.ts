@@ -100,8 +100,9 @@ export const useCreateSpace = () => {
 
       if (error) throw error;
 
-      // 2. Apply template if provided
-      if (space.template && space.template.folders.length > 0) {
+      // 2. Apply template structure ONLY for social_media template
+      // Other templates start blank - user creates their own structure
+      if (space.template && space.template.id === 'social_media' && space.template.folders.length > 0) {
         await applyTemplateToSpace(newSpace.id, currentWorkspace.id, space.template, user?.id);
       }
 
