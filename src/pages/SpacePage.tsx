@@ -572,6 +572,7 @@ const SpacePage: React.FC = () => {
                 onCardClick={handleCardClick}
                 spaceName={space.name}
                 folderName={activeView?.name}
+                viewId={activeViewId || 'default'}
               />
             ) : view === 'approvals' ? (
               <ApprovalsPendingView 

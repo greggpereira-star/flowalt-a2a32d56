@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, GripVertical, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Plus, GripVertical, Trash2, ZoomIn, ZoomOut, Maximize2, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
-interface MindMapNode {
+export interface MindMapNode {
   id: string;
   text: string;
   x: number;
@@ -14,6 +15,7 @@ interface MindMapNode {
 }
 
 interface FreeMindMapProps {
+  viewId?: string;
   onSave?: (nodes: MindMapNode[]) => void;
   initialNodes?: MindMapNode[];
 }
@@ -31,19 +33,58 @@ const NODE_COLORS = [
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }) => {
-  const [nodes, setNodes] = useState<MindMapNode[]>(
-    initialNodes || [
-      {
-        id: 'root',
-        text: 'Comece aqui 👋',
-        x: 300,
-        y: 250,
-        parentId: null,
-        color: '#3b82f6',
-      },
-    ]
-  );
+const DEFAULT_ROOT_NODE: MindMapNode = {
+  id: 'root',
+  text: 'Comece aqui 👋',
+  x: 300,
+  y: 250,
+  parentId: null,
+  color: '#3b82f6',
+};
+
+// Storage key prefix
+const STORAGE_KEY_PREFIX = 'mindmap-nodes-';
+
+// Load nodes from localStorage
+const loadNodesFromStorage = (viewId: string): MindMapNode[] | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_PREFIX + viewId);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading mindmap from storage:', e);
+  }
+  return null;
+};
+
+// Save nodes to localStorage
+const saveNodesToStorage = (viewId: string, nodes: MindMapNode[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY_PREFIX + viewId, JSON.stringify(nodes));
+  } catch (e) {
+    console.error('Error saving mindmap to storage:', e);
+  }
+};
+
+export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', onSave, initialNodes }) => {
+  const { toast } = useToast();
+  
+  // Initialize nodes from storage or props
+  const [nodes, setNodes] = useState<MindMapNode[]>(() => {
+    if (initialNodes && initialNodes.length > 0) {
+      return initialNodes;
+    }
+    const stored = loadNodesFromStorage(viewId);
+    if (stored) {
+      return stored;
+    }
+    return [DEFAULT_ROOT_NODE];
+  });
+  
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -53,21 +94,38 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Use ref to prevent stale closures
+  const nodesRef = useRef(nodes);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  // Auto-save to localStorage when nodes change
+  useEffect(() => {
+    if (nodes.length > 0) {
+      saveNodesToStorage(viewId, nodes);
+      setHasUnsavedChanges(false);
+    }
+  }, [nodes, viewId]);
 
   // Get all descendants of a node
   const getDescendants = useCallback((nodeId: string): string[] => {
-    const children = nodes.filter(n => n.parentId === nodeId);
+    const currentNodes = nodesRef.current;
+    const children = currentNodes.filter(n => n.parentId === nodeId);
     return children.flatMap(child => [child.id, ...getDescendants(child.id)]);
-  }, [nodes]);
+  }, []);
 
   // Add child node
   const addChildNode = useCallback((parentId: string) => {
-    const parent = nodes.find(n => n.id === parentId);
+    const currentNodes = nodesRef.current;
+    const parent = currentNodes.find(n => n.id === parentId);
     if (!parent) return;
 
-    const siblings = nodes.filter(n => n.parentId === parentId);
+    const siblings = currentNodes.filter(n => n.parentId === parentId);
     const yOffset = siblings.length * 70 - (siblings.length * 70) / 2;
     
     const newNode: MindMapNode = {
@@ -76,13 +134,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       x: parent.x + 220,
       y: parent.y + yOffset,
       parentId,
-      color: NODE_COLORS[nodes.length % NODE_COLORS.length],
+      color: NODE_COLORS[currentNodes.length % NODE_COLORS.length],
     };
 
     setNodes(prev => [...prev, newNode]);
     setEditingNodeId(newNode.id);
     setEditText('Novo nó');
-  }, [nodes]);
+    setHasUnsavedChanges(true);
+  }, []);
 
   // Delete node and all descendants
   const deleteNode = useCallback((nodeId: string) => {
@@ -90,16 +149,18 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
     const descendants = getDescendants(nodeId);
     setNodes(prev => prev.filter(n => n.id !== nodeId && !descendants.includes(n.id)));
     setSelectedNodeId(null);
+    setHasUnsavedChanges(true);
   }, [getDescendants]);
 
   // Start editing node
   const startEditing = useCallback((nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
+    const currentNodes = nodesRef.current;
+    const node = currentNodes.find(n => n.id === nodeId);
     if (node) {
       setEditingNodeId(nodeId);
       setEditText(node.text);
     }
-  }, [nodes]);
+  }, []);
 
   // Save edit
   const saveEdit = useCallback(() => {
@@ -107,6 +168,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       setNodes(prev => prev.map(n => 
         n.id === editingNodeId ? { ...n, text: editText.trim() } : n
       ));
+      setHasUnsavedChanges(true);
     }
     setEditingNodeId(null);
     setEditText('');
@@ -115,7 +177,8 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
   // Handle drag start
   const handleDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
-    const node = nodes.find(n => n.id === nodeId);
+    const currentNodes = nodesRef.current;
+    const node = currentNodes.find(n => n.id === nodeId);
     if (!node) return;
 
     const rect = containerRef.current?.getBoundingClientRect();
@@ -126,7 +189,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       x: (e.clientX - rect.left - pan.x) / zoom - node.x,
       y: (e.clientY - rect.top - pan.y) / zoom - node.y,
     });
-  }, [nodes, zoom, pan]);
+  }, [zoom, pan]);
 
   // Handle drag move
   const handleDragMove = useCallback((e: React.MouseEvent) => {
@@ -150,9 +213,12 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
 
   // Handle drag end
   const handleDragEnd = useCallback(() => {
+    if (draggingNodeId) {
+      setHasUnsavedChanges(true);
+    }
     setDraggingNodeId(null);
     setIsPanning(false);
-  }, []);
+  }, [draggingNodeId]);
 
   // Handle pan start (only on background)
   const handlePanStart = useCallback((e: React.MouseEvent) => {
@@ -178,6 +244,17 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
     setPan({ x: 0, y: 0 });
   }, []);
 
+  // Manual save
+  const handleManualSave = useCallback(() => {
+    saveNodesToStorage(viewId, nodes);
+    onSave?.(nodes);
+    setHasUnsavedChanges(false);
+    toast({
+      title: 'Mapa salvo!',
+      description: 'Seu mapa mental foi salvo com sucesso.',
+    });
+  }, [viewId, nodes, onSave, toast]);
+
   // Handle wheel zoom
   useEffect(() => {
     const container = containerRef.current;
@@ -202,13 +279,11 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
         const parent = nodes.find(n => n.id === node.parentId);
         if (!parent) return null;
 
-        // Use actual node positions (center of node)
         const startX = parent.x;
         const startY = parent.y;
         const endX = node.x;
         const endY = node.y;
 
-        // Bezier curve - horizontal flow
         const controlOffset = Math.abs(endX - startX) * 0.5;
 
         return (
@@ -256,6 +331,21 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
         >
           <Maximize2 className="h-4 w-4" />
         </Button>
+        <div className="w-px h-4 bg-border" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleManualSave}
+          title="Salvar mapa"
+          className={cn(hasUnsavedChanges && "text-primary")}
+        >
+          <Save className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Node count indicator */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-card/80 backdrop-blur-sm border rounded-lg px-3 py-1 text-xs text-muted-foreground">
+        {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'}
       </div>
 
       {/* Selected node actions */}
@@ -364,7 +454,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
                 )}
               </div>
 
-              {/* Add child button - always visible when selected or hovered */}
+              {/* Add child button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -386,7 +476,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ onSave, initialNodes }
       <div className="absolute bottom-4 left-4 z-20 text-xs text-muted-foreground bg-card/90 backdrop-blur-sm border rounded-lg p-3 space-y-1">
         <p><strong>Clique</strong> para selecionar • <strong>Duplo clique</strong> para editar</p>
         <p><strong>Arraste</strong> o nó para mover • <strong>+</strong> para adicionar filho</p>
-        <p><strong>Ctrl + Scroll</strong> para zoom • Arraste o fundo para mover</p>
+        <p><strong>Ctrl + Scroll</strong> para zoom • Salva automaticamente</p>
       </div>
     </div>
   );
