@@ -41,6 +41,7 @@ interface Client {
 interface CardPropertiesPanelProps {
   status: CardStatus;
   urgency: CardUrgency;
+  startDate?: Date;
   dueDate?: Date;
   estimatedHours: string;
   actualHours: number;
@@ -48,6 +49,7 @@ interface CardPropertiesPanelProps {
   clients: Client[];
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
+  onStartDateChange: (date: Date | undefined) => void;
   onDueDateChange: (date: Date | undefined) => void;
   onEstimatedHoursChange: (hours: string) => void;
   onEstimatedHoursBlur: () => void;
@@ -88,6 +90,7 @@ const PropertyItem: React.FC<PropertyItemProps> = ({ label, children, className 
 export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   status,
   urgency,
+  startDate,
   dueDate,
   estimatedHours,
   actualHours,
@@ -95,6 +98,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   clients,
   onStatusChange,
   onUrgencyChange,
+  onStartDateChange,
   onDueDateChange,
   onEstimatedHoursChange,
   onEstimatedHoursBlur,
@@ -139,8 +143,36 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         </Select>
       </PropertyItem>
 
+      {/* Start Date */}
+      <PropertyItem label="Início">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 w-full justify-start text-left font-normal border-border/50 bg-muted/30 hover:bg-muted/50",
+                !startDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="h-3.5 w-3.5 mr-2 text-success" />
+              {startDate ? format(startDate, 'dd MMM yyyy', { locale: ptBR }) : 'Definir início'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={startDate}
+              onSelect={onStartDateChange}
+              locale={ptBR}
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </PropertyItem>
+
       {/* Due Date */}
-      <PropertyItem label="Prazo">
+      <PropertyItem label="Término">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -151,8 +183,8 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                 !dueDate && "text-muted-foreground"
               )}
             >
-              <CalendarIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              {dueDate ? format(dueDate, 'dd MMM yyyy', { locale: ptBR }) : 'Definir prazo'}
+              <CalendarIcon className="h-3.5 w-3.5 mr-2 text-destructive" />
+              {dueDate ? format(dueDate, 'dd MMM yyyy', { locale: ptBR }) : 'Definir término'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">

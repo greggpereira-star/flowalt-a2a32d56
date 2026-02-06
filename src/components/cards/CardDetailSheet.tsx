@@ -93,6 +93,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [status, setStatus] = useState<CardStatus>('backlog');
   const [urgency, setUrgency] = useState<CardUrgency>('medium');
   const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>();
   const [estimatedHours, setEstimatedHours] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
   const [briefingData, setBriefingData] = useState<BriefingData>({
@@ -143,6 +144,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       setStatus(card.status);
       setUrgency(card.urgency);
       setDueDate(card.due_date ? new Date(card.due_date) : undefined);
+      setStartDate((card as any).start_date ? new Date((card as any).start_date) : undefined);
       setEstimatedHours(card.estimated_hours?.toString() || '');
       setClientId(card.client_id);
 
@@ -186,6 +188,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     description: string;
     status: CardStatus;
     urgency: CardUrgency;
+    start_date: string | null;
     due_date: string | null;
     estimated_hours: number | null;
     briefing_completed: boolean;
@@ -295,6 +298,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <CardPropertiesPanel
                       status={status}
                       urgency={urgency}
+                      startDate={startDate}
                       dueDate={dueDate}
                       estimatedHours={estimatedHours}
                       actualHours={card.actual_hours || 0}
@@ -304,6 +308,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       onUrgencyChange={(u) => {
                         setUrgency(u);
                         handleSave({ urgency: u });
+                      }}
+                      onStartDateChange={(date) => {
+                        setStartDate(date);
+                        handleSave({ start_date: date ? date.toISOString() : null });
                       }}
                       onDueDateChange={(date) => {
                         setDueDate(date);
