@@ -1927,6 +1927,7 @@ export type Database = {
           sort_order: number | null
           space_id: string
           stage_entered_at: string | null
+          start_date: string | null
           status: Database["public"]["Enums"]["card_status"]
           title: string
           traffic_briefing_data: Json | null
@@ -1954,6 +1955,7 @@ export type Database = {
           sort_order?: number | null
           space_id: string
           stage_entered_at?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["card_status"]
           title: string
           traffic_briefing_data?: Json | null
@@ -1981,6 +1983,7 @@ export type Database = {
           sort_order?: number | null
           space_id?: string
           stage_entered_at?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["card_status"]
           title?: string
           traffic_briefing_data?: Json | null
