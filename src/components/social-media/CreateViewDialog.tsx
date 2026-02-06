@@ -50,6 +50,47 @@ const iconMap: Record<string, React.ElementType> = {
 
 const getIcon = (iconName: string) => iconMap[iconName] || LayoutGrid;
 
+// Default view types when no templates are available
+const DEFAULT_VIEW_TYPES = [
+  {
+    id: 'kanban',
+    name: 'Kanban',
+    description: 'Organize cards em colunas por status',
+    icon: 'kanban',
+    view_type: 'kanban',
+  },
+  {
+    id: 'list',
+    name: 'Lista',
+    description: 'Visualização em tabela detalhada',
+    icon: 'list',
+    view_type: 'list',
+  },
+  {
+    id: 'calendar',
+    name: 'Calendário',
+    description: 'Visualize por datas e prazos',
+    icon: 'calendar',
+    view_type: 'calendar',
+  },
+  {
+    id: 'gantt',
+    name: 'Gantt',
+    description: 'Timeline para projetos complexos',
+    icon: 'bar-chart',
+    view_type: 'gantt',
+    coming: true,
+  },
+  {
+    id: 'mindmap',
+    name: 'Mapa Mental',
+    description: 'Visualização em árvore de ideias',
+    icon: 'lightbulb',
+    view_type: 'mindmap',
+    coming: true,
+  },
+];
+
 export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
   open,
   onOpenChange,
@@ -67,23 +108,26 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [creationMode, setCreationMode] = useState<'template' | 'basic'>('template');
 
-  // Auto-select first template
+  // Use templates from DB, or fallback to default view types
+  const viewOptions = templates && templates.length > 0 ? templates : DEFAULT_VIEW_TYPES;
+
+  // Auto-select first option
   useEffect(() => {
-    if (templates && templates.length > 0 && !selectedTemplateId) {
-      setSelectedTemplateId(templates[0].id);
+    if (viewOptions.length > 0 && !selectedTemplateId) {
+      setSelectedTemplateId(viewOptions[0].id);
     }
-  }, [templates, selectedTemplateId]);
+  }, [viewOptions, selectedTemplateId]);
 
   // Reset on open
   useEffect(() => {
     if (open) {
       setViewName('');
-      setSelectedTemplateId(templates?.[0]?.id || null);
+      setSelectedTemplateId(viewOptions[0]?.id || null);
       setCreationMode('template');
     }
-  }, [open, templates]);
+  }, [open, viewOptions]);
 
-  const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
+  const selectedOption = viewOptions.find((t) => t.id === selectedTemplateId);
 
   const handleCreate = async () => {
     if (!folderId) {
@@ -107,7 +151,10 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
     try {
       let view;
 
-      if (creationMode === 'template' && selectedTemplateId && selectedTemplate) {
+      // Check if using a DB template or default view type
+      const isDbTemplate = templates && templates.length > 0 && templates.some(t => t.id === selectedTemplateId);
+
+      if (isDbTemplate && selectedTemplateId && selectedOption) {
         view = await createFromTemplate.mutateAsync({
           folderId,
           templateId: selectedTemplateId,
@@ -117,20 +164,22 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
         trackViewCreated({
           folder_id: folderId,
           view_id: view.id,
-          view_template: selectedTemplate.name.toLowerCase().replace(/\s+/g, '_') as any,
+          view_template: selectedOption.name.toLowerCase().replace(/\s+/g, '_') as any,
           view_name: viewName.trim(),
         });
       } else {
+        // Create basic view with selected view type
+        const viewType = selectedOption?.view_type || 'list';
         view = await createBasicView.mutateAsync({
           folderId,
           name: viewName.trim(),
-          viewType: 'list',
+          viewType,
         });
 
         trackViewCreated({
           folder_id: folderId,
           view_id: view.id,
-          view_template: 'list' as any,
+          view_template: viewType as any,
           view_name: viewName.trim(),
         });
       }
@@ -188,28 +237,38 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
                 <Skeleton className="h-20" />
                 <Skeleton className="h-20" />
               </div>
-            ) : templates && templates.length > 0 ? (
+            ) : (
               <ScrollArea className="h-64">
                 <div className="grid grid-cols-2 gap-2 pr-4">
-                  {templates.map((template) => {
-                    const Icon = getIcon(template.icon);
-                    const isSelected = selectedTemplateId === template.id;
+                  {viewOptions.map((option) => {
+                    const Icon = getIcon(option.icon);
+                    const isSelected = selectedTemplateId === option.id;
+                    const isComing = 'coming' in option && option.coming;
 
                     return (
                       <button
-                        key={template.id}
+                        key={option.id}
                         type="button"
                         onClick={() => {
-                          setSelectedTemplateId(template.id);
-                          setCreationMode('template');
+                          if (!isComing) {
+                            setSelectedTemplateId(option.id);
+                            setCreationMode('template');
+                          }
                         }}
+                        disabled={isComing}
                         className={cn(
-                          'flex flex-col items-start gap-2 p-3 rounded-lg border-2 transition-all text-left',
+                          'flex flex-col items-start gap-2 p-3 rounded-lg border-2 transition-all text-left relative',
+                          isComing && 'opacity-50 cursor-not-allowed',
                           isSelected
                             ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                             : 'border-border hover:border-muted-foreground/30 hover:bg-muted/50'
                         )}
                       >
+                        {isComing && (
+                          <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            Em breve
+                          </span>
+                        )}
                         <div className="flex items-center gap-2">
                           <div
                             className={cn(
@@ -230,12 +289,12 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
                               isSelected ? 'text-primary' : ''
                             )}
                           >
-                            {template.name}
+                            {option.name}
                           </span>
                         </div>
-                        {template.description && (
+                        {option.description && (
                           <p className="text-xs text-muted-foreground line-clamp-2">
-                            {template.description}
+                            {option.description}
                           </p>
                         )}
                       </button>
@@ -243,10 +302,6 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
                   })}
                 </div>
               </ScrollArea>
-            ) : (
-              <div className="text-sm text-muted-foreground p-4 border rounded-lg text-center">
-                Nenhum template disponível
-              </div>
             )}
           </div>
         </div>
