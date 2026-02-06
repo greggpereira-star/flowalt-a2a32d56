@@ -34,6 +34,7 @@ interface CreateSpaceDialogProps {
     color: string; 
     type: SpaceTemplateType;
     template: SpaceTemplate;
+    userTemplate?: UserSpaceTemplate;
   }) => Promise<void>;
   isLoading?: boolean;
 }
@@ -113,6 +114,7 @@ export function CreateSpaceDialog({ open, onOpenChange, onSubmit, isLoading }: C
       color, 
       type: selectedType,
       template,
+      userTemplate: selectedUserTemplate || undefined,
     });
     resetForm();
   };
