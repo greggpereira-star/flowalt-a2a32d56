@@ -1,10 +1,17 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface RichTextViewerProps {
   content: string | null | undefined;
   className?: string;
   fallback?: React.ReactNode;
+  mentionResolver?: (id: string) => { name: string; avatar_url?: string | null } | undefined;
 }
 
 interface JSONContent {
@@ -23,19 +30,20 @@ interface JSONContent {
  * - Compatível com formato JSON do TipTap
  * - Fallback para texto simples
  * - Estilização consistente com o design system
+ * - Suporte a menções com destaque visual
  */
-export function RichTextViewer({ content, className, fallback }: RichTextViewerProps) {
+export function RichTextViewer({ content, className, fallback, mentionResolver }: RichTextViewerProps) {
   const renderedContent = useMemo(() => {
     if (!content) return null;
 
     try {
       const parsed: JSONContent = JSON.parse(content);
-      return renderNode(parsed);
+      return renderNode(parsed, undefined, mentionResolver);
     } catch {
       // Se não for JSON válido, renderiza como texto simples
       return <p className="whitespace-pre-wrap">{content}</p>;
     }
-  }, [content]);
+  }, [content, mentionResolver]);
 
   if (!renderedContent) {
     return fallback ? <>{fallback}</> : null;
@@ -55,22 +63,52 @@ export function RichTextViewer({ content, className, fallback }: RichTextViewerP
   );
 }
 
-function renderNode(node: JSONContent, key?: number): React.ReactNode {
+function renderNode(
+  node: JSONContent, 
+  key?: number,
+  mentionResolver?: (id: string) => { name: string; avatar_url?: string | null } | undefined
+): React.ReactNode {
   if (!node) return null;
 
   // Documento raiz
   if (node.type === 'doc') {
     return (
       <>
-        {node.content?.map((child, index) => renderNode(child, index))}
+        {node.content?.map((child, index) => renderNode(child, index, mentionResolver))}
       </>
     );
   }
 
   // Parágrafo
   if (node.type === 'paragraph') {
-    const content = node.content?.map((child, index) => renderNode(child, index));
+    const content = node.content?.map((child, index) => renderNode(child, index, mentionResolver));
     return <p key={key}>{content?.length ? content : <br />}</p>;
+  }
+
+  // Menção (@usuário)
+  if (node.type === 'mention') {
+    const mentionId = node.attrs?.id as string;
+    const mentionLabel = node.attrs?.label as string;
+    const resolved = mentionResolver?.(mentionId);
+    const displayName = resolved?.name || mentionLabel || mentionId;
+
+    return (
+      <TooltipProvider key={key}>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <span 
+              className="mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default hover:bg-primary/25 transition-colors"
+              data-mention-id={mentionId}
+            >
+              @{displayName}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {resolved?.name || mentionLabel || 'Membro mencionado'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   }
 
   // Texto com marcações
@@ -114,7 +152,7 @@ function renderNode(node: JSONContent, key?: number): React.ReactNode {
   if (node.type === 'bulletList') {
     return (
       <ul key={key} className="list-disc">
-        {node.content?.map((child, index) => renderNode(child, index))}
+        {node.content?.map((child, index) => renderNode(child, index, mentionResolver))}
       </ul>
     );
   }
@@ -123,7 +161,7 @@ function renderNode(node: JSONContent, key?: number): React.ReactNode {
   if (node.type === 'orderedList') {
     return (
       <ol key={key} className="list-decimal">
-        {node.content?.map((child, index) => renderNode(child, index))}
+        {node.content?.map((child, index) => renderNode(child, index, mentionResolver))}
       </ol>
     );
   }
@@ -132,7 +170,7 @@ function renderNode(node: JSONContent, key?: number): React.ReactNode {
   if (node.type === 'listItem') {
     return (
       <li key={key}>
-        {node.content?.map((child, index) => renderNode(child, index))}
+        {node.content?.map((child, index) => renderNode(child, index, mentionResolver))}
       </li>
     );
   }
@@ -146,7 +184,7 @@ function renderNode(node: JSONContent, key?: number): React.ReactNode {
   if (node.content) {
     return (
       <div key={key}>
-        {node.content.map((child, index) => renderNode(child, index))}
+        {node.content.map((child, index) => renderNode(child, index, mentionResolver))}
       </div>
     );
   }
@@ -177,6 +215,11 @@ function extractTextFromNode(node: JSONContent): string {
     return node.text || '';
   }
 
+  // Para menções, retorna o label ou id
+  if (node.type === 'mention') {
+    return `@${node.attrs?.label || node.attrs?.id || ''}`;
+  }
+
   if (node.content) {
     return node.content.map(extractTextFromNode).join('');
   }
@@ -205,11 +248,44 @@ function isNodeEmpty(node: JSONContent): boolean {
     return false;
   }
 
+  // Menções não são consideradas vazias
+  if (node.type === 'mention') {
+    return false;
+  }
+
   if (node.content) {
     return node.content.every(isNodeEmpty);
   }
 
   return true;
+}
+
+/**
+ * Extrai IDs de menções do conteúdo
+ */
+export function extractMentionIds(content: string | null | undefined): string[] {
+  if (!content) return [];
+
+  try {
+    const parsed: JSONContent = JSON.parse(content);
+    return extractMentionsFromNode(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function extractMentionsFromNode(node: JSONContent): string[] {
+  if (!node) return [];
+
+  if (node.type === 'mention' && node.attrs?.id) {
+    return [node.attrs.id as string];
+  }
+
+  if (node.content) {
+    return node.content.flatMap(extractMentionsFromNode);
+  }
+
+  return [];
 }
 
 export default RichTextViewer;
