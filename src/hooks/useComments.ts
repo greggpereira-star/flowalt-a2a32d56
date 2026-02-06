@@ -93,8 +93,57 @@ export const useCreateComment = () => {
 
       if (error) throw error;
 
-      // Trigger webhook
+      // Get workspace ID and card title for notifications
       const workspaceId = await getCardWorkspaceId(card_id);
+      
+      // Get card title for notification
+      const { data: cardData } = await supabase
+        .from('cards')
+        .select('title')
+        .eq('id', card_id)
+        .single();
+      
+      // Get commenter profile
+      const { data: commenterProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      const commenterName = commenterProfile?.full_name || 'Alguém';
+      const cardTitle = cardData?.title || 'um card';
+
+      // Create notifications for mentioned users
+      if (mentions && mentions.length > 0 && workspaceId) {
+        const notificationsToInsert = mentions
+          .filter((mentionedUserId) => mentionedUserId !== user.id) // Don't notify yourself
+          .map((mentionedUserId) => ({
+            user_id: mentionedUserId,
+            workspace_id: workspaceId,
+            type: 'mention' as const,
+            title: 'Você foi mencionado',
+            message: `${commenterName} mencionou você em "${cardTitle}"`,
+            metadata: {
+              card_id,
+              comment_id: data.id,
+              commenter_id: user.id,
+              commenter_name: commenterName,
+            },
+            is_read: false,
+          }));
+
+        if (notificationsToInsert.length > 0) {
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert(notificationsToInsert);
+
+          if (notifError) {
+            console.error('Error creating mention notifications:', notifError);
+          }
+        }
+      }
+
+      // Trigger webhook
       if (workspaceId) {
         triggerWebhook(workspaceId, 'comment.created', {
           id: data.id,
