@@ -48,7 +48,13 @@ const viewOptions = [
     description: 'Timeline para projetos complexos',
     icon: Network,
     color: '#8b5cf6',
-    coming: true,
+  },
+  {
+    id: 'mindmap',
+    name: 'Mapa Mental',
+    description: 'Visualização em árvore de ideias',
+    icon: Lightbulb,
+    color: '#f97316',
   },
 ];
 
@@ -99,10 +105,7 @@ export const EmptySpaceState: React.FC<EmptySpaceStateProps> = ({
               return (
                 <Card 
                   key={view.id}
-                  className={cn(
-                    "relative overflow-hidden transition-all",
-                    view.coming ? "opacity-60" : "hover:shadow-md hover:-translate-y-0.5"
-                  )}
+                  className="relative overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5"
                 >
                   <CardContent className="p-4 text-center">
                     <div 
@@ -115,11 +118,6 @@ export const EmptySpaceState: React.FC<EmptySpaceStateProps> = ({
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {view.description}
                     </p>
-                    {view.coming && (
-                      <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        Em breve
-                      </span>
-                    )}
                   </CardContent>
                 </Card>
               );
