@@ -16,6 +16,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RichTextEditor, type MentionSuggestion } from '@/components/ui/rich-text-editor';
 import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
+import { toast } from 'sonner';
 
 interface CardActivityPanelProps {
   cardId: string;
@@ -59,14 +60,24 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   const handleSubmit = async () => {
     if (isRichTextEmpty(newComment)) return;
 
-    await createComment.mutateAsync({
-      card_id: cardId,
-      content: newComment,
-      mentions: currentMentions,
-    });
+    if (!user?.id) {
+      toast.error('Você precisa estar logado para enviar mensagens.');
+      return;
+    }
 
-    setNewComment('');
-    setCurrentMentions([]);
+    try {
+      await createComment.mutateAsync({
+        card_id: cardId,
+        content: newComment,
+        mentions: currentMentions,
+      });
+
+      setNewComment('');
+      setCurrentMentions([]);
+    } catch (err) {
+      console.error('Erro ao enviar comentário:', err);
+      toast.error('Não foi possível enviar a mensagem. Tente novamente.');
+    }
   };
 
   const getInitials = (name: string | null | undefined): string => {
@@ -201,9 +212,9 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                   : "bg-background/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground",
               )}
               onClick={handleSubmit}
-              disabled={isRichTextEmpty(newComment) || createComment.isPending}
+              disabled={!user?.id || isRichTextEmpty(newComment) || createComment.isPending}
               aria-label="Enviar mensagem"
-              title="Enviar"
+              title={!user?.id ? 'Faça login para enviar' : 'Enviar'}
             >
               {createComment.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
