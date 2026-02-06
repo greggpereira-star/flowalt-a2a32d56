@@ -1,12 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ChevronRight, 
-  ChevronDown,
-  Folder,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Folder, List, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FreeMindMap } from './FreeMindMap';
+import { TaskMindMap } from './TaskMindMap';
 import type { Card } from '@/hooks/useCards';
 
 interface MindMapViewProps {
@@ -16,89 +13,7 @@ interface MindMapViewProps {
   folderName?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; lineColor: string }> = {
-  backlog: { label: 'Backlog', color: 'bg-gray-400', lineColor: '#9ca3af' },
-  briefing: { label: 'Briefing', color: 'bg-blue-500', lineColor: '#3b82f6' },
-  todo: { label: 'A Fazer', color: 'bg-purple-500', lineColor: '#a855f7' },
-  in_progress: { label: 'Em Progresso', color: 'bg-yellow-500', lineColor: '#eab308' },
-  review: { label: 'Revisão', color: 'bg-orange-500', lineColor: '#f97316' },
-  approved: { label: 'Aprovado', color: 'bg-green-500', lineColor: '#22c55e' },
-  delivered: { label: 'Entregue', color: 'bg-emerald-600', lineColor: '#059669' },
-  done: { label: 'Concluído', color: 'bg-green-600', lineColor: '#16a34a' },
-};
-
-interface MindMapNodeProps {
-  card: Card;
-  onClick: () => void;
-  statusColor: string;
-}
-
-const MindMapNode: React.FC<MindMapNodeProps> = ({ card, onClick, statusColor }) => {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 px-3 py-2 bg-card border rounded-lg shadow-sm hover:shadow-md hover:border-primary/50 transition-all text-left min-w-[180px] max-w-[280px]"
-    >
-      <div className={cn("w-2.5 h-2.5 rounded-sm flex-shrink-0", statusColor)} />
-      <span className="text-sm font-medium truncate">{card.title}</span>
-    </button>
-  );
-};
-
-interface StatusBranchProps {
-  status: string;
-  cards: Card[];
-  onCardClick: (card: Card) => void;
-  isExpanded: boolean;
-  onToggle: () => void;
-  setRef: (el: HTMLDivElement | null) => void;
-}
-
-const StatusBranch: React.FC<StatusBranchProps> = ({ 
-  status, 
-  cards, 
-  onCardClick, 
-  isExpanded, 
-  onToggle,
-  setRef,
-}) => {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
-
-  return (
-    <div ref={setRef} className="flex items-start gap-3">
-      {/* Status node */}
-      <button
-        onClick={onToggle}
-        className="flex items-center gap-2 px-3 py-2 bg-card border rounded-lg shadow-sm hover:shadow-md transition-all min-w-[140px]"
-      >
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
-        <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
-        <span className="text-sm font-medium">{config.label}</span>
-        <Badge variant="secondary" className="ml-auto text-xs">
-          {cards.length}
-        </Badge>
-      </button>
-
-      {/* Cards */}
-      {isExpanded && cards.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {cards.map((card) => (
-            <MindMapNode
-              key={card.id}
-              card={card}
-              onClick={() => onCardClick(card)}
-              statusColor={config.color}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+type MindMapMode = 'select' | 'tasks' | 'free';
 
 export const MindMapView: React.FC<MindMapViewProps> = ({
   cards,
@@ -106,182 +21,154 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   spaceName = 'Espaço',
   folderName,
 }) => {
-  const [expandedStatuses, setExpandedStatuses] = useState<Set<string>>(new Set(['in_progress', 'todo', 'review']));
-  const rootRef = useRef<HTMLDivElement>(null);
-  const branchRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<MindMapMode>('select');
 
-  // Group cards by status
-  const cardsByStatus = useMemo(() => {
-    const grouped: Record<string, Card[]> = {};
-    
-    cards.forEach(card => {
-      const status = card.status || 'backlog';
-      if (!grouped[status]) {
-        grouped[status] = [];
-      }
-      grouped[status].push(card);
-    });
-
-    return grouped;
-  }, [cards]);
-
-  // Status order
-  const statusOrder = ['backlog', 'briefing', 'todo', 'in_progress', 'review', 'approved', 'delivered', 'done'];
-  const orderedStatuses = statusOrder.filter(s => cardsByStatus[s]?.length > 0);
-
-  const toggleStatus = (status: string) => {
-    setExpandedStatuses(prev => {
-      const next = new Set(prev);
-      if (next.has(status)) {
-        next.delete(status);
-      } else {
-        next.add(status);
-      }
-      return next;
-    });
-  };
-
-  const setBranchRef = useCallback((status: string) => (el: HTMLDivElement | null) => {
-    if (el) {
-      branchRefs.current.set(status, el);
-    } else {
-      branchRefs.current.delete(status);
-    }
-  }, []);
-
-  // Draw connection lines
-  useEffect(() => {
-    const drawLines = () => {
-      if (!svgRef.current || !rootRef.current || !containerRef.current) return;
-
-      const svg = svgRef.current;
-      const container = containerRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const rootRect = rootRef.current.getBoundingClientRect();
-
-      // Clear existing paths
-      while (svg.firstChild) {
-        svg.removeChild(svg.firstChild);
-      }
-
-      // Set SVG size
-      svg.setAttribute('width', String(containerRect.width));
-      svg.setAttribute('height', String(containerRect.height));
-
-      // Draw lines to each branch
-      orderedStatuses.forEach((status) => {
-        const branchEl = branchRefs.current.get(status);
-        if (!branchEl) return;
-
-        const branchRect = branchEl.getBoundingClientRect();
-        const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
-
-        // Calculate positions relative to container
-        const startX = rootRect.right - containerRect.left;
-        const startY = rootRect.top + rootRect.height / 2 - containerRect.top;
-        const endX = branchRect.left - containerRect.left;
-        const endY = branchRect.top + 20 - containerRect.top;
-
-        // Create curved path
-        const midX = startX + (endX - startX) / 2;
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
-        path.setAttribute('stroke', config.lineColor);
-        path.setAttribute('stroke-width', '2');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke-linecap', 'round');
-
-        svg.appendChild(path);
-      });
-    };
-
-    // Initial draw
-    const timer = setTimeout(drawLines, 100);
-
-    // Redraw on resize
-    const resizeObserver = new ResizeObserver(drawLines);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-
-    return () => {
-      clearTimeout(timer);
-      resizeObserver.disconnect();
-    };
-  }, [orderedStatuses, expandedStatuses, cards]);
-
-  if (cards.length === 0) {
+  // Selection screen
+  if (mode === 'select') {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <Folder className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Nenhum card para exibir</p>
+      <div className="h-full flex items-center justify-center bg-background">
+        <div className="text-center max-w-2xl mx-auto px-4">
+          <h2 className="text-xl font-semibold mb-8">
+            Escolha uma estrutura que funcione para você
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tasks mode */}
+            <button
+              onClick={() => setMode('tasks')}
+              className={cn(
+                "flex flex-col items-center p-8 rounded-xl border-2 border-border",
+                "hover:border-primary/50 hover:shadow-lg transition-all",
+                "bg-card"
+              )}
+            >
+              {/* Visual representation */}
+              <div className="mb-6 relative w-48 h-32">
+                {/* Root node */}
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs">
+                  <div className="w-2 h-2 bg-blue-500 rounded-sm" />
+                  <span className="text-muted-foreground">—</span>
+                </div>
+                
+                {/* Connection lines */}
+                <svg className="absolute inset-0 pointer-events-none" viewBox="0 0 192 128">
+                  <path d="M 60 64 C 90 64, 90 30, 120 30" stroke="#ef4444" strokeWidth="2" fill="none" />
+                  <path d="M 60 64 C 90 64, 90 64, 120 64" stroke="#22c55e" strokeWidth="2" fill="none" />
+                  <path d="M 60 64 C 90 64, 90 98, 120 98" stroke="#3b82f6" strokeWidth="2" fill="none" />
+                </svg>
+
+                {/* Child nodes */}
+                <div className="absolute right-0 top-2 flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs">
+                  <div className="w-2 h-2 bg-red-500 rounded-sm" />
+                  <span>—</span>
+                </div>
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs">
+                  <div className="w-2 h-2 bg-green-500 rounded-sm" />
+                  <span>—</span>
+                </div>
+                <div className="absolute right-0 bottom-2 flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs">
+                  <div className="w-2 h-2 bg-blue-500 rounded-sm" />
+                  <span>—</span>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Visualize suas pastas, listas e tarefas em uma visualização clara e estruturada
+              </p>
+
+              <Button variant="default" className="w-full">
+                <List className="h-4 w-4 mr-2" />
+                Tarefas
+              </Button>
+            </button>
+
+            {/* Free mode */}
+            <button
+              onClick={() => setMode('free')}
+              className={cn(
+                "flex flex-col items-center p-8 rounded-xl border-2 border-border",
+                "hover:border-primary/50 hover:shadow-lg transition-all",
+                "bg-card"
+              )}
+            >
+              {/* Visual representation */}
+              <div className="mb-6 relative w-48 h-32">
+                {/* Center node */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 bg-muted rounded-full text-xs">
+                  <span className="text-muted-foreground">—</span>
+                </div>
+                
+                {/* Connection lines */}
+                <svg className="absolute inset-0 pointer-events-none" viewBox="0 0 192 128">
+                  <path d="M 96 64 C 120 64, 130 30, 150 30" stroke="#3b82f6" strokeWidth="2" fill="none" />
+                  <path d="M 96 64 C 120 64, 130 85, 150 85" stroke="#eab308" strokeWidth="2" fill="none" />
+                </svg>
+
+                {/* Branch nodes */}
+                <div className="absolute right-2 top-4 px-2 py-1 bg-card border rounded text-xs">
+                  <span>—</span>
+                </div>
+                <div className="absolute right-2 bottom-6 px-2 py-1 bg-card border rounded text-xs">
+                  <span>—</span>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Discuta ideias e crie novas tarefas a partir de uma tela em branco
+              </p>
+
+              <Button variant="default" className="w-full">
+                <PenTool className="h-4 w-4 mr-2" />
+                Forma livre
+              </Button>
+            </button>
+          </div>
+
+          {/* Back button if needed */}
+          {cards.length === 0 && (
+            <p className="mt-6 text-sm text-muted-foreground">
+              Nenhuma tarefa encontrada. Use o modo "Forma livre" para começar do zero.
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
-  return (
-    <ScrollArea className="h-full">
-      <div 
-        ref={containerRef}
-        className="relative p-8 min-w-[800px] min-h-[500px]"
-      >
-        {/* SVG for connection lines */}
-        <svg
-          ref={svgRef}
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{ zIndex: 0 }}
-        />
-
-        {/* Mind map content */}
-        <div className="relative flex items-start gap-12" style={{ zIndex: 1 }}>
-          {/* Root node */}
-          <div 
-            ref={rootRef}
-            className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground rounded-xl shadow-lg min-w-[180px]"
-          >
-            <Folder className="h-5 w-5" />
-            <span className="font-semibold">{folderName || spaceName}</span>
-            <Badge variant="secondary" className="ml-auto bg-primary-foreground/20 text-primary-foreground">
-              {cards.length}
-            </Badge>
-          </div>
-
-          {/* Branches */}
-          <div className="flex flex-col gap-3">
-            {orderedStatuses.map((status) => (
-              <StatusBranch
-                key={status}
-                status={status}
-                cards={cardsByStatus[status] || []}
-                onCardClick={onCardClick}
-                isExpanded={expandedStatuses.has(status)}
-                onToggle={() => toggleStatus(status)}
-                setRef={setBranchRef(status)}
-              />
-            ))}
-          </div>
+  // Tasks mode - structured view based on cards
+  if (mode === 'tasks') {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+          <Button variant="ghost" size="sm" onClick={() => setMode('select')}>
+            ← Voltar
+          </Button>
+          <span className="text-sm font-medium">Mapa de Tarefas</span>
         </div>
-
-        {/* Legend */}
-        <div className="mt-8 pt-4 border-t">
-          <p className="text-xs text-muted-foreground mb-2">Status:</p>
-          <div className="flex flex-wrap gap-3">
-            {orderedStatuses.map((status) => {
-              const config = STATUS_CONFIG[status];
-              return (
-                <div key={status} className="flex items-center gap-1.5">
-                  <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
-                  <span className="text-xs text-muted-foreground">{config.label}</span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="flex-1">
+          <TaskMindMap 
+            cards={cards} 
+            onCardClick={onCardClick} 
+            spaceName={spaceName}
+            folderName={folderName}
+          />
         </div>
       </div>
-    </ScrollArea>
+    );
+  }
+
+  // Free mode - interactive canvas
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+        <Button variant="ghost" size="sm" onClick={() => setMode('select')}>
+          ← Voltar
+        </Button>
+        <span className="text-sm font-medium">Mapa Mental - Forma Livre</span>
+      </div>
+      <div className="flex-1">
+        <FreeMindMap />
+      </div>
+    </div>
   );
 };
