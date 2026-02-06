@@ -2,9 +2,10 @@ import React, { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, ImageIcon, Loader2, Crop } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ImageCropper } from '@/components/ui/image-cropper';
 
 interface ClientLogoUploadProps {
   currentLogoUrl?: string;
@@ -24,6 +25,8 @@ export const ClientLogoUpload: React.FC<ClientLogoUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,31 +38,30 @@ export const ClientLogoUpload: React.FC<ClientLogoUploadProps> = ({
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 2MB.');
+    // Validate file size (max 10MB for raw, will be compressed)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 10MB.');
       return;
     }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Open cropper
+    setTempImageSrc(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
 
-    // Upload to Supabase
+  const handleCropComplete = async (croppedBlob: Blob) => {
     setIsUploading(true);
+    
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.jpg`;
       const filePath = `logos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('client-logos')
-        .upload(filePath, file, {
+        .upload(filePath, croppedBlob, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'image/jpeg'
         });
 
       if (uploadError) throw uploadError;
@@ -68,6 +70,7 @@ export const ClientLogoUpload: React.FC<ClientLogoUploadProps> = ({
         .from('client-logos')
         .getPublicUrl(filePath);
 
+      setPreviewUrl(URL.createObjectURL(croppedBlob));
       onUpload(publicUrl);
       toast.success('Logo enviado com sucesso!');
     } catch (error: any) {
@@ -76,6 +79,12 @@ export const ClientLogoUpload: React.FC<ClientLogoUploadProps> = ({
       setPreviewUrl(null);
     } finally {
       setIsUploading(false);
+      
+      // Cleanup temp image
+      if (tempImageSrc) {
+        URL.revokeObjectURL(tempImageSrc);
+        setTempImageSrc(null);
+      }
     }
   };
 
@@ -168,11 +177,33 @@ export const ClientLogoUpload: React.FC<ClientLogoUploadProps> = ({
             <ImageIcon className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
             <span>
               Tamanho ideal: <strong>200×200px</strong> ou maior (quadrado). 
-              Formatos: PNG, JPG ou SVG. Máximo 2MB.
+              Formatos: PNG, JPG ou SVG. Máximo 10MB.
             </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Crop className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Você poderá recortar e ajustar a imagem</span>
           </div>
         </div>
       </div>
+
+      {/* Image Cropper Dialog */}
+      {tempImageSrc && (
+        <ImageCropper
+          open={cropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open);
+            if (!open && tempImageSrc) {
+              URL.revokeObjectURL(tempImageSrc);
+              setTempImageSrc(null);
+            }
+          }}
+          imageSrc={tempImageSrc}
+          onCropComplete={handleCropComplete}
+          aspectRatio={1}
+          suggestedSize={{ width: 200, height: 200 }}
+        />
+      )}
     </div>
   );
 };
