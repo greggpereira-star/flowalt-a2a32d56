@@ -213,9 +213,10 @@ const EditorToolbar = ({ editor, disabled }: { editor: Editor | null; disabled?:
   );
 };
 
-// Create the mention suggestion configuration
-const createMentionSuggestion = (suggestions: MentionSuggestion[]) => ({
+// Create the mention suggestion configuration with a ref for dynamic updates
+const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionSuggestion[]>) => ({
   items: ({ query }: { query: string }) => {
+    const suggestions = suggestionsRef.current;
     return suggestions
       .filter((item) =>
         item.name.toLowerCase().includes(query.toLowerCase())
@@ -317,6 +318,22 @@ export function RichTextEditor({
   onMentionsChange,
 }: RichTextEditorProps) {
   const mentionsRef = useRef<string[]>([]);
+  const suggestionsRef = useRef<MentionSuggestion[]>(mentionSuggestions);
+  const onMentionsChangeRef = useRef(onMentionsChange);
+  const onChangeRef = useRef(onChange);
+  
+  // Keep refs in sync with props
+  useEffect(() => {
+    suggestionsRef.current = mentionSuggestions;
+  }, [mentionSuggestions]);
+  
+  useEffect(() => {
+    onMentionsChangeRef.current = onMentionsChange;
+  }, [onMentionsChange]);
+  
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
   
   // Helper to safely parse content - handles both JSON and plain text
   const parseContent = useCallback((content: string) => {
@@ -352,7 +369,7 @@ export function RichTextEditor({
         HTMLAttributes: {
           class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
         },
-        suggestion: createMentionSuggestion(mentionSuggestions),
+        suggestion: createMentionSuggestion(suggestionsRef),
         renderLabel({ node }) {
           return `@${node.attrs.label ?? node.attrs.id}`;
         },
@@ -363,16 +380,16 @@ export function RichTextEditor({
     autofocus: autoFocus,
     onUpdate: ({ editor }) => {
       const json = JSON.stringify(editor.getJSON());
-      onChange?.(json);
+      onChangeRef.current?.(json);
       
       // Track mentions
       const newMentions = extractMentionIds(editor);
       if (JSON.stringify(newMentions) !== JSON.stringify(mentionsRef.current)) {
         mentionsRef.current = newMentions;
-        onMentionsChange?.(newMentions);
+        onMentionsChangeRef.current?.(newMentions);
       }
     },
-  }, [mentionSuggestions]);
+  });
 
   // Sync external value changes
   useEffect(() => {
@@ -438,6 +455,17 @@ export function RichTextEditor({
 // Hook para usar o editor em contextos mais avançados
 export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'>) {
   const { value = '', onChange, placeholder, disabled, autoFocus, mentionSuggestions = [] } = options;
+  
+  const suggestionsRef = useRef<MentionSuggestion[]>(mentionSuggestions);
+  const onChangeRef = useRef(onChange);
+  
+  useEffect(() => {
+    suggestionsRef.current = mentionSuggestions;
+  }, [mentionSuggestions]);
+  
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const editor = useEditor({
     extensions: [
@@ -462,7 +490,7 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
         HTMLAttributes: {
           class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
         },
-        suggestion: createMentionSuggestion(mentionSuggestions),
+        suggestion: createMentionSuggestion(suggestionsRef),
         renderLabel({ node }) {
           return `@${node.attrs.label ?? node.attrs.id}`;
         },
@@ -480,9 +508,9 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
     autofocus: autoFocus,
     onUpdate: ({ editor }) => {
       const json = JSON.stringify(editor.getJSON());
-      onChange?.(json);
+      onChangeRef.current?.(json);
     },
-  }, [mentionSuggestions]);
+  });
 
   return editor;
 }
