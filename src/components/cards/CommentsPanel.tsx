@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Trash2, Edit2, Send, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, Edit2, Send, Loader2, AtSign, Paperclip, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useComments,
@@ -76,7 +76,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
   }, [comments]);
 
   const handleSubmit = async () => {
-    if (isRichTextEmpty(newComment)) return;
+    if (!newComment.trim()) return;
 
     await createComment.mutateAsync({
       card_id: cardId,
@@ -263,39 +263,44 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ cardId }) => {
         )}
       </div>
 
-      {/* Comment Input - Fixed at bottom */}
+      {/* Comment Input - Simple inline design */}
       <div className="border-t border-border pt-4 mt-auto">
-        <div className="flex gap-3">
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarFallback className="text-xs">U</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-2">
-            <RichTextEditor
-              placeholder="Escreva um comentário... Digite @ para mencionar"
-              value={newComment}
-              onChange={setNewComment}
-              minHeight="80px"
-              maxHeight="200px"
-              mentionSuggestions={mentionSuggestions}
-              onMentionsChange={setCurrentMentions}
-            />
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">
-                Digite <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">@</kbd> para mencionar membros
-              </p>
-              <Button
-                size="sm"
-                onClick={handleSubmit}
-                disabled={isRichTextEmpty(newComment) || createComment.isPending}
-              >
-                {createComment.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                <span className="ml-2">Enviar</span>
-              </Button>
-            </div>
+        <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-4 py-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+          <input
+            type="text"
+            placeholder="Escreva um comentário..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && newComment.trim()) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            className="flex-1 bg-transparent border-none text-sm placeholder:text-muted-foreground focus:outline-none"
+          />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full">
+              <AtSign className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full">
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full">
+              <Smile className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="icon" 
+              className="h-8 w-8 rounded-full ml-1"
+              onClick={handleSubmit}
+              disabled={!newComment.trim() || createComment.isPending}
+            >
+              {createComment.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
