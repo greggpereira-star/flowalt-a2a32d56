@@ -341,7 +341,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                   <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <CommandInput 
                     placeholder="Buscar membro..." 
-                    className="h-7 border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground/70 focus:ring-0 focus:outline-none [&_input]:border-none" 
+                    className="!h-7 !border-none !bg-transparent !p-0 !text-sm !shadow-none !ring-0 !outline-none placeholder:text-muted-foreground/70 focus:!ring-0 focus:!border-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none" 
                   />
                 </div>
                 <CommandList className="max-h-[200px]">
