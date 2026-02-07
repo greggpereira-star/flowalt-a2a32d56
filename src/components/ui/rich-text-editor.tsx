@@ -55,6 +55,8 @@ export interface RichTextEditorProps {
   autoFocus?: boolean;
   mentionSuggestions?: MentionSuggestion[];
   onMentionsChange?: (mentionIds: string[]) => void;
+  /** Callback chamado ao pressionar Enter (sem Shift). Útil para envio de mensagens. */
+  onSubmit?: () => void;
 }
 
 interface ToolbarButtonProps {
@@ -328,11 +330,13 @@ export function RichTextEditor({
   autoFocus = false,
   mentionSuggestions = [],
   onMentionsChange,
+  onSubmit,
 }: RichTextEditorProps) {
   const mentionsRef = useRef<string[]>([]);
   const suggestionsRef = useRef<MentionSuggestion[]>(mentionSuggestions);
   const onMentionsChangeRef = useRef(onMentionsChange);
   const onChangeRef = useRef(onChange);
+  const onSubmitRef = useRef(onSubmit);
   
   // Keep refs in sync with props
   useEffect(() => {
@@ -346,6 +350,10 @@ export function RichTextEditor({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
   
   // Helper to safely parse content - handles both JSON and plain text
   const parseContent = useCallback((content: string) => {
@@ -390,6 +398,17 @@ export function RichTextEditor({
     content: parseContent(value),
     editable: !disabled,
     autofocus: autoFocus,
+    editorProps: {
+      handleKeyDown: (view, event) => {
+        // Submit on Enter (without Shift) if onSubmit is provided
+        if (event.key === 'Enter' && !event.shiftKey && onSubmitRef.current) {
+          event.preventDefault();
+          onSubmitRef.current();
+          return true;
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => {
       const json = JSON.stringify(editor.getJSON());
       onChangeRef.current?.(json);
