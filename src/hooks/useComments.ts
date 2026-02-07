@@ -96,10 +96,10 @@ export const useCreateComment = () => {
       // Get workspace ID and card title for notifications
       const workspaceId = await getCardWorkspaceId(card_id);
       
-      // Get card title for notification
+      // Get card title and space_id for notification
       const { data: cardData } = await supabase
         .from('cards')
-        .select('title')
+        .select('title, space_id')
         .eq('id', card_id)
         .single();
       
@@ -112,6 +112,7 @@ export const useCreateComment = () => {
       
       const commenterName = commenterProfile?.full_name || 'Alguém';
       const cardTitle = cardData?.title || 'um card';
+      const spaceId = cardData?.space_id;
 
       // Create notifications for mentioned users and card participants
       if (workspaceId) {
@@ -148,6 +149,7 @@ export const useCreateComment = () => {
                 : `${commenterName} enviou uma nova mensagem em "${cardTitle}"`,
               metadata: {
                 card_id,
+                space_id: spaceId,
                 comment_id: data.id,
                 commenter_id: user.id,
                 commenter_name: commenterName,

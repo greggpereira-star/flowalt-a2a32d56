@@ -43,8 +43,14 @@ export function NotificationCenter() {
       (notification.type === 'mention' || notification.type === 'assignment') &&
       notification.metadata?.card_id
     ) {
-      // Navigate to workspace with the card modal open
-      navigate(`/workspace?card=${notification.metadata.card_id}`);
+      // Navigate to the space with the card modal open
+      const spaceId = notification.metadata.space_id;
+      if (spaceId) {
+        navigate(`/space/${spaceId}?card=${notification.metadata.card_id}`);
+      } else {
+        // Fallback to dashboard if no space_id
+        navigate(`/workspace?card=${notification.metadata.card_id}`);
+      }
     } else if (
       notification.type === 'altcontrol_approval_pending' &&
       notification.metadata?.proposal_id
