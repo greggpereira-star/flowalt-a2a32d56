@@ -39,12 +39,22 @@ export function NotificationCenter() {
     }
     
     // Navigate based on notification type
-    if (notification.type === 'mention' && notification.metadata?.card_id) {
+    if (
+      (notification.type === 'mention' || notification.type === 'assignment') &&
+      notification.metadata?.card_id
+    ) {
       // Navigate to workspace with the card modal open
       navigate(`/workspace?card=${notification.metadata.card_id}`);
-    } else if (notification.type === 'altcontrol_approval_pending' && notification.metadata?.proposal_id) {
+    } else if (
+      notification.type === 'altcontrol_approval_pending' &&
+      notification.metadata?.proposal_id
+    ) {
       navigate(`/altcontrol/approvals/${notification.metadata.proposal_id}`);
-    } else if ((notification.type === 'altcontrol_approved' || notification.type === 'altcontrol_needs_adjustment') && notification.metadata?.proposal_id) {
+    } else if (
+      (notification.type === 'altcontrol_approved' ||
+        notification.type === 'altcontrol_needs_adjustment') &&
+      notification.metadata?.proposal_id
+    ) {
       navigate(`/altcontrol/proposals/${notification.metadata.proposal_id}`);
     }
   };
