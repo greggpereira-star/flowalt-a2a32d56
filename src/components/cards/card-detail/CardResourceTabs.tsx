@@ -100,7 +100,7 @@ export const CardResourceTabs: React.FC<CardResourceTabsProps> = ({
           className="h-8 px-3 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
         >
           <Package className="h-3.5 w-3.5 mr-1.5" />
-          Kit
+          Equipamentos
         </TabsTrigger>
         
         <TabsTrigger
