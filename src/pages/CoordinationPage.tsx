@@ -184,6 +184,66 @@ const CoordinationPage: React.FC = () => {
     return { total, inProgress, overdue, onTrack };
   }, [cards]);
 
+  // Generate capacity data for Gantt chart in required format
+  const ganttCapacityData = useMemo(() => {
+    if (!memberCapacity.length || !cardMemberAssignments.length || !cards) return [];
+    
+    const today = new Date();
+    const capacityItems: Array<{
+      userId: string;
+      userName: string;
+      date: Date;
+      allocatedHours: number;
+      capacityHours: number;
+    }> = [];
+
+    memberCapacity.forEach(member => {
+      // Get cards assigned to this member
+      const memberCardIds = cardMemberAssignments
+        .filter(a => a.user_id === member.id)
+        .map(a => a.card_id);
+      
+      const memberCards = cards.filter(c => 
+        memberCardIds.includes(c.id) && 
+        c.status !== 'delivered' && 
+        c.status !== 'archived'
+      );
+
+      // Calculate daily allocation for the next 30 days
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        
+        // Skip weekends
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        let dailyHours = 0;
+        memberCards.forEach(card => {
+          const startDate = new Date(card.created_at);
+          const endDate = card.due_date ? new Date(card.due_date) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+          
+          if (date >= startDate && date <= endDate) {
+            const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)));
+            const hoursPerDay = (card.estimated_hours || 4) / totalDays;
+            dailyHours += hoursPerDay;
+          }
+        });
+
+        if (dailyHours > 0) {
+          capacityItems.push({
+            userId: member.id,
+            userName: member.name,
+            date,
+            allocatedHours: Math.round(dailyHours * 10) / 10,
+            capacityHours: 8,
+          });
+        }
+      }
+    });
+
+    return capacityItems;
+  }, [memberCapacity, cardMemberAssignments, cards]);
+
   const isLoading = cardsLoading || depsLoading || capacityLoading || assignmentsLoading;
 
   if (isLoading) {
@@ -432,6 +492,8 @@ const CoordinationPage: React.FC = () => {
             <GanttAdvanced
               cards={cards || []}
               dependencies={dependencies}
+              capacityData={ganttCapacityData}
+              showCapacityOverlay={true}
               onCardClick={setSelectedCardId}
             />
           </TabsContent>
