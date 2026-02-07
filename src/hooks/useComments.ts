@@ -113,40 +113,67 @@ export const useCreateComment = () => {
       const commenterName = commenterProfile?.full_name || 'Alguém';
       const cardTitle = cardData?.title || 'um card';
 
-      // Create notifications for mentioned users
-      if (mentions && mentions.length > 0 && workspaceId) {
-        const notificationsToInsert = mentions
-          .filter((mentionedUserId) => mentionedUserId !== user.id) // Don't notify yourself
-          .map((mentionedUserId) => ({
-            user_id: mentionedUserId,
-            workspace_id: workspaceId,
-            type: 'mention' as const,
-            title: 'Você foi mencionado',
-            message: `${commenterName} mencionou você em "${cardTitle}"`,
-            metadata: {
-              card_id,
-              comment_id: data.id,
-              commenter_id: user.id,
-              commenter_name: commenterName,
-            },
-            is_read: false,
-          }));
+      // Create notifications for mentioned users and card participants
+      if (workspaceId) {
+        // Load participants of the card (so they also get "new message" alerts)
+        const { data: cardMembers, error: cardMembersError } = await supabase
+          .from('card_members')
+          .select('user_id')
+          .eq('card_id', card_id);
 
-        if (notificationsToInsert.length > 0) {
-          console.log('Creating mention notifications:', notificationsToInsert);
-          const { data: notifData, error: notifError } = await supabase
+        if (cardMembersError) {
+          console.error('Error fetching card members for notifications:', cardMembersError);
+        }
+
+        const participantIds = (cardMembers || [])
+          .map((m) => m.user_id)
+          .filter(Boolean) as string[];
+
+        const mentionIds = mentions || [];
+
+        const recipientIds = Array.from(
+          new Set([...participantIds, ...mentionIds])
+        ).filter((id) => id && id !== user.id);
+
+        if (recipientIds.length > 0) {
+          const notificationsToInsert = recipientIds.map((recipientId) => {
+            const isMention = mentionIds.includes(recipientId);
+            return {
+              user_id: recipientId,
+              workspace_id: workspaceId,
+              type: isMention ? 'mention' : 'assignment',
+              title: isMention ? 'Você foi mencionado' : 'Nova mensagem',
+              message: isMention
+                ? `${commenterName} mencionou você em "${cardTitle}"`
+                : `${commenterName} enviou uma nova mensagem em "${cardTitle}"`,
+              metadata: {
+                card_id,
+                comment_id: data.id,
+                commenter_id: user.id,
+                commenter_name: commenterName,
+                kind: isMention ? 'mention' : 'comment',
+              },
+              is_read: false,
+            };
+          });
+
+          console.log('Creating comment notifications:', notificationsToInsert);
+
+          const { error: notifError } = await supabase
             .from('notifications')
-            .insert(notificationsToInsert)
-            .select();
+            .insert(notificationsToInsert);
 
           if (notifError) {
-            console.error('Error creating mention notifications:', notifError);
-          } else {
-            console.log('Mention notifications created successfully:', notifData);
+            console.error('Error creating comment notifications:', notifError);
           }
+        } else {
+          console.log('No recipients to notify (only yourself or none):', {
+            mentions,
+            participantIds,
+          });
         }
       } else {
-        console.log('No mentions to notify or missing workspaceId:', { mentions, workspaceId });
+        console.log('Missing workspaceId, skipping notifications:', { card_id });
       }
 
       // Trigger webhook
