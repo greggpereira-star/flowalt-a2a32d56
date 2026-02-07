@@ -36,6 +36,7 @@ import {
   BanknoteIcon,
   X,
   Check,
+  Search,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -334,11 +335,17 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                 <span className="text-xs">Adicionar responsável</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-0" align="start">
-              <Command className="[&_[cmdk-input-wrapper]]:border-none">
-                <CommandInput placeholder="Buscar membro..." className="h-8 text-sm" />
-                <CommandList>
-                  <CommandEmpty>Nenhum membro encontrado</CommandEmpty>
+            <PopoverContent className="w-64 p-2" align="start">
+              <Command className="rounded-lg">
+                <div className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded-md bg-muted/40 border border-border/30">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <CommandInput 
+                    placeholder="Buscar membro..." 
+                    className="h-7 border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground/70 focus:ring-0 focus:outline-none [&_input]:border-none" 
+                  />
+                </div>
+                <CommandList className="max-h-[200px]">
+                  <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">Nenhum membro encontrado</CommandEmpty>
                   <CommandGroup>
                     {availableMembers.map((member) => (
                       <CommandItem
