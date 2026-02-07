@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,6 +15,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { StatusBadge, UrgencyBadge } from '../CardBadges';
 import {
   CircleDot,
@@ -26,11 +34,15 @@ import {
   Building2,
   Plus,
   BanknoteIcon,
+  X,
+  Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { useCardMembers, useAddCardMember, useRemoveCardMember } from '@/hooks/useCardMembers';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 
 interface Client {
   id: string;
@@ -39,6 +51,7 @@ interface Client {
 }
 
 interface CardPropertiesPanelProps {
+  cardId: string;
   status: CardStatus;
   urgency: CardUrgency;
   startDate?: Date;
@@ -88,6 +101,7 @@ const PropertyItem: React.FC<PropertyItemProps> = ({ label, children, className 
 );
 
 export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
+  cardId,
   status,
   urgency,
   startDate,
@@ -104,7 +118,31 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   onEstimatedHoursBlur,
   onClientChange,
 }) => {
+  const [memberPopoverOpen, setMemberPopoverOpen] = useState(false);
+  const { data: cardMembers = [] } = useCardMembers(cardId);
+  const { data: workspaceMembers = [] } = useWorkspaceMembers();
+  const addMember = useAddCardMember();
+  const removeMember = useRemoveCardMember();
+
   const selectedClient = clients.find(c => c.id === clientId);
+
+  // Filter workspace members that are not already card members
+  const availableMembers = workspaceMembers.filter(
+    wm => !cardMembers.some(cm => cm.user_id === wm.user_id)
+  );
+
+  const handleAddMember = (userId: string) => {
+    addMember.mutate({ cardId, userId });
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    removeMember.mutate({ cardId, memberId });
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -250,21 +288,87 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
       </PropertyItem>
 
       {/* Assignees */}
-      <PropertyItem label="Responsáveis">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 w-full justify-start border-border/50 bg-muted/30 hover:bg-muted/50 text-muted-foreground"
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-1">
-              <Avatar className="h-5 w-5 border-2 border-background">
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">+</AvatarFallback>
-              </Avatar>
+      <PropertyItem label="Responsáveis" className="col-span-2">
+        <div className="space-y-2">
+          {/* Current members */}
+          {cardMembers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {cardMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-muted/50 border border-border/50 group"
+                >
+                  <Avatar className="h-5 w-5">
+                    {member.profile?.avatar_url && (
+                      <AvatarImage src={member.profile.avatar_url} />
+                    )}
+                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                      {getInitials(member.profile?.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs font-medium text-foreground/80 truncate max-w-[100px]">
+                    {member.profile?.full_name?.split(' ')[0] || member.profile?.email || 'Usuário'}
+                  </span>
+                  {!member.is_owner && (
+                    <button
+                      onClick={() => handleRemoveMember(member.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center"
+                    >
+                      <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            <span className="text-sm">Adicionar</span>
-          </div>
-        </Button>
+          )}
+
+          {/* Add member button */}
+          <Popover open={memberPopoverOpen} onOpenChange={setMemberPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 justify-start border-dashed border-border/50 bg-transparent hover:bg-muted/50 text-muted-foreground"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-xs">Adicionar responsável</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Buscar membro..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>Nenhum membro encontrado</CommandEmpty>
+                  <CommandGroup>
+                    {availableMembers.map((member) => (
+                      <CommandItem
+                        key={member.user_id}
+                        value={member.profile?.full_name || member.profile?.email || member.user_id}
+                        onSelect={() => {
+                          handleAddMember(member.user_id);
+                          setMemberPopoverOpen(false);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Avatar className="h-6 w-6 mr-2">
+                          {member.profile?.avatar_url && (
+                            <AvatarImage src={member.profile.avatar_url} />
+                          )}
+                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                            {getInitials(member.profile?.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm truncate">
+                          {member.profile?.full_name || member.profile?.email || 'Usuário'}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
       </PropertyItem>
 
       {/* Estimated Time */}

@@ -296,6 +296,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                   <div className="p-5 space-y-5">
                     {/* Properties Grid - Clean and compact */}
                     <CardPropertiesPanel
+                      cardId={card.id}
                       status={status}
                       urgency={urgency}
                       startDate={startDate}
