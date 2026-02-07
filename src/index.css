@@ -791,3 +791,15 @@
 .animate-crystal-glow {
   animation: crystal-glow 2s ease-in-out infinite;
 }
+
+/* ===== TIPPY.JS CUSTOM THEME - LIGHT CLEAN ===== */
+.tippy-box[data-theme~='light-clean'] {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.tippy-box[data-theme~='light-clean'] .tippy-content {
+  padding: 0;
+  background: transparent;
+}

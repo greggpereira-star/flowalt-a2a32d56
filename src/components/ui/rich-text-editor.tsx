@@ -262,6 +262,9 @@ const createMentionSuggestion = (suggestionsRef: React.MutableRefObject<MentionS
           trigger: 'manual',
           placement: 'bottom-start',
           zIndex: 100000,
+          // Remove o tema padrão escuro do Tippy
+          theme: 'light-clean',
+          arrow: false,
         });
       },
 
