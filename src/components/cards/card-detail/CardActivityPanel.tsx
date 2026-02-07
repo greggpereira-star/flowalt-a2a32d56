@@ -91,32 +91,32 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-background to-muted/20">
+    <div className="h-full flex flex-col bg-background/50">
       {/* Minimal Header */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-border/30">
-        <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-lg">
+      <div className="flex-shrink-0 px-2 py-1.5 border-b border-border/50">
+        <div className="flex items-center gap-0.5 p-0.5 bg-muted/30 rounded-md">
           <button
             onClick={() => setActiveTab('comments')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
               activeTab === 'comments' 
                 ? "bg-background text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <MessageCircle className="h-3.5 w-3.5" />
+            <MessageCircle className="h-3 w-3" />
             Chat
           </button>
           <button
             onClick={() => setActiveTab('history')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
               activeTab === 'history' 
                 ? "bg-background text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <History className="h-3.5 w-3.5" />
+            <History className="h-3 w-3" />
             Log
           </button>
         </div>
@@ -124,42 +124,36 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
 
       {/* Content */}
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-3">
+        <div className="p-2">
           {activeTab === 'comments' ? (
             isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-primary/60" />
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : comments?.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted/50 flex items-center justify-center">
-                  <MessageCircle className="h-6 w-6 opacity-40" />
-                </div>
-                <p className="text-sm font-medium">Nenhuma mensagem</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Inicie a conversa</p>
+              <div className="text-center py-6 text-muted-foreground">
+                <MessageCircle className="h-5 w-5 mx-auto mb-1 opacity-40" />
+                <p className="text-[10px]">Sem mensagens</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {comments?.map((comment) => (
-                  <div 
-                    key={comment.id} 
-                    className="group flex gap-3 p-2 -mx-2 rounded-xl hover:bg-muted/30 transition-colors duration-200"
-                  >
-                    <Avatar className="h-8 w-8 flex-shrink-0 ring-2 ring-background shadow-sm">
+                  <div key={comment.id} className="group flex gap-1.5 hover:bg-muted/20 rounded p-1 -mx-1 transition-colors">
+                    <Avatar className="h-5 w-5 flex-shrink-0">
                       {comment.user?.avatar_url && (
-                        <AvatarImage src={comment.user.avatar_url} className="object-cover" />
+                        <AvatarImage src={comment.user.avatar_url} />
                       )}
-                      <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                         {getInitials(comment.user?.full_name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold text-foreground truncate">
-                          {comment.user?.full_name || 'Usuário'}
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[10px] font-semibold text-foreground/90 truncate">
+                          {comment.user?.full_name?.split(' ')[0] || 'User'}
                         </span>
                         <span
-                          className="text-[11px] text-muted-foreground/70 font-medium"
+                          className="text-[9px] text-muted-foreground/60"
                           title={format(new Date(comment.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         >
                           {formatDistanceToNow(new Date(comment.created_at), {
@@ -168,11 +162,11 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                           })}
                         </span>
                       </div>
-                      <div className="text-sm text-foreground/90 leading-relaxed">
+                      <div className="text-[11px] text-foreground/80 leading-relaxed">
                         <RichTextViewer 
                           content={comment.content} 
                           mentionResolver={mentionResolver}
-                          className="text-sm [&_p]:leading-relaxed [&_.mention]:font-semibold [&_.mention]:text-primary"
+                          className="text-[11px] [&_p]:leading-relaxed"
                         />
                       </div>
                     </div>
@@ -181,26 +175,23 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted/50 flex items-center justify-center">
-                <History className="h-6 w-6 text-muted-foreground/40" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Em breve</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Histórico de atividades</p>
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <History className="h-4 w-4 text-muted-foreground/40 mb-1" />
+              <p className="text-[10px] text-muted-foreground/60">Em breve</p>
             </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Composer */}
-      <div className="flex-shrink-0 p-3 border-t border-border/30 bg-background/80 backdrop-blur-sm">
-        <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-background p-2 shadow-lg focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15 transition-all duration-200">
+      <div className="flex-shrink-0 p-3 border-t border-border/40 bg-muted/30">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-background p-2 shadow-md focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <div className="flex-1 min-w-0">
             <RichTextEditor
               value={newComment}
               onChange={setNewComment}
               placeholder="Escreva uma mensagem... (@ para mencionar)"
-              minHeight="32px"
+              minHeight="28px"
               maxHeight="120px"
               mentionSuggestions={mentionSuggestions}
               onMentionsChange={setCurrentMentions}
@@ -216,8 +207,8 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
             className={cn(
               "h-10 w-10 rounded-xl p-0 flex-shrink-0 transition-all duration-200",
               !isRichTextEmpty(newComment) && !createComment.isPending
-                ? "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl hover:scale-105"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg hover:scale-105"
+                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
             )}
             onClick={handleSubmit}
             disabled={!user?.id || isRichTextEmpty(newComment) || createComment.isPending}
