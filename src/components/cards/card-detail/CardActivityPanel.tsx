@@ -183,22 +183,22 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Composer */}
-      <div className="flex-shrink-0 p-3 border-t border-border/40 bg-muted/30">
-        <div className="flex items-end gap-2 rounded-2xl border border-border bg-background p-2 shadow-md focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-          <div className="flex-1 min-w-0">
+      {/* Composer - Clean Premium Design */}
+      <div className="flex-shrink-0 p-3 border-t border-border/30 bg-gradient-to-t from-muted/40 to-transparent">
+        <div className="flex items-end gap-2">
+          <div className="flex-1 min-w-0 bg-background/80 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200">
             <RichTextEditor
               value={newComment}
               onChange={setNewComment}
-              placeholder="Escreva uma mensagem... (@ para mencionar)"
-              minHeight="28px"
+              placeholder="Escreva uma mensagem..."
+              minHeight="36px"
               maxHeight="120px"
               mentionSuggestions={mentionSuggestions}
               onMentionsChange={setCurrentMentions}
               showToolbar={false}
               onSubmit={handleSubmit}
-              className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent [&>div]:rounded-xl"
-              contentClassName="px-3 py-2 text-sm leading-relaxed"
+              className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
+              contentClassName="px-4 py-2.5 text-sm leading-relaxed"
             />
           </div>
 
@@ -209,12 +209,12 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               "h-10 w-10 rounded-xl p-0 flex-shrink-0 transition-all duration-200",
               !isRichTextEmpty(newComment) && !createComment.isPending
                 ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg hover:scale-105"
-                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
             onClick={handleSubmit}
             disabled={!user?.id || isRichTextEmpty(newComment) || createComment.isPending}
             aria-label="Enviar mensagem"
-            title={!user?.id ? 'Faça login para enviar' : 'Enviar'}
+            title={!user?.id ? 'Faça login para enviar' : 'Enviar (Enter)'}
           >
             {createComment.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
