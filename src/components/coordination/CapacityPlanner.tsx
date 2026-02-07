@@ -45,7 +45,7 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
-import type { WorkspaceMember } from '@/hooks/useWorkspaceMembers';
+import type { CardMemberAssignment } from '@/hooks/useCardMemberAssignments';
 
 interface CapacityPlannerProps {
   cards: CardType[];
@@ -59,6 +59,7 @@ interface CapacityPlannerProps {
     active_cards: number;
     available_hours: number;
   }>;
+  cardMemberAssignments: CardMemberAssignment[];
   onCardClick?: (cardId: string) => void;
 }
 
@@ -90,6 +91,7 @@ const HOURS_PER_WEEK = 40;
 export const CapacityPlanner: React.FC<CapacityPlannerProps> = ({
   cards,
   members,
+  cardMemberAssignments,
   onCardClick,
 }) => {
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -101,16 +103,20 @@ export const CapacityPlanner: React.FC<CapacityPlannerProps> = ({
   
   const days = eachDayOfInterval({ start: currentWeek, end: weekEnd }).filter(d => !isWeekend(d));
 
-  // Calculate member schedules
+  // Calculate member schedules using card_members assignments (not just owner_id)
   const memberSchedules = useMemo((): MemberSchedule[] => {
     const activeCards = cards.filter(c => 
       c.status !== 'delivered' && 
-      c.status !== 'archived' &&
-      c.owner_id
+      c.status !== 'archived'
     );
 
     return members.map(member => {
-      const memberCards = activeCards.filter(c => c.owner_id === member.id);
+      // Get cards assigned to this member via card_members table
+      const memberCardIds = cardMemberAssignments
+        .filter(a => a.user_id === member.id)
+        .map(a => a.card_id);
+      
+      const memberCards = activeCards.filter(c => memberCardIds.includes(c.id));
       
       // Calculate daily allocations
       const dailyAllocations: DayAllocation[] = days.map(day => {
@@ -168,7 +174,7 @@ export const CapacityPlanner: React.FC<CapacityPlannerProps> = ({
         dailyAllocations,
       };
     });
-  }, [cards, members, days, viewMode]);
+  }, [cards, members, cardMemberAssignments, days, viewMode]);
 
   // Summary stats
   const summaryStats = useMemo(() => {
