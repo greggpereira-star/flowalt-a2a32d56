@@ -12,6 +12,8 @@ import {
   ArrowRight,
   Instagram,
   Share2,
+  MessageCircle,
+  AtSign,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -178,9 +180,32 @@ export const WorkRadar: React.FC = () => {
     refetchInterval: 60000,
   });
 
-  const isLoading = cardsLoading || timersLoading || eventsLoading || socialLoading;
+  // Fetch unread notifications (mentions and comments)
+  const { data: unreadNotifications, isLoading: notificationsLoading } = useQuery({
+    queryKey: ['work-radar-notifications', currentWorkspace?.id, user?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !user?.id) return [];
+
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, type, title, message, metadata, created_at')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .in('type', ['mention', 'assignment'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      return data || [];
+    },
+    enabled: !!currentWorkspace?.id && !!user?.id,
+    refetchInterval: 30000,
+  });
+
+  const isLoading = cardsLoading || timersLoading || eventsLoading || socialLoading || notificationsLoading;
   const criticalCount = criticalCards?.length || 0;
   const failedSocialCount = failedSocialPosts?.length || 0;
+  const unreadNotifCount = unreadNotifications?.length || 0;
 
   if (isLoading) {
     return (
@@ -190,7 +215,8 @@ export const WorkRadar: React.FC = () => {
             <Skeleton className="h-5 w-5" />
             <Skeleton className="h-5 w-32" />
           </div>
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-5 gap-6">
+            <Skeleton className="h-24" />
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
@@ -215,8 +241,8 @@ export const WorkRadar: React.FC = () => {
           Visão rápida do que precisa de atenção
         </p>
 
-        {/* 3 Column Grid */}
-        <div className="grid grid-cols-4 gap-6">
+        {/* 5 Column Grid */}
+        <div className="grid grid-cols-5 gap-6">
           {/* Column 1: Atenção Urgente */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -371,6 +397,61 @@ export const WorkRadar: React.FC = () => {
                     <span className="text-xs font-mono text-muted-foreground tabular-nums">
                       {format(new Date(event.start_time), 'HH:mm', { locale: ptBR })}
                     </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Column 5: Mensagens e Menções */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">Mensagens</span>
+              {unreadNotifCount > 0 && (
+                <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full bg-primary text-primary-foreground">
+                  {unreadNotifCount}
+                </Badge>
+              )}
+            </div>
+
+            {unreadNotifCount === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                Nenhuma mensagem não lida
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {unreadNotifications?.slice(0, 3).map(notification => (
+                  <div
+                    key={notification.id}
+                    onClick={() => {
+                      const spaceId = (notification.metadata as Record<string, unknown>)?.space_id;
+                      const cardId = (notification.metadata as Record<string, unknown>)?.card_id;
+                      if (spaceId && cardId) {
+                        navigate(`/space/${spaceId}?card=${cardId}`);
+                      } else if (cardId) {
+                        navigate(`/workspace?card=${cardId}`);
+                      }
+                    }}
+                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-3 hover:translate-x-0.5 ${
+                      notification.type === 'mention'
+                        ? 'bg-primary/5 border-l-primary hover:bg-primary/10'
+                        : 'bg-muted/50 border-l-muted-foreground/30 hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {notification.type === 'mention' ? (
+                        <AtSign className="h-3 w-3 text-primary" />
+                      ) : (
+                        <MessageCircle className="h-3 w-3 text-muted-foreground" />
+                      )}
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {notification.type === 'mention' ? 'Menção' : 'Nova mensagem'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-foreground truncate">
+                      {notification.message}
+                    </p>
                   </div>
                 ))}
               </div>
