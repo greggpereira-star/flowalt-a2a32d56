@@ -458,8 +458,9 @@ export function RichTextEditor({
 
   return (
     <div className={cn(
-      'rounded-md border border-input bg-background transition-colors',
-      'focus-within:ring-1 focus-within:ring-ring focus-within:border-ring',
+      'rounded-md bg-background transition-colors',
+      !className?.includes('border-0') && 'border border-input',
+      !className?.includes('focus-within:ring-0') && 'focus-within:ring-1 focus-within:ring-ring focus-within:border-ring',
       disabled && 'opacity-50 cursor-not-allowed',
       className
     )}>
