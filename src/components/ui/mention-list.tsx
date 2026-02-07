@@ -85,16 +85,16 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
 
     if (items.length === 0) {
       return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-2xl p-4 text-sm text-muted-foreground">
+        <div className="bg-background border border-border/40 rounded-xl shadow-xl p-4 text-sm text-muted-foreground">
           Nenhum membro encontrado
         </div>
       );
     }
 
     return (
-      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-2xl overflow-hidden min-w-[220px] max-w-[320px]">
+      <div className="bg-background border border-border/40 rounded-xl shadow-xl overflow-hidden min-w-[220px] max-w-[320px]">
         <div className="px-3 py-2 border-b border-border/30">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Mencionar
           </span>
         </div>
