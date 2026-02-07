@@ -110,8 +110,9 @@ const SpacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Get view ID from URL
+  // Get view ID and card ID from URL
   const activeViewId = searchParams.get('view');
+  const cardIdFromUrl = searchParams.get('card');
 
   const { data: space, isLoading: spaceLoading } = useSpace(spaceId);
   const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
@@ -195,6 +196,17 @@ const SpacePage: React.FC = () => {
   // Folder edit/delete states
   const [editingFolder, setEditingFolder] = useState<{ id: string; name: string } | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+
+  // Open card from URL parameter (e.g., from notification click)
+  useEffect(() => {
+    if (cardIdFromUrl) {
+      setSelectedCardId(cardIdFromUrl);
+      // Clear the card parameter from URL after opening
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('card');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [cardIdFromUrl, setSearchParams, searchParams]);
 
   // Update view type and folder when active view changes
   useEffect(() => {
