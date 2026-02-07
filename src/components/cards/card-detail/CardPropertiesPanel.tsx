@@ -336,15 +336,12 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-2" align="start">
-              <Command className="rounded-lg">
-                <div className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded-md bg-muted/40 border border-border/30">
-                  <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <CommandInput 
-                    placeholder="Buscar membro..." 
-                    className="!h-7 !border-none !bg-transparent !p-0 !text-sm !shadow-none !ring-0 !outline-none placeholder:text-muted-foreground/70 focus:!ring-0 focus:!border-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none" 
-                  />
-                </div>
-                <CommandList className="max-h-[200px]">
+              <Command className="rounded-lg [&_[cmdk-input-wrapper]]:border-none [&_[cmdk-input-wrapper]_svg]:hidden [&_[cmdk-input-wrapper]]:px-0">
+                <CommandInput 
+                  placeholder="Buscar membro..." 
+                  className="!h-8 !border-none !bg-muted/40 !rounded-md !px-3 !text-sm !shadow-none !ring-0 !outline-none placeholder:text-muted-foreground/70 focus:!ring-0 focus:!border-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none" 
+                />
+                <CommandList className="max-h-[200px] mt-1">
                   <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">Nenhum membro encontrado</CommandEmpty>
                   <CommandGroup>
                     {availableMembers.map((member) => (
