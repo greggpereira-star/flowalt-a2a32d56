@@ -85,31 +85,38 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
 
     if (items.length === 0) {
       return (
-        <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm text-muted-foreground">
+        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-2xl p-4 text-sm text-muted-foreground">
           Nenhum membro encontrado
         </div>
       );
     }
 
     return (
-      <div className="bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px] max-w-[300px]">
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-2xl overflow-hidden min-w-[220px] max-w-[320px]">
+        <div className="px-3 py-2 border-b border-border/30">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Mencionar
+          </span>
+        </div>
         <div className="p-1.5 max-h-[280px] overflow-y-auto">
           {items.map((item, index) => (
             <button
               key={item.id}
               type="button"
               className={cn(
-                'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors',
-                'hover:bg-accent focus:outline-none',
-                index === selectedIndex && 'bg-accent'
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150',
+                'hover:bg-primary/10 focus:outline-none',
+                index === selectedIndex 
+                  ? 'bg-primary/15 text-foreground shadow-sm' 
+                  : 'text-foreground/90'
               )}
               // Mantém o foco no editor para o TipTap conseguir inserir a menção corretamente
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => selectItem(index)}
             >
-              <Avatar className="h-7 w-7 flex-shrink-0">
+              <Avatar className="h-8 w-8 flex-shrink-0 ring-2 ring-background shadow-sm">
                 {item.avatar_url && <AvatarImage src={item.avatar_url} />}
-                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                   {getInitials(item.name)}
                 </AvatarFallback>
               </Avatar>
