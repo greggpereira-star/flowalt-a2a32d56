@@ -39,6 +39,7 @@ import { CapacityPlanner } from '@/components/coordination/CapacityPlanner';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useMemberCapacity } from '@/hooks/useWorkspaceMembers';
 import { useDependencies } from '@/hooks/useDependencies';
+import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { format, differenceInDays, differenceInHours } from 'date-fns';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { ptBR } from 'date-fns/locale';
@@ -93,6 +94,7 @@ const CoordinationPage: React.FC = () => {
 
   const { data: dependencies = [], isLoading: depsLoading } = useDependencies();
   const { data: memberCapacity = [], isLoading: capacityLoading } = useMemberCapacity();
+  const { data: cardMemberAssignments = [], isLoading: assignmentsLoading } = useCardMemberAssignments();
 
   // Calculate bottlenecks with space and owner info
   const bottlenecks = useMemo(() => {
@@ -182,7 +184,7 @@ const CoordinationPage: React.FC = () => {
     return { total, inProgress, overdue, onTrack };
   }, [cards]);
 
-  const isLoading = cardsLoading || depsLoading || capacityLoading;
+  const isLoading = cardsLoading || depsLoading || capacityLoading || assignmentsLoading;
 
   if (isLoading) {
     return (
@@ -439,6 +441,7 @@ const CoordinationPage: React.FC = () => {
               <CapacityPlanner
                 cards={cards || []}
                 members={memberCapacity}
+                cardMemberAssignments={cardMemberAssignments}
                 onCardClick={setSelectedCardId}
               />
               <CapacityChart members={memberCapacity} />
