@@ -471,6 +471,8 @@ export function RichTextEditor({
           'prose prose-sm dark:prose-invert max-w-none',
           'px-3 py-2 overflow-y-auto',
           '[&_.ProseMirror]:outline-none',
+          // No composer de chat (sem toolbar), removemos o focus ring global (:focus-visible)
+          !showToolbar && '[&_.ProseMirror]:focus-visible:ring-0 [&_.ProseMirror]:focus-visible:ring-offset-0',
           '[&_.ProseMirror]:min-h-[var(--min-height)]',
           '[&_.ProseMirror]:max-h-[var(--max-height)]',
           '[&_.ProseMirror.is-editor-empty]:before:content-[attr(data-placeholder)]',
