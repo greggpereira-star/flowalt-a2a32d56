@@ -133,14 +133,20 @@ export const useCreateComment = () => {
           }));
 
         if (notificationsToInsert.length > 0) {
-          const { error: notifError } = await supabase
+          console.log('Creating mention notifications:', notificationsToInsert);
+          const { data: notifData, error: notifError } = await supabase
             .from('notifications')
-            .insert(notificationsToInsert);
+            .insert(notificationsToInsert)
+            .select();
 
           if (notifError) {
             console.error('Error creating mention notifications:', notifError);
+          } else {
+            console.log('Mention notifications created successfully:', notifData);
           }
         }
+      } else {
+        console.log('No mentions to notify or missing workspaceId:', { mentions, workspaceId });
       }
 
       // Trigger webhook
