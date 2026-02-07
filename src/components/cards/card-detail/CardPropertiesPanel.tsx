@@ -336,7 +336,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0" align="start">
               <Command>
-                <CommandInput placeholder="Buscar membro..." className="h-9" />
+                <CommandInput placeholder="Buscar membro..." className="h-9 focus:ring-0 focus:outline-none border-none" />
                 <CommandList>
                   <CommandEmpty>Nenhum membro encontrado</CommandEmpty>
                   <CommandGroup>
