@@ -196,6 +196,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               mentionSuggestions={mentionSuggestions}
               onMentionsChange={setCurrentMentions}
               showToolbar={false}
+              onSubmit={handleSubmit}
               className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent [&>div]:rounded-xl"
               contentClassName="px-3 py-2 text-sm leading-relaxed"
             />
