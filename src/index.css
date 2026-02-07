@@ -794,12 +794,38 @@
 
 /* ===== TIPPY.JS CUSTOM THEME - LIGHT CLEAN ===== */
 .tippy-box[data-theme~='light-clean'] {
-  background-color: transparent;
-  border: none;
-  box-shadow: none;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.tippy-box[data-theme~='light-clean'] > .tippy-backdrop {
+  background-color: transparent !important;
+}
+
+.tippy-box[data-theme~='light-clean'] > .tippy-arrow {
+  display: none !important;
 }
 
 .tippy-box[data-theme~='light-clean'] .tippy-content {
-  padding: 0;
-  background: transparent;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Override para o tema padrão do Tippy quando usado em menções */
+.tippy-box {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.tippy-box > .tippy-arrow::before {
+  display: none !important;
+}
+
+.tippy-content {
+  padding: 0 !important;
+  background: transparent !important;
 }
