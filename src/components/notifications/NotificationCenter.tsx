@@ -16,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const notificationIcons: Record<string, React.ReactNode> = {
   webhook_failure: <AlertTriangle className="h-4 w-4 text-destructive" />,
@@ -33,7 +34,7 @@ export function NotificationCenter() {
   const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       markAsRead.mutate(notification.id);
     }
@@ -43,13 +44,29 @@ export function NotificationCenter() {
       (notification.type === 'mention' || notification.type === 'assignment') &&
       notification.metadata?.card_id
     ) {
-      // Navigate to the space with the card modal open
-      const spaceId = notification.metadata.space_id;
+      const cardId = notification.metadata.card_id as string;
+      let spaceId = notification.metadata.space_id as string | undefined;
+      
+      // If space_id is missing, fetch it from the card
+      if (!spaceId) {
+        try {
+          const { data: cardData } = await supabase
+            .from('cards')
+            .select('space_id')
+            .eq('id', cardId)
+            .single();
+          
+          spaceId = cardData?.space_id;
+        } catch (error) {
+          console.error('Error fetching card space_id:', error);
+        }
+      }
+      
       if (spaceId) {
-        navigate(`/space/${spaceId}?card=${notification.metadata.card_id}`);
+        navigate(`/space/${spaceId}?card=${cardId}`);
       } else {
-        // Fallback to dashboard if no space_id
-        navigate(`/workspace?card=${notification.metadata.card_id}`);
+        // Fallback to tasks page with card param
+        navigate(`/tasks?card=${cardId}`);
       }
     } else if (
       notification.type === 'altcontrol_approval_pending' &&
