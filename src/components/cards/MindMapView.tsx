@@ -226,6 +226,11 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
     );
   }
 
+  // Saved maps mode
+  if (mode === 'saved') {
+    return <MindMapManager spaceId={spaceId} onBack={handleBack} />;
+  }
+
   // Free mode - interactive canvas
   return (
     <div className="h-full flex flex-col">
