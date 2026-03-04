@@ -4,6 +4,7 @@ import { List, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FreeMindMap } from './FreeMindMap';
 import { TaskMindMap } from './TaskMindMap';
+import { MindMapManager } from './MindMapManager';
 import type { Card } from '@/hooks/useCards';
 
 interface MindMapViewProps {
