@@ -1857,7 +1857,7 @@ export type Database = {
           gates_passed: string[] | null
           id: string
           reason: string | null
-          time_in_previous_stage: unknown
+          time_in_previous_stage: string | null
           to_stage: string
           transition_type: string
           triggered_by: string | null
@@ -1871,7 +1871,7 @@ export type Database = {
           gates_passed?: string[] | null
           id?: string
           reason?: string | null
-          time_in_previous_stage?: unknown
+          time_in_previous_stage?: string | null
           to_stage: string
           transition_type?: string
           triggered_by?: string | null
@@ -1885,7 +1885,7 @@ export type Database = {
           gates_passed?: string[] | null
           id?: string
           reason?: string | null
-          time_in_previous_stage?: unknown
+          time_in_previous_stage?: string | null
           to_stage?: string
           transition_type?: string
           triggered_by?: string | null
