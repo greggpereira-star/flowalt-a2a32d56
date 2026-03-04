@@ -72,7 +72,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
             Escolha uma estrutura que funcione para você
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Tasks mode */}
             <button
               onClick={() => setMode('tasks')}
