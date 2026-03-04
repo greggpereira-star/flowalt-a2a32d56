@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { List, PenTool } from 'lucide-react';
+import { List, PenTool, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FreeMindMap } from './FreeMindMap';
 import { TaskMindMap } from './TaskMindMap';
