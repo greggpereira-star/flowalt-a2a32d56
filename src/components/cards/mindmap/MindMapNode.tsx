@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Plus, ChevronRight, Minus } from 'lucide-react';
+import { Plus, Minus, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MindMapNode as NodeType } from './types';
 import { getBranchPalette, getNodeDepth } from './utils';
@@ -41,7 +41,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
   const palette = getBranchPalette(node.id, allNodes);
   const isRoot = node.id === 'root';
   const isBranch = depth === 1;
-  const isLeaf = depth >= 2;
   const isEditing = editingNodeId === node.id;
   const hasChildren = allNodes.some(n => n.parentId === node.id);
   const childCount = allNodes.filter(n => n.parentId === node.id).length;
@@ -64,10 +63,10 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     return (
       <div
         className={cn(
-          "absolute pointer-events-auto select-none",
-          isDragging ? "cursor-grabbing z-50" : "cursor-grab"
+          "absolute pointer-events-auto select-none transition-transform duration-150",
+          isDragging ? "cursor-grabbing z-50 scale-105" : "cursor-grab"
         )}
-        style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+        style={{ left: node.x, top: node.y, transform: `translate(-50%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
@@ -75,19 +74,17 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "relative flex items-center gap-3 px-7 py-4 rounded-2xl transition-all duration-200",
-              "shadow-[0_4px_24px_-4px_rgba(0,0,0,0.15)]",
-              isSelected && "ring-2 ring-offset-2 ring-offset-transparent"
+              "relative flex items-center gap-3 px-6 py-3.5 rounded-2xl transition-all duration-200",
+              "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)]",
+              isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
             )}
-            style={{
-              backgroundColor: '#1e293b',
-              color: '#fff',
-              ...(isSelected ? { ringColor: '#3b82f6' } : {}),
-            }}
+            style={{ backgroundColor: '#1e293b', color: '#fff' }}
           >
-            {/* Decorative icon */}
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
-              <span className="text-base">💡</span>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06))' }}
+            >
+              <span className="text-lg">💡</span>
             </div>
 
             {isEditing ? (
@@ -97,19 +94,17 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onChange={(e) => onEditChange(e.target.value)}
                 onBlur={onEditSave}
                 onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-xl font-bold text-white min-w-[180px] placeholder:text-white/40"
+                className="bg-transparent border-none outline-none text-lg font-bold text-white min-w-[160px] placeholder:text-white/30"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-xl font-bold tracking-tight whitespace-nowrap">{node.text}</span>
+              <span className="text-lg font-bold tracking-tight whitespace-nowrap">{node.text}</span>
             )}
           </div>
 
-          {/* Add child FAB */}
           <button
             onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
-            className="flex items-center justify-center w-8 h-8 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all duration-150"
-            style={{ backgroundColor: '#3b82f6', color: '#fff' }}
+            className="flex items-center justify-center w-8 h-8 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all duration-150 bg-primary text-primary-foreground"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
           </button>
@@ -123,32 +118,36 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     return (
       <div
         className={cn(
-          "absolute pointer-events-auto select-none group/branch",
+          "absolute pointer-events-auto select-none group/branch transition-transform duration-150",
           isDragging ? "cursor-grabbing z-50" : "cursor-grab"
         )}
-        style={{ left: node.x, top: node.y, transform: 'translate(0%, -50%)' }}
+        style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
-        <div className="flex items-center gap-3">
-          {/* Card */}
+        <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "relative flex items-center gap-3 pl-3.5 pr-5 py-3 rounded-xl transition-all duration-200",
-              "shadow-[0_2px_12px_-2px_rgba(0,0,0,0.10)]",
-              isSelected && "ring-2 ring-offset-2 ring-offset-transparent"
+              "relative flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-xl transition-all duration-200",
+              "shadow-[0_2px_12px_-3px_rgba(0,0,0,0.12)]",
+              isSelected && "ring-2 ring-offset-2 ring-offset-background"
             )}
             style={{
               backgroundColor: palette.bg,
+              ...(isSelected ? { '--tw-ring-color': palette.bg } as React.CSSProperties : {}),
             }}
           >
-            {/* Icon circle */}
+            {/* Grip handle on hover */}
+            <div className="opacity-0 group-hover/branch:opacity-40 transition-opacity -ml-1 mr-0">
+              <GripVertical className="h-3.5 w-3.5 text-white" />
+            </div>
+
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }}
             >
-              <span className="text-white text-sm font-bold drop-shadow-sm">{node.text.charAt(0).toUpperCase()}</span>
+              <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
             </div>
 
             {isEditing ? (
@@ -158,35 +157,35 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onChange={(e) => onEditChange(e.target.value)}
                 onBlur={onEditSave}
                 onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-[13px] font-bold tracking-wide text-white min-w-[80px] max-w-[180px] placeholder:text-white/50 uppercase"
+                className="bg-transparent border-none outline-none text-[13px] font-semibold tracking-wide text-white min-w-[60px] max-w-[180px] placeholder:text-white/40"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-[13px] font-bold tracking-wide whitespace-nowrap text-white uppercase drop-shadow-sm">{node.text}</span>
+              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm">
+                {node.text}
+              </span>
             )}
 
-            {/* Collapse indicator */}
             {hasChildren && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
-                className="ml-0.5 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:bg-white/20"
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                className="ml-0.5 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:bg-white/25 active:scale-90"
+                style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
               >
                 {node.collapsed ? (
                   <span className="text-[10px] font-bold text-white/90">{childCount}</span>
                 ) : (
-                  <Minus className="h-3 w-3 text-white/90" strokeWidth={2.5} />
+                  <Minus className="h-3 w-3 text-white/80" strokeWidth={2.5} />
                 )}
               </button>
             )}
           </div>
 
-          {/* Add child */}
           <button
             onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
             className={cn(
               "flex items-center justify-center w-6 h-6 rounded-full shadow-md",
-              "opacity-0 group-hover/branch:opacity-100 hover:scale-110 active:scale-95 transition-all duration-150"
+              "opacity-0 group-hover/branch:opacity-100 hover:scale-110 active:scale-90 transition-all duration-150"
             )}
             style={{ backgroundColor: palette.bg, color: '#fff' }}
           >
@@ -201,20 +200,31 @@ export const MindMapNodeComponent: React.FC<Props> = ({
   return (
     <div
       className={cn(
-        "absolute pointer-events-auto select-none group/leaf",
+        "absolute pointer-events-auto select-none group/leaf transition-transform duration-150",
         isDragging ? "cursor-grabbing z-50" : "cursor-grab"
       )}
-      style={{ left: node.x, top: node.y, transform: 'translate(0%, -50%)' }}
+      style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.05)' : ''}` }}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
       onMouseDown={(e) => onDragStart(e, node.id)}
     >
-      <div className="flex items-center gap-2">
-        {/* Colored dot */}
-        <div
-          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-          style={{ backgroundColor: palette.bg }}
-        />
+      <div className={cn(
+        "flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg transition-all duration-150",
+        isSelected ? "bg-accent/60" : "hover:bg-accent/30"
+      )}>
+        {/* Colored dot with pulse on selected */}
+        <div className="relative flex-shrink-0">
+          <div
+            className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
+            style={{ backgroundColor: palette.bg }}
+          />
+          {isSelected && (
+            <div
+              className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+              style={{ backgroundColor: palette.bg }}
+            />
+          )}
+        </div>
 
         {isEditing ? (
           <input
@@ -223,26 +233,25 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             onChange={(e) => onEditChange(e.target.value)}
             onBlur={onEditSave}
             onKeyDown={handleKeyDown}
-            className="bg-transparent border-none outline-none text-[13px] min-w-[100px] text-foreground"
+            className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
           <span
             className={cn(
-              "text-[13px] whitespace-nowrap transition-colors leading-none",
-              isSelected ? "font-semibold text-foreground" : "font-normal text-foreground/70"
+              "text-[13px] whitespace-nowrap transition-all duration-150 leading-none",
+              isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
             )}
           >
             {node.text}
           </span>
         )}
 
-        {/* Collapse badge */}
         {hasChildren && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
-            className="flex items-center justify-center w-4 h-4 rounded-full transition-all"
-            style={{ backgroundColor: `${palette.bg}20`, color: palette.bg }}
+            className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
+            style={{ backgroundColor: `${palette.bg}18`, color: palette.bg }}
           >
             {node.collapsed ? (
               <span className="text-[9px] font-bold">{childCount}</span>
@@ -252,12 +261,11 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           </button>
         )}
 
-        {/* Add child */}
         <button
           onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
           className={cn(
-            "flex items-center justify-center w-4.5 h-4.5 rounded-full transition-all",
-            "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-95"
+            "flex items-center justify-center w-4 h-4 rounded-full transition-all",
+            "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
           )}
           style={{ backgroundColor: palette.bg, color: '#fff' }}
         >
