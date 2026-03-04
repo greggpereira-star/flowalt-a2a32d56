@@ -325,14 +325,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="mindmap-canvas w-full h-full cursor-grab active:cursor-grabbing"
+        className="mindmap-canvas w-full h-full cursor-grab active:cursor-grabbing select-none"
         onMouseDown={handlePanStart}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         style={{
-          backgroundImage: 'radial-gradient(circle, hsl(var(--border) / 0.25) 1px, transparent 1px)',
-          backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+          backgroundImage: 'radial-gradient(circle, hsl(var(--border) / 0.15) 1px, transparent 1px)',
+          backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
           backgroundPosition: `${pan.x}px ${pan.y}px`,
         }}
       >

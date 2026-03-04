@@ -9,41 +9,57 @@ interface Props {
 export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
   return (
     <>
+      <defs>
+        {/* Unique gradient for each connection */}
+        {nodes.filter(n => n.parentId).map(node => {
+          const palette = getBranchPalette(node.id, nodes);
+          return (
+            <linearGradient
+              key={`grad-${node.id}`}
+              id={`conn-grad-${node.id}`}
+              x1="0%" y1="0%" x2="100%" y2="0%"
+            >
+              <stop offset="0%" stopColor={palette.line} stopOpacity={0.15} />
+              <stop offset="40%" stopColor={palette.line} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={palette.line} stopOpacity={0.7} />
+            </linearGradient>
+          );
+        })}
+      </defs>
+
       {nodes.filter(n => n.parentId).map(node => {
         const parent = nodes.find(n => n.id === node.parentId);
         if (!parent) return null;
 
-        const palette = getBranchPalette(node.id, nodes);
         const depth = getNodeDepth(node.id, nodes);
         const parentDepth = getNodeDepth(parent.id, nodes);
 
-        const strokeW = depth === 1 ? 3 : depth === 2 ? 2 : 1.5;
-        const opacity = depth === 1 ? 0.6 : depth === 2 ? 0.45 : 0.35;
+        const strokeW = depth === 1 ? 2.5 : depth === 2 ? 1.8 : 1.2;
 
-        // Offset start point to RIGHT edge of parent node
-        const parentOffsetX = parentDepth === 0 ? 120 : parentDepth === 1 ? 100 : 60;
-        // Offset end point to LEFT edge of child node
-        const childOffsetX = depth === 1 ? 100 : depth === 2 ? 8 : 8;
+        // Anchor to right edge of parent, left edge of child
+        const parentOffsetX = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
+        const childOffsetX = depth === 1 ? 0 : 6;
 
         const sx = parent.x + parentOffsetX;
         const sy = parent.y;
         const ex = node.x - childOffsetX;
         const ey = node.y;
 
-        const dx = ex - sx;
-        const cpOffset = Math.max(Math.abs(dx) * 0.5, 40);
+        const dx = Math.abs(ex - sx);
+        const cpX = Math.max(dx * 0.45, 30);
 
-        const d = `M ${sx} ${sy} C ${sx + cpOffset} ${sy}, ${ex - cpOffset} ${ey}, ${ex} ${ey}`;
+        // S-curve with vertical easing
+        const d = `M ${sx} ${sy} C ${sx + cpX} ${sy}, ${ex - cpX} ${ey}, ${ex} ${ey}`;
 
         return (
           <path
             key={`conn-${parent.id}-${node.id}`}
             d={d}
-            stroke={palette.line}
+            stroke={`url(#conn-grad-${node.id})`}
             strokeWidth={strokeW}
             fill="none"
             strokeLinecap="round"
-            opacity={opacity}
+            className="transition-opacity duration-300"
           />
         );
       })}
