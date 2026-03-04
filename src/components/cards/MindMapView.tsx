@@ -162,6 +162,35 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
                 Forma livre
               </Button>
             </button>
+
+            {/* Saved maps mode */}
+            <button
+              onClick={() => setMode('saved')}
+              className={cn(
+                "flex flex-col items-center p-8 rounded-xl border-2 border-border",
+                "hover:border-primary/50 hover:shadow-lg transition-all",
+                "bg-card"
+              )}
+            >
+              <div className="mb-6 relative w-48 h-32">
+                <div className="absolute inset-2 grid grid-cols-2 gap-2">
+                  {[0,1,2,3].map(i => (
+                    <div key={i} className="bg-muted/50 rounded-lg border border-border/50 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-primary/30" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Acesse seus mapas salvos ou crie novos para diferentes projetos
+              </p>
+
+              <Button variant="default" className="w-full">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Mapas Salvos
+              </Button>
+            </button>
           </div>
 
           {/* Back button if needed */}
