@@ -191,23 +191,6 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
     );
   }
 
-  // Saved maps mode
-  if (mode === 'saved') {
-    return <MindMapManager spaceId={spaceId} onBack={handleBack} />;
-  }
-
-  // Free mode - interactive canvas
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 p-2 border-b bg-muted/30">
-        <Button variant="ghost" size="sm" onClick={handleBack}>
-          ← Voltar
-        </Button>
-        <span className="text-sm font-medium">Mapa Mental - Forma Livre</span>
-      </div>
-      <div className="flex-1">
-        <FreeMindMap viewId={viewId} />
-      </div>
-    </div>
-  );
+  // Free mode - now uses MindMapManager for persistent storage
+  return <MindMapManager spaceId={spaceId} onBack={handleBack} />;
 };
