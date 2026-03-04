@@ -215,14 +215,39 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   // ===== ZOOM =====
 
   const handleZoom = useCallback((d: number) => setZoom(p => Math.min(4, Math.max(0.2, p + d))), []);
-  const resetView = useCallback(() => {
-    setZoom(1);
+  
+  const fitToContent = useCallback(() => {
     const c = containerRef.current;
-    if (c) {
-      const rect = c.getBoundingClientRect();
-      setPan({ x: rect.width / 2, y: rect.height / 2 });
-    }
-  }, []);
+    if (!c || nodes.length === 0) return;
+    const rect = c.getBoundingClientRect();
+    
+    // Find bounds of all nodes
+    const xs = nodes.map(n => n.x);
+    const ys = nodes.map(n => n.y);
+    const minX = Math.min(...xs) - 150;
+    const maxX = Math.max(...xs) + 250;
+    const minY = Math.min(...ys) - 80;
+    const maxY = Math.max(...ys) + 80;
+    
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    const scaleX = rect.width / contentW;
+    const scaleY = rect.height / contentH;
+    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY) * 0.85, 0.2), 2);
+    
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    setZoom(newZoom);
+    setPan({
+      x: rect.width / 2 - centerX * newZoom,
+      y: rect.height / 2 - centerY * newZoom,
+    });
+  }, [nodes]);
+  
+  const resetView = useCallback(() => {
+    fitToContent();
+  }, [fitToContent]);
 
   // Ctrl+Scroll zoom
   useEffect(() => {
