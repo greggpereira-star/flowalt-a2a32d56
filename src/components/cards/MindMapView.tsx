@@ -27,6 +27,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   spaceName = 'Espaço',
   folderName,
   viewId = 'default',
+  spaceId,
 }) => {
   // Load saved mode from localStorage
   const [mode, setMode] = useState<MindMapMode>(() => {
