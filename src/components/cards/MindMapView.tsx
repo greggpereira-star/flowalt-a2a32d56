@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { List, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TaskMindMap } from './TaskMindMap';
-import { TaskMindMap } from './TaskMindMap';
 import { MindMapManager } from './MindMapManager';
 import type { Card } from '@/hooks/useCards';
 
