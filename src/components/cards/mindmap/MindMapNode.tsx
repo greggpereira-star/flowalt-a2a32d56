@@ -204,7 +204,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         "absolute pointer-events-auto select-none group/leaf",
         isDragging ? "cursor-grabbing z-50" : "cursor-grab"
       )}
-      style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+      style={{ left: node.x, top: node.y, transform: 'translate(0%, -50%)' }}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
       onMouseDown={(e) => onDragStart(e, node.id)}
