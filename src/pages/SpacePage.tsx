@@ -585,6 +585,7 @@ const SpacePage: React.FC = () => {
                 spaceName={space.name}
                 folderName={activeView?.name}
                 viewId={activeViewId || 'default'}
+                spaceId={space.id}
               />
             ) : view === 'approvals' ? (
               <ApprovalsPendingView 
