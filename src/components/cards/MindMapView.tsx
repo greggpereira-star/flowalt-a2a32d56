@@ -33,7 +33,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
   const [mode, setMode] = useState<MindMapMode>(() => {
     try {
       const saved = localStorage.getItem(getModeStorageKey(viewId));
-      if (saved === 'tasks' || saved === 'free') {
+      if (saved === 'tasks' || saved === 'free' || saved === 'saved') {
         return saved;
       }
     } catch (e) {
