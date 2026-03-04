@@ -47,8 +47,9 @@ export const useUploadAttachment = () => {
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Upload file to storage
-      const filePath = `${card_id}/${user.id}/${Date.now()}-${file.name}`;
+      // Upload file to storage - sanitize filename to avoid special char issues
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `${card_id}/${user.id}/${Date.now()}-${sanitizedName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('attachments')
