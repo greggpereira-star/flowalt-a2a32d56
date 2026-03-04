@@ -15,20 +15,23 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
 
         const palette = getBranchPalette(node.id, nodes);
         const depth = getNodeDepth(node.id, nodes);
+        const parentDepth = getNodeDepth(parent.id, nodes);
 
-        // Stroke width decreases with depth
-        const strokeW = depth === 1 ? 4 : depth === 2 ? 2.5 : 1.8;
-        const opacity = depth === 1 ? 0.7 : depth === 2 ? 0.55 : 0.4;
+        const strokeW = depth === 1 ? 3 : depth === 2 ? 2 : 1.5;
+        const opacity = depth === 1 ? 0.6 : depth === 2 ? 0.45 : 0.35;
 
-        const sx = parent.x;
+        // Offset start point to RIGHT edge of parent node
+        const parentOffsetX = parentDepth === 0 ? 120 : parentDepth === 1 ? 100 : 60;
+        // Offset end point to LEFT edge of child node
+        const childOffsetX = depth === 1 ? 100 : depth === 2 ? 8 : 8;
+
+        const sx = parent.x + parentOffsetX;
         const sy = parent.y;
-        const ex = node.x;
+        const ex = node.x - childOffsetX;
         const ey = node.y;
 
-        // MindMeister organic S-curve:
-        // Horizontal bezier with control points at ~50% dx
         const dx = ex - sx;
-        const cpOffset = Math.abs(dx) * 0.5;
+        const cpOffset = Math.max(Math.abs(dx) * 0.5, 40);
 
         const d = `M ${sx} ${sy} C ${sx + cpOffset} ${sy}, ${ex - cpOffset} ${ey}, ${ex} ${ey}`;
 
