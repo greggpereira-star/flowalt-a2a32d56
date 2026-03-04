@@ -111,7 +111,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   useEffect(() => {
     if (nodes.length > 0) {
       saveNodesToStorage(nodesViewIdRef.current, nodes);
-      setHasUnsavedChanges(false);
+      setHasUnsavedChanges(true);
     }
   }, [nodes]);
 
@@ -274,14 +274,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setPan({ x: 0, y: 0 });
   }, []);
 
-  // Manual save
+  // Manual save (to database via onSave callback)
   const handleManualSave = useCallback(() => {
     saveNodesToStorage(nodesViewIdRef.current, nodes);
     onSave?.(nodes);
     setHasUnsavedChanges(false);
     toast({
       title: 'Mapa salvo!',
-      description: 'Seu mapa mental foi salvo com sucesso.',
+      description: onSave ? 'Seu mapa mental foi salvo no servidor.' : 'Salvo localmente.',
     });
   }, [nodes, onSave, toast]);
 
