@@ -126,7 +126,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           "absolute pointer-events-auto select-none group/branch",
           isDragging ? "cursor-grabbing z-50" : "cursor-grab"
         )}
-        style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+        style={{ left: node.x, top: node.y, transform: 'translate(0%, -50%)' }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
@@ -135,21 +135,20 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           {/* Card */}
           <div
             className={cn(
-              "relative flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-xl transition-all duration-200",
-              "shadow-[0_2px_12px_-2px_rgba(0,0,0,0.12)]",
+              "relative flex items-center gap-3 pl-3.5 pr-5 py-3 rounded-xl transition-all duration-200",
+              "shadow-[0_2px_12px_-2px_rgba(0,0,0,0.10)]",
               isSelected && "ring-2 ring-offset-2 ring-offset-transparent"
             )}
             style={{
               backgroundColor: palette.bg,
-              color: '#fff',
             }}
           >
             {/* Icon circle */}
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}
             >
-              <span className="text-white text-lg font-bold">{node.text.charAt(0).toUpperCase()}</span>
+              <span className="text-white text-sm font-bold drop-shadow-sm">{node.text.charAt(0).toUpperCase()}</span>
             </div>
 
             {isEditing ? (
@@ -159,24 +158,24 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onChange={(e) => onEditChange(e.target.value)}
                 onBlur={onEditSave}
                 onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-sm font-semibold text-white min-w-[80px] max-w-[160px] placeholder:text-white/50"
+                className="bg-transparent border-none outline-none text-[13px] font-bold tracking-wide text-white min-w-[80px] max-w-[180px] placeholder:text-white/50 uppercase"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-sm font-semibold whitespace-nowrap">{node.text}</span>
+              <span className="text-[13px] font-bold tracking-wide whitespace-nowrap text-white uppercase drop-shadow-sm">{node.text}</span>
             )}
 
             {/* Collapse indicator */}
             {hasChildren && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
-                className="ml-1 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:bg-white/20"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                className="ml-0.5 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:bg-white/20"
+                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
               >
                 {node.collapsed ? (
                   <span className="text-[10px] font-bold text-white/90">{childCount}</span>
                 ) : (
-                  <Minus className="h-3 w-3 text-white/80" strokeWidth={2} />
+                  <Minus className="h-3 w-3 text-white/90" strokeWidth={2.5} />
                 )}
               </button>
             )}
@@ -205,7 +204,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         "absolute pointer-events-auto select-none group/leaf",
         isDragging ? "cursor-grabbing z-50" : "cursor-grab"
       )}
-      style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+      style={{ left: node.x, top: node.y, transform: 'translate(0%, -50%)' }}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
       onMouseDown={(e) => onDragStart(e, node.id)}
