@@ -111,7 +111,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   useEffect(() => {
     if (nodes.length > 0) {
       saveNodesToStorage(nodesViewIdRef.current, nodes);
-      setHasUnsavedChanges(false);
+      setHasUnsavedChanges(true);
     }
   }, [nodes]);
 
