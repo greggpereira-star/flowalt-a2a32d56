@@ -191,12 +191,71 @@ export function useCreateTransaction() {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
       const { data: userData } = await supabase.auth.getUser();
-      
+      const userId = userData.user?.id;
+
+      // If recurring, generate 12 future entries
+      if (transaction.recurrence && transaction.recurrence !== "none") {
+        const months = transaction.recurrence === "monthly" ? 12 : 2; // 12 months or 2 years
+        const intervalMonths = transaction.recurrence === "monthly" ? 1 : 12;
+        
+        const entries = Array.from({ length: months }, (_, i) => {
+          const baseDate = new Date(transaction.due_date + "T12:00:00");
+          baseDate.setMonth(baseDate.getMonth() + (i * intervalMonths));
+          
+          return {
+            workspace_id: currentWorkspace.id,
+            created_by: userId,
+            description: transaction.description,
+            amount: transaction.amount,
+            type: transaction.type,
+            due_date: baseDate.toISOString().split("T")[0],
+            category_id: transaction.category_id,
+            client_id: transaction.client_id,
+            cost_center_id: transaction.cost_center_id,
+            status: i === 0 ? (transaction.status || "pending") : "pending",
+            recurrence: transaction.recurrence,
+            installment_number: i + 1,
+            total_installments: months,
+            invoice_number: transaction.invoice_number,
+            notes: transaction.notes,
+            card_id: transaction.card_id,
+            collaborator_id: transaction.collaborator_id,
+            parent_transaction_id: undefined as string | undefined,
+          };
+        });
+
+        // Insert first entry to get its ID as parent
+        const { data: firstEntry, error: firstError } = await supabase
+          .from("transactions")
+          .insert(entries[0])
+          .select()
+          .single();
+
+        if (firstError) throw firstError;
+
+        // Insert remaining entries with parent_transaction_id
+        if (entries.length > 1) {
+          const remainingEntries = entries.slice(1).map(e => ({
+            ...e,
+            parent_transaction_id: firstEntry.id,
+          }));
+
+          const { error: batchError } = await supabase
+            .from("transactions")
+            .insert(remainingEntries);
+
+          if (batchError) throw batchError;
+        }
+
+        return firstEntry;
+      }
+
+      // Single (non-recurring) transaction
       const { data, error } = await supabase
         .from("transactions")
         .insert({
           workspace_id: currentWorkspace.id,
-          created_by: userData.user?.id,
+          created_by: userId,
           ...transaction,
         })
         .select()
