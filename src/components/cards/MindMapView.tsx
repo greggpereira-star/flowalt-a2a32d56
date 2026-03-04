@@ -13,9 +13,10 @@ interface MindMapViewProps {
   spaceName?: string;
   folderName?: string;
   viewId?: string;
+  spaceId?: string;
 }
 
-type MindMapMode = 'select' | 'tasks' | 'free';
+type MindMapMode = 'select' | 'tasks' | 'free' | 'saved';
 
 // Storage key for mode preference
 const getModeStorageKey = (viewId: string) => `mindmap-mode-${viewId}`;
