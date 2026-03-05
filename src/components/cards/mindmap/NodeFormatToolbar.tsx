@@ -352,7 +352,13 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         </Popover>
 
         {/* Link */}
-        <Popover onOpenChange={(open) => { if (!open) onUpdateNode({ link: linkText.trim() || undefined }); }}>
+        <Popover onOpenChange={(open) => {
+          if (!open) {
+            const normalized = normalizeLink(linkText);
+            onUpdateNode({ link: normalized });
+            setLinkText(normalized || '');
+          }
+        }}>
           <PopoverTrigger asChild>
             <ToolBtn active={!!node.link} title="Link">
               {node.link ? <Link2 className="h-3.5 w-3.5" /> : <Link2Off className="h-3.5 w-3.5" />}
@@ -364,14 +370,20 @@ export const NodeFormatToolbar: React.FC<Props> = ({
               <input
                 value={linkText}
                 onChange={(e) => setLinkText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') onUpdateNode({ link: linkText.trim() || undefined }); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const normalized = normalizeLink(linkText);
+                    onUpdateNode({ link: normalized });
+                    setLinkText(normalized || '');
+                  }
+                }}
                 placeholder="https://..."
                 className="w-full text-xs bg-muted/50 border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
               {linkText && (
                 <div className="flex items-center justify-between">
                   <a
-                    href={linkText}
+                    href={normalizeLink(linkText) || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-primary hover:underline truncate max-w-[180px]"
@@ -389,6 +401,27 @@ export const NodeFormatToolbar: React.FC<Props> = ({
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Upload de documento/imagem */}
+        <button
+          title="Anexar documento/imagem"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploadingFile}
+          className={cn(
+            'h-7 w-7 flex items-center justify-center rounded-md transition-all duration-150 hover:bg-accent active:scale-90',
+            isUploadingFile && 'opacity-60 cursor-not-allowed'
+          )}
+        >
+          {isUploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />}
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files?.[0])}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.gif"
+        />
 
         <Divider />
 
