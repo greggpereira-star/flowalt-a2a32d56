@@ -6,7 +6,7 @@ interface Props {
   nodes: MindMapNode[];
 }
 
-export const MindMapConnections: React.FC<Props> = React.memo(({ nodes }) => {
+const MindMapConnectionsInner: React.FC<Props> = ({ nodes }) => {
   const childNodes = useMemo(() => nodes.filter(n => n.parentId), [nodes]);
 
   const connections = useMemo(() => {
