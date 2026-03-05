@@ -79,5 +79,3 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
     </g>
   );
 };
-
-export const MindMapConnections = React.memo(MindMapConnectionsInner);
