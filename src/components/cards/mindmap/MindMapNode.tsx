@@ -86,7 +86,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             )}
             style={{ backgroundColor: node.customColor || '#1e293b', color: '#fff' }}
           >
-            {node.icon && (
+        {node.icon && (
               <span className="text-lg">{node.icon}</span>
             )}
             {!node.icon && (
@@ -96,10 +96,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               >
                 <span className="text-lg">💡</span>
               </div>
-            )}
-
-            {node.imageUrl && (
-              <img src={node.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
             )}
 
             {isEditing ? (
