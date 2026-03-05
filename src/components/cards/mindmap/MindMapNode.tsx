@@ -84,14 +84,23 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)]",
               isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
             )}
-            style={{ backgroundColor: '#1e293b', color: '#fff' }}
+            style={{ backgroundColor: node.customColor || '#1e293b', color: '#fff' }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06))' }}
-            >
-              <span className="text-lg">💡</span>
-            </div>
+            {node.icon && (
+              <span className="text-lg">{node.icon}</span>
+            )}
+            {!node.icon && (
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06))' }}
+              >
+                <span className="text-lg">💡</span>
+              </div>
+            )}
+
+            {node.imageUrl && (
+              <img src={node.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
+            )}
 
             {isEditing ? (
               <input
@@ -104,7 +113,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-lg font-bold tracking-tight whitespace-nowrap">{node.text}</span>
+              <span className="text-lg font-bold tracking-tight whitespace-nowrap" style={textStyle}>{node.text}</span>
             )}
           </div>
 
