@@ -81,7 +81,7 @@ export const MindMapToolbar: React.FC<Props> = ({
       </div>
 
       {/* Right-side floating toolbar */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-0.5 bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-lg p-1">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-0.5 bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-lg p-1">
         <ToolbarButton onClick={onSave} title="Salvar (Ctrl+S)">
           <Save className={cn("h-4 w-4", hasUnsavedChanges ? "text-primary" : "text-muted-foreground")} />
         </ToolbarButton>
