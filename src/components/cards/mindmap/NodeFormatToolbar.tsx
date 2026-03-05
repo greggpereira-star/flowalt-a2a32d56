@@ -29,6 +29,8 @@ const ICON_OPTIONS = [
   '📁', '🔔', '💬', '👤', '🌍', '📅', '🛠️', '❌',
 ];
 
+const MINDMAP_ATTACHMENTS_BUCKET = 'mindmap-attachments';
+
 interface Props {
   node: MindMapNode;
   onUpdateNode: (updates: Partial<MindMapNode>) => void;
@@ -132,16 +134,16 @@ export const NodeFormatToolbar: React.FC<Props> = ({
     try {
       setIsUploadingFile(true);
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `mindmap/${user.id}/${Date.now()}-${sanitizedName}`;
+      const filePath = `${user.id}/${Date.now()}-${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('attachments')
+        .from(MINDMAP_ATTACHMENTS_BUCKET)
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('attachments')
+        .from(MINDMAP_ATTACHMENTS_BUCKET)
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
