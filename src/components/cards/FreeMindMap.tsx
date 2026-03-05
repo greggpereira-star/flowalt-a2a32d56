@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   MindMapNode,
@@ -29,6 +29,12 @@ interface FreeMindMapProps {
   initialNodes?: MindMapNode[];
 }
 
+interface NodeConnectionBounds {
+  left: number;
+  right: number;
+  y: number;
+}
+
 export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', onSave, initialNodes }) => {
   const { toast } = useToast();
 
@@ -51,6 +57,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [nodeBounds, setNodeBounds] = useState<Record<string, NodeConnectionBounds>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewIdRef = useRef(viewId);
@@ -406,6 +413,33 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setHasUnsavedChanges(true);
   }, []);
 
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const frame = requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const bounds: Record<string, NodeConnectionBounds> = {};
+
+      const nodeElements = container.querySelectorAll<HTMLElement>('[data-mindmap-node-id]');
+      nodeElements.forEach((el) => {
+        const nodeId = el.dataset.mindmapNodeId;
+        if (!nodeId) return;
+
+        const rect = el.getBoundingClientRect();
+        bounds[nodeId] = {
+          left: (rect.left - containerRect.left - pan.x) / zoom,
+          right: (rect.right - containerRect.left - pan.x) / zoom,
+          y: (rect.top + rect.height / 2 - containerRect.top - pan.y) / zoom,
+        };
+      });
+
+      setNodeBounds(bounds);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [nodes, pan, zoom, editingNodeId]);
+
   // ===== RENDER =====
 
   const visibleNodes = getVisibleNodes(nodes);
@@ -457,7 +491,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
           className="mindmap-canvas absolute inset-0 pointer-events-none overflow-visible"
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}
         >
-          <MindMapConnections nodes={visibleNodes} />
+          <MindMapConnections nodes={visibleNodes} nodeBounds={nodeBounds} />
         </svg>
 
         {/* Nodes */}

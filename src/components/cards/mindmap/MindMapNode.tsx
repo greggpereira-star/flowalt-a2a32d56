@@ -81,6 +81,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         style={{ left: node.x, top: node.y, transform: `translate(-50%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         data-mindmap-node
+        data-mindmap-node-id={node.id}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
@@ -142,6 +143,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         data-mindmap-node
+        data-mindmap-node-id={node.id}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
@@ -229,6 +231,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
       style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.05)' : ''}` }}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
       data-mindmap-node
+      data-mindmap-node-id={node.id}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
       onMouseDown={(e) => onDragStart(e, node.id)}
     >
