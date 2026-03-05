@@ -230,88 +230,99 @@ export const MindMapNodeComponent: React.FC<Props> = ({
       onMouseDown={(e) => onDragStart(e, node.id)}
     >
       <div className={cn(
-        "flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg transition-all duration-150",
+        "flex items-start gap-2 py-1.5 px-2 -ml-2 rounded-lg transition-all duration-150",
         isSelected ? "bg-accent/60" : "hover:bg-accent/30"
       )}>
         {/* Icon or colored dot */}
-        {node.icon ? (
-          <span className="text-sm flex-shrink-0">{node.icon}</span>
-        ) : (
-          <div className="relative flex-shrink-0">
-            <div
-              className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
-              style={{ backgroundColor: nodeColor }}
-            />
-            {isSelected && (
+        <div className="mt-[3px]">
+          {node.icon ? (
+            <span className="text-sm flex-shrink-0">{node.icon}</span>
+          ) : (
+            <div className="relative flex-shrink-0">
               <div
-                className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
                 style={{ backgroundColor: nodeColor }}
               />
-            )}
-          </div>
-        )}
-
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            value={editText}
-            onChange={(e) => onEditChange(e.target.value)}
-            onBlur={onEditSave}
-            onKeyDown={handleKeyDown}
-            className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span
-            className={cn(
-              "text-[13px] whitespace-nowrap transition-all duration-150 leading-none",
-              isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
-            )}
-            style={textStyle}
-          >
-            {node.text}
-          </span>
-        )}
-
-        {/* Notes & Link indicators */}
-        {node.notes && (
-          <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
-        )}
-        {node.link && (
-          <a
-            href={normalizeNodeLink(node.link)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[10px] text-primary/60 hover:text-primary"
-            title={node.link}
-          >🔗</a>
-        )}
-
-        {hasChildren && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
-            className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
-            style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
-          >
-            {node.collapsed ? (
-              <span className="text-[9px] font-bold">{childCount}</span>
-            ) : (
-              <Minus className="h-2.5 w-2.5" strokeWidth={2} />
-            )}
-          </button>
-        )}
-
-        <button
-          onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
-          className={cn(
-            "flex items-center justify-center w-4 h-4 rounded-full transition-all",
-            "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
+              {isSelected && (
+                <div
+                  className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                  style={{ backgroundColor: nodeColor }}
+                />
+              )}
+            </div>
           )}
-          style={{ backgroundColor: nodeColor, color: '#fff' }}
-        >
-          <Plus className="h-2.5 w-2.5" strokeWidth={3} />
-        </button>
+        </div>
+
+        <div className="flex flex-col gap-0.5 min-w-0">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              value={editText}
+              onChange={(e) => onEditChange(e.target.value)}
+              onBlur={onEditSave}
+              onKeyDown={handleKeyDown}
+              className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              className={cn(
+                "text-[13px] transition-all duration-150 leading-relaxed",
+                isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
+              )}
+              style={{ ...textStyle, maxWidth: '220px', wordBreak: 'break-word' }}
+            >
+              {node.text}
+            </span>
+          )}
+
+          {/* Notes & Link indicators */}
+          {(node.notes || node.link) && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {node.notes && (
+                <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
+              )}
+              {node.link && (
+                <a
+                  href={normalizeNodeLink(node.link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[10px] text-primary/60 hover:text-primary"
+                  title={node.link}
+                >🔗</a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Action buttons - vertically centered */}
+        <div className="flex items-center gap-0.5 mt-[3px] flex-shrink-0">
+          {hasChildren && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
+              className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
+              style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
+            >
+              {node.collapsed ? (
+                <span className="text-[9px] font-bold">{childCount}</span>
+              ) : (
+                <Minus className="h-2.5 w-2.5" strokeWidth={2} />
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
+            className={cn(
+              "flex items-center justify-center w-4 h-4 rounded-full transition-all",
+              "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
+            )}
+            style={{ backgroundColor: nodeColor, color: '#fff' }}
+          >
+            <Plus className="h-2.5 w-2.5" strokeWidth={3} />
+          </button>
+        </div>
       </div>
     </div>
   );
