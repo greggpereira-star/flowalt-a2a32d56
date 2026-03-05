@@ -1,0 +1,1 @@
+UPDATE mind_maps SET space_id = 'bb467b7a-f7f2-454d-a3f9-f233acb0ecf3' WHERE id = '8bf7f437-1c06-4361-adb1-7724ebdae00b';
