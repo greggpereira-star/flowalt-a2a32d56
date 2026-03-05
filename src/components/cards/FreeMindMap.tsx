@@ -349,6 +349,8 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
           node={selectedNode}
           onUpdateNode={(updates) => handleUpdateNode(selectedNode.id, updates)}
           onDeselect={() => setSelectedNodeId(null)}
+          onDuplicate={() => duplicateNode(selectedNode.id)}
+          onDelete={() => deleteNode(selectedNode.id)}
         />
       )}
 
