@@ -276,45 +276,53 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             </span>
           )}
 
-        {/* Notes & Link indicators */}
-        {node.notes && (
-          <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
-        )}
-        {node.link && (
-          <a
-            href={normalizeNodeLink(node.link)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[10px] text-primary/60 hover:text-primary"
-            title={node.link}
-          >🔗</a>
-        )}
-
-        {hasChildren && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
-            className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
-            style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
-          >
-            {node.collapsed ? (
-              <span className="text-[9px] font-bold">{childCount}</span>
-            ) : (
-              <Minus className="h-2.5 w-2.5" strokeWidth={2} />
-            )}
-          </button>
-        )}
-
-        <button
-          onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
-          className={cn(
-            "flex items-center justify-center w-4 h-4 rounded-full transition-all",
-            "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
+          {/* Notes & Link indicators */}
+          {(node.notes || node.link) && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {node.notes && (
+                <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
+              )}
+              {node.link && (
+                <a
+                  href={normalizeNodeLink(node.link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[10px] text-primary/60 hover:text-primary"
+                  title={node.link}
+                >🔗</a>
+              )}
+            </div>
           )}
-          style={{ backgroundColor: nodeColor, color: '#fff' }}
-        >
-          <Plus className="h-2.5 w-2.5" strokeWidth={3} />
-        </button>
+        </div>
+
+        {/* Action buttons - vertically centered */}
+        <div className="flex items-center gap-0.5 mt-[3px] flex-shrink-0">
+          {hasChildren && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
+              className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
+              style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
+            >
+              {node.collapsed ? (
+                <span className="text-[9px] font-bold">{childCount}</span>
+              ) : (
+                <Minus className="h-2.5 w-2.5" strokeWidth={2} />
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
+            className={cn(
+              "flex items-center justify-center w-4 h-4 rounded-full transition-all",
+              "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
+            )}
+            style={{ backgroundColor: nodeColor, color: '#fff' }}
+          >
+            <Plus className="h-2.5 w-2.5" strokeWidth={3} />
+          </button>
+        </div>
       </div>
     </div>
   );
