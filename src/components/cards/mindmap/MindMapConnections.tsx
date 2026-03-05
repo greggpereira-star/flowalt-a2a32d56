@@ -18,28 +18,25 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
 
       const strokeW = depth === 1 ? 2.5 : depth === 2 ? 1.8 : 1.2;
 
-      // Determine if child is to the left or right of parent
-      const parentW = parentDepth === 0 ? 260 : parentDepth === 1 ? 210 : 130;
-      const childW = depth === 1 ? 210 : depth === 2 ? 130 : 100;
-      const nodeWidth = node.nodeWidth || childW;
+      // Simple left/right detection: compare raw x positions
+      const isLeft = node.x < parent.x;
 
-      const isLeft = node.x + nodeWidth / 2 < parent.x + parentW / 2;
+      const parentHalfW = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
+      const childHalfW = depth === 1 ? 105 : depth === 2 ? 65 : 50;
 
       let sx: number, sy: number, ex: number, ey: number;
 
       if (isLeft) {
-        // Child is to the left: line exits from parent's left edge, enters child's right edge
-        sx = parent.x - (parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65);
+        // Child is to the left: exit parent's left edge → enter child's right edge
+        sx = parent.x - parentHalfW;
         sy = parent.y;
-        ex = node.x + nodeWidth + (depth === 1 ? 0 : 6);
+        ex = node.x + childHalfW;
         ey = node.y;
       } else {
-        // Child is to the right: line exits from parent's right edge, enters child's left edge
-        const parentOffsetX = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
-        const childOffsetX = depth === 1 ? 0 : 6;
-        sx = parent.x + parentOffsetX;
+        // Child is to the right: exit parent's right edge → enter child's left edge
+        sx = parent.x + parentHalfW;
         sy = parent.y;
-        ex = node.x - childOffsetX;
+        ex = node.x - (depth === 1 ? 0 : 6);
         ey = node.y;
       }
 
@@ -56,6 +53,7 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
         lineColor: palette.line,
         d,
         strokeW,
+        isLeft,
       };
     }).filter(Boolean) as {
       key: string;
@@ -63,6 +61,7 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
       lineColor: string;
       d: string;
       strokeW: number;
+      isLeft: boolean;
     }[];
   }, [nodes]);
 
@@ -73,7 +72,8 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
           <linearGradient
             key={`grad-${c.key}`}
             id={c.gradId}
-            x1="0%" y1="0%" x2="100%" y2="0%"
+            x1={c.isLeft ? "100%" : "0%"} y1="0%"
+            x2={c.isLeft ? "0%" : "100%"} y2="0%"
           >
             <stop offset="0%" stopColor={c.lineColor} stopOpacity={0.15} />
             <stop offset="40%" stopColor={c.lineColor} stopOpacity={0.5} />
