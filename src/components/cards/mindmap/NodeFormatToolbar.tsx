@@ -74,6 +74,9 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   onDuplicate,
   onDelete,
 }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
   const isBold = node.fontWeight === 'bold';
   const isItalic = node.fontStyle === 'italic';
   const currentSize = node.fontSize ?? 13;
@@ -83,10 +86,12 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Notes state
+  // Notes/Link state
   const [notesText, setNotesText] = useState(node.notes || '');
   const [linkText, setLinkText] = useState(node.link || '');
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   // Sync state when selected node changes
   useEffect(() => {
