@@ -80,6 +80,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         )}
         style={{ left: node.x, top: node.y, transform: `translate(-50%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+        data-mindmap-node
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
@@ -140,6 +141,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         )}
         style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+        data-mindmap-node
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
@@ -226,12 +228,13 @@ export const MindMapNodeComponent: React.FC<Props> = ({
       )}
       style={{ left: node.x, top: node.y, transform: `translate(0%, -50%)${isDragging ? ' scale(1.05)' : ''}` }}
       onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
+      data-mindmap-node
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
       onMouseDown={(e) => onDragStart(e, node.id)}
     >
       <div className={cn(
         "flex items-start gap-2 py-1.5 px-2 -ml-2 rounded-lg transition-all duration-150",
-        isSelected ? "bg-accent/60" : "hover:bg-accent/30"
+        isSelected ? "bg-card shadow-sm border border-border" : "bg-card/95 hover:bg-card hover:shadow-sm"
       )}>
         {/* Icon or colored dot */}
         <div className="mt-[3px]">

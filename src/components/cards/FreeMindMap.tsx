@@ -202,11 +202,11 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
 
   const handlePanStart = useCallback((e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t === containerRef.current || t.tagName === 'svg' || t.classList.contains('mindmap-canvas')) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-      setSelectedNodeId(null);
-    }
+    // Don't pan if clicking on interactive elements (buttons, inputs, nodes)
+    if (t.closest('button') || t.closest('input') || t.closest('[data-mindmap-node]')) return;
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    setSelectedNodeId(null);
   }, [pan]);
 
   // ===== ZOOM =====

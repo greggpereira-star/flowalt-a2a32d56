@@ -68,7 +68,7 @@ export const MindMapToolbar: React.FC<Props> = ({
   return (
     <>
       {/* Bottom-left: Zoom controls */}
-      <div className="absolute bottom-4 left-4 z-20 flex items-center bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg px-1 py-0.5 gap-0.5">
+      <div className="absolute bottom-4 left-4 z-30 flex items-center bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg px-1 py-0.5 gap-0.5">
         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-accent" onClick={onZoomOut}>
           <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
@@ -81,7 +81,7 @@ export const MindMapToolbar: React.FC<Props> = ({
       </div>
 
       {/* Right-side floating toolbar */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-0.5 bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-lg p-1">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-0.5 bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-lg p-1">
         <ToolbarButton onClick={onSave} title="Salvar (Ctrl+S)">
           <Save className={cn("h-4 w-4", hasUnsavedChanges ? "text-primary" : "text-muted-foreground")} />
         </ToolbarButton>
@@ -105,7 +105,7 @@ export const MindMapToolbar: React.FC<Props> = ({
       </div>
 
       {/* Bottom-right: shortcuts hint */}
-      <div className="absolute bottom-4 right-4 z-20">
+      <div className="absolute bottom-4 right-4 z-30">
         <div className="group/help relative">
           <button className="h-7 w-7 rounded-full bg-card/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <Keyboard className="h-3.5 w-3.5" />
