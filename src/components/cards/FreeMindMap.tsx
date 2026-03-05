@@ -304,9 +304,15 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setHasUnsavedChanges(true);
   }, []);
 
+  const handleUpdateNode = useCallback((nodeId: string, updates: Partial<MindMapNode>) => {
+    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, ...updates } : n));
+    setHasUnsavedChanges(true);
+  }, []);
+
   // ===== RENDER =====
 
   const visibleNodes = getVisibleNodes(nodes);
+  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
   return (
     <div className="relative w-full h-full bg-background overflow-hidden">
@@ -322,6 +328,16 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
         onDelete={() => selectedNodeId && deleteNode(selectedNodeId)}
         onAutoLayout={handleAutoLayout}
       />
+
+      {/* Node Format Toolbar */}
+      {selectedNode && !editingNodeId && (
+        <NodeFormatToolbar
+          node={selectedNode}
+          onUpdateNode={(updates) => handleUpdateNode(selectedNode.id, updates)}
+          canvasZoom={zoom}
+          panOffset={pan}
+        />
+      )}
 
       {/* Canvas */}
       <div
