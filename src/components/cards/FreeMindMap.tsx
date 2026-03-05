@@ -57,6 +57,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [nodeBounds, setNodeBounds] = useState<Record<string, NodeConnectionBounds>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewIdRef = useRef(viewId);
