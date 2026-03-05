@@ -29,6 +29,8 @@ const ICON_OPTIONS = [
   '📁', '🔔', '💬', '👤', '🌍', '📅', '🛠️', '❌',
 ];
 
+const MINDMAP_ATTACHMENTS_BUCKET = 'mindmap-attachments';
+
 interface Props {
   node: MindMapNode;
   onUpdateNode: (updates: Partial<MindMapNode>) => void;
