@@ -105,7 +105,7 @@ export const MindMapToolbar: React.FC<Props> = ({
       </div>
 
       {/* Bottom-right: shortcuts hint */}
-      <div className="absolute bottom-4 right-4 z-20">
+      <div className="absolute bottom-4 right-4 z-30">
         <div className="group/help relative">
           <button className="h-7 w-7 rounded-full bg-card/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <Keyboard className="h-3.5 w-3.5" />
