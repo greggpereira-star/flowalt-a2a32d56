@@ -4,6 +4,7 @@ import {
   Bold, Italic, Palette, Type, SmilePlus,
   ChevronDown, X, GripHorizontal, Copy, Trash2,
   StickyNote, Link2, Link2Off, Paperclip, Loader2,
+  RectangleHorizontal,
 } from 'lucide-react';
 import {
   Popover,
