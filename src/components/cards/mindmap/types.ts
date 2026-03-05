@@ -14,6 +14,7 @@ export interface MindMapNode {
   imageUrl?: string;
   notes?: string;
   link?: string;
+  nodeWidth?: number;
 }
 
 export interface BranchPalette {
