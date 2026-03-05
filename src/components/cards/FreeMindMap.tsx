@@ -29,6 +29,12 @@ interface FreeMindMapProps {
   initialNodes?: MindMapNode[];
 }
 
+interface NodeConnectionBounds {
+  left: number;
+  right: number;
+  y: number;
+}
+
 export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', onSave, initialNodes }) => {
   const { toast } = useToast();
 
