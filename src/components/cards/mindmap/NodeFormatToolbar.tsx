@@ -122,6 +122,45 @@ export const NodeFormatToolbar: React.FC<Props> = ({
     window.addEventListener('mouseup', onUp);
   }, [pos]);
 
+  const handleFileUpload = useCallback(async (file?: File) => {
+    if (!file) return;
+    if (!user?.id) {
+      toast({ title: 'Você precisa estar logado para enviar arquivos.' });
+      return;
+    }
+
+    try {
+      setIsUploadingFile(true);
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `mindmap/${user.id}/${Date.now()}-${sanitizedName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+      const nextNotes = node.notes ? `${node.notes}\n📎 ${file.name}` : `📎 ${file.name}`;
+
+      onUpdateNode({ link: publicUrl, notes: nextNotes });
+      setLinkText(publicUrl);
+      setNotesText(nextNotes);
+
+      toast({ title: 'Arquivo anexado ao nó.' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Não foi possível enviar o arquivo.' });
+    } finally {
+      setIsUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, [user?.id, node.notes, onUpdateNode, toast]);
+
   return (
     <div
       ref={toolbarRef}
