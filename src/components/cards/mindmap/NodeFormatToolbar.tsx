@@ -187,7 +187,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         isDragging && "opacity-90"
       )}
       style={{
-        bottom: 16,
+        bottom: 80,
         left: '50%',
         transform: `translate(calc(-50% + ${pos.x}px), ${pos.y}px)`,
       }}
