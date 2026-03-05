@@ -12,7 +12,6 @@ import { CTASection } from '@/components/landing/CTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
 const LandingPage: React.FC = () => {
-  usePageTracking('landing');
 
   return (
     <div className="min-h-screen bg-background text-foreground">
