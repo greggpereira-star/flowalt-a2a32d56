@@ -96,6 +96,20 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
 
   // ===== NODE OPERATIONS =====
 
+  /** Check if a node (or its branch) is on the left side of root */
+  const isOnLeftSide = useCallback((nodeId: string, allNodes: MindMapNode[]): boolean => {
+    const root = allNodes.find(n => n.id === 'root');
+    if (!root) return false;
+    // Find the root-level branch ancestor
+    let current = allNodes.find(n => n.id === nodeId);
+    while (current && current.parentId && current.parentId !== 'root') {
+      current = allNodes.find(n => n.id === current!.parentId);
+    }
+    // If the node itself is a direct child of root, use its own position
+    if (current) return current.x < root.x;
+    return false;
+  }, []);
+
   const addChildNode = useCallback((parentId: string) => {
     const parent = nodesRef.current.find(n => n.id === parentId);
     if (!parent) return;
@@ -121,10 +135,14 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       newY = maxY + ySpacing;
     }
 
+    // Determine direction: if parent is on the left side of root, children go further left
+    const leftSide = isOnLeftSide(parentId, nodesRef.current);
+    const newX = leftSide ? parent.x - xGap : parent.x + xGap;
+
     const newNode: MindMapNode = {
       id: generateId(),
       text: 'Novo tópico',
-      x: parent.x + xGap,
+      x: newX,
       y: newY,
       parentId,
       color: palette.bg,
@@ -135,7 +153,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setEditingNodeId(newNode.id);
     setEditText('Novo tópico');
     setHasUnsavedChanges(true);
-  }, []);
+  }, [isOnLeftSide]);
 
   const deleteNode = useCallback((nodeId: string) => {
     if (nodeId === 'root') return;
