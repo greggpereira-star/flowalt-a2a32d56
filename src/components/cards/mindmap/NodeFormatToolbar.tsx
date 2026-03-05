@@ -60,6 +60,13 @@ const ToolBtn: React.FC<{
 
 const Divider = () => <div className="w-px h-5 bg-border mx-0.5" />;
 
+const normalizeLink = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
 export const NodeFormatToolbar: React.FC<Props> = ({
   node,
   onUpdateNode,
