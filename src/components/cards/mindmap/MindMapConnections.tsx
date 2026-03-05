@@ -46,7 +46,7 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
       d: string;
       strokeW: number;
     }[];
-  }, [nodes, childNodes]);
+  }, [nodes]);
 
   return (
     <g>
