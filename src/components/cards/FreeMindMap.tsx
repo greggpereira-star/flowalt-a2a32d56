@@ -100,14 +100,24 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   const isOnLeftSide = useCallback((nodeId: string, allNodes: MindMapNode[]): boolean => {
     const root = allNodes.find(n => n.id === 'root');
     if (!root) return false;
-    // Find the root-level branch ancestor
+    
+    // If this node IS root, not left
+    if (nodeId === 'root') return false;
+    
+    // Walk up to find the direct child of root (branch ancestor)
     let current = allNodes.find(n => n.id === nodeId);
+    if (!current) return false;
+    
     while (current && current.parentId && current.parentId !== 'root') {
       current = allNodes.find(n => n.id === current!.parentId);
     }
-    // If the node itself is a direct child of root, use its own position
+    
+    // current is now the direct child of root — check its x vs root's x
     if (current) return current.x < root.x;
-    return false;
+    
+    // Fallback: check the node itself
+    const node = allNodes.find(n => n.id === nodeId);
+    return node ? node.x < root.x : false;
   }, []);
 
   const addChildNode = useCallback((parentId: string) => {
