@@ -235,19 +235,27 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         "flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg transition-all duration-150",
         isSelected ? "bg-accent/60" : "hover:bg-accent/30"
       )}>
-        {/* Colored dot with pulse on selected */}
-        <div className="relative flex-shrink-0">
-          <div
-            className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
-            style={{ backgroundColor: palette.bg }}
-          />
-          {isSelected && (
+        {/* Icon or colored dot */}
+        {node.icon ? (
+          <span className="text-sm flex-shrink-0">{node.icon}</span>
+        ) : (
+          <div className="relative flex-shrink-0">
             <div
-              className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
-              style={{ backgroundColor: palette.bg }}
+              className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
+              style={{ backgroundColor: nodeColor }}
             />
-          )}
-        </div>
+            {isSelected && (
+              <div
+                className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                style={{ backgroundColor: nodeColor }}
+              />
+            )}
+          </div>
+        )}
+
+        {node.imageUrl && (
+          <img src={node.imageUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+        )}
 
         {isEditing ? (
           <input
@@ -265,6 +273,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "text-[13px] whitespace-nowrap transition-all duration-150 leading-none",
               isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
             )}
+            style={textStyle}
           >
             {node.text}
           </span>
