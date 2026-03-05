@@ -12,36 +12,39 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
       const parent = nodes.find(n => n.id === node.parentId);
       if (!parent) return null;
 
+      const getVisualWidth = (target: MindMapNode, targetDepth: number) => {
+        if (targetDepth === 0) return target.nodeWidth ?? 260; // root (centered)
+        if (targetDepth === 1) return target.nodeWidth ?? 210; // branch card
+        return (target.nodeWidth ?? 160) + 34; // leaf row (text block + dot/actions)
+      };
+
       const palette = getBranchPalette(node.id, nodes);
       const depth = getNodeDepth(node.id, nodes);
       const parentDepth = getNodeDepth(parent.id, nodes);
 
       const strokeW = depth === 1 ? 2.5 : depth === 2 ? 1.8 : 1.2;
 
-      // Simple left/right detection: compare raw x positions
-      const isLeft = node.x < parent.x;
+      const parentW = getVisualWidth(parent, parentDepth);
+      const childW = getVisualWidth(node, depth);
 
-      const parentHalfW = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
-      const childHalfW = depth === 1 ? 105 : depth === 2 ? 65 : 50;
+      const parentLeft = parentDepth === 0 ? parent.x - parentW / 2 : parent.x;
+      const parentRight = parentDepth === 0 ? parent.x + parentW / 2 : parent.x + parentW;
+      const parentCenterX = (parentLeft + parentRight) / 2;
 
-      let sx: number, sy: number, ex: number, ey: number;
+      const childLeft = depth === 0 ? node.x - childW / 2 : node.x;
+      const childRight = depth === 0 ? node.x + childW / 2 : node.x + childW;
+      const childCenterX = (childLeft + childRight) / 2;
 
-      if (isLeft) {
-        // Child is to the left: exit parent's left edge → enter child's right edge
-        sx = parent.x - parentHalfW;
-        sy = parent.y;
-        ex = node.x + childHalfW;
-        ey = node.y;
-      } else {
-        // Child is to the right: exit parent's right edge → enter child's left edge
-        sx = parent.x + parentHalfW;
-        sy = parent.y;
-        ex = node.x - (depth === 1 ? 0 : 6);
-        ey = node.y;
-      }
+      // Child on left branch => line exits parent's left edge and enters child's right edge
+      const isLeft = childCenterX < parentCenterX;
+
+      const sx = isLeft ? parentLeft : parentRight;
+      const sy = parent.y;
+      const ex = isLeft ? childRight : childLeft;
+      const ey = node.y;
 
       const dx = Math.abs(ex - sx);
-      const cpX = Math.max(dx * 0.45, 30);
+      const cpX = Math.max(dx * 0.42, 26);
 
       const d = isLeft
         ? `M ${sx} ${sy} C ${sx - cpX} ${sy}, ${ex + cpX} ${ey}, ${ex} ${ey}`
