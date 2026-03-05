@@ -68,7 +68,7 @@ export const MindMapToolbar: React.FC<Props> = ({
   return (
     <>
       {/* Bottom-left: Zoom controls */}
-      <div className="absolute bottom-4 left-4 z-20 flex items-center bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg px-1 py-0.5 gap-0.5">
+      <div className="absolute bottom-4 left-4 z-30 flex items-center bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg px-1 py-0.5 gap-0.5">
         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-accent" onClick={onZoomOut}>
           <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
