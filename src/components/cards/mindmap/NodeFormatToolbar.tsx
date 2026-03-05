@@ -78,6 +78,12 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   const [notesText, setNotesText] = useState(node.notes || '');
   const [linkText, setLinkText] = useState(node.link || '');
 
+  // Sync state when selected node changes
+  useEffect(() => {
+    setNotesText(node.notes || '');
+    setLinkText(node.link || '');
+  }, [node.id, node.notes, node.link]);
+
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
