@@ -230,48 +230,51 @@ export const MindMapNodeComponent: React.FC<Props> = ({
       onMouseDown={(e) => onDragStart(e, node.id)}
     >
       <div className={cn(
-        "flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg transition-all duration-150",
+        "flex items-start gap-2 py-1.5 px-2 -ml-2 rounded-lg transition-all duration-150",
         isSelected ? "bg-accent/60" : "hover:bg-accent/30"
       )}>
         {/* Icon or colored dot */}
-        {node.icon ? (
-          <span className="text-sm flex-shrink-0">{node.icon}</span>
-        ) : (
-          <div className="relative flex-shrink-0">
-            <div
-              className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
-              style={{ backgroundColor: nodeColor }}
-            />
-            {isSelected && (
+        <div className="mt-[3px]">
+          {node.icon ? (
+            <span className="text-sm flex-shrink-0">{node.icon}</span>
+          ) : (
+            <div className="relative flex-shrink-0">
               <div
-                className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
                 style={{ backgroundColor: nodeColor }}
               />
-            )}
-          </div>
-        )}
+              {isSelected && (
+                <div
+                  className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                  style={{ backgroundColor: nodeColor }}
+                />
+              )}
+            </div>
+          )}
+        </div>
 
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            value={editText}
-            onChange={(e) => onEditChange(e.target.value)}
-            onBlur={onEditSave}
-            onKeyDown={handleKeyDown}
-            className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span
-            className={cn(
-              "text-[13px] whitespace-nowrap transition-all duration-150 leading-none",
-              isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
-            )}
-            style={textStyle}
-          >
-            {node.text}
-          </span>
-        )}
+        <div className="flex flex-col gap-0.5 min-w-0">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              value={editText}
+              onChange={(e) => onEditChange(e.target.value)}
+              onBlur={onEditSave}
+              onKeyDown={handleKeyDown}
+              className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              className={cn(
+                "text-[13px] transition-all duration-150 leading-relaxed",
+                isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
+              )}
+              style={{ ...textStyle, maxWidth: '220px', wordBreak: 'break-word' }}
+            >
+              {node.text}
+            </span>
+          )}
 
         {/* Notes & Link indicators */}
         {node.notes && (
