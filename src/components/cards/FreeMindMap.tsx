@@ -377,10 +377,13 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       newY = maxY + ySpacing;
     }
 
+    const leftSide = isOnLeftSide(parentId, nodesRef.current);
+    const newX = leftSide ? parent.x - xGap : parent.x + xGap;
+
     const newNode: MindMapNode = {
       id: generateId(),
       text: fileName,
-      x: parent.x + xGap,
+      x: newX,
       y: newY,
       parentId,
       color: palette.bg,
