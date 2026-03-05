@@ -149,8 +149,8 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               isSelected && "ring-2 ring-offset-2 ring-offset-background"
             )}
             style={{
-              backgroundColor: palette.bg,
-              ...(isSelected ? { '--tw-ring-color': palette.bg } as React.CSSProperties : {}),
+              backgroundColor: nodeColor,
+              ...(isSelected ? { '--tw-ring-color': nodeColor } as React.CSSProperties : {}),
             }}
           >
             {/* Grip handle on hover */}
@@ -158,12 +158,20 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               <GripVertical className="h-3.5 w-3.5 text-white" />
             </div>
 
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }}
-            >
-              <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
-            </div>
+            {node.icon ? (
+              <span className="text-base">{node.icon}</span>
+            ) : (
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }}
+              >
+                <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+
+            {node.imageUrl && (
+              <img src={node.imageUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
+            )}
 
             {isEditing ? (
               <input
@@ -176,7 +184,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm">
+              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm" style={textStyle}>
                 {node.text}
               </span>
             )}
@@ -202,7 +210,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "flex items-center justify-center w-6 h-6 rounded-full shadow-md",
               "opacity-0 group-hover/branch:opacity-100 hover:scale-110 active:scale-90 transition-all duration-150"
             )}
-            style={{ backgroundColor: palette.bg, color: '#fff' }}
+            style={{ backgroundColor: nodeColor, color: '#fff' }}
           >
             <Plus className="h-3 w-3" strokeWidth={2.5} />
           </button>
