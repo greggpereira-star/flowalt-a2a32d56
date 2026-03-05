@@ -395,6 +395,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
           onDeselect={() => setSelectedNodeId(null)}
           onDuplicate={() => duplicateNode(selectedNode.id)}
           onDelete={() => deleteNode(selectedNode.id)}
+          onAddAttachmentNode={(fileName, fileUrl, icon) => addAttachmentNode(selectedNode.id, fileName, fileUrl, icon)}
         />
       )}
 
