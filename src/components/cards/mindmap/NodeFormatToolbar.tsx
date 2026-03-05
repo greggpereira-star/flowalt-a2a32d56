@@ -31,12 +31,24 @@ const ICON_OPTIONS = [
 
 const MINDMAP_ATTACHMENTS_BUCKET = 'mindmap-attachments';
 
+const getFileIcon = (fileName: string): string => {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (['pdf'].includes(ext)) return '📄';
+  if (['doc', 'docx'].includes(ext)) return '📝';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return '📊';
+  if (['ppt', 'pptx'].includes(ext)) return '📽️';
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️';
+  if (['txt', 'md'].includes(ext)) return '📃';
+  return '📎';
+};
+
 interface Props {
   node: MindMapNode;
   onUpdateNode: (updates: Partial<MindMapNode>) => void;
   onDeselect: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  onAddAttachmentNode?: (fileName: string, fileUrl: string, icon: string) => void;
 }
 
 const ToolBtn: React.FC<{
