@@ -413,6 +413,33 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setHasUnsavedChanges(true);
   }, []);
 
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const frame = requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const bounds: Record<string, NodeConnectionBounds> = {};
+
+      const nodeElements = container.querySelectorAll<HTMLElement>('[data-mindmap-node-id]');
+      nodeElements.forEach((el) => {
+        const nodeId = el.dataset.mindmapNodeId;
+        if (!nodeId) return;
+
+        const rect = el.getBoundingClientRect();
+        bounds[nodeId] = {
+          left: (rect.left - containerRect.left - pan.x) / zoom,
+          right: (rect.right - containerRect.left - pan.x) / zoom,
+          y: (rect.top + rect.height / 2 - containerRect.top - pan.y) / zoom,
+        };
+      });
+
+      setNodeBounds(bounds);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [nodes, pan, zoom, editingNodeId]);
+
   // ===== RENDER =====
 
   const visibleNodes = getVisibleNodes(nodes);
