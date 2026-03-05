@@ -491,7 +491,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
           className="mindmap-canvas absolute inset-0 pointer-events-none overflow-visible"
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}
         >
-          <MindMapConnections nodes={visibleNodes} />
+          <MindMapConnections nodes={visibleNodes} nodeBounds={nodeBounds} />
         </svg>
 
         {/* Nodes */}
