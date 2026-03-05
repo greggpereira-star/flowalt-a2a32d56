@@ -7,6 +7,11 @@ export interface MindMapNode {
   color: string;
   collapsed?: boolean;
   icon?: string;
+  fontSize?: number;
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  customColor?: string;
+  imageUrl?: string;
 }
 
 export interface BranchPalette {
