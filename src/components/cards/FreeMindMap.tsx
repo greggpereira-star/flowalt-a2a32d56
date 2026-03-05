@@ -181,6 +181,17 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       x: (e.clientX - rect.left - pan.x) / zoom - node.x,
       y: (e.clientY - rect.top - pan.y) / zoom - node.y,
     });
+
+    // Store relative offsets of all descendants so they move together
+    const descIds = getDescendants(nodeId, nodesRef.current);
+    const offsets = new Map<string, { dx: number; dy: number }>();
+    descIds.forEach(id => {
+      const desc = nodesRef.current.find(n => n.id === id);
+      if (desc) {
+        offsets.set(id, { dx: desc.x - node.x, dy: desc.y - node.y });
+      }
+    });
+    setDragDescendantOffsets(offsets);
   }, [zoom, pan]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -189,11 +200,16 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       if (!rect) return;
       const newX = (e.clientX - rect.left - pan.x) / zoom - dragOffset.x;
       const newY = (e.clientY - rect.top - pan.y) / zoom - dragOffset.y;
-      setNodes(prev => prev.map(n => n.id === draggingNodeId ? { ...n, x: newX, y: newY } : n));
+      setNodes(prev => prev.map(n => {
+        if (n.id === draggingNodeId) return { ...n, x: newX, y: newY };
+        const offset = dragDescendantOffsets.get(n.id);
+        if (offset) return { ...n, x: newX + offset.dx, y: newY + offset.dy };
+        return n;
+      }));
     } else if (isPanning) {
       setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
     }
-  }, [draggingNodeId, dragOffset, zoom, pan, isPanning, panStart]);
+  }, [draggingNodeId, dragOffset, dragDescendantOffsets, zoom, pan, isPanning, panStart]);
 
   const handleMouseUp = useCallback(() => {
     if (draggingNodeId) setHasUnsavedChanges(true);
