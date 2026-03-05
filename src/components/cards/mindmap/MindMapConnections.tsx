@@ -18,19 +18,37 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
 
       const strokeW = depth === 1 ? 2.5 : depth === 2 ? 1.8 : 1.2;
 
-      // Anchor to right edge of parent, left edge of child
-      const parentOffsetX = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
-      const childOffsetX = depth === 1 ? 0 : 6;
+      // Determine if child is to the left or right of parent
+      const parentW = parentDepth === 0 ? 260 : parentDepth === 1 ? 210 : 130;
+      const childW = depth === 1 ? 210 : depth === 2 ? 130 : 100;
+      const nodeWidth = node.nodeWidth || childW;
 
-      const sx = parent.x + parentOffsetX;
-      const sy = parent.y;
-      const ex = node.x - childOffsetX;
-      const ey = node.y;
+      const isLeft = node.x + nodeWidth / 2 < parent.x + parentW / 2;
+
+      let sx: number, sy: number, ex: number, ey: number;
+
+      if (isLeft) {
+        // Child is to the left: line exits from parent's left edge, enters child's right edge
+        sx = parent.x - (parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65);
+        sy = parent.y;
+        ex = node.x + nodeWidth + (depth === 1 ? 0 : 6);
+        ey = node.y;
+      } else {
+        // Child is to the right: line exits from parent's right edge, enters child's left edge
+        const parentOffsetX = parentDepth === 0 ? 130 : parentDepth === 1 ? 105 : 65;
+        const childOffsetX = depth === 1 ? 0 : 6;
+        sx = parent.x + parentOffsetX;
+        sy = parent.y;
+        ex = node.x - childOffsetX;
+        ey = node.y;
+      }
 
       const dx = Math.abs(ex - sx);
       const cpX = Math.max(dx * 0.45, 30);
 
-      const d = `M ${sx} ${sy} C ${sx + cpX} ${sy}, ${ex - cpX} ${ey}, ${ex} ${ey}`;
+      const d = isLeft
+        ? `M ${sx} ${sy} C ${sx - cpX} ${sy}, ${ex + cpX} ${ey}, ${ex} ${ey}`
+        : `M ${sx} ${sy} C ${sx + cpX} ${sy}, ${ex - cpX} ${ey}, ${ex} ${ey}`;
 
       return {
         key: `conn-${parent.id}-${node.id}`,
