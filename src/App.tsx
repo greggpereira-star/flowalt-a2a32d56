@@ -60,6 +60,7 @@ const App = () => (
             <CommandPalette />
             <KeyboardShortcutsDialog />
             <Routes>
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/data-deletion" element={<DataDeletionPage />} />
