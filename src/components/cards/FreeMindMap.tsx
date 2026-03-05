@@ -309,6 +309,20 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setHasUnsavedChanges(true);
   }, []);
 
+  const duplicateNode = useCallback((nodeId: string) => {
+    const node = nodesRef.current.find(n => n.id === nodeId);
+    if (!node || !node.parentId) return;
+    const newNode: MindMapNode = {
+      ...node,
+      id: generateId(),
+      text: node.text + ' (cópia)',
+      y: node.y + 60,
+    };
+    setNodes(prev => [...prev, newNode]);
+    setSelectedNodeId(newNode.id);
+    setHasUnsavedChanges(true);
+  }, []);
+
   // ===== RENDER =====
 
   const visibleNodes = getVisibleNodes(nodes);
