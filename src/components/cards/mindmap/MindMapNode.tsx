@@ -144,6 +144,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         data-mindmap-node
         data-mindmap-node-id={node.id}
+        onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
         <div className="flex items-center gap-2.5" style={node.nodeWidth ? { width: `${node.nodeWidth}px` } : undefined}>
