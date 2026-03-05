@@ -75,9 +75,9 @@ export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
             x1={c.isLeft ? "100%" : "0%"} y1="0%"
             x2={c.isLeft ? "0%" : "100%"} y2="0%"
           >
-            <stop offset="0%" stopColor={c.lineColor} stopOpacity={0.15} />
-            <stop offset="40%" stopColor={c.lineColor} stopOpacity={0.5} />
-            <stop offset="100%" stopColor={c.lineColor} stopOpacity={0.7} />
+            <stop offset="0%" stopColor={c.lineColor} stopOpacity={0.45} />
+            <stop offset="40%" stopColor={c.lineColor} stopOpacity={0.7} />
+            <stop offset="100%" stopColor={c.lineColor} stopOpacity={0.85} />
           </linearGradient>
         ))}
       </defs>
