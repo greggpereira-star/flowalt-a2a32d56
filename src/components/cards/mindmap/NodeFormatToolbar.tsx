@@ -270,7 +270,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         <Divider />
 
         {/* Notes */}
-        <Popover>
+        <Popover onOpenChange={(open) => { if (!open) onUpdateNode({ notes: notesText.trim() || undefined }); }}>
           <PopoverTrigger asChild>
             <ToolBtn active={!!node.notes} title="Notas">
               <StickyNote className="h-3.5 w-3.5" />
@@ -282,11 +282,10 @@ export const NodeFormatToolbar: React.FC<Props> = ({
               <textarea
                 value={notesText}
                 onChange={(e) => setNotesText(e.target.value)}
-                onBlur={() => onUpdateNode({ notes: notesText.trim() || undefined })}
                 placeholder="Adicione notas ou descrição..."
                 className="w-full h-24 text-xs bg-muted/50 border border-border rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
-              {node.notes && (
+              {notesText && (
                 <button
                   onClick={() => { setNotesText(''); onUpdateNode({ notes: undefined }); }}
                   className="text-[10px] text-destructive hover:underline"
