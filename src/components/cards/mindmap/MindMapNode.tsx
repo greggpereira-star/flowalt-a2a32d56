@@ -86,7 +86,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             )}
             style={{ backgroundColor: node.customColor || '#1e293b', color: '#fff' }}
           >
-            {node.icon && (
+        {node.icon && (
               <span className="text-lg">{node.icon}</span>
             )}
             {!node.icon && (
@@ -96,10 +96,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               >
                 <span className="text-lg">💡</span>
               </div>
-            )}
-
-            {node.imageUrl && (
-              <img src={node.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
             )}
 
             {isEditing ? (
@@ -167,10 +163,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               >
                 <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
               </div>
-            )}
-
-            {node.imageUrl && (
-              <img src={node.imageUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
             )}
 
             {isEditing ? (
@@ -253,10 +245,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           </div>
         )}
 
-        {node.imageUrl && (
-          <img src={node.imageUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-        )}
-
         {isEditing ? (
           <input
             ref={inputRef}
@@ -277,6 +265,21 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           >
             {node.text}
           </span>
+        )}
+
+        {/* Notes & Link indicators */}
+        {node.notes && (
+          <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
+        )}
+        {node.link && (
+          <a
+            href={node.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-[10px] text-primary/60 hover:text-primary"
+            title={node.link}
+          >🔗</a>
         )}
 
         {hasChildren && (

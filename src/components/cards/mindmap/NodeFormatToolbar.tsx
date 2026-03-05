@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  Bold, Italic, Palette, Type, SmilePlus, ImagePlus,
-  ChevronDown, X,
+  Bold, Italic, Palette, Type, SmilePlus,
+  ChevronDown, X, GripHorizontal, Copy, Trash2,
+  StickyNote, Link2, Link2Off,
 } from 'lucide-react';
 import {
   Popover,
@@ -29,6 +30,8 @@ interface Props {
   node: MindMapNode;
   onUpdateNode: (updates: Partial<MindMapNode>) => void;
   onDeselect: () => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 const ToolBtn: React.FC<{
@@ -36,62 +39,121 @@ const ToolBtn: React.FC<{
   onClick?: () => void;
   children: React.ReactNode;
   title?: string;
-}> = ({ active, onClick, children, title }) => (
+  variant?: 'default' | 'danger';
+}> = ({ active, onClick, children, title, variant = 'default' }) => (
   <button
     title={title}
     onClick={onClick}
     className={cn(
-      "h-8 w-8 flex items-center justify-center rounded-lg transition-all duration-150",
+      "h-7 w-7 flex items-center justify-center rounded-md transition-all duration-150",
       "hover:bg-accent active:scale-90",
-      active && "bg-accent text-primary"
+      active && "bg-accent text-primary",
+      variant === 'danger' && "hover:bg-destructive/10 hover:text-destructive"
     )}
   >
     {children}
   </button>
 );
 
+const Divider = () => <div className="w-px h-5 bg-border mx-0.5" />;
+
 export const NodeFormatToolbar: React.FC<Props> = ({
   node,
   onUpdateNode,
   onDeselect,
+  onDuplicate,
+  onDelete,
 }) => {
   const isBold = node.fontWeight === 'bold';
   const isItalic = node.fontStyle === 'italic';
   const currentSize = node.fontSize ?? 13;
 
+  // Draggable state
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Notes state
+  const [notesText, setNotesText] = useState(node.notes || '');
+  const [linkText, setLinkText] = useState(node.link || '');
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      setPos({
+        x: dragRef.current.origX + (ev.clientX - dragRef.current.startX),
+        y: dragRef.current.origY + (ev.clientY - dragRef.current.startY),
+      });
+    };
+    const onUp = () => {
+      setIsDragging(false);
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [pos]);
+
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-in fade-in-0 slide-in-from-top-2 duration-200">
-      <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl px-2 py-1">
-        {/* Node name indicator */}
-        <span className="text-xs text-muted-foreground font-medium px-2 max-w-[120px] truncate border-r border-border mr-1">
+    <div
+      ref={toolbarRef}
+      className={cn(
+        "absolute z-50 pointer-events-auto animate-in fade-in-0 slide-in-from-bottom-2 duration-200",
+        isDragging && "opacity-90"
+      )}
+      style={{
+        bottom: 16,
+        left: '50%',
+        transform: `translate(calc(-50% + ${pos.x}px), ${pos.y}px)`,
+      }}
+    >
+      <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl px-1.5 py-1">
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDragStart}
+          className="h-7 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing rounded-md hover:bg-accent/50 mr-0.5"
+          title="Arraste para mover"
+        >
+          <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+
+        {/* Node name */}
+        <span className="text-[11px] text-muted-foreground font-medium px-1.5 max-w-[100px] truncate border-r border-border mr-0.5">
           {node.text}
         </span>
 
         {/* Bold */}
         <ToolBtn active={isBold} onClick={() => onUpdateNode({ fontWeight: isBold ? 'normal' : 'bold' })} title="Negrito">
-          <Bold className="h-4 w-4" strokeWidth={isBold ? 3 : 2} />
+          <Bold className="h-3.5 w-3.5" strokeWidth={isBold ? 3 : 2} />
         </ToolBtn>
 
         {/* Italic */}
         <ToolBtn active={isItalic} onClick={() => onUpdateNode({ fontStyle: isItalic ? 'normal' : 'italic' })} title="Itálico">
-          <Italic className="h-4 w-4" />
+          <Italic className="h-3.5 w-3.5" />
         </ToolBtn>
 
-        <div className="w-px h-5 bg-border mx-0.5" />
+        <Divider />
 
         {/* Font Size */}
         <Popover>
           <PopoverTrigger asChild>
             <button
               title="Tamanho da fonte"
-              className="h-8 px-2 flex items-center gap-1 rounded-lg hover:bg-accent transition-all text-xs font-medium text-muted-foreground"
+              className="h-7 px-1.5 flex items-center gap-0.5 rounded-md hover:bg-accent transition-all text-[11px] font-medium text-muted-foreground"
             >
-              <Type className="h-3.5 w-3.5" />
+              <Type className="h-3 w-3" />
               <span className="tabular-nums">{currentSize}</span>
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-2.5 w-2.5" />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="bottom" className="w-52 p-3" sideOffset={8}>
+          <PopoverContent side="top" className="w-48 p-3" sideOffset={8}>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Tamanho</span>
@@ -110,7 +172,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
                     key={s}
                     onClick={() => onUpdateNode({ fontSize: s })}
                     className={cn(
-                      "flex-1 py-1 rounded-md text-[11px] font-medium transition-colors",
+                      "flex-1 py-1 rounded-md text-[10px] font-medium transition-colors",
                       currentSize === s ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
                     )}
                   >
@@ -122,22 +184,22 @@ export const NodeFormatToolbar: React.FC<Props> = ({
           </PopoverContent>
         </Popover>
 
-        <div className="w-px h-5 bg-border mx-0.5" />
+        <Divider />
 
         {/* Color */}
         <Popover>
           <PopoverTrigger asChild>
-            <button title="Cor" className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent transition-all">
+            <button title="Cor" className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-all">
               <div className="relative">
-                <Palette className="h-4 w-4 text-muted-foreground" />
+                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
                 <div
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card"
+                  className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-card"
                   style={{ backgroundColor: node.customColor || node.color }}
                 />
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent side="bottom" className="w-auto p-3" sideOffset={8}>
+          <PopoverContent side="top" className="w-auto p-3" sideOffset={8}>
             <div className="space-y-2">
               <span className="text-xs font-medium text-muted-foreground">Cor do nó</span>
               <div className="grid grid-cols-10 gap-1.5">
@@ -146,8 +208,8 @@ export const NodeFormatToolbar: React.FC<Props> = ({
                     key={c}
                     onClick={() => onUpdateNode({ customColor: c })}
                     className={cn(
-                      "w-6 h-6 rounded-full transition-all hover:scale-125 active:scale-90",
-                      (node.customColor || node.color) === c && "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                      "w-5 h-5 rounded-full transition-all hover:scale-125 active:scale-90",
+                      (node.customColor || node.color) === c && "ring-2 ring-primary ring-offset-1 ring-offset-card"
                     )}
                     style={{ backgroundColor: c }}
                   />
@@ -160,15 +222,15 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         {/* Icon */}
         <Popover>
           <PopoverTrigger asChild>
-            <button title="Ícone" className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent transition-all">
+            <button title="Ícone" className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-all">
               {node.icon ? (
-                <span className="text-sm">{node.icon}</span>
+                <span className="text-xs">{node.icon}</span>
               ) : (
-                <SmilePlus className="h-4 w-4 text-muted-foreground" />
+                <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </button>
           </PopoverTrigger>
-          <PopoverContent side="bottom" className="w-auto p-3" sideOffset={8}>
+          <PopoverContent side="top" className="w-auto p-3" sideOffset={8}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Ícone</span>
@@ -187,7 +249,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
                     key={ic}
                     onClick={() => onUpdateNode({ icon: ic })}
                     className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center text-base hover:bg-accent transition-all hover:scale-110 active:scale-90",
+                      "w-7 h-7 rounded-md flex items-center justify-center text-sm hover:bg-accent transition-all hover:scale-110 active:scale-90",
                       node.icon === ic && "bg-accent ring-1 ring-primary"
                     )}
                   >
@@ -199,23 +261,96 @@ export const NodeFormatToolbar: React.FC<Props> = ({
           </PopoverContent>
         </Popover>
 
-        <div className="w-px h-5 bg-border mx-0.5" />
+        <Divider />
 
-        {/* Image */}
-        <ToolBtn
-          title="Adicionar imagem"
-          onClick={() => {
-            const url = prompt('Cole a URL da imagem:');
-            if (url?.trim()) onUpdateNode({ imageUrl: url.trim() });
-          }}
-        >
-          <ImagePlus className="h-4 w-4 text-muted-foreground" />
-        </ToolBtn>
+        {/* Notes */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolBtn active={!!node.notes} title="Notas">
+              <StickyNote className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </PopoverTrigger>
+          <PopoverContent side="top" className="w-64 p-3" sideOffset={8}>
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">Notas do nó</span>
+              <textarea
+                value={notesText}
+                onChange={(e) => setNotesText(e.target.value)}
+                onBlur={() => onUpdateNode({ notes: notesText.trim() || undefined })}
+                placeholder="Adicione notas ou descrição..."
+                className="w-full h-24 text-xs bg-muted/50 border border-border rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+              />
+              {node.notes && (
+                <button
+                  onClick={() => { setNotesText(''); onUpdateNode({ notes: undefined }); }}
+                  className="text-[10px] text-destructive hover:underline"
+                >
+                  Limpar notas
+                </button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Link */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolBtn active={!!node.link} title="Link">
+              {node.link ? <Link2 className="h-3.5 w-3.5" /> : <Link2Off className="h-3.5 w-3.5" />}
+            </ToolBtn>
+          </PopoverTrigger>
+          <PopoverContent side="top" className="w-64 p-3" sideOffset={8}>
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">Link externo</span>
+              <input
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                onBlur={() => onUpdateNode({ link: linkText.trim() || undefined })}
+                onKeyDown={(e) => { if (e.key === 'Enter') onUpdateNode({ link: linkText.trim() || undefined }); }}
+                placeholder="https://..."
+                className="w-full text-xs bg-muted/50 border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+              />
+              {node.link && (
+                <div className="flex items-center justify-between">
+                  <a
+                    href={node.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline truncate max-w-[180px]"
+                  >
+                    {node.link}
+                  </a>
+                  <button
+                    onClick={() => { setLinkText(''); onUpdateNode({ link: undefined }); }}
+                    className="text-[10px] text-destructive hover:underline ml-2"
+                  >
+                    Remover
+                  </button>
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Divider />
+
+        {/* Duplicate */}
+        {onDuplicate && node.id !== 'root' && (
+          <ToolBtn title="Duplicar nó" onClick={onDuplicate}>
+            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+          </ToolBtn>
+        )}
+
+        {/* Delete */}
+        {onDelete && node.id !== 'root' && (
+          <ToolBtn title="Excluir nó" onClick={onDelete} variant="danger">
+            <Trash2 className="h-3.5 w-3.5" />
+          </ToolBtn>
+        )}
 
         {/* Close */}
-        <div className="w-px h-5 bg-border mx-0.5" />
         <ToolBtn title="Fechar" onClick={onDeselect}>
-          <X className="h-3.5 w-3.5 text-muted-foreground" />
+          <X className="h-3 w-3 text-muted-foreground" />
         </ToolBtn>
       </div>
     </div>
