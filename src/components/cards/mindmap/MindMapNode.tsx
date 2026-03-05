@@ -44,6 +44,12 @@ export const MindMapNodeComponent: React.FC<Props> = ({
   const isEditing = editingNodeId === node.id;
   const hasChildren = allNodes.some(n => n.parentId === node.id);
   const childCount = allNodes.filter(n => n.parentId === node.id).length;
+  const nodeColor = node.customColor || palette.bg;
+  const textStyle: React.CSSProperties = {
+    fontSize: node.fontSize ? `${node.fontSize}px` : undefined,
+    fontWeight: node.fontWeight || undefined,
+    fontStyle: node.fontStyle || undefined,
+  };
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
