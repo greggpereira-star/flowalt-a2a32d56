@@ -87,6 +87,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   onDeselect,
   onDuplicate,
   onDelete,
+  onAddAttachmentNode,
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
