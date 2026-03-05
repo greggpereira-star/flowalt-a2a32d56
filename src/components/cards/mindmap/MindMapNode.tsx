@@ -44,6 +44,12 @@ export const MindMapNodeComponent: React.FC<Props> = ({
   const isEditing = editingNodeId === node.id;
   const hasChildren = allNodes.some(n => n.parentId === node.id);
   const childCount = allNodes.filter(n => n.parentId === node.id).length;
+  const nodeColor = node.customColor || palette.bg;
+  const textStyle: React.CSSProperties = {
+    fontSize: node.fontSize ? `${node.fontSize}px` : undefined,
+    fontWeight: node.fontWeight || undefined,
+    fontStyle: node.fontStyle || undefined,
+  };
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -78,14 +84,23 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)]",
               isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
             )}
-            style={{ backgroundColor: '#1e293b', color: '#fff' }}
+            style={{ backgroundColor: node.customColor || '#1e293b', color: '#fff' }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06))' }}
-            >
-              <span className="text-lg">💡</span>
-            </div>
+            {node.icon && (
+              <span className="text-lg">{node.icon}</span>
+            )}
+            {!node.icon && (
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06))' }}
+              >
+                <span className="text-lg">💡</span>
+              </div>
+            )}
+
+            {node.imageUrl && (
+              <img src={node.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
+            )}
 
             {isEditing ? (
               <input
@@ -98,7 +113,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-lg font-bold tracking-tight whitespace-nowrap">{node.text}</span>
+              <span className="text-lg font-bold tracking-tight whitespace-nowrap" style={textStyle}>{node.text}</span>
             )}
           </div>
 
@@ -134,8 +149,8 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               isSelected && "ring-2 ring-offset-2 ring-offset-background"
             )}
             style={{
-              backgroundColor: palette.bg,
-              ...(isSelected ? { '--tw-ring-color': palette.bg } as React.CSSProperties : {}),
+              backgroundColor: nodeColor,
+              ...(isSelected ? { '--tw-ring-color': nodeColor } as React.CSSProperties : {}),
             }}
           >
             {/* Grip handle on hover */}
@@ -143,12 +158,20 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               <GripVertical className="h-3.5 w-3.5 text-white" />
             </div>
 
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }}
-            >
-              <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
-            </div>
+            {node.icon ? (
+              <span className="text-base">{node.icon}</span>
+            ) : (
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }}
+              >
+                <span className="text-white text-xs font-bold">{node.text.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+
+            {node.imageUrl && (
+              <img src={node.imageUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
+            )}
 
             {isEditing ? (
               <input
@@ -161,7 +184,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm">
+              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm" style={textStyle}>
                 {node.text}
               </span>
             )}
@@ -187,7 +210,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "flex items-center justify-center w-6 h-6 rounded-full shadow-md",
               "opacity-0 group-hover/branch:opacity-100 hover:scale-110 active:scale-90 transition-all duration-150"
             )}
-            style={{ backgroundColor: palette.bg, color: '#fff' }}
+            style={{ backgroundColor: nodeColor, color: '#fff' }}
           >
             <Plus className="h-3 w-3" strokeWidth={2.5} />
           </button>
@@ -212,19 +235,27 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         "flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg transition-all duration-150",
         isSelected ? "bg-accent/60" : "hover:bg-accent/30"
       )}>
-        {/* Colored dot with pulse on selected */}
-        <div className="relative flex-shrink-0">
-          <div
-            className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
-            style={{ backgroundColor: palette.bg }}
-          />
-          {isSelected && (
+        {/* Icon or colored dot */}
+        {node.icon ? (
+          <span className="text-sm flex-shrink-0">{node.icon}</span>
+        ) : (
+          <div className="relative flex-shrink-0">
             <div
-              className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
-              style={{ backgroundColor: palette.bg }}
+              className={cn("w-2.5 h-2.5 rounded-full transition-transform duration-200", isSelected && "scale-125")}
+              style={{ backgroundColor: nodeColor }}
             />
-          )}
-        </div>
+            {isSelected && (
+              <div
+                className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-30"
+                style={{ backgroundColor: nodeColor }}
+              />
+            )}
+          </div>
+        )}
+
+        {node.imageUrl && (
+          <img src={node.imageUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+        )}
 
         {isEditing ? (
           <input
@@ -242,6 +273,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               "text-[13px] whitespace-nowrap transition-all duration-150 leading-none",
               isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
             )}
+            style={textStyle}
           >
             {node.text}
           </span>
@@ -251,7 +283,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           <button
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
             className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
-            style={{ backgroundColor: `${palette.bg}18`, color: palette.bg }}
+            style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
           >
             {node.collapsed ? (
               <span className="text-[9px] font-bold">{childCount}</span>
@@ -267,7 +299,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             "flex items-center justify-center w-4 h-4 rounded-full transition-all",
             "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
           )}
-          style={{ backgroundColor: palette.bg, color: '#fff' }}
+          style={{ backgroundColor: nodeColor, color: '#fff' }}
         >
           <Plus className="h-2.5 w-2.5" strokeWidth={3} />
         </button>
