@@ -145,7 +145,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5" style={node.nodeWidth ? { width: `${node.nodeWidth}px` } : undefined}>
           <div
             className={cn(
               "relative flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-xl transition-all duration-200",
@@ -256,7 +256,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: '240px' }}>
+        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px', width: node.nodeWidth ? `${node.nodeWidth}px` : undefined }}>
           {isEditing ? (
             <input
               ref={inputRef}

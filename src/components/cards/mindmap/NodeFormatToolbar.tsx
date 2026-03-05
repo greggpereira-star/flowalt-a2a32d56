@@ -4,6 +4,7 @@ import {
   Bold, Italic, Palette, Type, SmilePlus,
   ChevronDown, X, GripHorizontal, Copy, Trash2,
   StickyNote, Link2, Link2Off, Paperclip, Loader2,
+  RectangleHorizontal,
 } from 'lucide-react';
 import {
   Popover,
@@ -95,6 +96,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   const isBold = node.fontWeight === 'bold';
   const isItalic = node.fontStyle === 'italic';
   const currentSize = node.fontSize ?? 13;
+  const currentWidth = node.nodeWidth ?? 0; // 0 = auto
 
   // Draggable state
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -255,6 +257,55 @@ export const NodeFormatToolbar: React.FC<Props> = ({
                     )}
                   >
                     {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Node Width */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              title="Largura do card"
+              className="h-7 px-1.5 flex items-center gap-0.5 rounded-md hover:bg-accent transition-all text-[11px] font-medium text-muted-foreground"
+            >
+              <RectangleHorizontal className="h-3 w-3" />
+              <span className="tabular-nums">{currentWidth || 'Auto'}</span>
+              <ChevronDown className="h-2.5 w-2.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" className="w-52 p-3" sideOffset={8}>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Largura</span>
+                <span className="text-xs font-bold tabular-nums text-foreground">{currentWidth ? `${currentWidth}px` : 'Auto'}</span>
+              </div>
+              <Slider
+                value={[currentWidth]}
+                min={0}
+                max={400}
+                step={10}
+                onValueChange={([v]) => onUpdateNode({ nodeWidth: v })}
+              />
+              <div className="flex gap-1">
+                {[
+                  { label: 'Auto', value: 0 },
+                  { label: '120', value: 120 },
+                  { label: '180', value: 180 },
+                  { label: '240', value: 240 },
+                  { label: '320', value: 320 },
+                ].map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => onUpdateNode({ nodeWidth: s.value })}
+                    className={cn(
+                      "flex-1 py-1 rounded-md text-[10px] font-medium transition-colors",
+                      currentWidth === s.value ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
+                    )}
+                  >
+                    {s.label}
                   </button>
                 ))}
               </div>
