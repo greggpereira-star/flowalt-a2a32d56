@@ -283,7 +283,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           <button
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
             className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110 active:scale-90"
-            style={{ backgroundColor: `${palette.bg}18`, color: palette.bg }}
+            style={{ backgroundColor: `${nodeColor}18`, color: nodeColor }}
           >
             {node.collapsed ? (
               <span className="text-[9px] font-bold">{childCount}</span>
