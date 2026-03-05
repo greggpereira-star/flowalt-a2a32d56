@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Bold, Italic, Palette, Type, SmilePlus,
@@ -77,6 +77,12 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   // Notes state
   const [notesText, setNotesText] = useState(node.notes || '');
   const [linkText, setLinkText] = useState(node.link || '');
+
+  // Sync state when selected node changes
+  useEffect(() => {
+    setNotesText(node.notes || '');
+    setLinkText(node.link || '');
+  }, [node.id, node.notes, node.link]);
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -264,7 +270,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         <Divider />
 
         {/* Notes */}
-        <Popover>
+        <Popover onOpenChange={(open) => { if (!open) onUpdateNode({ notes: notesText.trim() || undefined }); }}>
           <PopoverTrigger asChild>
             <ToolBtn active={!!node.notes} title="Notas">
               <StickyNote className="h-3.5 w-3.5" />
@@ -276,11 +282,10 @@ export const NodeFormatToolbar: React.FC<Props> = ({
               <textarea
                 value={notesText}
                 onChange={(e) => setNotesText(e.target.value)}
-                onBlur={() => onUpdateNode({ notes: notesText.trim() || undefined })}
                 placeholder="Adicione notas ou descrição..."
                 className="w-full h-24 text-xs bg-muted/50 border border-border rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
-              {node.notes && (
+              {notesText && (
                 <button
                   onClick={() => { setNotesText(''); onUpdateNode({ notes: undefined }); }}
                   className="text-[10px] text-destructive hover:underline"
@@ -293,7 +298,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         </Popover>
 
         {/* Link */}
-        <Popover>
+        <Popover onOpenChange={(open) => { if (!open) onUpdateNode({ link: linkText.trim() || undefined }); }}>
           <PopoverTrigger asChild>
             <ToolBtn active={!!node.link} title="Link">
               {node.link ? <Link2 className="h-3.5 w-3.5" /> : <Link2Off className="h-3.5 w-3.5" />}
@@ -305,20 +310,19 @@ export const NodeFormatToolbar: React.FC<Props> = ({
               <input
                 value={linkText}
                 onChange={(e) => setLinkText(e.target.value)}
-                onBlur={() => onUpdateNode({ link: linkText.trim() || undefined })}
                 onKeyDown={(e) => { if (e.key === 'Enter') onUpdateNode({ link: linkText.trim() || undefined }); }}
                 placeholder="https://..."
                 className="w-full text-xs bg-muted/50 border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
-              {node.link && (
+              {linkText && (
                 <div className="flex items-center justify-between">
                   <a
-                    href={node.link}
+                    href={linkText}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-primary hover:underline truncate max-w-[180px]"
                   >
-                    {node.link}
+                    {linkText}
                   </a>
                   <button
                     onClick={() => { setLinkText(''); onUpdateNode({ link: undefined }); }}
