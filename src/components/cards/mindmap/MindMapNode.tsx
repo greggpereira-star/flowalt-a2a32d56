@@ -81,7 +81,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         style={{ left: node.x, top: node.y, transform: `translate(-50%, -50%)${isDragging ? ' scale(1.03)' : ''}` }}
         onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
         data-mindmap-node
-        onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(node.id); }}
+        data-mindmap-node-id={node.id}
         onMouseDown={(e) => onDragStart(e, node.id)}
       >
         <div className="flex items-center gap-3">
