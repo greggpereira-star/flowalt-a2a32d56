@@ -231,7 +231,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     >
       <div className={cn(
         "flex items-start gap-2 py-1.5 px-2 -ml-2 rounded-lg transition-all duration-150",
-        isSelected ? "bg-accent/60" : "hover:bg-accent/30"
+        isSelected ? "bg-card shadow-sm border border-border" : "bg-card/95 hover:bg-card hover:shadow-sm"
       )}>
         {/* Icon or colored dot */}
         <div className="mt-[3px]">
