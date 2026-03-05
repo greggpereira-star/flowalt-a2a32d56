@@ -256,7 +256,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: '240px' }}>
+        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px', width: node.nodeWidth ? `${node.nodeWidth}px` : undefined }}>
           {isEditing ? (
             <input
               ref={inputRef}
