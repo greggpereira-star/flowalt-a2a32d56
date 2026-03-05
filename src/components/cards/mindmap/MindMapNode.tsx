@@ -4,6 +4,12 @@ import { cn } from '@/lib/utils';
 import { MindMapNode as NodeType } from './types';
 import { getBranchPalette, getNodeDepth } from './utils';
 
+const normalizeNodeLink = (value?: string) => {
+  if (!value) return '#';
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
+  return `https://${value}`;
+};
+
 interface Props {
   node: NodeType;
   allNodes: NodeType[];

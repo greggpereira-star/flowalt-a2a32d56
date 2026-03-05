@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import {
   Bold, Italic, Palette, Type, SmilePlus,
   ChevronDown, X, GripHorizontal, Copy, Trash2,
-  StickyNote, Link2, Link2Off,
+  StickyNote, Link2, Link2Off, Paperclip, Loader2,
 } from 'lucide-react';
 import {
   Popover,
@@ -11,6 +11,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { MindMapNode } from './types';
 
 const COLOR_SWATCHES = [
