@@ -253,7 +253,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: '240px' }}>
           {isEditing ? (
             <input
               ref={inputRef}
@@ -261,16 +261,16 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               onChange={(e) => onEditChange(e.target.value)}
               onBlur={onEditSave}
               onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-[13px] min-w-[80px] text-foreground"
+              className="bg-transparent border-none outline-none text-[13px] min-w-[100px] text-foreground"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <span
               className={cn(
-                "text-[13px] transition-all duration-150 leading-relaxed",
+                "text-[13px] transition-colors duration-150 leading-[1.5]",
                 isSelected ? "font-semibold text-foreground" : "font-normal text-muted-foreground"
               )}
-              style={{ ...textStyle, maxWidth: '220px', wordBreak: 'break-word' }}
+              style={{ ...textStyle, overflowWrap: 'break-word' }}
             >
               {node.text}
             </span>
