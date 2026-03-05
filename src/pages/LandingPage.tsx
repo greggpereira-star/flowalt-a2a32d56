@@ -1,5 +1,4 @@
 import React from 'react';
-import { usePageTracking } from '@/hooks/usePageTracking';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { TrustSection } from '@/components/landing/TrustSection';
