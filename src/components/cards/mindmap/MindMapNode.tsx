@@ -165,10 +165,6 @@ export const MindMapNodeComponent: React.FC<Props> = ({
               </div>
             )}
 
-            {node.imageUrl && (
-              <img src={node.imageUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
-            )}
-
             {isEditing ? (
               <input
                 ref={inputRef}

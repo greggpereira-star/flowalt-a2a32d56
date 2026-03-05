@@ -12,6 +12,8 @@ export interface MindMapNode {
   fontStyle?: 'normal' | 'italic';
   customColor?: string;
   imageUrl?: string;
+  notes?: string;
+  link?: string;
 }
 
 export interface BranchPalette {
