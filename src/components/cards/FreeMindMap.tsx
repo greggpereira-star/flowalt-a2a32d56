@@ -334,8 +334,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
         <NodeFormatToolbar
           node={selectedNode}
           onUpdateNode={(updates) => handleUpdateNode(selectedNode.id, updates)}
-          canvasZoom={zoom}
-          panOffset={pan}
+          onDeselect={() => setSelectedNodeId(null)}
         />
       )}
 
