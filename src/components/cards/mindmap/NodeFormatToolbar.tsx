@@ -96,6 +96,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
   const isBold = node.fontWeight === 'bold';
   const isItalic = node.fontStyle === 'italic';
   const currentSize = node.fontSize ?? 13;
+  const currentWidth = node.nodeWidth ?? 0; // 0 = auto
 
   // Draggable state
   const [pos, setPos] = useState({ x: 0, y: 0 });
