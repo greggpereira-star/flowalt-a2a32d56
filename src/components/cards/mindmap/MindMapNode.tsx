@@ -299,7 +299,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             "flex items-center justify-center w-4 h-4 rounded-full transition-all",
             "opacity-0 group-hover/leaf:opacity-100 hover:scale-125 active:scale-90"
           )}
-          style={{ backgroundColor: palette.bg, color: '#fff' }}
+          style={{ backgroundColor: nodeColor, color: '#fff' }}
         >
           <Plus className="h-2.5 w-2.5" strokeWidth={3} />
         </button>
