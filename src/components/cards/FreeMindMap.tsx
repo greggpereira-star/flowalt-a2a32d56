@@ -18,6 +18,7 @@ import {
 import { MindMapConnections } from './mindmap/MindMapConnections';
 import { MindMapNodeComponent } from './mindmap/MindMapNode';
 import { MindMapToolbar } from './mindmap/MindMapToolbar';
+import { NodeFormatToolbar } from './mindmap/NodeFormatToolbar';
 
 // Re-export type for backward compatibility
 export type { MindMapNode } from './mindmap/types';
