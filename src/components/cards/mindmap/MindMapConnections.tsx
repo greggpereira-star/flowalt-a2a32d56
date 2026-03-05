@@ -7,10 +7,8 @@ interface Props {
 }
 
 export const MindMapConnections: React.FC<Props> = ({ nodes }) => {
-  const childNodes = useMemo(() => nodes.filter(n => n.parentId), [nodes]);
-
   const connections = useMemo(() => {
-    return childNodes.map(node => {
+    return nodes.filter(n => n.parentId).map(node => {
       const parent = nodes.find(n => n.id === node.parentId);
       if (!parent) return null;
 

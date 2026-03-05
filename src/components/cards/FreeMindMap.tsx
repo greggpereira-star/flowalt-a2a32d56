@@ -336,29 +336,24 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
       ? BRANCH_PALETTES[siblings.length % BRANCH_PALETTES.length]
       : getBranchPalette(parentId, nodesRef.current);
 
+    let newY = parent.y;
+    if (siblings.length > 0) {
+      const maxY = Math.max(...siblings.map(s => s.y));
+      newY = maxY + ySpacing;
+    }
+
     const newNode: MindMapNode = {
       id: generateId(),
       text: fileName,
       x: parent.x + xGap,
-      y: parent.y,
+      y: newY,
       parentId,
       color: palette.bg,
       icon,
       link: fileUrl,
     };
 
-    const allSiblings = [...siblings, newNode];
-    const centerY = parent.y;
-    const totalH = allSiblings.length * ySpacing;
-    const startY = centerY - totalH / 2 + ySpacing / 2;
-    const updates = new Map<string, number>();
-    allSiblings.forEach((s, i) => updates.set(s.id, startY + i * ySpacing));
-
-    setNodes(prev => {
-      const next = prev.map(n => updates.has(n.id) ? { ...n, y: updates.get(n.id)! } : n);
-      return [...next, { ...newNode, y: updates.get(newNode.id) ?? newNode.y }];
-    });
-
+    setNodes(prev => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
     setHasUnsavedChanges(true);
   }, []);
