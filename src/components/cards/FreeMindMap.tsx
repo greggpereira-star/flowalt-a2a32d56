@@ -45,6 +45,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
   const [editText, setEditText] = useState('');
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragDescendantOffsets, setDragDescendantOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
