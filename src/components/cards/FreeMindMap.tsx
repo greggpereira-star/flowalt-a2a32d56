@@ -323,6 +323,50 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
     setHasUnsavedChanges(true);
   }, []);
 
+  const addAttachmentNode = useCallback((parentId: string, fileName: string, fileUrl: string, icon: string) => {
+    const parent = nodesRef.current.find(n => n.id === parentId);
+    if (!parent) return;
+
+    if (parent.collapsed) {
+      setNodes(prev => prev.map(n => n.id === parentId ? { ...n, collapsed: false } : n));
+    }
+
+    const siblings = nodesRef.current.filter(n => n.parentId === parentId);
+    const depth = getNodeDepth(parentId, nodesRef.current);
+    const xGap = depth === 0 ? 320 : depth === 1 ? 260 : 200;
+    const ySpacing = depth === 0 ? 180 : depth === 1 ? 100 : 60;
+
+    const palette = parentId === 'root'
+      ? BRANCH_PALETTES[siblings.length % BRANCH_PALETTES.length]
+      : getBranchPalette(parentId, nodesRef.current);
+
+    const newNode: MindMapNode = {
+      id: generateId(),
+      text: fileName,
+      x: parent.x + xGap,
+      y: parent.y,
+      parentId,
+      color: palette.bg,
+      icon,
+      link: fileUrl,
+    };
+
+    const allSiblings = [...siblings, newNode];
+    const centerY = parent.y;
+    const totalH = allSiblings.length * ySpacing;
+    const startY = centerY - totalH / 2 + ySpacing / 2;
+    const updates = new Map<string, number>();
+    allSiblings.forEach((s, i) => updates.set(s.id, startY + i * ySpacing));
+
+    setNodes(prev => {
+      const next = prev.map(n => updates.has(n.id) ? { ...n, y: updates.get(n.id)! } : n);
+      return [...next, { ...newNode, y: updates.get(newNode.id) ?? newNode.y }];
+    });
+
+    setSelectedNodeId(newNode.id);
+    setHasUnsavedChanges(true);
+  }, []);
+
   // ===== RENDER =====
 
   const visibleNodes = getVisibleNodes(nodes);
@@ -351,6 +395,7 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
           onDeselect={() => setSelectedNodeId(null)}
           onDuplicate={() => duplicateNode(selectedNode.id)}
           onDelete={() => deleteNode(selectedNode.id)}
+          onAddAttachmentNode={(fileName, fileUrl, icon) => addAttachmentNode(selectedNode.id, fileName, fileUrl, icon)}
         />
       )}
 
