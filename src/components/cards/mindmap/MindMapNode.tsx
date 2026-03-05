@@ -279,7 +279,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
         )}
         {node.link && (
           <a
-            href={node.link}
+            href={normalizeNodeLink(node.link)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
