@@ -160,13 +160,16 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
-      const nextNotes = node.notes ? `${node.notes}\n📎 ${file.name}` : `📎 ${file.name}`;
+      const icon = getFileIcon(file.name);
 
-      onUpdateNode({ link: publicUrl, notes: nextNotes });
-      setLinkText(publicUrl);
-      setNotesText(nextNotes);
+      if (onAddAttachmentNode) {
+        onAddAttachmentNode(file.name, publicUrl, icon);
+      } else {
+        // Fallback: update current node
+        onUpdateNode({ link: publicUrl, notes: `📎 ${file.name}` });
+      }
 
-      toast({ title: 'Arquivo anexado ao nó.' });
+      toast({ title: 'Arquivo anexado com sucesso!' });
     } catch (error) {
       console.error(error);
       toast({ title: 'Não foi possível enviar o arquivo.' });
