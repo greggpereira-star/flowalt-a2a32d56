@@ -267,6 +267,21 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           </span>
         )}
 
+        {/* Notes & Link indicators */}
+        {node.notes && (
+          <span className="text-[10px] text-muted-foreground/60" title={node.notes}>📝</span>
+        )}
+        {node.link && (
+          <a
+            href={node.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-[10px] text-primary/60 hover:text-primary"
+            title={node.link}
+          >🔗</a>
+        )}
+
         {hasChildren && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(node.id); }}
