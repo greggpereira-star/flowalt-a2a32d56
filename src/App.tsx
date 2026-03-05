@@ -39,6 +39,7 @@ import TermsOfServicePage from "./pages/TermsOfServicePage";
 import BirthdaysPage from "./pages/BirthdaysPage";
 import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 import { AltControlPage } from "./pages/altcontrol/AltControlPage";
 import { NewProposalPage } from "./pages/altcontrol/NewProposalPage";
 import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
@@ -59,6 +60,7 @@ const App = () => (
             <CommandPalette />
             <KeyboardShortcutsDialog />
             <Routes>
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/data-deletion" element={<DataDeletionPage />} />
