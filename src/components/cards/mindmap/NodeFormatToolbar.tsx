@@ -298,7 +298,7 @@ export const NodeFormatToolbar: React.FC<Props> = ({
         </Popover>
 
         {/* Link */}
-        <Popover>
+        <Popover onOpenChange={(open) => { if (!open) onUpdateNode({ link: linkText.trim() || undefined }); }}>
           <PopoverTrigger asChild>
             <ToolBtn active={!!node.link} title="Link">
               {node.link ? <Link2 className="h-3.5 w-3.5" /> : <Link2Off className="h-3.5 w-3.5" />}
@@ -310,20 +310,19 @@ export const NodeFormatToolbar: React.FC<Props> = ({
               <input
                 value={linkText}
                 onChange={(e) => setLinkText(e.target.value)}
-                onBlur={() => onUpdateNode({ link: linkText.trim() || undefined })}
                 onKeyDown={(e) => { if (e.key === 'Enter') onUpdateNode({ link: linkText.trim() || undefined }); }}
                 placeholder="https://..."
                 className="w-full text-xs bg-muted/50 border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
-              {node.link && (
+              {linkText && (
                 <div className="flex items-center justify-between">
                   <a
-                    href={node.link}
+                    href={linkText}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-primary hover:underline truncate max-w-[180px]"
                   >
-                    {node.link}
+                    {linkText}
                   </a>
                   <button
                     onClick={() => { setLinkText(''); onUpdateNode({ link: undefined }); }}
