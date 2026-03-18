@@ -414,13 +414,18 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
               )}
             />
 
+            {/* Anexos */}
+            <TransactionAttachments transactionId={createdTransactionId ?? transaction?.id} />
+
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
+              <Button type="button" variant="outline" onClick={handleClose}>
+                {createdTransactionId ? "Fechar" : "Cancelar"}
               </Button>
-              <Button type="submit" disabled={createTransaction.isPending}>
-                {createTransaction.isPending ? "Salvando..." : "Salvar"}
-              </Button>
+              {!createdTransactionId && (
+                <Button type="submit" disabled={createTransaction.isPending}>
+                  {createTransaction.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              )}
             </div>
           </form>
         </Form>
