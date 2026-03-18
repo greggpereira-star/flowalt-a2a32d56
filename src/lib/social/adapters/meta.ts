@@ -90,8 +90,8 @@ export class InstagramAdapter implements SocialPlatformAdapter {
     const response = await fetch(
       `${META_GRAPH_API_BASE}/oauth/access_token?` +
       `grant_type=fb_exchange_token&` +
-      `client_id=${process.env.META_APP_ID}&` +
-      `client_secret=${process.env.META_APP_SECRET}&` +
+      `client_id=${(import.meta as any).env?.META_APP_ID || ''}&` +
+      `client_secret=${(import.meta as any).env?.META_APP_SECRET || ''}&` +
       `fb_exchange_token=${refreshToken}`
     );
 

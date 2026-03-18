@@ -62,7 +62,7 @@ export const useGlobalShortcuts = (
   useEffect(() => {
     let gPressed = false;
     let vPressed = false;
-    let prefixTimeout: NodeJS.Timeout | null = null;
+    let prefixTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in input/textarea
