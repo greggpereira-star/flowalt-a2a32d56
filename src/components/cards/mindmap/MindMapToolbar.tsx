@@ -98,6 +98,16 @@ export const MindMapToolbar: React.FC<Props> = ({
           <Maximize2 className="h-4 w-4 text-muted-foreground" />
         </ToolbarButton>
 
+        <div className="h-px bg-border mx-1 my-0.5" />
+
+        <ToolbarButton onClick={onExportPng} title="Exportar como PNG">
+          <Image className="h-4 w-4 text-muted-foreground" />
+        </ToolbarButton>
+
+        <ToolbarButton onClick={onExportPdf} title="Exportar como PDF">
+          <FileDown className="h-4 w-4 text-muted-foreground" />
+        </ToolbarButton>
+
         {selectedNodeId && selectedNodeId !== 'root' && (
           <>
             <div className="h-px bg-border mx-1 my-0.5" />
