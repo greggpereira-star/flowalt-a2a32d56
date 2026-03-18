@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ZoomIn, ZoomOut, Maximize2, Save, Trash2, LayoutGrid,
-  Keyboard, MousePointer2,
+  Keyboard, MousePointer2, Image, FileDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
