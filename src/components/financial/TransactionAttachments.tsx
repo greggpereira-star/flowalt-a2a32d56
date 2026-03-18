@@ -41,6 +41,14 @@ const getFileColor = (type: string | null): string => {
   return 'text-muted-foreground';
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return fallback;
+};
+
 export const TransactionAttachments: React.FC<TransactionAttachmentsProps> = ({
   transactionId,
   compact = false,
@@ -58,21 +66,36 @@ export const TransactionAttachments: React.FC<TransactionAttachmentsProps> = ({
       try {
         await uploadAttachment.mutateAsync({ transaction_id: transactionId, file });
         toast.success(`${file.name} anexado com sucesso`);
-      } catch {
-        toast.error(`Erro ao anexar ${file.name}`);
+      } catch (error) {
+        toast.error(`Erro ao anexar ${file.name}: ${getErrorMessage(error, 'falha no upload')}`);
       }
     }
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleDelete = async (att: { id: string; file_url: string }) => {
+  const handleDelete = async (att: { id: string; file_url: string; file_path?: string | null }) => {
     if (!transactionId) return;
     try {
-      await deleteAttachment.mutateAsync({ id: att.id, transaction_id: transactionId, file_url: att.file_url });
+      await deleteAttachment.mutateAsync({
+        id: att.id,
+        transaction_id: transactionId,
+        file_url: att.file_url,
+        file_path: att.file_path,
+      });
       toast.success('Anexo removido');
-    } catch {
-      toast.error('Erro ao remover anexo');
+    } catch (error) {
+      toast.error(`Erro ao remover anexo: ${getErrorMessage(error, 'falha na exclusão')}`);
     }
+  };
+
+  const handleDownload = (downloadUrl: string | null) => {
+    if (!downloadUrl) {
+      toast.error('Não foi possível gerar o link seguro do arquivo');
+      return;
+    }
+
+    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (!transactionId) {
@@ -156,7 +179,8 @@ export const TransactionAttachments: React.FC<TransactionAttachmentsProps> = ({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => window.open(att.file_url, '_blank')}
+                    disabled={!att.download_url}
+                    onClick={() => handleDownload(att.download_url)}
                   >
                     <Download className="h-3.5 w-3.5" />
                   </Button>
