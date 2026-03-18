@@ -123,15 +123,21 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
 
   const filteredCategories = categories.filter(c => c.type === watchType);
 
+  const handleClose = () => {
+    setOpen(false);
+    setCreatedTransactionId(null);
+    form.reset();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
           Novo Lançamento
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{transaction ? "Editar" : "Novo"} Lançamento</DialogTitle>
         </DialogHeader>
