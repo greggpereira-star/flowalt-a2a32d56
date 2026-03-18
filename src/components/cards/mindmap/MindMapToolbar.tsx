@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ZoomIn, ZoomOut, Maximize2, Save, Trash2, LayoutGrid,
-  Keyboard, MousePointer2,
+  Keyboard, MousePointer2, Image, FileDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -22,6 +22,8 @@ interface Props {
   onSave: () => void;
   onDelete: () => void;
   onAutoLayout: () => void;
+  onExportPng: () => void;
+  onExportPdf: () => void;
 }
 
 const ToolbarButton: React.FC<{
@@ -64,6 +66,8 @@ export const MindMapToolbar: React.FC<Props> = ({
   onSave,
   onDelete,
   onAutoLayout,
+  onExportPng,
+  onExportPdf,
 }) => {
   return (
     <>
@@ -92,6 +96,16 @@ export const MindMapToolbar: React.FC<Props> = ({
 
         <ToolbarButton onClick={onResetView} title="Centralizar vista">
           <Maximize2 className="h-4 w-4 text-muted-foreground" />
+        </ToolbarButton>
+
+        <div className="h-px bg-border mx-1 my-0.5" />
+
+        <ToolbarButton onClick={onExportPng} title="Exportar como PNG">
+          <Image className="h-4 w-4 text-muted-foreground" />
+        </ToolbarButton>
+
+        <ToolbarButton onClick={onExportPdf} title="Exportar como PDF">
+          <FileDown className="h-4 w-4 text-muted-foreground" />
         </ToolbarButton>
 
         {selectedNodeId && selectedNodeId !== 'root' && (

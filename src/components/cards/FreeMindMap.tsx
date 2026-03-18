@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { exportMindMapAsPng, exportMindMapAsPdf } from './mindmap/exportMindMap';
 import { useToast } from '@/hooks/use-toast';
 import {
   MindMapNode,
@@ -458,6 +459,22 @@ export const FreeMindMap: React.FC<FreeMindMapProps> = ({ viewId = 'default', on
         onSave={handleManualSave}
         onDelete={() => selectedNodeId && deleteNode(selectedNodeId)}
         onAutoLayout={handleAutoLayout}
+        onExportPng={() => {
+          const container = containerRef.current?.parentElement;
+          if (container) {
+            exportMindMapAsPng(container as HTMLDivElement, nodes).catch(() =>
+              toast({ title: 'Erro ao exportar PNG', variant: 'destructive' })
+            );
+          }
+        }}
+        onExportPdf={() => {
+          const container = containerRef.current?.parentElement;
+          if (container) {
+            exportMindMapAsPdf(container as HTMLDivElement, nodes).catch(() =>
+              toast({ title: 'Erro ao exportar PDF', variant: 'destructive' })
+            );
+          }
+        }}
       />
 
       {/* Node Format Toolbar */}
