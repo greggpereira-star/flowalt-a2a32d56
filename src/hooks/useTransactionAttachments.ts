@@ -18,13 +18,13 @@ export const useTransactionAttachments = (transactionId: string | undefined) => 
     queryKey: ['transaction-attachments', transactionId],
     queryFn: async () => {
       if (!transactionId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('transaction_attachments')
         .select('*')
         .eq('transaction_id', transactionId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as TransactionAttachment[];
+      return (data || []) as TransactionAttachment[];
     },
     enabled: !!transactionId,
   });
@@ -50,7 +50,7 @@ export const useUploadTransactionAttachment = () => {
         .from('attachments')
         .getPublicUrl(filePath);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('transaction_attachments')
         .insert({
           transaction_id,
@@ -64,9 +64,9 @@ export const useUploadTransactionAttachment = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as TransactionAttachment;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: TransactionAttachment) => {
       queryClient.invalidateQueries({ queryKey: ['transaction-attachments', data.transaction_id] });
     },
   });
@@ -82,7 +82,7 @@ export const useDeleteTransactionAttachment = () => {
         await supabase.storage.from('attachments').remove([urlParts[1]]);
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('transaction_attachments')
         .delete()
         .eq('id', id);
@@ -90,7 +90,7 @@ export const useDeleteTransactionAttachment = () => {
 
       return { id, transaction_id };
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { transaction_id: string }) => {
       queryClient.invalidateQueries({ queryKey: ['transaction-attachments', data.transaction_id] });
     },
   });
