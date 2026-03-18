@@ -117,7 +117,7 @@ export const TransactionAttachments: React.FC<TransactionAttachmentsProps> = ({
           multiple
           className="hidden"
           onChange={handleFileSelect}
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+          accept="*/*"
         />
       </div>
 
