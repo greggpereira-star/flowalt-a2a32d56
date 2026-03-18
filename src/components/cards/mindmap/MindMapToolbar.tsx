@@ -22,6 +22,8 @@ interface Props {
   onSave: () => void;
   onDelete: () => void;
   onAutoLayout: () => void;
+  onExportPng: () => void;
+  onExportPdf: () => void;
 }
 
 const ToolbarButton: React.FC<{
