@@ -10512,8 +10512,20 @@ export type Database = {
         Args: { _space_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_transaction_attachment: {
+        Args: { _transaction_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_delete_checklist: {
         Args: { _checklist_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_delete_transaction_attachment: {
+        Args: {
+          _attachment_owner_id: string
+          _transaction_id: string
+          _user_id: string
+        }
         Returns: boolean
       }
       can_manage_financial: {
