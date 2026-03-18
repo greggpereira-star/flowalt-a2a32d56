@@ -421,6 +421,9 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
               )}
             />
 
+            {/* Anexos */}
+            <TransactionAttachments transactionId={transaction?.id} />
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
