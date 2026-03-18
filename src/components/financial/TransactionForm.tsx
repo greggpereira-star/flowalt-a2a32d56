@@ -66,6 +66,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ transaction, onSuccess }: TransactionFormProps) {
   const [open, setOpen] = useState(false);
+  const [createdTransactionId, setCreatedTransactionId] = useState<string | null>(null);
   const createTransaction = useCreateTransaction();
   const { data: categories = [] } = useCategories();
   const { data: clients = [] } = useClients();
