@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { useUpdateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
 import { useClients } from "@/hooks/useClients";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { TransactionAttachments } from "./TransactionAttachments";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
