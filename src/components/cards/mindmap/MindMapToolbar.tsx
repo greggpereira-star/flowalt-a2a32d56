@@ -66,6 +66,8 @@ export const MindMapToolbar: React.FC<Props> = ({
   onSave,
   onDelete,
   onAutoLayout,
+  onExportPng,
+  onExportPdf,
 }) => {
   return (
     <>
