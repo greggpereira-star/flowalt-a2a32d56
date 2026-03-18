@@ -96,7 +96,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const onSubmit = async (data: FormData) => {
     const amount = parseCurrencyToNumber(data.amount);
 
-    await createTransaction.mutateAsync({
+    const result = await createTransaction.mutateAsync({
       description: data.description,
       amount,
       type: data.type,
@@ -111,8 +111,13 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       notes: data.notes || undefined,
     });
 
-    form.reset();
-    setOpen(false);
+    // If result has an id, keep dialog open for attachments
+    if (result?.id) {
+      setCreatedTransactionId(result.id);
+    } else {
+      form.reset();
+      setOpen(false);
+    }
     onSuccess?.();
   };
 
