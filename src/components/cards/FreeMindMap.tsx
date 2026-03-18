@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { exportMindMapAsPng, exportMindMapAsPdf } from './mindmap/exportMindMap';
 import { useToast } from '@/hooks/use-toast';
 import {
   MindMapNode,
