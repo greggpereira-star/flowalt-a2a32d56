@@ -27,6 +27,7 @@ import { RetentionsPanel } from "@/components/financial/RetentionsPanel";
 import { OFXImporter } from "@/components/financial/OFXImporter";
 import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
+import { InvoiceGenerator } from "@/components/financial/InvoiceGenerator";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Transaction } from "@/hooks/useFinancial";
 import { Invoice } from "@/hooks/useInvoices";
