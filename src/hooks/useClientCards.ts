@@ -49,6 +49,9 @@ export interface ClientCard {
   agreed_deliverables: string | null;
   scope_limits: string | null;
   contract_notes: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  payment_day: number | null;
   
   // Metadados
   health_score: number;
