@@ -166,11 +166,15 @@ export default function FinancialPage() {
                     <CreditCard className="w-4 h-4" />
                     <span>DDA</span>
                   </TabsTrigger>
-                  <TabsTrigger value="inventory" variant="wrap" className="gap-2">
-                    <Package className="w-4 h-4" />
-                    <span>Almoxarifado</span>
-                  </TabsTrigger>
-                  </TabsList>
+                   <TabsTrigger value="inventory" variant="wrap" className="gap-2">
+                     <Package className="w-4 h-4" />
+                     <span>Almoxarifado</span>
+                   </TabsTrigger>
+                   <TabsTrigger value="invoice-generator" variant="wrap" className="gap-2">
+                     <FileText className="w-4 h-4" />
+                     <span>Gerar Invoice</span>
+                   </TabsTrigger>
+                   </TabsList>
 
                   {/* Minimalist Divider */}
                   <div className="relative mt-8 mb-2">
