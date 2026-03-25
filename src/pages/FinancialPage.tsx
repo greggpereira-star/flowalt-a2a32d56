@@ -262,9 +262,13 @@ export default function FinancialPage() {
                     <DDAPanel />
                   </TabsContent>
 
-                  <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
-                    <InventoryDashboard />
-                  </TabsContent>
+                   <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
+                     <InventoryDashboard />
+                   </TabsContent>
+
+                   <TabsContent value="invoice-generator" className="mt-0 animate-in fade-in-50 duration-300">
+                     <InvoiceGenerator />
+                   </TabsContent>
                   </div>
                 </Tabs>
               </div>
