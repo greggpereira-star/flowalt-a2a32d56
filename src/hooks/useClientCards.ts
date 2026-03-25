@@ -49,6 +49,9 @@ export interface ClientCard {
   agreed_deliverables: string | null;
   scope_limits: string | null;
   contract_notes: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  payment_day: number | null;
   
   // Metadados
   health_score: number;
@@ -108,7 +111,7 @@ export const useClientCards = () => {
         brand_files: Array.isArray(item.brand_files) ? item.brand_files : [],
         keywords: item.keywords || [],
         contracted_services: item.contracted_services || [],
-      })) as ClientCard[];
+      })) as unknown as ClientCard[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -138,7 +141,7 @@ export const useClientCardsByStatus = (status: ClientStatus) => {
         brand_files: Array.isArray(item.brand_files) ? item.brand_files : [],
         keywords: item.keywords || [],
         contracted_services: item.contracted_services || [],
-      })) as ClientCard[];
+      })) as unknown as ClientCard[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -165,7 +168,7 @@ export const useClientCard = (clientCardId: string | undefined) => {
         brand_files: Array.isArray(data.brand_files) ? data.brand_files : [],
         keywords: data.keywords || [],
         contracted_services: data.contracted_services || [],
-      } as ClientCard;
+      } as unknown as ClientCard;
     },
     enabled: !!clientCardId,
   });

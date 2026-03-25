@@ -2087,7 +2087,9 @@ export type Database = {
           challenges: string | null
           color: string | null
           competitors: string | null
+          contract_end_date: string | null
           contract_notes: string | null
+          contract_start_date: string | null
           contract_type: string | null
           contracted_services: string[] | null
           created_at: string
@@ -2105,6 +2107,7 @@ export type Database = {
           logo_url: string | null
           name: string
           objectives: string | null
+          payment_day: number | null
           personality: string | null
           positioning: string | null
           products_services: string | null
@@ -2127,7 +2130,9 @@ export type Database = {
           challenges?: string | null
           color?: string | null
           competitors?: string | null
+          contract_end_date?: string | null
           contract_notes?: string | null
+          contract_start_date?: string | null
           contract_type?: string | null
           contracted_services?: string[] | null
           created_at?: string
@@ -2145,6 +2150,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           objectives?: string | null
+          payment_day?: number | null
           personality?: string | null
           positioning?: string | null
           products_services?: string | null
@@ -2167,7 +2173,9 @@ export type Database = {
           challenges?: string | null
           color?: string | null
           competitors?: string | null
+          contract_end_date?: string | null
           contract_notes?: string | null
+          contract_start_date?: string | null
           contract_type?: string | null
           contracted_services?: string[] | null
           created_at?: string
@@ -2185,6 +2193,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           objectives?: string | null
+          payment_day?: number | null
           personality?: string | null
           positioning?: string | null
           products_services?: string | null

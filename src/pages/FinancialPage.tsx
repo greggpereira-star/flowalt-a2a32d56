@@ -27,6 +27,7 @@ import { RetentionsPanel } from "@/components/financial/RetentionsPanel";
 import { OFXImporter } from "@/components/financial/OFXImporter";
 import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
+import { InvoiceGenerator } from "@/components/financial/InvoiceGenerator";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Transaction } from "@/hooks/useFinancial";
 import { Invoice } from "@/hooks/useInvoices";
@@ -165,11 +166,15 @@ export default function FinancialPage() {
                     <CreditCard className="w-4 h-4" />
                     <span>DDA</span>
                   </TabsTrigger>
-                  <TabsTrigger value="inventory" variant="wrap" className="gap-2">
-                    <Package className="w-4 h-4" />
-                    <span>Almoxarifado</span>
-                  </TabsTrigger>
-                  </TabsList>
+                   <TabsTrigger value="inventory" variant="wrap" className="gap-2">
+                     <Package className="w-4 h-4" />
+                     <span>Almoxarifado</span>
+                   </TabsTrigger>
+                   <TabsTrigger value="invoice-generator" variant="wrap" className="gap-2">
+                     <FileText className="w-4 h-4" />
+                     <span>Gerar Invoice</span>
+                   </TabsTrigger>
+                   </TabsList>
 
                   {/* Minimalist Divider */}
                   <div className="relative mt-8 mb-2">
@@ -257,9 +262,13 @@ export default function FinancialPage() {
                     <DDAPanel />
                   </TabsContent>
 
-                  <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
-                    <InventoryDashboard />
-                  </TabsContent>
+                   <TabsContent value="inventory" className="mt-0 animate-in fade-in-50 duration-300">
+                     <InventoryDashboard />
+                   </TabsContent>
+
+                   <TabsContent value="invoice-generator" className="mt-0 animate-in fade-in-50 duration-300">
+                     <InvoiceGenerator />
+                   </TabsContent>
                   </div>
                 </Tabs>
               </div>
