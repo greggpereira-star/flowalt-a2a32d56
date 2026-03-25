@@ -168,7 +168,7 @@ export const useClientCard = (clientCardId: string | undefined) => {
         brand_files: Array.isArray(data.brand_files) ? data.brand_files : [],
         keywords: data.keywords || [],
         contracted_services: data.contracted_services || [],
-      } as ClientCard;
+      } as unknown as ClientCard;
     },
     enabled: !!clientCardId,
   });
