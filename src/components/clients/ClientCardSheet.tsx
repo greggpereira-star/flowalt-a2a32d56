@@ -480,6 +480,39 @@ const ContractTab: React.FC<{
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="contract_start_date">Início do Contrato</Label>
+          <Input
+            id="contract_start_date"
+            type="date"
+            value={formData.contract_start_date || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, contract_start_date: e.target.value || null }))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contract_end_date">Fim do Contrato</Label>
+          <Input
+            id="contract_end_date"
+            type="date"
+            value={formData.contract_end_date || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, contract_end_date: e.target.value || null }))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="payment_day">Dia de Pagamento</Label>
+          <Input
+            id="payment_day"
+            type="number"
+            min={1}
+            max={31}
+            placeholder="Ex: 10"
+            value={formData.payment_day || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, payment_day: e.target.value ? parseInt(e.target.value) : null }))}
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="contract_type">Tipo de Contrato</Label>
         <Select
