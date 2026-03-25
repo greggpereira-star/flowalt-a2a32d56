@@ -111,7 +111,7 @@ export const useClientCards = () => {
         brand_files: Array.isArray(item.brand_files) ? item.brand_files : [],
         keywords: item.keywords || [],
         contracted_services: item.contracted_services || [],
-      })) as ClientCard[];
+      })) as unknown as ClientCard[];
     },
     enabled: !!currentWorkspace?.id,
   });
