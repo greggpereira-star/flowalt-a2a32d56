@@ -589,6 +589,10 @@ const ContractTab: React.FC<{
           maxHeight="200px"
         />
       </div>
+
+      <Separator className="my-4" />
+
+      <ContractAttachments clientId={clientId} />
     </div>
   );
 };
