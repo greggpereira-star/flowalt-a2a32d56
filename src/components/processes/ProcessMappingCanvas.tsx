@@ -131,9 +131,9 @@ export function ProcessMappingCanvas() {
 
   const addNode = () => {
     const stepNumber = nodes.length + 1;
-    const newNode: Node = {
+    const newNode = {
       id: crypto.randomUUID(),
-      type: "processStep",
+      type: "processStep" as const,
       position: { x: 300, y: stepNumber * 160 },
       data: {
         stepNumber,
@@ -142,7 +142,7 @@ export function ProcessMappingCanvas() {
         onNodeClick: (id: string) => setEditingNodeId(id),
       },
     };
-    setNodes((prev) => [...prev, newNode]);
+    setNodes((prev) => [...prev, newNode] as typeof prev);
   };
 
   const handleSaveNode = (data: { title: string; description: string; paths: { id: string; label: string }[] }) => {
