@@ -49,6 +49,7 @@ import {
   FileCheck,
   Package,
   CreditCard,
+  GitBranch,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
