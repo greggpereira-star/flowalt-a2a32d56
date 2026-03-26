@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Trash2 } from "lucide-react";
 
 interface DecisionPath {
   id: string;
@@ -24,6 +24,7 @@ interface Props {
   description: string;
   paths: DecisionPath[];
   onSave: (data: { title: string; description: string; paths: DecisionPath[] }) => void;
+  onDelete?: () => void;
 }
 
 export function ProcessNodeEditSheet({
@@ -34,16 +35,19 @@ export function ProcessNodeEditSheet({
   description: initialDesc,
   paths: initialPaths,
   onSave,
+  onDelete,
 }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDesc);
   const [paths, setPaths] = useState<DecisionPath[]>(initialPaths);
 
+  // Only reset when nodeId changes (not on every render)
   useEffect(() => {
     setTitle(initialTitle);
     setDescription(initialDesc);
     setPaths(initialPaths);
-  }, [initialTitle, initialDesc, initialPaths, nodeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeId]);
 
   const addPath = () => {
     setPaths((prev) => [
@@ -61,6 +65,9 @@ export function ProcessNodeEditSheet({
   };
 
   const handleSave = () => {
+    if (!title.trim()) {
+      return;
+    }
     onSave({ title, description, paths: paths.filter((p) => p.label.trim()) });
     onOpenChange(false);
   };
@@ -153,6 +160,17 @@ export function ProcessNodeEditSheet({
           >
             Salvar Alterações
           </Button>
+
+          {onDelete && (
+            <Button
+              variant="ghost"
+              onClick={onDelete}
+              className="w-full gap-2 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir Etapa
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -18,10 +18,22 @@ import ProcessStepNode from "./ProcessStepNode";
 import { ProcessNodeEditSheet } from "./ProcessNodeEditSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, FileDown, GitBranch } from "lucide-react";
+import { Plus, Trash2, FileDown, GitBranch, Undo2, Redo2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const INITIAL_MACROS: MacroProcess[] = [
+const STORAGE_KEY = "flowalt_process_macros";
+
+const DEFAULT_MACROS: MacroProcess[] = [
   {
     id: "comercial",
     name: "Comercial",
@@ -66,13 +78,45 @@ const INITIAL_MACROS: MacroProcess[] = [
   },
 ];
 
+function loadMacros(): MacroProcess[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_MACROS;
+}
+
+function saveMacros(macros: MacroProcess[]) {
+  try {
+    const clean = macros.map((m) => ({
+      ...m,
+      nodes: m.nodes.map((n: any) => ({ ...n, data: { ...n.data, onNodeClick: undefined } })),
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+  } catch { /* ignore */ }
+}
+
+// Strip onNodeClick before comparing/storing
+function stripCallbacks(nodes: Node[]): Node[] {
+  return nodes.map((n) => ({ ...n, data: { ...n.data, onNodeClick: undefined } }));
+}
+
 export function ProcessMappingCanvas() {
-  const [macros, setMacros] = useState<MacroProcess[]>(INITIAL_MACROS);
-  const [activeMacroId, setActiveMacroId] = useState(INITIAL_MACROS[0].id);
+  const initialMacros = useMemo(() => loadMacros(), []);
+  const [macros, setMacros] = useState<MacroProcess[]>(initialMacros);
+  const [activeMacroId, setActiveMacroId] = useState(initialMacros[0].id);
   const [newMacroName, setNewMacroName] = useState("");
   const [showNewInput, setShowNewInput] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const activeMacro = macros.find((m) => m.id === activeMacroId)!;
+
+  // Refs to always have current node/edge values (fixes stale closure bug)
+  const nodesRef = useRef<Node[]>([]);
+  const edgesRef = useRef<Edge[]>([]);
 
   const injectClickHandler = useCallback(
     (nodes: Node[]) =>
@@ -86,33 +130,83 @@ export function ProcessMappingCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(injectClickHandler(activeMacro.nodes));
   const [edges, setEdges, onEdgesChange] = useEdgesState(activeMacro.edges);
 
+  // Keep refs in sync
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
+
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
 
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null;
 
   const nodeTypes = useMemo(() => ({ processStep: ProcessStepNode }), []);
 
-  // Sync macro state when nodes/edges change
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const pushHistory = useCallback(() => {
+    const snapshot = { nodes: stripCallbacks(nodesRef.current), edges: [...edgesRef.current] };
+    setHistory((prev) => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+      const next = [...trimmed, snapshot];
+      if (next.length > 30) next.shift(); // cap
+      return next;
+    });
+    setHistoryIndex((prev) => Math.min(prev + 1, 29));
+  }, [historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const prev = history[historyIndex - 1];
+    setNodes(injectClickHandler(prev.nodes) as any);
+    setEdges(prev.edges);
+    setHistoryIndex((i) => i - 1);
+  }, [history, historyIndex, setNodes, setEdges, injectClickHandler]);
+
+  const redo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const next = history[historyIndex + 1];
+    setNodes(injectClickHandler(next.nodes) as any);
+    setEdges(next.edges);
+    setHistoryIndex((i) => i + 1);
+  }, [history, historyIndex, setNodes, setEdges, injectClickHandler]);
+
+  // FIX: Use refs to always persist current state (avoids stale closure)
   const persistCurrentState = useCallback(() => {
-    setMacros((prev) =>
-      prev.map((m) =>
-        m.id === activeMacroId
-          ? { ...m, nodes: nodes.map((n) => ({ ...n, data: { ...n.data, onNodeClick: undefined } })), edges }
-          : m
-      )
-    );
-  }, [activeMacroId, nodes, edges]);
+    const currentNodes = stripCallbacks(nodesRef.current);
+    const currentEdges = [...edgesRef.current];
+    setMacros((prev) => {
+      const updated = prev.map((m) =>
+        m.id === activeMacroId ? { ...m, nodes: currentNodes, edges: currentEdges } : m
+      );
+      saveMacros(updated);
+      return updated;
+    });
+  }, [activeMacroId]);
+
+  // Auto-save on changes (debounced)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      persistCurrentState();
+    }, 1000);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [nodes, edges, persistCurrentState]);
 
   const switchMacro = (id: string) => {
     persistCurrentState();
     setActiveMacroId(id);
     const target = macros.find((m) => m.id === id)!;
-    setNodes(injectClickHandler(target.nodes));
+    setNodes(injectClickHandler(target.nodes) as any);
     setEdges(target.edges);
+    setHistory([]);
+    setHistoryIndex(-1);
   };
 
   const onConnect = useCallback(
     (params: Connection) => {
+      pushHistory();
       setEdges((eds) =>
         addEdge(
           {
@@ -126,10 +220,11 @@ export function ProcessMappingCanvas() {
         )
       );
     },
-    [setEdges]
+    [setEdges, pushHistory]
   );
 
   const addNode = () => {
+    pushHistory();
     const stepNumber = nodes.length + 1;
     const newNode = {
       id: crypto.randomUUID(),
@@ -145,8 +240,25 @@ export function ProcessMappingCanvas() {
     setNodes((prev) => [...prev, newNode] as typeof prev);
   };
 
+  const deleteNode = useCallback((nodeId: string) => {
+    pushHistory();
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setEditingNodeId(null);
+    toast.success("Etapa removida.");
+  }, [setNodes, setEdges, pushHistory]);
+
+  // FIX: Memoize existingPaths to avoid regenerating UUIDs every render
+  const existingPaths = useMemo(() => {
+    if (!editingNodeId) return [];
+    return edges
+      .filter((e) => e.source === editingNodeId)
+      .map((e) => ({ id: e.id, label: (e.label as string) || "" }));
+  }, [editingNodeId, edges]);
+
   const handleSaveNode = (data: { title: string; description: string; paths: { id: string; label: string }[] }) => {
     if (!editingNodeId) return;
+    pushHistory();
 
     setNodes((prev) =>
       prev.map((n) =>
@@ -154,10 +266,24 @@ export function ProcessMappingCanvas() {
       )
     );
 
-    // Create child nodes for new paths
-    const existingChildEdges = edges.filter((e) => e.source === editingNodeId);
-    const existingTargets = new Set(existingChildEdges.map((e) => e.target));
+    // Update existing edge labels
+    const existingEdgeIds = new Set(edges.filter((e) => e.source === editingNodeId).map((e) => e.id));
+    const updatedPathIds = new Set(data.paths.map((p) => p.id));
 
+    // Update labels on existing edges
+    setEdges((prev) =>
+      prev.map((e) => {
+        if (e.source === editingNodeId) {
+          const matchingPath = data.paths.find((p) => p.id === e.id);
+          if (matchingPath) {
+            return { ...e, label: matchingPath.label };
+          }
+        }
+        return e;
+      })
+    );
+
+    // Create child nodes for genuinely new paths (not existing edge IDs)
     const parentNode = nodes.find((n) => n.id === editingNodeId);
     const baseX = parentNode?.position?.x ?? 300;
     const baseY = (parentNode?.position?.y ?? 200) + 180;
@@ -166,38 +292,33 @@ export function ProcessMappingCanvas() {
     const newEdges: Edge[] = [];
 
     data.paths.forEach((path, i) => {
-      const alreadyLinked = existingChildEdges.find((e) => {
-        const edge = e as Edge;
-        return edge.label === path.label;
+      if (existingEdgeIds.has(path.id)) return; // already exists
+
+      const childId = crypto.randomUUID();
+      const offset = (i - (data.paths.length - 1) / 2) * 220;
+
+      newNodes.push({
+        id: childId,
+        type: "processStep",
+        position: { x: baseX + offset, y: baseY },
+        data: {
+          stepNumber: nodes.length + newNodes.length + 1,
+          title: path.label,
+          description: "",
+          onNodeClick: (id: string) => setEditingNodeId(id),
+        },
       });
 
-      if (!alreadyLinked) {
-        const childId = crypto.randomUUID();
-        const offset = (i - (data.paths.length - 1) / 2) * 220;
-
-        newNodes.push({
-          id: childId,
-          type: "processStep",
-          position: { x: baseX + offset, y: baseY },
-          data: {
-            stepNumber: nodes.length + newNodes.length + 1,
-            title: path.label,
-            description: "",
-            onNodeClick: (id: string) => setEditingNodeId(id),
-          },
-        });
-
-        newEdges.push({
-          id: `e-${editingNodeId}-${childId}`,
-          source: editingNodeId,
-          target: childId,
-          label: path.label,
-          type: "smoothstep",
-          style: { stroke: "#3b4252" },
-          labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" },
-        });
-      }
+      newEdges.push({
+        id: `e-${editingNodeId}-${childId}`,
+        source: editingNodeId,
+        target: childId,
+        label: path.label,
+        type: "smoothstep",
+        style: { stroke: "#3b4252" },
+        labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" },
+      });
     });
 
     if (newNodes.length) setNodes((prev) => [...prev, ...newNodes] as typeof prev);
@@ -216,35 +337,39 @@ export function ProcessMappingCanvas() {
       edges: [],
     };
     persistCurrentState();
-    setMacros((prev) => [...prev, newMacro]);
+    setMacros((prev) => {
+      const updated = [...prev, newMacro];
+      saveMacros(updated);
+      return updated;
+    });
     setActiveMacroId(newMacro.id);
     setNodes([]);
     setEdges([]);
     setNewMacroName("");
     setShowNewInput(false);
+    setHistory([]);
+    setHistoryIndex(-1);
     toast.success("Processo criado!");
   };
 
-  const deleteMacro = (id: string) => {
+  const confirmDeleteMacro = () => {
+    if (!deleteConfirmId) return;
     if (macros.length <= 1) {
       toast.error("É necessário manter pelo menos um processo.");
+      setDeleteConfirmId(null);
       return;
     }
-    const remaining = macros.filter((m) => m.id !== id);
+    const remaining = macros.filter((m) => m.id !== deleteConfirmId);
     setMacros(remaining);
-    if (activeMacroId === id) {
+    saveMacros(remaining);
+    if (activeMacroId === deleteConfirmId) {
       setActiveMacroId(remaining[0].id);
-      setNodes(injectClickHandler(remaining[0].nodes));
+      setNodes(injectClickHandler(remaining[0].nodes) as any);
       setEdges(remaining[0].edges);
     }
+    setDeleteConfirmId(null);
     toast.success("Processo removido.");
   };
-
-  const existingPaths = editingNodeId
-    ? edges
-        .filter((e) => e.source === editingNodeId)
-        .map((e) => ({ id: crypto.randomUUID(), label: (e.label as string) || "" }))
-    : [];
 
   const exportPDF = () => {
     toast.info("Funcionalidade de exportação PDF será implementada em breve.");
@@ -285,7 +410,7 @@ export function ProcessMappingCanvas() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteMacro(m.id);
+                  setDeleteConfirmId(m.id);
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/10"
               >
@@ -337,8 +462,33 @@ export function ProcessMappingCanvas() {
             <h2 className="text-sm font-semibold" style={{ color: "#e2e8f0" }}>
               {activeMacro.name}
             </h2>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "#1a1e24", color: "#6b7280" }}>
+              {nodes.length} etapas · {edges.length} conexões
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              style={{ color: historyIndex > 0 ? "#94a3b8" : "#3b4252" }}
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              title="Desfazer"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              style={{ color: historyIndex < history.length - 1 ? "#94a3b8" : "#3b4252" }}
+              onClick={redo}
+              disabled={historyIndex >= history.length - 1}
+              title="Refazer"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -399,7 +549,31 @@ export function ProcessMappingCanvas() {
         description={(editingNode?.data as any)?.description || ""}
         paths={existingPaths}
         onSave={handleSaveNode}
+        onDelete={editingNodeId ? () => deleteNode(editingNodeId) : undefined}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent style={{ background: "#0f1114", borderColor: "#22262d", color: "#e2e8f0" }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir macroprocesso?</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: "#94a3b8" }}>
+              Todas as etapas e conexões serão removidas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#22262d] text-[#94a3b8] hover:bg-[#1a1e24]">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteMacro}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
