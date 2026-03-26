@@ -481,8 +481,8 @@ export function ProcessMappingCanvas() {
 
     // 6) Apply node changes atomically
     setNodes((prev) => {
-      let updated = prev.filter((n) => !safeOrphans.has(n.id));
-      if (newNodes.length) updated = [...updated, ...newNodes];
+      let updated: typeof prev = prev.filter((n) => !safeOrphans.has(n.id));
+      if (newNodes.length) updated = [...updated, ...(newNodes as typeof prev)];
       return recalcStepNumbers(updated) as typeof prev;
     });
 
