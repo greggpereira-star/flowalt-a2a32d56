@@ -200,7 +200,7 @@ export function ProcessMappingCanvas() {
       }
     });
 
-    if (newNodes.length) setNodes((prev) => [...prev, ...newNodes]);
+    if (newNodes.length) setNodes((prev) => [...prev, ...newNodes] as typeof prev);
     if (newEdges.length) setEdges((prev) => [...prev, ...newEdges]);
 
     setEditingNodeId(null);
