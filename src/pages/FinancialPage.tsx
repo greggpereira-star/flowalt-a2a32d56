@@ -275,6 +275,10 @@ export default function FinancialPage() {
                    <TabsContent value="invoice-generator" className="mt-0 animate-in fade-in-50 duration-300">
                      <InvoiceGenerator />
                    </TabsContent>
+
+                   <TabsContent value="processes" className="mt-0 animate-in fade-in-50 duration-300">
+                     <ProcessMappingCanvas />
+                   </TabsContent>
                   </div>
                 </Tabs>
               </div>
