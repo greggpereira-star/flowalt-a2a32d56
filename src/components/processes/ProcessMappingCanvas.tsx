@@ -33,6 +33,23 @@ import {
 
 const STORAGE_KEY = "flowalt_process_macros";
 
+const EDGE_STYLE = { stroke: "#3b4252" };
+const EDGE_LABEL_STYLE = { fill: "#94a3b8", fontSize: 11, fontWeight: 500 };
+const EDGE_MARKER = { type: MarkerType.ArrowClosed as const, color: "#3b4252" };
+
+function makeEdge(id: string, source: string, target: string, label?: string): Edge {
+  return {
+    id,
+    source,
+    target,
+    label,
+    type: "smoothstep",
+    style: EDGE_STYLE,
+    labelStyle: EDGE_LABEL_STYLE,
+    markerEnd: EDGE_MARKER,
+  };
+}
+
 const DEFAULT_MACROS: MacroProcess[] = [
   {
     id: "comercial",
@@ -44,8 +61,8 @@ const DEFAULT_MACROS: MacroProcess[] = [
       { id: "n3", type: "processStep", position: { x: 450, y: 220 }, data: { stepNumber: 3, title: "Proposta Enviada", description: "Elaborar e enviar proposta comercial." } },
     ],
     edges: [
-      { id: "e1-2", source: "n1", target: "n2", label: "Qualificado", type: "smoothstep", animated: false, style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
-      { id: "e1-3", source: "n1", target: "n3", label: "Direto", type: "smoothstep", animated: false, style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
+      makeEdge("e1-2", "n1", "n2", "Qualificado"),
+      makeEdge("e1-3", "n1", "n3", "Direto"),
     ],
   },
   {
@@ -58,8 +75,8 @@ const DEFAULT_MACROS: MacroProcess[] = [
       { id: "f3", type: "processStep", position: { x: 450, y: 220 }, data: { stepNumber: 3, title: "Agendar Pagamento", description: "Registrar no calendário de pagamentos." } },
     ],
     edges: [
-      { id: "ef1-2", source: "f1", target: "f2", label: "Aprovado", type: "smoothstep", style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
-      { id: "ef2-3", source: "f2", target: "f3", label: "Validado", type: "smoothstep", style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
+      makeEdge("ef1-2", "f1", "f2", "Aprovado"),
+      makeEdge("ef2-3", "f2", "f3", "Validado"),
     ],
   },
   {
@@ -72,8 +89,8 @@ const DEFAULT_MACROS: MacroProcess[] = [
       { id: "o3", type: "processStep", position: { x: 300, y: 380 }, data: { stepNumber: 3, title: "Entrega Inicial", description: "Primeira entrega ao cliente." } },
     ],
     edges: [
-      { id: "eo1-2", source: "o1", target: "o2", label: "Concluído", type: "smoothstep", style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
-      { id: "eo2-3", source: "o2", target: "o3", label: "Configurado", type: "smoothstep", style: { stroke: "#3b4252" }, labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 }, markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" } },
+      makeEdge("eo1-2", "o1", "o2", "Concluído"),
+      makeEdge("eo2-3", "o2", "o3", "Configurado"),
     ],
   },
 ];
@@ -99,10 +116,23 @@ function saveMacros(macros: MacroProcess[]) {
   } catch { /* ignore */ }
 }
 
-// Strip onNodeClick before comparing/storing
 function stripCallbacks(nodes: Node[]): Node[] {
   return nodes.map((n) => ({ ...n, data: { ...n.data, onNodeClick: undefined } }));
 }
+
+// Recalculate step numbers based on position (top to bottom, left to right)
+function recalcStepNumbers(nodes: Node[]): Node[] {
+  const sorted = [...nodes].sort((a, b) => {
+    const dy = a.position.y - b.position.y;
+    return Math.abs(dy) > 40 ? dy : a.position.x - b.position.x;
+  });
+  return sorted.map((n, i) => ({
+    ...n,
+    data: { ...n.data, stepNumber: i + 1 },
+  }));
+}
+
+type HistorySnapshot = { nodes: Node[]; edges: Edge[] };
 
 export function ProcessMappingCanvas() {
   const initialMacros = useMemo(() => loadMacros(), []);
@@ -111,10 +141,11 @@ export function ProcessMappingCanvas() {
   const [newMacroName, setNewMacroName] = useState("");
   const [showNewInput, setShowNewInput] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const activeMacro = macros.find((m) => m.id === activeMacroId)!;
 
-  // Refs to always have current node/edge values (fixes stale closure bug)
   const nodesRef = useRef<Node[]>([]);
   const edgesRef = useRef<Edge[]>([]);
 
@@ -130,48 +161,67 @@ export function ProcessMappingCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(injectClickHandler(activeMacro.nodes));
   const [edges, setEdges, onEdgesChange] = useEdgesState(activeMacro.edges);
 
-  // Keep refs in sync
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null;
 
   const nodeTypes = useMemo(() => ({ processStep: ProcessStepNode }), []);
 
-  // Undo/Redo history
-  const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // -- Undo/Redo (FIX: use refs to avoid stale closure) --
+  const historyRef = useRef<HistorySnapshot[]>([]);
+  const historyIndexRef = useRef(-1);
+  const [, forceRender] = useState(0);
 
   const pushHistory = useCallback(() => {
-    const snapshot = { nodes: stripCallbacks(nodesRef.current), edges: [...edgesRef.current] };
-    setHistory((prev) => {
-      const trimmed = prev.slice(0, historyIndex + 1);
-      const next = [...trimmed, snapshot];
-      if (next.length > 30) next.shift(); // cap
-      return next;
-    });
-    setHistoryIndex((prev) => Math.min(prev + 1, 29));
-  }, [historyIndex]);
+    const snapshot: HistorySnapshot = {
+      nodes: stripCallbacks(nodesRef.current),
+      edges: [...edgesRef.current],
+    };
+    const trimmed = historyRef.current.slice(0, historyIndexRef.current + 1);
+    trimmed.push(snapshot);
+    if (trimmed.length > 30) trimmed.shift();
+    historyRef.current = trimmed;
+    historyIndexRef.current = trimmed.length - 1;
+    forceRender((v) => v + 1);
+  }, []);
 
   const undo = useCallback(() => {
-    if (historyIndex <= 0) return;
-    const prev = history[historyIndex - 1];
-    setNodes(injectClickHandler(prev.nodes) as any);
-    setEdges(prev.edges);
-    setHistoryIndex((i) => i - 1);
-  }, [history, historyIndex, setNodes, setEdges, injectClickHandler]);
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    const snap = historyRef.current[historyIndexRef.current];
+    setNodes(injectClickHandler(snap.nodes) as any);
+    setEdges(snap.edges);
+    forceRender((v) => v + 1);
+  }, [setNodes, setEdges, injectClickHandler]);
 
   const redo = useCallback(() => {
-    if (historyIndex >= history.length - 1) return;
-    const next = history[historyIndex + 1];
-    setNodes(injectClickHandler(next.nodes) as any);
-    setEdges(next.edges);
-    setHistoryIndex((i) => i + 1);
-  }, [history, historyIndex, setNodes, setEdges, injectClickHandler]);
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    const snap = historyRef.current[historyIndexRef.current];
+    setNodes(injectClickHandler(snap.nodes) as any);
+    setEdges(snap.edges);
+    forceRender((v) => v + 1);
+  }, [setNodes, setEdges, injectClickHandler]);
 
-  // FIX: Use refs to always persist current state (avoids stale closure)
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
+
+  // FIX: persist uses refs (no stale closure)
   const persistCurrentState = useCallback(() => {
     const currentNodes = stripCallbacks(nodesRef.current);
     const currentEdges = [...edgesRef.current];
@@ -184,24 +234,30 @@ export function ProcessMappingCanvas() {
     });
   }, [activeMacroId]);
 
-  // Auto-save on changes (debounced)
+  // Auto-save debounced
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      persistCurrentState();
-    }, 1000);
+    saveTimerRef.current = setTimeout(persistCurrentState, 1000);
     return () => clearTimeout(saveTimerRef.current);
   }, [nodes, edges, persistCurrentState]);
 
+  // FIX: switchMacro uses functional setMacros to get fresh state
   const switchMacro = (id: string) => {
     persistCurrentState();
     setActiveMacroId(id);
-    const target = macros.find((m) => m.id === id)!;
-    setNodes(injectClickHandler(target.nodes) as any);
-    setEdges(target.edges);
-    setHistory([]);
-    setHistoryIndex(-1);
+    // Use setTimeout to ensure macros state is updated before reading
+    setMacros((currentMacros) => {
+      const target = currentMacros.find((m) => m.id === id);
+      if (target) {
+        setNodes(injectClickHandler(target.nodes) as any);
+        setEdges(target.edges);
+      }
+      return currentMacros;
+    });
+    historyRef.current = [];
+    historyIndexRef.current = -1;
+    forceRender((v) => v + 1);
   };
 
   const onConnect = useCallback(
@@ -212,9 +268,9 @@ export function ProcessMappingCanvas() {
           {
             ...params,
             type: "smoothstep",
-            style: { stroke: "#3b4252" },
-            labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" },
+            style: EDGE_STYLE,
+            labelStyle: EDGE_LABEL_STYLE,
+            markerEnd: EDGE_MARKER,
           },
           eds
         )
@@ -240,15 +296,18 @@ export function ProcessMappingCanvas() {
     setNodes((prev) => [...prev, newNode] as typeof prev);
   };
 
+  // FIX: delete node + recalculate step numbers
   const deleteNode = useCallback((nodeId: string) => {
     pushHistory();
-    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setNodes((prev) => {
+      const filtered = prev.filter((n) => n.id !== nodeId);
+      return recalcStepNumbers(filtered) as typeof prev;
+    });
     setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setEditingNodeId(null);
     toast.success("Etapa removida.");
   }, [setNodes, setEdges, pushHistory]);
 
-  // FIX: Memoize existingPaths to avoid regenerating UUIDs every render
   const existingPaths = useMemo(() => {
     if (!editingNodeId) return [];
     return edges
@@ -256,6 +315,7 @@ export function ProcessMappingCanvas() {
       .map((e) => ({ id: e.id, label: (e.label as string) || "" }));
   }, [editingNodeId, edges]);
 
+  // FIX: handleSaveNode also removes edges whose paths were deleted
   const handleSaveNode = (data: { title: string; description: string; paths: { id: string; label: string }[] }) => {
     if (!editingNodeId) return;
     pushHistory();
@@ -266,24 +326,46 @@ export function ProcessMappingCanvas() {
       )
     );
 
-    // Update existing edge labels
-    const existingEdgeIds = new Set(edges.filter((e) => e.source === editingNodeId).map((e) => e.id));
-    const updatedPathIds = new Set(data.paths.map((p) => p.id));
+    const currentEdgesFromNode = edges.filter((e) => e.source === editingNodeId);
+    const keptPathIds = new Set(data.paths.map((p) => p.id));
 
-    // Update labels on existing edges
-    setEdges((prev) =>
-      prev.map((e) => {
-        if (e.source === editingNodeId) {
-          const matchingPath = data.paths.find((p) => p.id === e.id);
-          if (matchingPath) {
-            return { ...e, label: matchingPath.label };
+    // Remove edges + orphan target nodes for deleted paths
+    const edgesToRemove = currentEdgesFromNode.filter((e) => !keptPathIds.has(e.id));
+    const orphanTargets = new Set(edgesToRemove.map((e) => e.target));
+
+    // Only remove target nodes if they have no other incoming edges
+    const safeOrphans = new Set<string>();
+    orphanTargets.forEach((targetId) => {
+      const otherIncoming = edges.filter((e) => e.target === targetId && e.source !== editingNodeId);
+      if (otherIncoming.length === 0) safeOrphans.add(targetId);
+    });
+
+    // Update labels on kept edges
+    setEdges((prev) => {
+      const updated = prev
+        .filter((e) => !(e.source === editingNodeId && !keptPathIds.has(e.id)))
+        .map((e) => {
+          if (e.source === editingNodeId) {
+            const match = data.paths.find((p) => p.id === e.id);
+            if (match) return { ...e, label: match.label };
           }
-        }
-        return e;
-      })
-    );
+          return e;
+        });
+      return updated;
+    });
 
-    // Create child nodes for genuinely new paths (not existing edge IDs)
+    // Remove orphan nodes
+    if (safeOrphans.size > 0) {
+      setNodes((prev) => {
+        const filtered = prev.filter((n) => !safeOrphans.has(n.id));
+        return recalcStepNumbers(filtered) as typeof prev;
+      });
+      // Also remove edges connected to orphans
+      setEdges((prev) => prev.filter((e) => !safeOrphans.has(e.source) && !safeOrphans.has(e.target)));
+    }
+
+    // Create new child nodes for new paths
+    const existingEdgeIds = new Set(currentEdgesFromNode.map((e) => e.id));
     const parentNode = nodes.find((n) => n.id === editingNodeId);
     const baseX = parentNode?.position?.x ?? 300;
     const baseY = (parentNode?.position?.y ?? 200) + 180;
@@ -292,7 +374,7 @@ export function ProcessMappingCanvas() {
     const newEdges: Edge[] = [];
 
     data.paths.forEach((path, i) => {
-      if (existingEdgeIds.has(path.id)) return; // already exists
+      if (existingEdgeIds.has(path.id)) return;
 
       const childId = crypto.randomUUID();
       const offset = (i - (data.paths.length - 1) / 2) * 220;
@@ -309,16 +391,7 @@ export function ProcessMappingCanvas() {
         },
       });
 
-      newEdges.push({
-        id: `e-${editingNodeId}-${childId}`,
-        source: editingNodeId,
-        target: childId,
-        label: path.label,
-        type: "smoothstep",
-        style: { stroke: "#3b4252" },
-        labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" },
-      });
+      newEdges.push(makeEdge(`e-${editingNodeId}-${childId}`, editingNodeId, childId, path.label));
     });
 
     if (newNodes.length) setNodes((prev) => [...prev, ...newNodes] as typeof prev);
@@ -347,8 +420,8 @@ export function ProcessMappingCanvas() {
     setEdges([]);
     setNewMacroName("");
     setShowNewInput(false);
-    setHistory([]);
-    setHistoryIndex(-1);
+    historyRef.current = [];
+    historyIndexRef.current = -1;
     toast.success("Processo criado!");
   };
 
@@ -371,9 +444,26 @@ export function ProcessMappingCanvas() {
     toast.success("Processo removido.");
   };
 
+  const handleRename = (id: string) => {
+    if (!renameValue.trim()) {
+      setRenamingId(null);
+      return;
+    }
+    setMacros((prev) => {
+      const updated = prev.map((m) => m.id === id ? { ...m, name: renameValue.trim() } : m);
+      saveMacros(updated);
+      return updated;
+    });
+    setRenamingId(null);
+    toast.success("Nome atualizado.");
+  };
+
   const exportPDF = () => {
     toast.info("Funcionalidade de exportação PDF será implementada em breve.");
   };
+
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
   return (
     <div className="flex h-[calc(100vh-220px)] rounded-xl overflow-hidden" style={{ border: "1px solid #22262d" }}>
@@ -401,12 +491,33 @@ export function ProcessMappingCanvas() {
               onClick={() => switchMacro(m.id)}
             >
               <span className="text-base">{m.icon}</span>
-              <span
-                className="text-sm flex-1 truncate"
-                style={{ color: m.id === activeMacroId ? "#e2e8f0" : "#94a3b8" }}
-              >
-                {m.name}
-              </span>
+              {renamingId === m.id ? (
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => handleRename(m.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleRename(m.id);
+                    if (e.key === "Escape") setRenamingId(null);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-6 text-xs border-[#22262d] bg-[#121418] text-[#e2e8f0] px-1 py-0"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className="text-sm flex-1 truncate"
+                  style={{ color: m.id === activeMacroId ? "#e2e8f0" : "#94a3b8" }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setRenamingId(m.id);
+                    setRenameValue(m.name);
+                  }}
+                  title="Duplo clique para renomear"
+                >
+                  {m.name}
+                </span>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -471,10 +582,10 @@ export function ProcessMappingCanvas() {
               size="sm"
               variant="ghost"
               className="h-8 w-8 p-0"
-              style={{ color: historyIndex > 0 ? "#94a3b8" : "#3b4252" }}
+              style={{ color: canUndo ? "#94a3b8" : "#3b4252" }}
               onClick={undo}
-              disabled={historyIndex <= 0}
-              title="Desfazer"
+              disabled={!canUndo}
+              title="Desfazer (Ctrl+Z)"
             >
               <Undo2 className="w-3.5 h-3.5" />
             </Button>
@@ -482,10 +593,10 @@ export function ProcessMappingCanvas() {
               size="sm"
               variant="ghost"
               className="h-8 w-8 p-0"
-              style={{ color: historyIndex < history.length - 1 ? "#94a3b8" : "#3b4252" }}
+              style={{ color: canRedo ? "#94a3b8" : "#3b4252" }}
               onClick={redo}
-              disabled={historyIndex >= history.length - 1}
-              title="Refazer"
+              disabled={!canRedo}
+              title="Refazer (Ctrl+Y)"
             >
               <Redo2 className="w-3.5 h-3.5" />
             </Button>
@@ -527,8 +638,8 @@ export function ProcessMappingCanvas() {
             defaultEdgeOptions={{
               type: "smoothstep",
               style: { stroke: "#3b4252", strokeWidth: 1.5 },
-              labelStyle: { fill: "#94a3b8", fontSize: 11, fontWeight: 500 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: "#3b4252" },
+              labelStyle: EDGE_LABEL_STYLE,
+              markerEnd: EDGE_MARKER,
             }}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a1e24" />
