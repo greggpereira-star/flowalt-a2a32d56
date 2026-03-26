@@ -176,6 +176,10 @@ export default function FinancialPage() {
                      <FileText className="w-4 h-4" />
                      <span>Gerar Invoice</span>
                    </TabsTrigger>
+                   <TabsTrigger value="processes" variant="wrap" className="gap-2">
+                     <GitBranch className="w-4 h-4" />
+                     <span>Processos</span>
+                   </TabsTrigger>
                    </TabsList>
 
                   {/* Minimalist Divider */}
