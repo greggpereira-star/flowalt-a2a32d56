@@ -28,6 +28,7 @@ import { OFXImporter } from "@/components/financial/OFXImporter";
 import { DDAPanel } from "@/components/financial/DDAPanel";
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 import { InvoiceGenerator } from "@/components/financial/InvoiceGenerator";
+import { ProcessMappingCanvas } from "@/components/processes/ProcessMappingCanvas";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Transaction } from "@/hooks/useFinancial";
 import { Invoice } from "@/hooks/useInvoices";
@@ -48,6 +49,7 @@ import {
   FileCheck,
   Package,
   CreditCard,
+  GitBranch,
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
@@ -174,6 +176,10 @@ export default function FinancialPage() {
                      <FileText className="w-4 h-4" />
                      <span>Gerar Invoice</span>
                    </TabsTrigger>
+                   <TabsTrigger value="processes" variant="wrap" className="gap-2">
+                     <GitBranch className="w-4 h-4" />
+                     <span>Processos</span>
+                   </TabsTrigger>
                    </TabsList>
 
                   {/* Minimalist Divider */}
@@ -268,6 +274,10 @@ export default function FinancialPage() {
 
                    <TabsContent value="invoice-generator" className="mt-0 animate-in fade-in-50 duration-300">
                      <InvoiceGenerator />
+                   </TabsContent>
+
+                   <TabsContent value="processes" className="mt-0 animate-in fade-in-50 duration-300">
+                     <ProcessMappingCanvas />
                    </TabsContent>
                   </div>
                 </Tabs>
