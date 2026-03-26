@@ -351,12 +351,18 @@ export const validateTransition = async (
   }
 
   // Gate: Briefing
+  // Roles that can bypass briefing requirement: owner, admin, finance, coordinator, super_admin
+  const briefingExemptRoles = ['owner', 'admin', 'finance', 'coordinator', 'super_admin'];
+  const isBriefingExempt = briefingExemptRoles.includes(userRole);
+  
   if (targetStage.requires_briefing) {
-    if (briefingCompleted) {
+    if (briefingCompleted || isBriefingExempt) {
       gates.push({
         passed: true,
         gate: 'briefing_completed',
-        message: 'Briefing completo',
+        message: isBriefingExempt && !briefingCompleted 
+          ? 'Briefing dispensado pelo cargo' 
+          : 'Briefing completo',
       });
     } else {
       failedGates.push({

@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { ContractAttachments } from './ContractAttachments';
 import { 
   Building2, 
   Users, 
@@ -458,7 +459,8 @@ const VoiceTab: React.FC<{
 const ContractTab: React.FC<{ 
   formData: Partial<ClientCard>; 
   setFormData: React.Dispatch<React.SetStateAction<Partial<ClientCard>>>;
-}> = ({ formData, setFormData }) => {
+  clientId?: string;
+}> = ({ formData, setFormData, clientId }) => {
   const [serviceInput, setServiceInput] = useState('');
 
   const addService = () => {
@@ -588,6 +590,10 @@ const ContractTab: React.FC<{
           maxHeight="200px"
         />
       </div>
+
+      <Separator className="my-4" />
+
+      <ContractAttachments clientId={clientId} />
     </div>
   );
 };
@@ -959,7 +965,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     <VoiceTab formData={formData} setFormData={setFormData} />
                   </TabsContent>
                   <TabsContent value="contract" className="mt-0 focus-visible:outline-none">
-                    <ContractTab formData={formData} setFormData={setFormData} />
+                    <ContractTab formData={formData} setFormData={setFormData} clientId={client?.id} />
                   </TabsContent>
                   <TabsContent value="tasks" className="mt-0 focus-visible:outline-none">
                     <ClientTasksTab clientId={client.id} />
