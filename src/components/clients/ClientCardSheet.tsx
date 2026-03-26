@@ -964,7 +964,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     <VoiceTab formData={formData} setFormData={setFormData} />
                   </TabsContent>
                   <TabsContent value="contract" className="mt-0 focus-visible:outline-none">
-                    <ContractTab formData={formData} setFormData={setFormData} />
+                    <ContractTab formData={formData} setFormData={setFormData} clientId={client?.id} />
                   </TabsContent>
                   <TabsContent value="tasks" className="mt-0 focus-visible:outline-none">
                     <ClientTasksTab clientId={client.id} />
