@@ -18,7 +18,7 @@ import ProcessStepNode from "./ProcessStepNode";
 import { ProcessNodeEditSheet } from "./ProcessNodeEditSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, FileDown, GitBranch, Undo2, Redo2 } from "lucide-react";
+import { Plus, Trash2, FileDown, GitBranch, Undo2, Redo2, Link } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -33,7 +33,7 @@ import {
 
 const STORAGE_KEY = "flowalt_process_macros";
 
-const EDGE_STYLE = { stroke: "#3b4252" };
+const EDGE_STYLE = { stroke: "#3b4252", strokeWidth: 1.5 };
 const EDGE_LABEL_STYLE = { fill: "#94a3b8", fontSize: 11, fontWeight: 500 };
 const EDGE_MARKER = { type: MarkerType.ArrowClosed as const, color: "#3b4252" };
 
@@ -120,7 +120,6 @@ function stripCallbacks(nodes: Node[]): Node[] {
   return nodes.map((n) => ({ ...n, data: { ...n.data, onNodeClick: undefined } }));
 }
 
-// Recalculate step numbers based on position (top to bottom, left to right)
 function recalcStepNumbers(nodes: Node[]): Node[] {
   const sorted = [...nodes].sort((a, b) => {
     const dy = a.position.y - b.position.y;
@@ -130,6 +129,13 @@ function recalcStepNumbers(nodes: Node[]): Node[] {
     ...n,
     data: { ...n.data, stepNumber: i + 1 },
   }));
+}
+
+/** Find the lowest Y among all nodes to place new ones below */
+function getNextYPosition(nodes: Node[]): number {
+  if (nodes.length === 0) return 60;
+  const maxY = Math.max(...nodes.map((n) => n.position.y));
+  return maxY + 180;
 }
 
 type HistorySnapshot = { nodes: Node[]; edges: Edge[] };
@@ -169,7 +175,7 @@ export function ProcessMappingCanvas() {
 
   const nodeTypes = useMemo(() => ({ processStep: ProcessStepNode }), []);
 
-  // -- Undo/Redo (FIX: use refs to avoid stale closure) --
+  // -- Undo/Redo --
   const historyRef = useRef<HistorySnapshot[]>([]);
   const historyIndexRef = useRef(-1);
   const [, forceRender] = useState(0);
@@ -221,7 +227,6 @@ export function ProcessMappingCanvas() {
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo]);
 
-  // FIX: persist uses refs (no stale closure)
   const persistCurrentState = useCallback(() => {
     const currentNodes = stripCallbacks(nodesRef.current);
     const currentEdges = [...edgesRef.current];
@@ -242,11 +247,10 @@ export function ProcessMappingCanvas() {
     return () => clearTimeout(saveTimerRef.current);
   }, [nodes, edges, persistCurrentState]);
 
-  // FIX: switchMacro uses functional setMacros to get fresh state
   const switchMacro = (id: string) => {
+    if (id === activeMacroId) return;
     persistCurrentState();
     setActiveMacroId(id);
-    // Use setTimeout to ensure macros state is updated before reading
     setMacros((currentMacros) => {
       const target = currentMacros.find((m) => m.id === id);
       if (target) {
@@ -260,8 +264,22 @@ export function ProcessMappingCanvas() {
     forceRender((v) => v + 1);
   };
 
+  // FIX: Prevent duplicate edges on connect
   const onConnect = useCallback(
     (params: Connection) => {
+      const currentEdges = edgesRef.current;
+      const duplicate = currentEdges.some(
+        (e) => e.source === params.source && e.target === params.target
+      );
+      if (duplicate) {
+        toast.warning("Essa conexão já existe.");
+        return;
+      }
+      // Prevent self-connection
+      if (params.source === params.target) {
+        toast.warning("Não é possível conectar um nó a si mesmo.");
+        return;
+      }
       pushHistory();
       setEdges((eds) =>
         addEdge(
@@ -275,17 +293,21 @@ export function ProcessMappingCanvas() {
           eds
         )
       );
+      toast.success("Conexão criada.");
     },
     [setEdges, pushHistory]
   );
 
-  const addNode = () => {
+  // FIX: Position new nodes below all existing ones, not overlapping
+  const addNode = useCallback(() => {
     pushHistory();
-    const stepNumber = nodes.length + 1;
-    const newNode = {
+    const currentNodes = nodesRef.current;
+    const stepNumber = currentNodes.length + 1;
+    const nextY = getNextYPosition(currentNodes);
+    const newNode: Node = {
       id: crypto.randomUUID(),
-      type: "processStep" as const,
-      position: { x: 300, y: stepNumber * 160 },
+      type: "processStep",
+      position: { x: 300, y: nextY },
       data: {
         stepNumber,
         title: `Etapa ${stepNumber}`,
@@ -294,98 +316,142 @@ export function ProcessMappingCanvas() {
       },
     };
     setNodes((prev) => [...prev, newNode] as typeof prev);
-  };
+    toast.success("Nova etapa adicionada.");
+  }, [pushHistory, setNodes]);
 
-  // FIX: delete node + recalculate step numbers
+  // Add node and auto-connect to last node
+  const addNodeConnected = useCallback(() => {
+    pushHistory();
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const stepNumber = currentNodes.length + 1;
+    const nextY = getNextYPosition(currentNodes);
+    const newId = crypto.randomUUID();
+    const newNode: Node = {
+      id: newId,
+      type: "processStep",
+      position: { x: 300, y: nextY },
+      data: {
+        stepNumber,
+        title: `Etapa ${stepNumber}`,
+        description: "",
+        onNodeClick: (id: string) => setEditingNodeId(id),
+      },
+    };
+
+    // Find the node with the highest Y that has no outgoing edges (leaf node)
+    const nodesWithOutgoing = new Set(currentEdges.map((e) => e.source));
+    const leafNodes = currentNodes.filter((n) => !nodesWithOutgoing.has(n.id));
+    let connectFrom: Node | undefined;
+    if (leafNodes.length > 0) {
+      connectFrom = leafNodes.reduce((a, b) => (a.position.y > b.position.y ? a : b));
+    } else if (currentNodes.length > 0) {
+      connectFrom = currentNodes.reduce((a, b) => (a.position.y > b.position.y ? a : b));
+    }
+
+    setNodes((prev) => [...prev, newNode] as typeof prev);
+
+    if (connectFrom) {
+      const edgeId = `e-${connectFrom.id}-${newId}`;
+      setEdges((prev) => [...prev, makeEdge(edgeId, connectFrom.id, newId)]);
+    }
+    toast.success("Etapa adicionada e conectada.");
+  }, [pushHistory, setNodes, setEdges]);
+
+  // FIX: delete node + cleanup orphan children recursively
   const deleteNode = useCallback((nodeId: string) => {
     pushHistory();
+    const currentEdges = edgesRef.current;
+
+    // Find child nodes that would become orphans
+    const childEdges = currentEdges.filter((e) => e.source === nodeId);
+    const orphanIds = new Set<string>();
+    
+    childEdges.forEach((ce) => {
+      const otherIncoming = currentEdges.filter(
+        (e) => e.target === ce.target && e.source !== nodeId
+      );
+      if (otherIncoming.length === 0) {
+        orphanIds.add(ce.target);
+      }
+    });
+
+    const allRemovedIds = new Set([nodeId, ...orphanIds]);
+
     setNodes((prev) => {
-      const filtered = prev.filter((n) => n.id !== nodeId);
+      const filtered = prev.filter((n) => !allRemovedIds.has(n.id));
       return recalcStepNumbers(filtered) as typeof prev;
     });
-    setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setEdges((prev) =>
+      prev.filter((e) => !allRemovedIds.has(e.source) && !allRemovedIds.has(e.target))
+    );
     setEditingNodeId(null);
     toast.success("Etapa removida.");
   }, [setNodes, setEdges, pushHistory]);
 
+  // Build existing paths from CURRENT edges via ref
   const existingPaths = useMemo(() => {
     if (!editingNodeId) return [];
-    return edges
+    return edgesRef.current
       .filter((e) => e.source === editingNodeId)
       .map((e) => ({ id: e.id, label: (e.label as string) || "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingNodeId, edges]);
 
-  // FIX: handleSaveNode also removes edges whose paths were deleted
-  const handleSaveNode = (data: { title: string; description: string; paths: { id: string; label: string }[] }) => {
+  // FIX: handleSaveNode uses refs for current state to avoid stale closures
+  const handleSaveNode = useCallback((data: { title: string; description: string; paths: { id: string; label: string }[] }) => {
     if (!editingNodeId) return;
     pushHistory();
 
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+
+    // 1) Update node title/description
     setNodes((prev) =>
       prev.map((n) =>
         n.id === editingNodeId ? { ...n, data: { ...n.data, title: data.title, description: data.description } } : n
       )
     );
 
-    const currentEdgesFromNode = edges.filter((e) => e.source === editingNodeId);
+    const edgesFromNode = currentEdges.filter((e) => e.source === editingNodeId);
     const keptPathIds = new Set(data.paths.map((p) => p.id));
+    const existingEdgeIds = new Set(edgesFromNode.map((e) => e.id));
 
-    // Remove edges + orphan target nodes for deleted paths
-    const edgesToRemove = currentEdgesFromNode.filter((e) => !keptPathIds.has(e.id));
-    const orphanTargets = new Set(edgesToRemove.map((e) => e.target));
-
-    // Only remove target nodes if they have no other incoming edges
+    // 2) Find edges to remove (paths that were deleted)
+    const edgesToRemove = edgesFromNode.filter((e) => !keptPathIds.has(e.id));
+    
+    // 3) Find orphan targets (nodes with no other incoming edges)
     const safeOrphans = new Set<string>();
-    orphanTargets.forEach((targetId) => {
-      const otherIncoming = edges.filter((e) => e.target === targetId && e.source !== editingNodeId);
-      if (otherIncoming.length === 0) safeOrphans.add(targetId);
+    edgesToRemove.forEach((removedEdge) => {
+      const otherIncoming = currentEdges.filter(
+        (e) => e.target === removedEdge.target && e.source !== editingNodeId
+      );
+      if (otherIncoming.length === 0) {
+        safeOrphans.add(removedEdge.target);
+      }
     });
 
-    // Update labels on kept edges
-    setEdges((prev) => {
-      const updated = prev
-        .filter((e) => !(e.source === editingNodeId && !keptPathIds.has(e.id)))
-        .map((e) => {
-          if (e.source === editingNodeId) {
-            const match = data.paths.find((p) => p.id === e.id);
-            if (match) return { ...e, label: match.label };
-          }
-          return e;
-        });
-      return updated;
-    });
-
-    // Remove orphan nodes
-    if (safeOrphans.size > 0) {
-      setNodes((prev) => {
-        const filtered = prev.filter((n) => !safeOrphans.has(n.id));
-        return recalcStepNumbers(filtered) as typeof prev;
-      });
-      // Also remove edges connected to orphans
-      setEdges((prev) => prev.filter((e) => !safeOrphans.has(e.source) && !safeOrphans.has(e.target)));
-    }
-
-    // Create new child nodes for new paths
-    const existingEdgeIds = new Set(currentEdgesFromNode.map((e) => e.id));
-    const parentNode = nodes.find((n) => n.id === editingNodeId);
+    // 4) Create new child nodes for new paths
+    const parentNode = currentNodes.find((n) => n.id === editingNodeId);
     const baseX = parentNode?.position?.x ?? 300;
     const baseY = (parentNode?.position?.y ?? 200) + 180;
 
+    const newPaths = data.paths.filter((p) => !existingEdgeIds.has(p.id));
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
 
-    data.paths.forEach((path, i) => {
-      if (existingEdgeIds.has(path.id)) return;
-
+    newPaths.forEach((path, i) => {
       const childId = crypto.randomUUID();
-      const offset = (i - (data.paths.length - 1) / 2) * 220;
+      const totalNew = newPaths.length;
+      const offset = (i - (totalNew - 1) / 2) * 220;
 
       newNodes.push({
         id: childId,
         type: "processStep",
         position: { x: baseX + offset, y: baseY },
         data: {
-          stepNumber: nodes.length + newNodes.length + 1,
-          title: path.label,
+          stepNumber: currentNodes.length + newNodes.length + 1,
+          title: path.label || "Nova Etapa",
           description: "",
           onNodeClick: (id: string) => setEditingNodeId(id),
         },
@@ -394,11 +460,34 @@ export function ProcessMappingCanvas() {
       newEdges.push(makeEdge(`e-${editingNodeId}-${childId}`, editingNodeId, childId, path.label));
     });
 
-    if (newNodes.length) setNodes((prev) => [...prev, ...newNodes] as typeof prev);
-    if (newEdges.length) setEdges((prev) => [...prev, ...newEdges]);
+    // 5) Apply all edge changes atomically
+    setEdges((prev) => {
+      let updated = prev
+        // Remove deleted paths' edges
+        .filter((e) => !(e.source === editingNodeId && !keptPathIds.has(e.id)))
+        // Remove edges connected to orphans
+        .filter((e) => !safeOrphans.has(e.source) && !safeOrphans.has(e.target))
+        // Update labels on kept edges
+        .map((e) => {
+          if (e.source === editingNodeId) {
+            const match = data.paths.find((p) => p.id === e.id);
+            if (match) return { ...e, label: match.label };
+          }
+          return e;
+        });
+      // Add new edges
+      return [...updated, ...newEdges];
+    });
+
+    // 6) Apply node changes atomically
+    setNodes((prev) => {
+      let updated = prev.filter((n) => !safeOrphans.has(n.id));
+      if (newNodes.length) updated = [...updated, ...newNodes];
+      return recalcStepNumbers(updated) as typeof prev;
+    });
 
     setEditingNodeId(null);
-  };
+  }, [editingNodeId, pushHistory, setNodes, setEdges]);
 
   const createMacro = () => {
     if (!newMacroName.trim()) return;
@@ -600,12 +689,14 @@ export function ProcessMappingCanvas() {
             >
               <Redo2 className="w-3.5 h-3.5" />
             </Button>
+            <div className="w-px h-5 mx-1" style={{ background: "#22262d" }} />
             <Button
               size="sm"
               variant="ghost"
               className="h-8 gap-1.5 text-xs"
               style={{ color: "#94a3b8" }}
               onClick={addNode}
+              title="Adicionar etapa isolada"
             >
               <Plus className="w-3.5 h-3.5" />
               Nova Etapa
@@ -614,41 +705,78 @@ export function ProcessMappingCanvas() {
               size="sm"
               variant="ghost"
               className="h-8 gap-1.5 text-xs"
+              style={{ color: "#00aeff" }}
+              onClick={addNodeConnected}
+              title="Adicionar etapa conectada ao último nó"
+            >
+              <Link className="w-3.5 h-3.5" />
+              Etapa Conectada
+            </Button>
+            <div className="w-px h-5 mx-1" style={{ background: "#22262d" }} />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1.5 text-xs"
               style={{ color: "#94a3b8" }}
               onClick={exportPDF}
             >
               <FileDown className="w-3.5 h-3.5" />
-              Exportar PDF
+              Exportar
             </Button>
           </div>
         </div>
 
+        {/* Empty state */}
+        {nodes.length === 0 && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-3">
+              <GitBranch className="w-10 h-10 mx-auto" style={{ color: "#22262d" }} />
+              <p className="text-sm" style={{ color: "#4b5563" }}>
+                Nenhuma etapa ainda. Clique em "Nova Etapa" para começar.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  size="sm"
+                  onClick={addNode}
+                  className="gap-1.5 text-xs"
+                  style={{ background: "linear-gradient(135deg, #0055ff, #00aeff)", color: "#fff" }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Criar Primeira Etapa
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Canvas */}
-        <div className="flex-1">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            proOptions={{ hideAttribution: true }}
-            style={{ background: "#0a0a0c" }}
-            defaultEdgeOptions={{
-              type: "smoothstep",
-              style: { stroke: "#3b4252", strokeWidth: 1.5 },
-              labelStyle: EDGE_LABEL_STYLE,
-              markerEnd: EDGE_MARKER,
-            }}
-          >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a1e24" />
-            <Controls
-              style={{ background: "#121418", border: "1px solid #22262d", borderRadius: 8 }}
-              showInteractive={false}
-            />
-          </ReactFlow>
-        </div>
+        {nodes.length > 0 && (
+          <div className="flex-1">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              fitView
+              proOptions={{ hideAttribution: true }}
+              style={{ background: "#0a0a0c" }}
+              defaultEdgeOptions={{
+                type: "smoothstep",
+                style: EDGE_STYLE,
+                labelStyle: EDGE_LABEL_STYLE,
+                markerEnd: EDGE_MARKER,
+              }}
+            >
+              <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a1e24" />
+              <Controls
+                style={{ background: "#121418", border: "1px solid #22262d", borderRadius: 8 }}
+                showInteractive={false}
+              />
+            </ReactFlow>
+          </div>
+        )}
       </div>
 
       {/* Edit sheet */}
