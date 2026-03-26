@@ -458,7 +458,8 @@ const VoiceTab: React.FC<{
 const ContractTab: React.FC<{ 
   formData: Partial<ClientCard>; 
   setFormData: React.Dispatch<React.SetStateAction<Partial<ClientCard>>>;
-}> = ({ formData, setFormData }) => {
+  clientId?: string;
+}> = ({ formData, setFormData, clientId }) => {
   const [serviceInput, setServiceInput] = useState('');
 
   const addService = () => {
