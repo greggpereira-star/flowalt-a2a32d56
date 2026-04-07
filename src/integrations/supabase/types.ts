@@ -8171,6 +8171,7 @@ export type Database = {
           parent_transaction_id: string | null
           recurrence: Database["public"]["Enums"]["recurrence_type"] | null
           status: Database["public"]["Enums"]["transaction_status"]
+          supplier_name: string | null
           total_installments: number | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -8197,6 +8198,7 @@ export type Database = {
           parent_transaction_id?: string | null
           recurrence?: Database["public"]["Enums"]["recurrence_type"] | null
           status?: Database["public"]["Enums"]["transaction_status"]
+          supplier_name?: string | null
           total_installments?: number | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -8223,6 +8225,7 @@ export type Database = {
           parent_transaction_id?: string | null
           recurrence?: Database["public"]["Enums"]["recurrence_type"] | null
           status?: Database["public"]["Enums"]["transaction_status"]
+          supplier_name?: string | null
           total_installments?: number | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
