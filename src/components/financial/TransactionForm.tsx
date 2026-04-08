@@ -55,6 +55,7 @@ const transactionSchema = z.object({
   total_installments: z.string().optional(),
   invoice_number: z.string().optional(),
   notes: z.string().optional(),
+  supplier_name: z.string().optional(),
 });
 
 type FormData = z.infer<typeof transactionSchema>;
