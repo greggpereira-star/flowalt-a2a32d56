@@ -795,7 +795,7 @@ export function ProcessMappingCanvas() {
             </DropdownMenu>
 
             <div className="w-px h-5 mx-1" style={{ background: "#22262d" }} />
-            <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" style={{ color: "#94a3b8" }} onClick={exportPDF}>
+            <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" style={{ color: "#94a3b8" }} onClick={exportPNG}>
               <FileDown className="w-3.5 h-3.5" /> Exportar
             </Button>
           </div>
