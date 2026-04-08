@@ -620,9 +620,24 @@ export function ProcessMappingCanvas() {
     toast.success("Nome atualizado.");
   };
 
-  const exportPDF = () => {
-    toast.info("Funcionalidade de exportação PDF será implementada em breve.");
-  };
+  const exportPNG = useCallback(() => {
+    const canvas = document.querySelector('.react-flow') as HTMLElement;
+    if (!canvas) {
+      toast.error("Canvas não encontrado.");
+      return;
+    }
+    import('html-to-image').then(({ toPng }) => {
+      toPng(canvas, { backgroundColor: '#0a0a0c', quality: 1 })
+        .then((dataUrl) => {
+          const link = document.createElement('a');
+          link.download = `${activeMacro.name.replace(/\s+/g, '_')}_processo.png`;
+          link.href = dataUrl;
+          link.click();
+          toast.success("Imagem exportada!");
+        })
+        .catch(() => toast.error("Erro ao exportar imagem."));
+    });
+  }, [activeMacro.name]);
 
   const canUndo = historyIndexRef.current > 0;
   const canRedo = historyIndexRef.current < historyRef.current.length - 1;
@@ -780,7 +795,7 @@ export function ProcessMappingCanvas() {
             </DropdownMenu>
 
             <div className="w-px h-5 mx-1" style={{ background: "#22262d" }} />
-            <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" style={{ color: "#94a3b8" }} onClick={exportPDF}>
+            <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" style={{ color: "#94a3b8" }} onClick={exportPNG}>
               <FileDown className="w-3.5 h-3.5" /> Exportar
             </Button>
           </div>

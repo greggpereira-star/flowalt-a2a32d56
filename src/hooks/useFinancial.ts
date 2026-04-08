@@ -37,6 +37,7 @@ export interface Transaction {
   invoice_number: string | null;
   invoice_url: string | null;
   notes: string | null;
+  supplier_name: string | null;
   metadata: unknown;
   created_by: string | null;
   created_at: string;
@@ -187,15 +188,19 @@ export function useCreateTransaction() {
       total_installments?: number;
       invoice_number?: string;
       notes?: string;
+      supplier_name?: string;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
-      // If recurring, generate 12 future entries
+      // If recurring, generate entries based on total_installments
       if (transaction.recurrence && transaction.recurrence !== "none") {
-        const months = transaction.recurrence === "monthly" ? 12 : 2; // 12 months or 2 years
+        const defaultCount = transaction.recurrence === "monthly" ? 12 : 2;
+        const months = transaction.total_installments && transaction.total_installments >= 2
+          ? transaction.total_installments
+          : defaultCount;
         const intervalMonths = transaction.recurrence === "monthly" ? 1 : 12;
         
         const entries = Array.from({ length: months }, (_, i) => {
@@ -218,6 +223,7 @@ export function useCreateTransaction() {
             total_installments: months,
             invoice_number: transaction.invoice_number,
             notes: transaction.notes,
+            supplier_name: transaction.supplier_name,
             card_id: transaction.card_id,
             collaborator_id: transaction.collaborator_id,
             parent_transaction_id: undefined as string | undefined,

@@ -55,6 +55,7 @@ const transactionSchema = z.object({
   total_installments: z.string().optional(),
   invoice_number: z.string().optional(),
   notes: z.string().optional(),
+  supplier_name: z.string().optional(),
 });
 
 type FormData = z.infer<typeof transactionSchema>;
@@ -87,6 +88,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       total_installments: transaction?.total_installments?.toString() || "",
       invoice_number: transaction?.invoice_number || "",
       notes: transaction?.notes || "",
+      supplier_name: (transaction as any)?.supplier_name || "",
     },
   });
 
@@ -109,6 +111,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       total_installments: data.total_installments ? parseInt(data.total_installments) : undefined,
       invoice_number: data.invoice_number || undefined,
       notes: data.notes || undefined,
+      supplier_name: data.supplier_name || undefined,
     });
 
     // If result has an id, keep dialog open for attachments
@@ -290,6 +293,21 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
                 )}
               />
             </div>
+
+            {/* Fornecedor */}
+            <FormField
+              control={form.control}
+              name="supplier_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fornecedor (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Fornecedor XYZ" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Centro de Custo */}
             <FormField

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useMemo } from "react";
+import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowDownCircle,
@@ -13,6 +13,9 @@ import {
   Filter,
   Loader2,
   FolderTree,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +55,7 @@ interface TransactionListProps {
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
   const [filters, setFilters] = useState(initialFilters || {});
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<Date | null>(null);
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
   const { data: transactions = [], isLoading } = useTransactions(filters);
@@ -111,12 +115,22 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     }
   };
 
-  // Filter transactions by cost center
-  const filteredTransactions = transactions.filter((t) => {
-    if (costCenterFilter === "all") return true;
-    if (costCenterFilter === "unassigned") return !t.cost_center_id;
-    return t.cost_center_id === costCenterFilter;
-  });
+  // Filter transactions by cost center and month
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      if (costCenterFilter !== "all") {
+        if (costCenterFilter === "unassigned" && t.cost_center_id) return false;
+        if (costCenterFilter !== "unassigned" && t.cost_center_id !== costCenterFilter) return false;
+      }
+      if (monthFilter) {
+        const txDate = parseISO(t.due_date);
+        const start = startOfMonth(monthFilter);
+        const end = endOfMonth(monthFilter);
+        if (txDate < start || txDate > end) return false;
+      }
+      return true;
+    });
+  }, [transactions, costCenterFilter, monthFilter]);
 
   // Get cost center name by id
   const getCostCenterById = (id: string | null) => {
@@ -184,6 +198,35 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             ))}
           </SelectContent>
         </Select>
+
+        {/* Month Filter */}
+        <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10">
+          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setMonthFilter((prev) => prev ? subMonths(prev, 1) : subMonths(new Date(), 1))}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+          <button
+            onClick={() => setMonthFilter(monthFilter ? null : new Date())}
+            className="text-xs font-medium min-w-[100px] text-center hover:text-primary transition-colors"
+          >
+            {monthFilter
+              ? format(monthFilter, "MMM yyyy", { locale: ptBR })
+              : "Todos os meses"}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setMonthFilter((prev) => prev ? addMonths(prev, 1) : addMonths(new Date(), 1))}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border border-border">
