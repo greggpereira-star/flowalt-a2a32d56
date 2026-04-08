@@ -194,9 +194,12 @@ export function useCreateTransaction() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
-      // If recurring, generate 12 future entries
+      // If recurring, generate entries based on total_installments
       if (transaction.recurrence && transaction.recurrence !== "none") {
-        const months = transaction.recurrence === "monthly" ? 12 : 2; // 12 months or 2 years
+        const defaultCount = transaction.recurrence === "monthly" ? 12 : 2;
+        const months = transaction.total_installments && transaction.total_installments >= 2
+          ? transaction.total_installments
+          : defaultCount;
         const intervalMonths = transaction.recurrence === "monthly" ? 1 : 12;
         
         const entries = Array.from({ length: months }, (_, i) => {
