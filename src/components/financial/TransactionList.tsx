@@ -198,6 +198,35 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             ))}
           </SelectContent>
         </Select>
+
+        {/* Month Filter */}
+        <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10">
+          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setMonthFilter((prev) => prev ? subMonths(prev, 1) : subMonths(new Date(), 1))}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+          <button
+            onClick={() => setMonthFilter(monthFilter ? null : new Date())}
+            className="text-xs font-medium min-w-[100px] text-center hover:text-primary transition-colors"
+          >
+            {monthFilter
+              ? format(monthFilter, "MMM yyyy", { locale: ptBR })
+              : "Todos os meses"}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setMonthFilter((prev) => prev ? addMonths(prev, 1) : addMonths(new Date(), 1))}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border border-border">
