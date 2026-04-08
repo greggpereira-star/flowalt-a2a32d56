@@ -57,7 +57,6 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<Date | null>(null);
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
-  const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
   const { data: transactions = [], isLoading } = useTransactions(filters);
   const { data: categories = [] } = useCategories();
