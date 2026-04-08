@@ -88,6 +88,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       total_installments: transaction?.total_installments?.toString() || "",
       invoice_number: transaction?.invoice_number || "",
       notes: transaction?.notes || "",
+      supplier_name: (transaction as any)?.supplier_name || "",
     },
   });
 
