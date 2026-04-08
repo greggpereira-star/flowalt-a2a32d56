@@ -111,6 +111,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       total_installments: data.total_installments ? parseInt(data.total_installments) : undefined,
       invoice_number: data.invoice_number || undefined,
       notes: data.notes || undefined,
+      supplier_name: data.supplier_name || undefined,
     });
 
     // If result has an id, keep dialog open for attachments
