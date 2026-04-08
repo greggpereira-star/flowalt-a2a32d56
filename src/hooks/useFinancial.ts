@@ -188,6 +188,7 @@ export function useCreateTransaction() {
       total_installments?: number;
       invoice_number?: string;
       notes?: string;
+      supplier_name?: string;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
