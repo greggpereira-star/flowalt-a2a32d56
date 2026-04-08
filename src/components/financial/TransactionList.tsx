@@ -13,6 +13,9 @@ import {
   Filter,
   Loader2,
   FolderTree,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
