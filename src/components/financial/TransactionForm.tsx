@@ -294,6 +294,21 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
               />
             </div>
 
+            {/* Fornecedor */}
+            <FormField
+              control={form.control}
+              name="supplier_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fornecedor (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Fornecedor XYZ" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Centro de Custo */}
             <FormField
               control={form.control}
