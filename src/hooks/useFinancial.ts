@@ -37,6 +37,7 @@ export interface Transaction {
   invoice_number: string | null;
   invoice_url: string | null;
   notes: string | null;
+  supplier_name: string | null;
   metadata: unknown;
   created_by: string | null;
   created_at: string;
