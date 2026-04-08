@@ -223,6 +223,7 @@ export function useCreateTransaction() {
             total_installments: months,
             invoice_number: transaction.invoice_number,
             notes: transaction.notes,
+            supplier_name: transaction.supplier_name,
             card_id: transaction.card_id,
             collaborator_id: transaction.collaborator_id,
             parent_transaction_id: undefined as string | undefined,
