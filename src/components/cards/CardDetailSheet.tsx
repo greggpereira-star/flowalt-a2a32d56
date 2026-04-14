@@ -13,6 +13,7 @@ import {
   CardActivityPanel,
   CardBriefingSection,
   CardResourceTabs,
+  InlineTimerWidget,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
