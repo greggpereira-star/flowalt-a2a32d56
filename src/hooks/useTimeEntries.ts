@@ -154,6 +154,22 @@ export const useStopTimer = () => {
 
       if (error) throw error;
 
+      // Update actual_hours on the card
+      const { data: allEntries } = await supabase
+        .from('time_entries')
+        .select('duration_seconds')
+        .eq('card_id', card_id)
+        .eq('is_running', false);
+
+      if (allEntries) {
+        const totalSeconds = allEntries.reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
+        const totalHours = parseFloat((totalSeconds / 3600).toFixed(2));
+        await supabase
+          .from('cards')
+          .update({ actual_hours: totalHours })
+          .eq('id', card_id);
+      }
+
       // Trigger webhook
       triggerWebhook(data.workspace_id, 'time_entry.logged', {
         id: data.id,
