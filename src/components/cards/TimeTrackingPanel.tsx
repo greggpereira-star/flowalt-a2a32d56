@@ -106,52 +106,76 @@ export const TimeTrackingPanel: React.FC<TimeTrackingPanelProps> = ({ cardId }) 
 
   return (
     <div className="space-y-6">
-      {/* Timer Control */}
-      <Card className={cn(runningTimer && 'border-status-inProgress/50 bg-status-inProgress/5')}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                size="lg"
-                variant={runningTimer ? 'destructive' : 'default'}
-                className="h-14 w-14 rounded-full p-0"
-                onClick={handleToggleTimer}
-                disabled={startTimer.isPending || stopTimer.isPending}
-              >
-                {runningTimer ? (
-                  <Pause className="h-6 w-6" />
-                ) : (
-                  <Play className="h-6 w-6 ml-1" />
-                )}
-              </Button>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {runningTimer ? 'Timer em execução' : 'Timer parado'}
-                </p>
-                <p className="text-3xl font-mono font-bold">
-                  {runningTimer ? formatDuration(currentDuration) : '00m 00s'}
-                </p>
-              </div>
+      {/* Timer Control — High Visibility */}
+      <Card className={cn(
+        'border-2 transition-all duration-300 overflow-hidden',
+        runningTimer 
+          ? 'border-primary shadow-lg shadow-primary/20 animate-pulse-subtle' 
+          : 'border-border hover:border-primary/40'
+      )}>
+        {/* Animated top bar when running */}
+        {runningTimer && (
+          <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-primary animate-[shimmer_2s_infinite]" />
+        )}
+        <CardContent className="p-5">
+          <div className="flex items-center gap-4">
+            {/* Big play/pause button */}
+            <Button
+              size="lg"
+              variant={runningTimer ? 'destructive' : 'default'}
+              className={cn(
+                "h-16 w-16 rounded-full p-0 flex-shrink-0 shadow-md transition-transform hover:scale-105",
+                !runningTimer && "bg-primary hover:bg-primary/90"
+              )}
+              onClick={handleToggleTimer}
+              disabled={startTimer.isPending || stopTimer.isPending}
+            >
+              {startTimer.isPending || stopTimer.isPending ? (
+                <Loader2 className="h-7 w-7 animate-spin" />
+              ) : runningTimer ? (
+                <Pause className="h-7 w-7" />
+              ) : (
+                <Play className="h-7 w-7 ml-1" />
+              )}
+            </Button>
+
+            {/* Timer display */}
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "text-xs font-semibold uppercase tracking-wider mb-0.5",
+                runningTimer ? "text-primary" : "text-muted-foreground"
+              )}>
+                {runningTimer ? '⏱ Timer em execução' : 'Timer parado'}
+              </p>
+              <p className={cn(
+                "font-mono font-black tracking-tight",
+                runningTimer ? "text-4xl text-primary" : "text-3xl text-muted-foreground/60"
+              )}>
+                {runningTimer ? formatDuration(currentDuration) : '00m 00s'}
+              </p>
             </div>
 
-            {/* Estimated vs Actual */}
-            <div className="text-right">
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Estimado</p>
-                  <p className="text-lg font-medium">
-                    {card?.estimated_hours ? `${card.estimated_hours}h` : '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Trabalhado</p>
-                  <p className={cn(
-                    'text-lg font-medium',
-                    card?.estimated_hours && totalHours > card.estimated_hours && 'text-destructive'
-                  )}>
-                    {formatHours(totalSeconds)}h
-                  </p>
-                </div>
+            {/* Estimated vs Actual — compact */}
+            <div className="flex gap-3 flex-shrink-0">
+              <div className="text-center px-3 py-2 rounded-lg bg-muted/50">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Estimado</p>
+                <p className="text-lg font-bold">
+                  {card?.estimated_hours ? `${card.estimated_hours}h` : '-'}
+                </p>
+              </div>
+              <div className={cn(
+                "text-center px-3 py-2 rounded-lg",
+                card?.estimated_hours && totalHours > card.estimated_hours 
+                  ? "bg-destructive/10" 
+                  : "bg-muted/50"
+              )}>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Trabalhado</p>
+                <p className={cn(
+                  'text-lg font-bold',
+                  card?.estimated_hours && totalHours > card.estimated_hours && 'text-destructive'
+                )}>
+                  {formatHours(totalSeconds)}h
+                </p>
               </div>
             </div>
           </div>
