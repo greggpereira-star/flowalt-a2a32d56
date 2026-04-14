@@ -227,7 +227,7 @@ export const ApprovalsPendingView: React.FC<ApprovalsPendingViewProps> = ({
                     <h4 className="font-medium truncate">{card.title}</h4>
                     {card.description && (
                       <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                        {card.description}
+                        {extractPlainText(card.description)}
                       </p>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">

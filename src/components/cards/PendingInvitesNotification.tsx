@@ -67,7 +67,7 @@ export const PendingInvitesNotification: React.FC = () => {
                   </h4>
                   {card?.description && (
                     <p className="text-xs text-muted-foreground line-clamp-1">
-                      {card.description}
+                      {extractPlainText(card.description)}
                     </p>
                   )}
                 </div>
