@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { UrgencyBadge } from './CardBadges';
 import { Calendar, Clock, GripVertical } from 'lucide-react';
