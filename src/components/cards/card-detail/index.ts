@@ -5,3 +5,4 @@ export { CardDescriptionSection } from './CardDescriptionSection';
 export { CardActivityPanel } from './CardActivityPanel';
 export { CardBriefingSection } from './CardBriefingSection';
 export { CardResourceTabs } from './CardResourceTabs';
+export { InlineTimerWidget } from './InlineTimerWidget';

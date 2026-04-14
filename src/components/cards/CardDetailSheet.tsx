@@ -13,6 +13,7 @@ import {
   CardActivityPanel,
   CardBriefingSection,
   CardResourceTabs,
+  InlineTimerWidget,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
@@ -330,6 +331,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         updateCard.mutate({ id: card.id, client_id: id });
                       }}
                     />
+
+                    {/* Inline Timer Widget — Prominent placement */}
+                    <InlineTimerWidget cardId={card.id} />
 
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
