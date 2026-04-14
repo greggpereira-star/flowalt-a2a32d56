@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -226,7 +227,7 @@ export const ApprovalsPendingView: React.FC<ApprovalsPendingViewProps> = ({
                     <h4 className="font-medium truncate">{card.title}</h4>
                     {card.description && (
                       <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                        {card.description}
+                        {extractPlainText(card.description)}
                       </p>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">

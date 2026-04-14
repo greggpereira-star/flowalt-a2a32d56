@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { TaskCard } from './TaskCard';
 import {
   Table,
@@ -57,7 +58,7 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
                     <span className="font-medium">{card.title}</span>
                     {card.description && (
                       <span className="text-xs text-muted-foreground line-clamp-1">
-                        {card.description}
+                        {extractPlainText(card.description)}
                       </span>
                     )}
                   </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +67,7 @@ export const PendingInvitesNotification: React.FC = () => {
                   </h4>
                   {card?.description && (
                     <p className="text-xs text-muted-foreground line-clamp-1">
-                      {card.description}
+                      {extractPlainText(card.description)}
                     </p>
                   )}
                 </div>

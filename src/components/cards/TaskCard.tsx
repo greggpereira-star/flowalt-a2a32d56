@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UrgencyBadge } from './CardBadges';
@@ -137,7 +138,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Description preview */}
         {card.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
-            {card.description}
+            {extractPlainText(card.description)}
           </p>
         )}
 
