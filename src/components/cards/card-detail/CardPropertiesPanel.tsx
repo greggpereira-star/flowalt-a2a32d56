@@ -391,21 +391,6 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         </div>
       </PropertyItem>
 
-      {/* Tracked Time */}
-      <PropertyItem label="Tempo Rastreado">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 w-full justify-start border-border/50 bg-muted/30 hover:bg-muted/50"
-        >
-          <Timer className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-          {actualHours > 0 ? (
-            <span className="text-sm">{actualHours.toFixed(1)}h</span>
-          ) : (
-            <span className="text-sm text-muted-foreground">0h</span>
-          )}
-        </Button>
-      </PropertyItem>
     </div>
   );
 };
