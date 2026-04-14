@@ -50,7 +50,7 @@ export const DragOverlayCard: React.FC<DragOverlayCardProps> = ({ card }) => {
         <CardContent className="p-3 pt-0 space-y-2">
           {card.description && (
             <p className="text-xs text-muted-foreground line-clamp-2">
-              {card.description}
+              {extractPlainText(card.description)}
             </p>
           )}
 

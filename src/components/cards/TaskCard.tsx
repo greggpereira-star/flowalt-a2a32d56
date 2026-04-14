@@ -138,7 +138,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Description preview */}
         {card.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
-            {card.description}
+            {extractPlainText(card.description)}
           </p>
         )}
 

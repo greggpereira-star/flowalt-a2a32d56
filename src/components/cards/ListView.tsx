@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { TaskCard } from './TaskCard';
 import {
   Table,

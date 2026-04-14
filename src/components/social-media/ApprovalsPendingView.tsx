@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
