@@ -332,6 +332,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       }}
                     />
 
+                    {/* Inline Timer Widget — Prominent placement */}
+                    <InlineTimerWidget cardId={card.id} />
+
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
                       <CardBriefingSection
