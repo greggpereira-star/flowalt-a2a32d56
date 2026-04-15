@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Square, Loader2 } from 'lucide-react';
+import { Play, Square, Loader2, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useTimeEntries,
@@ -55,60 +55,58 @@ export const InlineTimerWidget: React.FC<InlineTimerWidgetProps> = ({ cardId }) 
   };
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 rounded-lg border px-3 py-2 transition-all',
-        isRunning
-          ? 'border-primary/50 bg-primary/5'
-          : 'border-border bg-muted/20'
-      )}
-    >
-      <Button
-        size="icon"
-        variant={isRunning ? 'destructive' : 'default'}
-        className={cn(
-          'h-8 w-8 rounded-full flex-shrink-0',
-          !isRunning && 'bg-primary hover:bg-primary/90'
-        )}
-        onClick={handleToggle}
-        disabled={isPending}
-      >
-        {isPending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : isRunning ? (
-          <Square className="h-3 w-3" />
-        ) : (
-          <Play className="h-3.5 w-3.5 ml-0.5" />
-        )}
-      </Button>
+    <div className="flex items-center min-h-[36px] px-2 py-1 rounded-md transition-all hover:bg-muted/40 group">
+      <div className="w-[140px] flex-shrink-0 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <Timer className="h-3.5 w-3.5" />
+        <span>Rastrear tempo</span>
+      </div>
+      <div className="flex-1 flex items-center gap-2.5">
+        <Button
+          size="icon"
+          variant={isRunning ? 'destructive' : 'ghost'}
+          className={cn(
+            'h-6 w-6 rounded-full flex-shrink-0 transition-all',
+            !isRunning && 'border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary'
+          )}
+          onClick={handleToggle}
+          disabled={isPending}
+        >
+          {isPending ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : isRunning ? (
+            <Square className="h-2.5 w-2.5" />
+          ) : (
+            <Play className="h-3 w-3 ml-0.5" />
+          )}
+        </Button>
 
-      <div className="flex items-center gap-2 flex-1 min-w-0">
         <span
           className={cn(
-            'font-mono text-sm font-semibold tabular-nums',
-            isRunning ? 'text-primary' : 'text-muted-foreground'
+            'font-mono text-sm tabular-nums',
+            isRunning ? 'text-primary font-semibold' : 'text-muted-foreground'
           )}
         >
-          {isRunning ? formatDuration(elapsed) : '00:00:00'}
+          {isRunning ? formatDuration(elapsed) : '0:00:00'}
         </span>
+
         {isRunning && (
-          <span className="relative flex h-2 w-2">
+          <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
           </span>
         )}
-      </div>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
-        <span className={cn('font-medium tabular-nums', isOver && 'text-destructive')}>
-          {totalH}h
-        </span>
-        {estH != null && estH > 0 && (
-          <>
-            <span>/</span>
-            <span className="font-medium tabular-nums">{estH}h</span>
-          </>
-        )}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+          <span className={cn('tabular-nums', isOver && 'text-destructive font-medium')}>
+            {totalH}h
+          </span>
+          {estH != null && estH > 0 && (
+            <>
+              <span className="text-muted-foreground/40">/</span>
+              <span className="tabular-nums">{estH}h</span>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

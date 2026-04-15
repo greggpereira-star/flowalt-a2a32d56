@@ -6,6 +6,7 @@ import {
   History,
   Send,
   Loader2,
+  ListFilter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useComments, useCreateComment } from '@/hooks/useComments';
@@ -22,10 +23,12 @@ interface CardActivityPanelProps {
   cardId: string;
 }
 
+type ActivityTab = 'all' | 'comments' | 'history';
+
 export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   cardId,
 }) => {
-  const [activeTab, setActiveTab] = useState<'comments' | 'history'>('comments');
+  const [activeTab, setActiveTab] = useState<ActivityTab>('all');
   const [newComment, setNewComment] = useState('');
   const [currentMentions, setCurrentMentions] = useState<string[]>([]);
   const { user } = useAuth();
@@ -33,7 +36,6 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   const { data: workspaceMembers } = useWorkspaceMembers();
   const createComment = useCreateComment();
 
-  // Convert workspace members to mention suggestions
   const mentionSuggestions: MentionSuggestion[] = useMemo(() => {
     if (!workspaceMembers) return [];
     return workspaceMembers
@@ -45,7 +47,6 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
       }));
   }, [workspaceMembers]);
 
-  // Create a map for resolving mentions in viewer
   const mentionResolver = useCallback((id: string) => {
     const member = workspaceMembers?.find(m => m.user_id === id);
     if (member?.profile) {
@@ -59,101 +60,107 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
 
   const handleSubmit = async () => {
     if (isRichTextEmpty(newComment)) return;
-
     if (!user?.id) {
       toast.error('Você precisa estar logado para enviar mensagens.');
       return;
     }
-
     try {
       await createComment.mutateAsync({
         card_id: cardId,
         content: newComment,
         mentions: currentMentions,
       });
-
       setNewComment('');
       setCurrentMentions([]);
     } catch (err) {
       console.error('Erro ao enviar comentário:', err);
-      toast.error('Não foi possível enviar a mensagem. Tente novamente.');
+      toast.error('Não foi possível enviar a mensagem.');
     }
   };
 
   const getInitials = (name: string | null | undefined): string => {
     if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const tabs: { id: ActivityTab; label: string; count?: number }[] = [
+    { id: 'all', label: 'Tudo' },
+    { id: 'comments', label: 'Comentários', count: comments?.length },
+    { id: 'history', label: 'Histórico' },
+  ];
+
   return (
-    <div className="h-full flex flex-col bg-background/50">
-      {/* Minimal Header */}
-      <div className="flex-shrink-0 px-2 py-1.5 border-b border-border/50">
-        <div className="flex items-center gap-0.5 p-0.5 bg-muted/30 rounded-md">
-          <button
-            onClick={() => setActiveTab('comments')}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
-              activeTab === 'comments' 
-                ? "bg-background text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <MessageCircle className="h-3 w-3" />
-            Chat
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all",
-              activeTab === 'history' 
-                ? "bg-background text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <History className="h-3 w-3" />
-            Log
-          </button>
+    <div className="h-full flex flex-col bg-muted/20">
+      {/* Header */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border/40 bg-background">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-foreground">Atividade</h3>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground">
+            <ListFilter className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-0 border-b border-border/40 -mb-3 -mx-4 px-4">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-2.5 pb-2 pt-0.5 text-xs font-medium transition-all border-b-2",
+                activeTab === tab.id
+                  ? "text-primary border-primary"
+                  : "text-muted-foreground border-transparent hover:text-foreground hover:border-muted-foreground/30"
+              )}
+            >
+              {tab.label}
+              {tab.count != null && tab.count > 0 && (
+                <span className="ml-1 px-1 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Content */}
+      {/* Feed */}
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-2">
-          {activeTab === 'comments' ? (
+        <div className="px-4 py-3">
+          {(activeTab === 'all' || activeTab === 'comments') ? (
             isLoading ? (
-              <div className="flex items-center justify-center py-6">
+              <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : comments?.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <MessageCircle className="h-5 w-5 mx-auto mb-1 opacity-40" />
-                <p className="text-[10px]">Sem mensagens</p>
+              <div className="text-center py-10 text-muted-foreground">
+                <MessageCircle className="h-6 w-6 mx-auto mb-2 opacity-30" />
+                <p className="text-xs font-medium">Nenhum comentário ainda</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">Seja o primeiro a comentar</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {comments?.map((comment) => (
-                  <div key={comment.id} className="group flex gap-1.5 hover:bg-muted/20 rounded p-1 -mx-1 transition-colors">
-                    <Avatar className="h-5 w-5 flex-shrink-0">
-                      {comment.user?.avatar_url && (
-                        <AvatarImage src={comment.user.avatar_url} />
-                      )}
-                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                        {getInitials(comment.user?.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[10px] font-semibold text-foreground/90 truncate">
+                  <div
+                    key={comment.id}
+                    className="group rounded-lg bg-background border border-border/30 hover:border-border/60 transition-colors overflow-hidden"
+                  >
+                    {/* Comment with left accent border */}
+                    <div className="border-l-[3px] border-primary/60 pl-3 pr-3 py-2.5">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Avatar className="h-5 w-5">
+                          {comment.user?.avatar_url && (
+                            <AvatarImage src={comment.user.avatar_url} />
+                          )}
+                          <AvatarFallback className="text-[8px] bg-primary/15 text-primary font-semibold">
+                            {getInitials(comment.user?.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-semibold text-foreground/90">
                           {comment.user?.full_name?.split(' ')[0] || 'User'}
                         </span>
                         <span
-                          className="text-[9px] text-muted-foreground/60"
+                          className="text-[10px] text-muted-foreground/50 ml-auto"
                           title={format(new Date(comment.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         >
                           {formatDistanceToNow(new Date(comment.created_at), {
@@ -162,11 +169,11 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                           })}
                         </span>
                       </div>
-                      <div className="text-[11px] text-foreground/80 leading-relaxed">
+                      <div className="text-[13px] text-foreground/80 leading-relaxed">
                         <RichTextViewer 
                           content={comment.content} 
                           mentionResolver={mentionResolver}
-                          className="text-[11px] [&_p]:leading-relaxed"
+                          className="text-[13px] [&_p]:leading-relaxed"
                         />
                       </div>
                     </div>
@@ -175,53 +182,52 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <History className="h-4 w-4 text-muted-foreground/40 mb-1" />
-              <p className="text-[10px] text-muted-foreground/60">Em breve</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <History className="h-5 w-5 text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground/60">Em breve</p>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      {/* Composer - Clean Premium Design */}
-      <div className="flex-shrink-0 p-3 border-t border-border/30 bg-gradient-to-t from-muted/40 to-transparent">
-        <div className="flex items-end gap-2">
-          <div className="flex-1 min-w-0 bg-background/80 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200">
-            <RichTextEditor
-              value={newComment}
-              onChange={setNewComment}
-              placeholder="Escreva uma mensagem..."
-              minHeight="36px"
-              maxHeight="120px"
-              mentionSuggestions={mentionSuggestions}
-              onMentionsChange={setCurrentMentions}
-              showToolbar={false}
-              onSubmit={handleSubmit}
-              className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
-              contentClassName="px-4 py-2.5 text-sm leading-relaxed"
-            />
+      {/* Comment Input */}
+      <div className="flex-shrink-0 p-3 border-t border-border/40 bg-background">
+        <div className="rounded-lg border border-border/50 bg-muted/20 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+          <RichTextEditor
+            value={newComment}
+            onChange={setNewComment}
+            placeholder="Escreva um comentário..."
+            minHeight="36px"
+            maxHeight="120px"
+            mentionSuggestions={mentionSuggestions}
+            onMentionsChange={setCurrentMentions}
+            showToolbar={false}
+            onSubmit={handleSubmit}
+            className="border-0 bg-transparent shadow-none focus-within:ring-0 focus-within:border-transparent"
+            contentClassName="px-3 py-2 text-sm leading-relaxed"
+          />
+          <div className="flex items-center justify-end px-2 pb-1.5">
+            <Button
+              size="sm"
+              className={cn(
+                "h-7 px-3 rounded-md text-xs font-medium gap-1.5 transition-all",
+                !isRichTextEmpty(newComment) && !createComment.isPending
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                  : "bg-muted text-muted-foreground"
+              )}
+              onClick={handleSubmit}
+              disabled={!user?.id || isRichTextEmpty(newComment) || createComment.isPending}
+            >
+              {createComment.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <>
+                  <Send className="h-3 w-3" />
+                  Enviar
+                </>
+              )}
+            </Button>
           </div>
-
-          <Button
-            size="icon"
-            variant="ghost"
-            className={cn(
-              "h-10 w-10 rounded-xl p-0 flex-shrink-0 transition-all duration-200",
-              !isRichTextEmpty(newComment) && !createComment.isPending
-                ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg hover:scale-105"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-            onClick={handleSubmit}
-            disabled={!user?.id || isRichTextEmpty(newComment) || createComment.isPending}
-            aria-label="Enviar mensagem"
-            title={!user?.id ? 'Faça login para enviar' : 'Enviar (Enter)'}
-          >
-            {createComment.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
         </div>
       </div>
     </div>
