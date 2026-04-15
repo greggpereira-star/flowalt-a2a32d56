@@ -254,10 +254,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="max-w-5xl w-[95vw] h-[85vh] max-h-[850px] p-0 flex flex-col overflow-hidden bg-background gap-0"
-        hideCloseButton
-      >
+        <DialogContent 
+          className="max-w-[1100px] w-[92vw] h-[min(90vh,820px)] p-0 flex flex-col overflow-hidden bg-background gap-0 rounded-xl shadow-lg"
+          hideCloseButton
+        >
         <VisuallyHidden.Root>
           <DialogTitle>Detalhes do Card</DialogTitle>
         </VisuallyHidden.Root>
@@ -287,15 +287,17 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               onDelete={() => setDeleteDialogOpen(true)}
               canDelete={canDelete}
               hasHistory={hasHistory}
+              createdAt={card.created_at}
+              spaceName={space?.name}
             />
 
             {/* Main content with 2 panels */}
             <div className="flex-1 flex min-h-0">
               {/* Left Panel - Main content */}
-              <div className="flex-1 flex flex-col min-w-0 border-r">
+              <div className="flex-1 flex flex-col min-w-0 border-r border-border/40">
                 <ScrollArea className="flex-1">
-                  <div className="p-5 space-y-5">
-                    {/* Properties Grid - Clean and compact */}
+                  <div className="px-6 py-4 space-y-1">
+                    {/* Properties - ClickUp-style field rows */}
                     <CardPropertiesPanel
                       cardId={card.id}
                       status={status}
@@ -332,8 +334,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       }}
                     />
 
-                    {/* Inline Timer Widget — Prominent placement */}
+                    {/* Timer - integrated as field row */}
                     <InlineTimerWidget cardId={card.id} />
+
+                    {/* Divider */}
+                    <div className="border-t border-border/30 my-3" />
 
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
@@ -362,6 +367,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     {isSocialMediaSpace && cardId && (
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
+
+                    {/* Task Actions - Quick actions */}
+                    <div className="flex flex-col gap-0 border-t border-border/30 pt-2 mt-2">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">Conteúdo</p>
+                    </div>
 
                     {/* Description Section */}
                     <CardDescriptionSection
