@@ -373,6 +373,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
+                    {/* Task inline actions */}
+                    <TaskInlineActions />
+
                     {/* Task Actions - Quick actions */}
                     <div className="flex flex-col gap-0 border-t border-border/30 pt-2 mt-2">
                       <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">Conteúdo</p>
