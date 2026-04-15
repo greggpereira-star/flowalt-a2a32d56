@@ -1,16 +1,17 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { ChevronDown, Flag } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
-export const statusConfig: Record<CardStatus, { label: string; color: string; bgColor: string }> = {
-  backlog: { label: 'Backlog', color: 'text-status-backlog', bgColor: 'bg-status-backlog/10' },
-  briefing: { label: 'Briefing', color: 'text-status-briefing', bgColor: 'bg-status-briefing/10' },
-  todo: { label: 'A Fazer', color: 'text-status-todo', bgColor: 'bg-status-todo/10' },
-  in_progress: { label: 'Em Produção', color: 'text-status-in-progress', bgColor: 'bg-status-in-progress/10' },
-  review: { label: 'Revisão', color: 'text-status-review', bgColor: 'bg-status-review/10' },
-  approved: { label: 'Aprovado', color: 'text-status-approved', bgColor: 'bg-status-approved/10' },
-  delivered: { label: 'Entregue', color: 'text-status-delivered', bgColor: 'bg-status-delivered/10' },
-  archived: { label: 'Arquivado', color: 'text-status-archived', bgColor: 'bg-status-archived/10' },
+export const statusConfig: Record<CardStatus, { label: string; color: string; bgColor: string; dotColor: string }> = {
+  backlog: { label: 'Backlog', color: 'text-status-backlog', bgColor: 'bg-status-backlog/10', dotColor: 'bg-status-backlog' },
+  briefing: { label: 'Briefing', color: 'text-status-briefing', bgColor: 'bg-status-briefing/10', dotColor: 'bg-status-briefing' },
+  todo: { label: 'A Fazer', color: 'text-status-todo', bgColor: 'bg-status-todo/10', dotColor: 'bg-status-todo' },
+  in_progress: { label: 'Em Produção', color: 'text-status-in-progress', bgColor: 'bg-status-in-progress/10', dotColor: 'bg-status-in-progress' },
+  review: { label: 'Revisão', color: 'text-status-review', bgColor: 'bg-status-review/10', dotColor: 'bg-status-review' },
+  approved: { label: 'Aprovado', color: 'text-status-approved', bgColor: 'bg-status-approved/10', dotColor: 'bg-status-approved' },
+  delivered: { label: 'Entregue', color: 'text-status-delivered', bgColor: 'bg-status-delivered/10', dotColor: 'bg-status-delivered' },
+  archived: { label: 'Arquivado', color: 'text-status-archived', bgColor: 'bg-status-archived/10', dotColor: 'bg-status-archived' },
 };
 
 export const urgencyConfig: Record<CardUrgency, { label: string; color: string; bgColor: string }> = {
@@ -23,20 +24,23 @@ export const urgencyConfig: Record<CardUrgency, { label: string; color: string; 
 interface StatusBadgeProps {
   status: CardStatus;
   className?: string;
+  showChevron?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, showChevron = false }) => {
   const config = statusConfig[status];
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80',
         config.bgColor,
         config.color,
         className
       )}
     >
+      <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', config.dotColor)} />
       {config.label}
+      {showChevron && <ChevronDown className="h-3 w-3 opacity-50" />}
     </span>
   );
 };
@@ -51,12 +55,13 @@ export const UrgencyBadge: React.FC<UrgencyBadgeProps> = ({ urgency, className }
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
         config.bgColor,
         config.color,
         className
       )}
     >
+      <Flag className="h-3 w-3" />
       {config.label}
     </span>
   );

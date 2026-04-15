@@ -6,3 +6,7 @@ export { CardActivityPanel } from './CardActivityPanel';
 export { CardBriefingSection } from './CardBriefingSection';
 export { CardResourceTabs } from './CardResourceTabs';
 export { InlineTimerWidget } from './InlineTimerWidget';
+export { AIBar } from './AIBar';
+export { TaskInlineActions } from './TaskInlineActions';
+export { CommentContextMenu } from './CommentContextMenu';
+export { CommentReactions } from './CommentReactions';

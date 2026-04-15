@@ -154,7 +154,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         <FieldRow icon={<CircleDot className="h-3.5 w-3.5" />} label="Status">
           <Select value={status} onValueChange={onStatusChange}>
             <SelectTrigger className="h-7 w-auto border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5">
-              <StatusBadge status={status} />
+              <StatusBadge status={status} showChevron />
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((opt) => (

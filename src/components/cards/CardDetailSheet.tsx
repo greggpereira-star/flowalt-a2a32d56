@@ -14,6 +14,8 @@ import {
   CardBriefingSection,
   CardResourceTabs,
   InlineTimerWidget,
+  AIBar,
+  TaskInlineActions,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
@@ -297,6 +299,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               <div className="flex-1 flex flex-col min-w-0 border-r border-border/40">
                 <ScrollArea className="flex-1">
                   <div className="px-6 py-4 space-y-1">
+                    {/* AI Bar */}
+                    <AIBar />
+
                     {/* Properties - ClickUp-style field rows */}
                     <CardPropertiesPanel
                       cardId={card.id}
@@ -367,6 +372,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     {isSocialMediaSpace && cardId && (
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
+
+                    {/* Task inline actions */}
+                    <TaskInlineActions />
 
                     {/* Task Actions - Quick actions */}
                     <div className="flex flex-col gap-0 border-t border-border/30 pt-2 mt-2">
