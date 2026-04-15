@@ -84,6 +84,21 @@ export const CardBriefingSection: React.FC<CardBriefingSectionProps> = ({
             }
           </p>
 
+          {/* Mini progress bar */}
+          {!isCompleted && (
+            <div className="flex items-center gap-1 mt-2">
+              {Array.from({ length: totalFields }).map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "h-1 flex-1 rounded-full transition-colors",
+                    i < filledFields ? "bg-warning" : "bg-muted-foreground/15"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Quick info badges */}
           {(briefingData.context || briefingData.target_audience || briefingData.deliverables) && (
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
