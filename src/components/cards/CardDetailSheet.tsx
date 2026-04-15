@@ -395,8 +395,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                 </ScrollArea>
               </div>
 
-              {/* Right Panel - Activity/Comments */}
-              <div className="w-[320px] flex-shrink-0 hidden lg:flex">
+              {/* Right Panel - Activity */}
+              <div className="w-[320px] flex-shrink-0 hidden lg:flex border-l border-border/40">
                 <CardActivityPanel cardId={card.id} />
               </div>
             </div>
