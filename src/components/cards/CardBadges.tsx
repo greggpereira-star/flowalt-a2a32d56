@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Flag } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import { PROPERTY_BADGE_BASE } from './card-detail/badgeStyles';
 
 export const statusConfig: Record<CardStatus, { label: string; color: string; bgColor: string; dotColor: string }> = {
   backlog: { label: 'Backlog', color: 'text-status-backlog', bgColor: 'bg-status-backlog/10', dotColor: 'bg-status-backlog' },
