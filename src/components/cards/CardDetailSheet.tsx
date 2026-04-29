@@ -439,21 +439,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
-                    {/* Tools / Resources — stacked sections, ClickUp-style */}
-                    <CardToolsStack
-                      ref={resourceTabsRef}
-                      cardId={card.id}
-                      clientId={card.client_id}
-                      checklistCompleted={checklistCompleted}
-                      checklistTotal={checklistTotal}
-                      attachmentsCount={attachmentsCount}
-                      hasSocialPublish={hasSocialPublish}
-                      socialPostsCount={socialPostsCount}
-                      forceOpenId={activeResourceTab}
-                    />
-
-                    {/* Section: Content & Description */}
-                    <div className="pt-5">
+                    {/* Section: Content & Description (acima das ferramentas) */}
+                    <div>
                       <div className="flex items-center gap-2 px-1 mb-2">
                         <span className="h-3 w-[3px] rounded-full bg-muted-foreground/40" />
                         <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
@@ -469,6 +456,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         isDirty={description !== card.description}
                       />
                     </div>
+
+                    {/* Tools / Resources — stacked sections, ClickUp-style */}
+                    <CardToolsStack
+                      ref={resourceTabsRef}
+                      cardId={card.id}
+                      clientId={card.client_id}
+                      checklistCompleted={checklistCompleted}
+                      checklistTotal={checklistTotal}
+                      attachmentsCount={attachmentsCount}
+                      hasSocialPublish={hasSocialPublish}
+                      socialPostsCount={socialPostsCount}
+                      forceOpenId={activeResourceTab}
+                    />
 
                   </div>
                 </ScrollArea>

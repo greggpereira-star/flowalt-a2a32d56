@@ -44,6 +44,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTodayBirthdays } from '@/hooks/useBirthdays';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Cake } from 'lucide-react';
 
 /* ───────── icons / colors ───────── */
 
@@ -120,6 +124,30 @@ export function UnifiedAlertsCenter() {
     useMyWorkspaceInvites();
   const acceptInvite = useAcceptWorkspaceInvite();
 
+  // Aniversariantes do dia (exceto eu — eu tenho meu próprio modal de celebração)
+  const { user } = useAuth();
+  const { data: todayBirthdays = [] } = useTodayBirthdays();
+  const otherBirthdays = useMemo(
+    () => todayBirthdays.filter((b) => b.user_id !== user?.id),
+    [todayBirthdays, user?.id],
+  );
+  const todayKey = new Date().toDateString();
+  const [dismissedBirthdayDate, setDismissedBirthdayDate] = useState<string | null>(
+    () => {
+      if (typeof window === 'undefined') return null;
+      return localStorage.getItem('alerts-birthdays-dismissed');
+    },
+  );
+  const birthdaysVisible =
+    otherBirthdays.length > 0 && dismissedBirthdayDate !== todayKey;
+
+  const dismissBirthdays = () => {
+    setDismissedBirthdayDate(todayKey);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('alerts-birthdays-dismissed', todayKey);
+    }
+  };
+
   // Auto-show mandatory notices
   useEffect(() => {
     const pendingMandatory = unreadNotices.find((n) => n.requires_confirmation);
@@ -129,7 +157,8 @@ export function UnifiedAlertsCenter() {
     }
   }, [unreadNotices, mandatoryNotice]);
 
-  const noticesPending = unreadNotices.length + pendingInvites.length;
+  const noticesPending =
+    unreadNotices.length + pendingInvites.length + (birthdaysVisible ? 1 : 0);
   const totalUnread = unreadNotifications + noticesPending;
   const hasPendingMandatory = unreadNotices.some((n) => n.requires_confirmation);
   const hasPendingInvites = pendingInvites.length > 0;
@@ -424,6 +453,20 @@ export function UnifiedAlertsCenter() {
               />
 
               <ScrollArea className="flex-1 px-6 pb-4">
+                {/* Aniversariantes do dia — destaque acionável */}
+                {birthdaysVisible && (
+                  <section className="mb-5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-pink-600 dark:text-pink-400 flex items-center gap-2 mb-2">
+                      <Cake className="h-3.5 w-3.5" />
+                      Aniversariantes do dia
+                    </h3>
+                    <BirthdaysAlertCard
+                      members={otherBirthdays}
+                      onDismiss={dismissBirthdays}
+                    />
+                  </section>
+                )}
+
                 {/* Convites pendentes — sempre visíveis (são acionáveis) */}
                 {pendingInvites.length > 0 && (
                   <section className="mb-5">
@@ -455,7 +498,8 @@ export function UnifiedAlertsCenter() {
                     ))}
                   </div>
                 ) : visibleNotices.length === 0 &&
-                  pendingInvites.length === 0 ? (
+                  pendingInvites.length === 0 &&
+                  !birthdaysVisible ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
                     text={
@@ -716,6 +760,101 @@ function PendingInviteItem({
           className="shrink-0 h-7 px-2 text-xs"
         >
           {isAccepting ? 'Aceitando...' : 'Aceitar'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Birthdays alert card ───────── */
+
+function BirthdaysAlertCard({
+  members,
+  onDismiss,
+}: {
+  members: Array<{
+    user_id: string;
+    full_name: string;
+    avatar_url: string | null;
+  }>;
+  onDismiss: () => void;
+}) {
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+  const message = (() => {
+    if (members.length === 1) {
+      const first = members[0].full_name.split(' ')[0];
+      return (
+        <>
+          Hoje é aniversário de{' '}
+          <span className="font-semibold text-foreground">{first}</span>. Não
+          esqueça de parabenizar! 🎉
+        </>
+      );
+    }
+    const names = members
+      .map((p) => p.full_name.split(' ')[0])
+      .join(', ')
+      .replace(/, ([^,]*)$/, ' e $1');
+    return (
+      <>
+        Hoje é aniversário de{' '}
+        <span className="font-semibold text-foreground">{names}</span>. Mande
+        seus parabéns! 🎉
+      </>
+    );
+  })();
+
+  return (
+    <div
+      className={cn(
+        'p-3 rounded-lg border-l-4 border-pink-400 dark:border-pink-500',
+        'bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100/70 dark:hover:bg-pink-950/40',
+        'transition-colors',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="p-1.5 rounded-full bg-pink-500/15 text-pink-600 dark:text-pink-400 shrink-0">
+          <Cake className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-foreground/90">{message}</p>
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            {members.map((person) => (
+              <div
+                key={person.user_id}
+                className="flex items-center gap-1.5 rounded-full border border-pink-200/70 dark:border-pink-800/60 bg-background/70 px-2 py-0.5"
+              >
+                <Avatar className="h-5 w-5">
+                  <AvatarImage
+                    src={person.avatar_url || undefined}
+                    alt={person.full_name}
+                  />
+                  <AvatarFallback className="text-[9px]">
+                    {getInitials(person.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[11px] font-medium text-foreground">
+                  {person.full_name.split(' ')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onDismiss}
+          className="h-7 w-7 shrink-0"
+          aria-label="Dispensar lembrete de aniversariantes"
+        >
+          <X className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
