@@ -179,7 +179,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   ];
 
   return (
-    <div className="h-full flex flex-col bg-muted/20">
+    <div className="h-full w-full min-w-0 flex flex-col bg-muted/20 overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border/40 bg-background">
         <div className="flex items-center justify-between mb-2">
