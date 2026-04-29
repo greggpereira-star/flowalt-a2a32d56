@@ -417,8 +417,14 @@ export function UnifiedAlertsCenter() {
               value="notices"
               className="flex-1 min-h-0 mt-3 flex flex-col"
             >
-              <ScrollArea className="flex-1 px-6 pb-6">
-                {/* Convites pendentes */}
+              <FilterBar
+                onlyUnread={onlyUnreadNotices}
+                onToggleUnread={() => setOnlyUnreadNotices((v) => !v)}
+                unreadCount={unreadNotices.length}
+              />
+
+              <ScrollArea className="flex-1 px-6 pb-4">
+                {/* Convites pendentes — sempre visíveis (são acionáveis) */}
                 {pendingInvites.length > 0 && (
                   <section className="mb-5">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-2 mb-2">
@@ -448,15 +454,20 @@ export function UnifiedAlertsCenter() {
                       />
                     ))}
                   </div>
-                ) : notices.length === 0 && pendingInvites.length === 0 ? (
+                ) : visibleNotices.length === 0 &&
+                  pendingInvites.length === 0 ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text="Nenhum aviso no momento"
+                    text={
+                      onlyUnreadNotices
+                        ? 'Nenhum aviso não lido'
+                        : 'Nenhum aviso no momento'
+                    }
                   />
                 ) : (
-                  notices.length > 0 && (
+                  visibleNotices.length > 0 && (
                     <div className="space-y-2">
-                      {notices.map((notice) => (
+                      {visibleNotices.map((notice) => (
                         <NoticeItem
                           key={notice.id}
                           notice={notice}
@@ -473,6 +484,27 @@ export function UnifiedAlertsCenter() {
               </ScrollArea>
             </TabsContent>
           </Tabs>
+
+          {/* Footer único — limpa SOMENTE o tipo selecionado */}
+          {canClearCurrentTab && (
+            <div className="px-6 py-3 border-t border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-destructive"
+                onClick={clearCurrentTab}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {tab === 'notifications'
+                  ? onlyUnreadNotifs
+                    ? 'Limpar não lidas'
+                    : 'Limpar notificações'
+                  : onlyUnreadNotices
+                    ? 'Dispensar avisos não lidos'
+                    : 'Dispensar avisos'}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
