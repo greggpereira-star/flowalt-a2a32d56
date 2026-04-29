@@ -453,6 +453,20 @@ export function UnifiedAlertsCenter() {
               />
 
               <ScrollArea className="flex-1 px-6 pb-4">
+                {/* Aniversariantes do dia — destaque acionável */}
+                {birthdaysVisible && (
+                  <section className="mb-5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-pink-600 dark:text-pink-400 flex items-center gap-2 mb-2">
+                      <Cake className="h-3.5 w-3.5" />
+                      Aniversariantes do dia
+                    </h3>
+                    <BirthdaysAlertCard
+                      members={otherBirthdays}
+                      onDismiss={dismissBirthdays}
+                    />
+                  </section>
+                )}
+
                 {/* Convites pendentes — sempre visíveis (são acionáveis) */}
                 {pendingInvites.length > 0 && (
                   <section className="mb-5">
