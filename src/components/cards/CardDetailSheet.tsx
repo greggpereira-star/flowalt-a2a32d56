@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +69,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
+  const resourceTabsRef = useRef<HTMLDivElement>(null);
 
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
