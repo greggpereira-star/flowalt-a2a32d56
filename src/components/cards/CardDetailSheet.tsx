@@ -15,7 +15,6 @@ import {
   CardResourceTabs,
   InlineTimerWidget,
   AIBar,
-  TaskInlineActions,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
@@ -374,26 +373,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     {isSocialMediaSpace && cardId && (
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
-
-                    {/* Task inline actions — open tools above the content section */}
-                    <TaskInlineActions
-                      onAddSubtask={() => {
-                        setActiveResourceTab('checklist');
-                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                      onLinkItems={() => {
-                        setActiveResourceTab('invites');
-                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                      onCreateChecklist={() => {
-                        setActiveResourceTab('checklist');
-                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                      onAttachFile={() => {
-                        setActiveResourceTab('attachments');
-                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                    />
 
                     {/* Section: Tools / Resources — placed ABOVE description for higher relevance */}
                     <div className="pt-4">
