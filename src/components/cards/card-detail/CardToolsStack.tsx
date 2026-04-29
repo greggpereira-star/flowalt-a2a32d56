@@ -24,6 +24,7 @@ import { CardFinancialTab } from '../CardFinancialTab';
 import { CardKitTab } from '../CardKitTab';
 import { CardInvitePanel } from '../CardInvitePanel';
 import { SocialPostButton } from '@/components/social-media/SocialPostButton';
+import { SectionHeader } from './SectionHeader';
 
 export interface CardToolsStackProps {
   cardId: string;
