@@ -5,6 +5,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WorkRadar } from '@/components/dashboard/WorkRadar';
 import { BirthdayBanner } from '@/components/notices/BirthdayBanner';
+import { TodayBirthdaysReminder } from '@/components/notices/TodayBirthdaysReminder';
 import { HolidayBanner } from '@/components/notices/HolidayBanner';
 import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
 import { AltControlPendingWidget } from '@/components/altcontrol/AltControlPendingWidget';
@@ -191,7 +192,8 @@ const Index: React.FC = () => {
         </div>
 
         {/* Birthday Celebrations */}
-        <div className="mb-6">
+        <div className="mb-6 space-y-2">
+          <TodayBirthdaysReminder />
           <BirthdayBanner />
         </div>
 

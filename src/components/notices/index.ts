@@ -1,5 +1,6 @@
 export { NoticesCenter } from './NoticesCenter';
 export { BirthdayBanner } from './BirthdayBanner';
+export { TodayBirthdaysReminder } from './TodayBirthdaysReminder';
 export { BirthdaySettings } from './BirthdaySettings';
 export { HolidayBanner } from './HolidayBanner';
 export { NewYearBanner } from './NewYearBanner';
