@@ -31,9 +31,11 @@ interface CardResourceTabsProps {
   attachmentsCount: number;
   hasSocialPublish: boolean;
   socialPostsCount: number;
+  value?: string;
+  onValueChange?: (v: string) => void;
 }
 
-export const CardResourceTabs: React.FC<CardResourceTabsProps> = ({
+export const CardResourceTabs = React.forwardRef<HTMLDivElement, CardResourceTabsProps>(({
   cardId,
   clientId,
   checklistCompleted,
@@ -41,9 +43,15 @@ export const CardResourceTabs: React.FC<CardResourceTabsProps> = ({
   attachmentsCount,
   hasSocialPublish,
   socialPostsCount,
-}) => {
+  value,
+  onValueChange,
+}, ref) => {
+  const [internal, setInternal] = React.useState('checklist');
+  const active = value ?? internal;
+  const setActive = onValueChange ?? setInternal;
   return (
-    <Tabs defaultValue="checklist" className="w-full">
+    <div ref={ref}>
+    <Tabs value={active} onValueChange={setActive} className="w-full">
       <TabsList className="w-full h-auto bg-muted/30 p-1 rounded-lg flex flex-wrap gap-1 justify-start">
         <TabsTrigger
           value="checklist"
