@@ -40,8 +40,8 @@ export function RichTextViewer({ content, className, fallback, mentionResolver }
       const parsed: JSONContent = JSON.parse(content);
       return renderNode(parsed, undefined, mentionResolver);
     } catch {
-      // Se não for JSON válido, renderiza como texto simples
-      return <p className="whitespace-pre-wrap">{content}</p>;
+      // Se não for JSON válido, renderiza como texto simples — auto-linkificando URLs.
+      return <p className="whitespace-pre-wrap break-words">{linkifyText(content)}</p>;
     }
   }, [content, mentionResolver]);
 
