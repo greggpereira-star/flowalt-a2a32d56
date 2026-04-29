@@ -315,7 +315,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <div className="text-[13px] text-foreground/80 leading-relaxed">
+                          <div className="text-[13px] text-foreground/80 leading-relaxed min-w-0 break-words [overflow-wrap:anywhere]">
                             <RichTextViewer
                               content={comment.content}
                               mentionResolver={mentionResolver}
