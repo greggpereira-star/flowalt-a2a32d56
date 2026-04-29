@@ -517,7 +517,7 @@ export function RichTextEditor({
     }
     
     try {
-      const parsed = JSON.parse(value);
+      const parsed = linkifyJSON(JSON.parse(value));
       const currentContent = editor.getJSON();
       if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
         editor.commands.setContent(parsed);
