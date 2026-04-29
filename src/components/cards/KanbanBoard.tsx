@@ -29,6 +29,7 @@ import { useCardDependencies } from '@/hooks/useDependencies';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { 
   useDefaultWorkflow, 
   useCompleteWorkflow, 
@@ -174,6 +175,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   
   // Members data for displaying assignees on cards
   const { data: members } = useWorkspaceMembers();
+  const { data: cardAssignments } = useCardMemberAssignments();
+
+  const cardMembersMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    cardAssignments?.forEach(({ card_id, user_id }) => {
+      if (!map.has(card_id)) map.set(card_id, []);
+      map.get(card_id)!.push(user_id);
+    });
+    return map;
+  }, [cardAssignments]);
   
   // Build a map of user_id -> assignee info for quick lookup
   const memberMap = useMemo(() => {
@@ -587,9 +598,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   ) : (
                     columnCards.map((card) => {
                       const clientInfo = card.client_id ? clientMap.get(card.client_id) : undefined;
-                      const assignees: Assignee[] = card.owner_id && memberMap.has(card.owner_id)
-                        ? [memberMap.get(card.owner_id)!]
-                        : [];
+                      const assignedIds = cardMembersMap.get(card.id) || [];
+                      const assignees: Assignee[] = assignedIds.length > 0
+                        ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
+                        : (card.owner_id && memberMap.has(card.owner_id) ? [memberMap.get(card.owner_id)!] : []);
                       return (
                         <DraggableCard key={card.id} id={card.id}>
                           <CardContextMenu
