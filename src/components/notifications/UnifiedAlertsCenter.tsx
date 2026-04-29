@@ -319,257 +319,136 @@ export function UnifiedAlertsCenter() {
             </SheetTitle>
           </SheetHeader>
 
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as typeof tab)}
-            className="flex-1 flex flex-col min-h-0"
-          >
-            <div className="px-6 pt-3">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="notifications" className="gap-2">
-                  Notificações
-                  {unreadNotifications > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 min-w-5 px-1 text-[10px]"
-                    >
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="notices" className="gap-2">
-                  Avisos
-                  {noticesPending > 0 && (
-                    <Badge
-                      variant={urgent ? 'default' : 'secondary'}
-                      className={cn(
-                        'h-5 min-w-5 px-1 text-[10px]',
-                        urgent && 'bg-amber-500 text-white hover:bg-amber-500',
-                      )}
-                    >
-                      {noticesPending > 9 ? '9+' : noticesPending}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* ───────── Notifications tab ───────── */}
-            <TabsContent
-              value="notifications"
-              className="flex-1 min-h-0 mt-3 flex flex-col"
+          {/* ───────── Filtro + ações ───────── */}
+          <div className="px-6 pt-3 pb-2 flex items-center justify-between gap-2 border-b border-border/60">
+            <Button
+              type="button"
+              variant={onlyUnread ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setOnlyUnread((v) => !v)}
+              className="h-7 px-2 text-xs gap-1.5 !ring-0"
+              aria-pressed={onlyUnread}
             >
-              <FilterBar
-                onlyUnread={onlyUnreadNotifs}
-                onToggleUnread={() => setOnlyUnreadNotifs((v) => !v)}
-                unreadCount={unreadNotifications}
-                rightSlot={
-                  unreadNotifications > 0 ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => markAllAsRead.mutate()}
-                    >
-                      <CheckCheck className="h-3 w-3 mr-1" />
-                      Marcar lidas
-                    </Button>
-                  ) : null
+              <Filter className="h-3 w-3" />
+              Só não lidas
+              {totalUnreadInFeed > 0 && (
+                <Badge
+                  variant={onlyUnread ? 'default' : 'outline'}
+                  className="ml-1 h-4 min-w-4 px-1 text-[10px] leading-none"
+                >
+                  {totalUnreadInFeed > 9 ? '9+' : totalUnreadInFeed}
+                </Badge>
+              )}
+            </Button>
+
+            {totalUnreadInFeed > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  if (unreadNotifications > 0) markAllAsRead.mutate();
+                  notices
+                    .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+                    .forEach((n) => markNoticeAsRead.mutate(n.id));
+                }}
+              >
+                <CheckCheck className="h-3 w-3 mr-1" />
+                Marcar lidas
+              </Button>
+            )}
+          </div>
+
+          {/* ───────── Lista unificada ───────── */}
+          <ScrollArea className="flex-1 min-h-0 px-6 py-3">
+            {/* Aniversariantes do dia — destaque acionável */}
+            {birthdaysVisible && (
+              <div className="mb-3">
+                <BirthdaysAlertCard
+                  members={otherBirthdays}
+                  onDismiss={dismissBirthdays}
+                  onOpenCalendar={() => {
+                    navigate('/birthdays');
+                    setOpen(false);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Convites pendentes */}
+            {pendingInvites.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {pendingInvites.map((invite) => (
+                  <PendingInviteItem
+                    key={invite.id}
+                    invite={invite}
+                    onAccept={() => handleAcceptInvite(invite.token)}
+                    isAccepting={acceptInvite.isPending}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Loading */}
+            {(loadingNotifications || loadingNotices || loadingInvites) &&
+            feedItems.length === 0 ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-16 rounded-lg bg-muted animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : visibleFeed.length === 0 &&
+              !birthdaysVisible &&
+              pendingInvites.length === 0 ? (
+              <EmptyState
+                icon={<Bell className="h-10 w-10 opacity-50" />}
+                text={
+                  onlyUnread
+                    ? 'Nada não lido por aqui'
+                    : 'Tudo em dia. Sem alertas no momento.'
                 }
               />
-
-              <ScrollArea className="flex-1 px-6 pb-4">
-                {loadingNotifications ? (
-                  <EmptyState text="Carregando..." />
-                ) : visibleNotifications.length === 0 ? (
-                  <EmptyState
-                    icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text={
-                      onlyUnreadNotifs
-                        ? 'Nenhuma notificação não lida'
-                        : 'Nenhuma notificação'
-                    }
-                  />
-                ) : (
-                  <ul className="space-y-2">
-                    {visibleNotifications.map((n) => (
-                      <li key={n.id}>
-                        <button
-                          type="button"
-                          onClick={() => handleNotificationClick(n)}
-                          className={cn(
-                            'w-full text-left rounded-lg p-3 border border-transparent',
-                            'hover:bg-accent/50 transition-colors',
-                            !n.is_read && 'bg-muted/50 border-border',
-                          )}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 shrink-0">
-                              {notificationIcons[n.type] || (
-                                <Bell className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={cn(
-                                  'text-sm line-clamp-1',
-                                  !n.is_read && 'font-medium',
-                                )}
-                              >
-                                {n.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                                {n.message}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                                {formatDistanceToNow(new Date(n.created_at), {
-                                  addSuffix: true,
-                                  locale: ptBR,
-                                })}
-                              </p>
-                            </div>
-                            <div className="flex gap-1 shrink-0">
-                              {!n.is_read && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markAsRead.mutate(n.id);
-                                  }}
-                                  aria-label="Marcar como lida"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNotification.mutate(n.id);
-                                }}
-                                aria-label="Remover"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            {/* ───────── Notices tab ───────── */}
-            <TabsContent
-              value="notices"
-              className="flex-1 min-h-0 mt-3 flex flex-col"
-            >
-              <FilterBar
-                onlyUnread={onlyUnreadNotices}
-                onToggleUnread={() => setOnlyUnreadNotices((v) => !v)}
-                unreadCount={unreadNotices.length}
-              />
-
-              <ScrollArea className="flex-1 px-6 pb-4">
-                {/* Aniversariantes do dia — destaque acionável */}
-                {birthdaysVisible && (
-                  <section className="mb-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-pink-600 dark:text-pink-400 flex items-center gap-2 mb-2">
-                      <Cake className="h-3.5 w-3.5" />
-                      Aniversariantes do dia
-                    </h3>
-                    <BirthdaysAlertCard
-                      members={otherBirthdays}
-                      onDismiss={dismissBirthdays}
-                    />
-                  </section>
-                )}
-
-                {/* Convites pendentes — sempre visíveis (são acionáveis) */}
-                {pendingInvites.length > 0 && (
-                  <section className="mb-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-2 mb-2">
-                      <Building2 className="h-3.5 w-3.5" />
-                      Convites pendentes
-                    </h3>
-                    <div className="space-y-2">
-                      {pendingInvites.map((invite) => (
-                        <PendingInviteItem
-                          key={invite.id}
-                          invite={invite}
-                          onAccept={() => handleAcceptInvite(invite.token)}
-                          isAccepting={acceptInvite.isPending}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Avisos */}
-                {loadingNotices || loadingInvites ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-20 rounded-lg bg-muted animate-pulse"
+            ) : (
+              <ul className="space-y-1.5">
+                {visibleFeed.map((item) =>
+                  item.kind === 'notification' ? (
+                    <li key={item.id}>
+                      <NotificationRow
+                        notification={item.data}
+                        onClick={() => handleNotificationClick(item.data)}
+                        onMarkRead={() => markAsRead.mutate(item.data.id)}
+                        onDelete={() => deleteNotification.mutate(item.data.id)}
                       />
-                    ))}
-                  </div>
-                ) : visibleNotices.length === 0 &&
-                  pendingInvites.length === 0 &&
-                  !birthdaysVisible ? (
-                  <EmptyState
-                    icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text={
-                      onlyUnreadNotices
-                        ? 'Nenhum aviso não lido'
-                        : 'Nenhum aviso no momento'
-                    }
-                  />
-                ) : (
-                  visibleNotices.length > 0 && (
-                    <div className="space-y-2">
-                      {visibleNotices.map((notice) => (
-                        <NoticeItem
-                          key={notice.id}
-                          notice={notice}
-                          isRead={readNotices.includes(notice.id)}
-                          onMarkRead={() =>
-                            markNoticeAsRead.mutate(notice.id)
-                          }
-                          onOpenMandatory={() => setMandatoryNotice(notice)}
-                        />
-                      ))}
-                    </div>
-                  )
+                    </li>
+                  ) : (
+                    <li key={item.id}>
+                      <NoticeRow
+                        notice={item.data}
+                        isRead={!item.isUnread}
+                        onMarkRead={() => markNoticeAsRead.mutate(item.data.id)}
+                        onOpenMandatory={() => setMandatoryNotice(item.data)}
+                      />
+                    </li>
+                  ),
                 )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+              </ul>
+            )}
+          </ScrollArea>
 
-          {/* Footer único — limpa SOMENTE o tipo selecionado */}
-          {canClearCurrentTab && (
+          {/* Footer único */}
+          {canClear && (
             <div className="px-6 py-3 border-t border-border">
               <Button
                 variant="ghost"
                 size="sm"
                 className="w-full text-muted-foreground hover:text-destructive"
-                onClick={clearCurrentTab}
+                onClick={clearVisible}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {tab === 'notifications'
-                  ? onlyUnreadNotifs
-                    ? 'Limpar não lidas'
-                    : 'Limpar notificações'
-                  : onlyUnreadNotices
-                    ? 'Dispensar avisos não lidos'
-                    : 'Dispensar avisos'}
+                {onlyUnread ? 'Limpar não lidas' : 'Limpar tudo'}
               </Button>
             </div>
           )}
