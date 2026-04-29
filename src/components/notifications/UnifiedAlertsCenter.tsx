@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   Check,
@@ -18,6 +18,7 @@ import {
   Wrench,
   Shield,
   X,
+  Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -91,6 +92,8 @@ export function UnifiedAlertsCenter() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'notifications' | 'notices'>('notifications');
+  const [onlyUnreadNotifs, setOnlyUnreadNotifs] = useState(false);
+  const [onlyUnreadNotices, setOnlyUnreadNotices] = useState(false);
   const [mandatoryNotice, setMandatoryNotice] = useState<Notice | null>(null);
 
   // Notifications (inbox de sistema)
@@ -184,6 +187,44 @@ export function UnifiedAlertsCenter() {
     acceptInvite.mutate(token, { onSuccess: () => setOpen(false) });
   };
 
+  /* ── Listas derivadas (filtros rápidos) ── */
+  const visibleNotifications = useMemo(
+    () => (onlyUnreadNotifs ? notifications.filter((n) => !n.is_read) : notifications),
+    [notifications, onlyUnreadNotifs],
+  );
+
+  const visibleNotices = useMemo(
+    () =>
+      onlyUnreadNotices
+        ? notices.filter((n) => !readNotices.includes(n.id))
+        : notices,
+    [notices, readNotices, onlyUnreadNotices],
+  );
+
+  /* ── "Limpar" do tipo selecionado ── */
+  const clearCurrentTab = () => {
+    if (tab === 'notifications') {
+      // Remove apenas as visíveis (respeita filtro "só não lidas")
+      if (onlyUnreadNotifs) {
+        visibleNotifications.forEach((n) => deleteNotification.mutate(n.id));
+      } else {
+        clearAll.mutate();
+      }
+      return;
+    }
+    // Aba "Avisos": dispensa (marca como lido) os não obrigatórios da lista visível
+    visibleNotices
+      .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+      .forEach((n) => markNoticeAsRead.mutate(n.id));
+  };
+
+  const canClearCurrentTab =
+    tab === 'notifications'
+      ? visibleNotifications.length > 0
+      : visibleNotices.some(
+          (n) => !n.requires_confirmation && !readNotices.includes(n.id),
+        );
+
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
@@ -265,31 +306,40 @@ export function UnifiedAlertsCenter() {
               value="notifications"
               className="flex-1 min-h-0 mt-3 flex flex-col"
             >
-              {unreadNotifications > 0 && (
-                <div className="px-6 pb-2 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => markAllAsRead.mutate()}
-                  >
-                    <CheckCheck className="h-3 w-3 mr-1" />
-                    Marcar todas como lidas
-                  </Button>
-                </div>
-              )}
+              <FilterBar
+                onlyUnread={onlyUnreadNotifs}
+                onToggleUnread={() => setOnlyUnreadNotifs((v) => !v)}
+                unreadCount={unreadNotifications}
+                rightSlot={
+                  unreadNotifications > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => markAllAsRead.mutate()}
+                    >
+                      <CheckCheck className="h-3 w-3 mr-1" />
+                      Marcar lidas
+                    </Button>
+                  ) : null
+                }
+              />
 
               <ScrollArea className="flex-1 px-6 pb-4">
                 {loadingNotifications ? (
                   <EmptyState text="Carregando..." />
-                ) : notifications.length === 0 ? (
+                ) : visibleNotifications.length === 0 ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text="Nenhuma notificação"
+                    text={
+                      onlyUnreadNotifs
+                        ? 'Nenhuma notificação não lida'
+                        : 'Nenhuma notificação'
+                    }
                   />
                 ) : (
                   <ul className="space-y-2">
-                    {notifications.map((n) => (
+                    {visibleNotifications.map((n) => (
                       <li key={n.id}>
                         <button
                           type="button"
@@ -360,20 +410,6 @@ export function UnifiedAlertsCenter() {
                   </ul>
                 )}
               </ScrollArea>
-
-              {notifications.length > 0 && (
-                <div className="px-6 py-3 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground hover:text-destructive"
-                    onClick={() => clearAll.mutate()}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar todas
-                  </Button>
-                </div>
-              )}
             </TabsContent>
 
             {/* ───────── Notices tab ───────── */}
@@ -381,8 +417,14 @@ export function UnifiedAlertsCenter() {
               value="notices"
               className="flex-1 min-h-0 mt-3 flex flex-col"
             >
-              <ScrollArea className="flex-1 px-6 pb-6">
-                {/* Convites pendentes */}
+              <FilterBar
+                onlyUnread={onlyUnreadNotices}
+                onToggleUnread={() => setOnlyUnreadNotices((v) => !v)}
+                unreadCount={unreadNotices.length}
+              />
+
+              <ScrollArea className="flex-1 px-6 pb-4">
+                {/* Convites pendentes — sempre visíveis (são acionáveis) */}
                 {pendingInvites.length > 0 && (
                   <section className="mb-5">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-2 mb-2">
@@ -412,15 +454,20 @@ export function UnifiedAlertsCenter() {
                       />
                     ))}
                   </div>
-                ) : notices.length === 0 && pendingInvites.length === 0 ? (
+                ) : visibleNotices.length === 0 &&
+                  pendingInvites.length === 0 ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text="Nenhum aviso no momento"
+                    text={
+                      onlyUnreadNotices
+                        ? 'Nenhum aviso não lido'
+                        : 'Nenhum aviso no momento'
+                    }
                   />
                 ) : (
-                  notices.length > 0 && (
+                  visibleNotices.length > 0 && (
                     <div className="space-y-2">
-                      {notices.map((notice) => (
+                      {visibleNotices.map((notice) => (
                         <NoticeItem
                           key={notice.id}
                           notice={notice}
@@ -437,6 +484,27 @@ export function UnifiedAlertsCenter() {
               </ScrollArea>
             </TabsContent>
           </Tabs>
+
+          {/* Footer único — limpa SOMENTE o tipo selecionado */}
+          {canClearCurrentTab && (
+            <div className="px-6 py-3 border-t border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-destructive"
+                onClick={clearCurrentTab}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {tab === 'notifications'
+                  ? onlyUnreadNotifs
+                    ? 'Limpar não lidas'
+                    : 'Limpar notificações'
+                  : onlyUnreadNotices
+                    ? 'Dispensar avisos não lidos'
+                    : 'Dispensar avisos'}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
@@ -451,6 +519,46 @@ export function UnifiedAlertsCenter() {
 }
 
 /* ───────── helpers ───────── */
+
+function FilterBar({
+  onlyUnread,
+  onToggleUnread,
+  unreadCount,
+  rightSlot,
+}: {
+  onlyUnread: boolean;
+  onToggleUnread: () => void;
+  unreadCount: number;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <div className="px-6 pb-2 flex items-center justify-between gap-2">
+      <Button
+        type="button"
+        variant={onlyUnread ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={onToggleUnread}
+        className={cn(
+          'h-7 px-2 text-xs gap-1.5 !ring-0',
+          'transition-colors',
+        )}
+        aria-pressed={onlyUnread}
+      >
+        <Filter className="h-3 w-3" />
+        Só não lidas
+        {unreadCount > 0 && (
+          <Badge
+            variant={onlyUnread ? 'default' : 'outline'}
+            className="ml-1 h-4 min-w-4 px-1 text-[10px] leading-none"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Badge>
+        )}
+      </Button>
+      <div className="flex items-center">{rightSlot}</div>
+    </div>
+  );
+}
 
 function EmptyState({
   icon,
