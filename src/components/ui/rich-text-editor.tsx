@@ -31,6 +31,71 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { MentionList, MentionListRef, type MentionSuggestion } from './mention-list';
 
 // Re-export MentionSuggestion type
+// URL detector for legacy content (no `link` mark). Mirrors the regex
+// used in rich-text-viewer.ts so behaviour is consistent across read & edit.
+const URL_REGEX = /\b((?:https?:\/\/|www\.)[^\s<>()]+[^\s<>()`!?,.;:'"])/gi;
+
+interface TipTapNode {
+  type: string;
+  text?: string;
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
+  content?: TipTapNode[];
+  attrs?: Record<string, unknown>;
+}
+
+/**
+ * Walks a TipTap JSON document and, for any `text` node that contains a
+ * URL but lacks the `link` mark, splits it into multiple nodes so the URL
+ * portion carries the `link` mark. This makes legacy content clickable
+ * without forcing the user to re-edit it.
+ */
+function linkifyJSON<T>(doc: T): T {
+  if (!doc || typeof doc !== 'object') return doc;
+  const node = doc as unknown as TipTapNode;
+
+  if (node.type === 'text' && typeof node.text === 'string') {
+    const hasLink = node.marks?.some((m) => m.type === 'link');
+    if (hasLink) return doc;
+    URL_REGEX.lastIndex = 0;
+    if (!URL_REGEX.test(node.text)) return doc;
+
+    URL_REGEX.lastIndex = 0;
+    const out: TipTapNode[] = [];
+    let last = 0;
+    let match: RegExpExecArray | null;
+    while ((match = URL_REGEX.exec(node.text)) !== null) {
+      const [url] = match;
+      if (match.index > last) {
+        out.push({ type: 'text', text: node.text.slice(last, match.index), marks: node.marks });
+      }
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      out.push({
+        type: 'text',
+        text: url,
+        marks: [...(node.marks ?? []), { type: 'link', attrs: { href, target: '_blank', rel: 'noopener noreferrer nofollow' } }],
+      });
+      last = match.index + url.length;
+    }
+    if (last < node.text.length) {
+      out.push({ type: 'text', text: node.text.slice(last), marks: node.marks });
+    }
+    // Returning a fragment isn't valid; caller handles arrays via `content` walk below.
+    return out as unknown as T;
+  }
+
+  if (Array.isArray(node.content)) {
+    const newContent: TipTapNode[] = [];
+    for (const child of node.content) {
+      const processed = linkifyJSON(child) as unknown;
+      if (Array.isArray(processed)) newContent.push(...(processed as TipTapNode[]));
+      else newContent.push(processed as TipTapNode);
+    }
+    return { ...node, content: newContent } as unknown as T;
+  }
+
+  return doc;
+}
+
 export type { MentionSuggestion } from './mention-list';
 
 // Emojis mais utilizados organizados por categoria
@@ -359,13 +424,14 @@ export function RichTextEditor({
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
   
-  // Helper to safely parse content - handles both JSON and plain text
+  // Helper to safely parse content - handles both JSON and plain text.
+  // Also runs autolink on legacy content where URLs were saved as plain text
+  // without a `link` mark, so they become clickable as soon as the editor mounts.
   const parseContent = useCallback((content: string) => {
     if (!content) return '';
     try {
-      return JSON.parse(content);
+      return linkifyJSON(JSON.parse(content));
     } catch {
-      // If not valid JSON, treat as plain text
       return content;
     }
   }, []);
@@ -451,7 +517,7 @@ export function RichTextEditor({
     }
     
     try {
-      const parsed = JSON.parse(value);
+      const parsed = linkifyJSON(JSON.parse(value));
       const currentContent = editor.getJSON();
       if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
         editor.commands.setContent(parsed);
@@ -569,7 +635,7 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
     content: (() => {
       if (!value) return '';
       try {
-        return JSON.parse(value);
+        return linkifyJSON(JSON.parse(value));
       } catch {
         return value;
       }
