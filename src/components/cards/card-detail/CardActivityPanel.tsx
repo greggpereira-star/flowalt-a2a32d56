@@ -179,7 +179,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
   ];
 
   return (
-    <div className="h-full flex flex-col bg-muted/20">
+    <div className="h-full w-full min-w-0 flex flex-col bg-muted/20 overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border/40 bg-background">
         <div className="flex items-center justify-between mb-2">
@@ -214,8 +214,8 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
       </div>
 
       {/* Feed */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="px-4 py-3">
+      <ScrollArea className="flex-1 min-h-0 w-full [&>[data-radix-scroll-area-viewport]>div]:!block">
+        <div className="px-4 py-3 min-w-0 w-full">
           {(activeTab === 'all' || activeTab === 'comments') ? (
             isLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -236,11 +236,11 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                   return (
                     <div
                       key={comment.id}
-                      className="group rounded-lg bg-background border border-border/30 hover:border-border/60 transition-colors overflow-hidden"
+                      className="group rounded-lg bg-background border border-border/30 hover:border-border/60 transition-colors overflow-hidden min-w-0 w-full"
                     >
-                      <div className="border-l-[3px] border-primary/60 pl-3 pr-3 py-2.5">
+                      <div className="border-l-[3px] border-primary/60 pl-3 pr-3 py-2.5 min-w-0">
                         {/* Header */}
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-1.5 min-w-0 flex-wrap">
                           <Avatar className="h-5 w-5">
                             {comment.user?.avatar_url && (
                               <AvatarImage src={comment.user.avatar_url} />
@@ -315,7 +315,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <div className="text-[13px] text-foreground/80 leading-relaxed">
+                          <div className="text-[13px] text-foreground/80 leading-relaxed min-w-0 break-words [overflow-wrap:anywhere]">
                             <RichTextViewer
                               content={comment.content}
                               mentionResolver={mentionResolver}
