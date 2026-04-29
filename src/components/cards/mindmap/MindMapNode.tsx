@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import { Plus, Minus, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MindMapNode as NodeType } from './types';
@@ -8,6 +8,95 @@ const normalizeNodeLink = (value?: string) => {
   if (!value) return '#';
   if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
   return `https://${value}`;
+};
+
+interface AutoGrowEditorProps {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  minWidth?: number;
+  maxWidth?: number;
+  placeholderColor?: string;
+}
+
+/**
+ * Auto-growing textarea for inline node editing.
+ * - Expands width to fit text up to maxWidth, then wraps and grows height.
+ * - Enter saves; Shift+Enter inserts a newline; Escape cancels.
+ */
+const AutoGrowEditor: React.FC<AutoGrowEditorProps> = ({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  className,
+  style,
+  minWidth = 120,
+  maxWidth = 360,
+}) => {
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (taRef.current) {
+      taRef.current.focus();
+      taRef.current.select();
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    const mirror = mirrorRef.current;
+    if (!ta || !mirror) return;
+    // Measure with mirror to get the desired width.
+    mirror.textContent = value || ' ';
+    const measured = Math.ceil(mirror.getBoundingClientRect().width) + 4;
+    const w = Math.max(minWidth, Math.min(maxWidth, measured));
+    ta.style.width = `${w}px`;
+    // Reset height then grow to scrollHeight for wrapped lines.
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [value, minWidth, maxWidth]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <>
+      <textarea
+        ref={taRef}
+        value={value}
+        rows={1}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onSave}
+        onKeyDown={handleKeyDown}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={cn(
+          'bg-transparent border-none outline-none resize-none overflow-hidden align-middle',
+          className
+        )}
+        style={{ ...style, lineHeight: 1.35 }}
+      />
+      {/* Hidden mirror for width measurement (matches textarea typography) */}
+      <span
+        ref={mirrorRef}
+        aria-hidden
+        className={cn('invisible absolute whitespace-pre pointer-events-none', className)}
+        style={{ ...style, position: 'absolute', left: -9999, top: -9999, whiteSpace: 'pre' }}
+      />
+    </>
+  );
 };
 
 interface Props {
