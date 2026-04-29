@@ -404,7 +404,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               </div>
 
               {/* Right Panel - Activity */}
-              <div className="w-[320px] flex-shrink-0 hidden lg:flex border-l border-border/40">
+              <div className="w-[400px] xl:w-[440px] flex-shrink-0 hidden lg:flex border-l border-border/40 min-w-0">
                 <CardActivityPanel cardId={card.id} />
               </div>
             </div>
