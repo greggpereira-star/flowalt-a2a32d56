@@ -196,14 +196,15 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             )}
 
             {isEditing ? (
-              <input
-                ref={inputRef}
+              <AutoGrowEditor
                 value={editText}
-                onChange={(e) => onEditChange(e.target.value)}
-                onBlur={onEditSave}
-                onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-lg font-bold text-white min-w-[160px] placeholder:text-white/30"
-                onClick={(e) => e.stopPropagation()}
+                onChange={onEditChange}
+                onSave={onEditSave}
+                onCancel={onEditCancel}
+                className="text-lg font-bold text-white placeholder:text-white/30"
+                style={textStyle}
+                minWidth={180}
+                maxWidth={420}
               />
             ) : (
               <span className="text-lg font-bold tracking-tight whitespace-nowrap" style={textStyle}>{node.text}</span>
