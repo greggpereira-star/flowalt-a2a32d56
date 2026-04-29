@@ -6,6 +6,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { NotificationToast } from '@/components/notifications/NotificationToast';
 import { NoticesCenter } from '@/components/notices/NoticesCenter';
+import { MyBirthdayCelebration } from '@/components/notices/MyBirthdayCelebration';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
