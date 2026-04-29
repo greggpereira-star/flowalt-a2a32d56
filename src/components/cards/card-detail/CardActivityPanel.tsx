@@ -236,11 +236,11 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
                   return (
                     <div
                       key={comment.id}
-                      className="group rounded-lg bg-background border border-border/30 hover:border-border/60 transition-colors overflow-hidden"
+                      className="group rounded-lg bg-background border border-border/30 hover:border-border/60 transition-colors overflow-hidden min-w-0 w-full"
                     >
-                      <div className="border-l-[3px] border-primary/60 pl-3 pr-3 py-2.5">
+                      <div className="border-l-[3px] border-primary/60 pl-3 pr-3 py-2.5 min-w-0">
                         {/* Header */}
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-1.5 min-w-0 flex-wrap">
                           <Avatar className="h-5 w-5">
                             {comment.user?.avatar_url && (
                               <AvatarImage src={comment.user.avatar_url} />
