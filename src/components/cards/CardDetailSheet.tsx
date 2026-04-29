@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   CardDescriptionSection,
   CardActivityPanel,
   CardBriefingSection,
-  CardResourceTabs,
+  CardToolsSection,
   InlineTimerWidget,
   AIBar,
 } from './card-detail';
