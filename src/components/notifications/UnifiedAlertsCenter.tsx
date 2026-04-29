@@ -124,10 +124,6 @@ export function UnifiedAlertsCenter() {
     useMyWorkspaceInvites();
   const acceptInvite = useAcceptWorkspaceInvite();
 
-  const { data: pendingInvites = [], isLoading: loadingInvites } =
-    useMyWorkspaceInvites();
-  const acceptInvite = useAcceptWorkspaceInvite();
-
   // Aniversariantes do dia (exceto eu — eu tenho meu próprio modal de celebração)
   const { user } = useAuth();
   const { data: todayBirthdays = [] } = useTodayBirthdays();
@@ -135,15 +131,22 @@ export function UnifiedAlertsCenter() {
     () => todayBirthdays.filter((b) => b.user_id !== user?.id),
     [todayBirthdays, user?.id],
   );
+  const todayKey = new Date().toDateString();
   const [dismissedBirthdayDate, setDismissedBirthdayDate] = useState<string | null>(
     () => {
       if (typeof window === 'undefined') return null;
       return localStorage.getItem('alerts-birthdays-dismissed');
     },
   );
-  const todayKey = new Date().toDateString();
   const birthdaysVisible =
     otherBirthdays.length > 0 && dismissedBirthdayDate !== todayKey;
+
+  const dismissBirthdays = () => {
+    setDismissedBirthdayDate(todayKey);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('alerts-birthdays-dismissed', todayKey);
+    }
+  };
 
   // Auto-show mandatory notices
   useEffect(() => {
@@ -153,6 +156,9 @@ export function UnifiedAlertsCenter() {
       return () => clearTimeout(t);
     }
   }, [unreadNotices, mandatoryNotice]);
+
+  const noticesPending =
+    unreadNotices.length + pendingInvites.length + (birthdaysVisible ? 1 : 0);
   const totalUnread = unreadNotifications + noticesPending;
   const hasPendingMandatory = unreadNotices.some((n) => n.requires_confirmation);
   const hasPendingInvites = pendingInvites.length > 0;
