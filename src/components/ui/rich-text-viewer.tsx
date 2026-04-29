@@ -40,8 +40,8 @@ export function RichTextViewer({ content, className, fallback, mentionResolver }
       const parsed: JSONContent = JSON.parse(content);
       return renderNode(parsed, undefined, mentionResolver);
     } catch {
-      // Se não for JSON válido, renderiza como texto simples
-      return <p className="whitespace-pre-wrap">{content}</p>;
+      // Se não for JSON válido, renderiza como texto simples — auto-linkificando URLs.
+      return <p className="whitespace-pre-wrap break-words">{linkifyText(content)}</p>;
     }
   }, [content, mentionResolver]);
 
@@ -57,12 +57,47 @@ export function RichTextViewer({ content, className, fallback, mentionResolver }
       '[&_ul]:my-1 [&_ul]:pl-5',
       '[&_ol]:my-1 [&_ol]:pl-5',
       '[&_li]:my-0.5 [&_li]:break-words',
-      '[&_a]:break-all',
+      // Links: visíveis, clicáveis, quebram em URLs longas e abrem em nova aba
+      '[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/40',
+      'hover:[&_a]:decoration-primary [&_a]:break-all [&_a]:cursor-pointer',
       className
     )}>
       {renderedContent}
     </div>
   );
+}
+
+// Regex para detectar URLs (http/https/www) em texto puro.
+// Captura URLs comuns, evita pegar pontuação final como parte do link.
+const URL_REGEX = /\b((?:https?:\/\/|www\.)[^\s<>()]+[^\s<>()`!?,.;:'"])/gi;
+
+/**
+ * Converte texto cru em React nodes substituindo URLs por <a> clicáveis
+ * que abrem em nova aba. Usado tanto para texto não-JSON quanto para
+ * nodes `text` do TipTap que não tenham a marca `link`.
+ */
+function linkifyText(text: string): React.ReactNode {
+  if (!text) return text;
+  const parts = text.split(URL_REGEX);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      const href = part.startsWith('http') ? part : `https://${part}`;
+      return (
+        <a
+          key={i}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }
 
 function renderNode(
@@ -115,7 +150,12 @@ function renderNode(
 
   // Texto com marcações
   if (node.type === 'text') {
-    let element: React.ReactNode = node.text || '';
+    const rawText = node.text || '';
+    const linkMark = node.marks?.find((m) => m.type === 'link');
+
+    // Texto base: se tem marca link, mantemos o texto cru dentro do <a>;
+    // caso contrário, auto-linkificamos URLs em texto puro.
+    let element: React.ReactNode = linkMark ? rawText : linkifyText(rawText);
 
     // Aplicar marcações na ordem correta
     if (node.marks) {
@@ -135,14 +175,29 @@ function renderNode(
             break;
           case 'highlight':
             element = (
-              <mark 
-                key={`highlight-${key}`} 
+              <mark
+                key={`highlight-${key}`}
                 className="bg-warning/30 rounded px-0.5"
               >
                 {element}
               </mark>
             );
             break;
+          case 'link': {
+            const href = (mark.attrs?.href as string) || '#';
+            element = (
+              <a
+                key={`link-${key}`}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {element}
+              </a>
+            );
+            break;
+          }
         }
       }
     }
