@@ -674,6 +674,7 @@ function PendingInviteItem({
 function BirthdaysAlertCard({
   members,
   onDismiss,
+  onOpenCalendar,
 }: {
   members: Array<{
     user_id: string;
@@ -681,6 +682,7 @@ function BirthdaysAlertCard({
     avatar_url: string | null;
   }>;
   onDismiss: () => void;
+  onOpenCalendar: () => void;
 }) {
   const getInitials = (name: string) =>
     name
@@ -727,6 +729,14 @@ function BirthdaysAlertCard({
           <Cake className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide border-pink-300/70 dark:border-pink-700/60 text-pink-700 dark:text-pink-300"
+            >
+              Aniversário
+            </Badge>
+          </div>
           <p className="text-sm text-foreground/90">{message}</p>
           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             {members.map((person) => (
@@ -749,6 +759,14 @@ function BirthdaysAlertCard({
               </div>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onOpenCalendar}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-pink-700 dark:text-pink-300 hover:underline !ring-0"
+          >
+            <Calendar className="h-3 w-3" />
+            Ver calendário de aniversários
+          </button>
         </div>
         <Button
           size="icon"
@@ -759,6 +777,202 @@ function BirthdaysAlertCard({
         >
           <X className="h-3.5 w-3.5" />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Row wrappers (lista unificada) ───────── */
+
+function NotificationRow({
+  notification: n,
+  onClick,
+  onMarkRead,
+  onDelete,
+}: {
+  notification: Notification;
+  onClick: () => void;
+  onMarkRead: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full text-left rounded-lg p-3 border border-transparent',
+        'hover:bg-accent/50 transition-colors',
+        !n.is_read && 'bg-muted/40 border-border/60',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0">
+          {notificationIcons[n.type] || <Bell className="h-4 w-4" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground"
+            >
+              Notificação
+            </Badge>
+            {!n.is_read && (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                aria-hidden
+              />
+            )}
+          </div>
+          <p
+            className={cn(
+              'text-sm line-clamp-1',
+              !n.is_read && 'font-medium',
+            )}
+          >
+            {n.title}
+          </p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {n.message}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {formatDistanceToNow(new Date(n.created_at), {
+              addSuffix: true,
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          {!n.is_read && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkRead();
+              }}
+              aria-label="Marcar como lida"
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            aria-label="Remover"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function NoticeRow({
+  notice,
+  isRead,
+  onMarkRead,
+  onOpenMandatory,
+}: {
+  notice: Notice;
+  isRead: boolean;
+  onMarkRead: () => void;
+  onOpenMandatory: () => void;
+}) {
+  const needsMandatory = notice.requires_confirmation && !isRead;
+  return (
+    <div
+      className={cn(
+        'p-3 rounded-lg border-l-4 transition-colors',
+        priorityBorder[notice.priority],
+        isRead ? 'bg-muted/30 opacity-70' : 'bg-card hover:bg-accent/40',
+        needsMandatory && 'ring-1 ring-amber-500/30',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'p-1.5 rounded-full shrink-0',
+            noticeCategoryColors[notice.category],
+          )}
+        >
+          {noticeIcons[notice.category]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground"
+            >
+              Aviso
+            </Badge>
+            {needsMandatory && (
+              <Badge
+                variant="outline"
+                className="text-[10px] h-4 px-1.5 text-amber-600 border-amber-500/50"
+              >
+                <Shield className="h-2.5 w-2.5 mr-0.5" />
+                Obrigatório
+              </Badge>
+            )}
+            {!isRead && !needsMandatory && (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                aria-hidden
+              />
+            )}
+          </div>
+          <h4 className={cn('text-sm', !isRead && 'font-medium')}>
+            {notice.title}
+          </h4>
+          {notice.content && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+              {notice.content}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {format(new Date(notice.starts_at), "d 'de' MMM, HH:mm", {
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        {!isRead && (
+          <div className="flex gap-1 shrink-0">
+            {notice.requires_confirmation ? (
+              <Button
+                size="sm"
+                onClick={onOpenMandatory}
+                className="h-7 px-2 text-xs"
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Confirmar
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onMarkRead}
+                className="h-7 w-7"
+                aria-label="Descartar aviso"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+        {isRead && notice.requires_confirmation && (
+          <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-[11px] shrink-0">
+            <Check className="h-3.5 w-3.5" />
+            <span>Confirmado</span>
+          </div>
+        )}
       </div>
     </div>
   );
