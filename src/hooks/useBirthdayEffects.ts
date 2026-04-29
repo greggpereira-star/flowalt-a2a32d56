@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UseBirthdayEffectsOptions {
   enabled?: boolean;
@@ -23,9 +24,22 @@ const PREMIUM_PALETTE = [
 
 export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
   const { enabled = true, intensity = 'subtle' } = options;
+  const isMobile = useIsMobile();
   const [hasShownModal, setHasShownModal] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  /**
+   * Tuning responsivo: mobile recebe menos partículas e ticks menores
+   * para preservar 60fps em GPUs limitadas. Desktop ganha mais densidade.
+   */
+  const tuning = useMemo(
+    () =>
+      isMobile
+        ? { subtle: 36, cannon: 32, mini: 12, ticks: 140, scalar: 0.75, gravity: 1.2 }
+        : { subtle: 70, cannon: 55, mini: 20, ticks: 200, scalar: 0.95, gravity: 1.05 },
+    [isMobile],
+  );
 
   // Reactive prefers-reduced-motion (acompanha mudança em tempo real)
   useEffect(() => {
@@ -53,28 +67,28 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     if (prefersReducedMotion || !enabled) return;
 
     confetti({
-      particleCount: 60,
-      spread: 70,
-      startVelocity: 35,
-      gravity: 1.1,
-      ticks: 180,
-      scalar: 0.9,
-      origin: { x: 0.5, y: 0.35 },
+      particleCount: tuning.subtle,
+      spread: isMobile ? 60 : 75,
+      startVelocity: isMobile ? 28 : 35,
+      gravity: tuning.gravity,
+      ticks: tuning.ticks,
+      scalar: tuning.scalar,
+      origin: { x: 0.5, y: isMobile ? 0.4 : 0.35 },
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
       zIndex: 9999,
     });
-  }, [prefersReducedMotion, enabled]);
+  }, [prefersReducedMotion, enabled, tuning, isMobile]);
 
   // Dois disparos laterais discretos
   const fireConfettiCannons = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
-    const baseCount = intensity === 'epic' ? 120 : 50;
+    const baseCount = intensity === 'epic' ? (isMobile ? 70 : 120) : tuning.cannon;
     const defaults = {
-      ticks: 200,
-      gravity: 1,
-      scalar: 0.95,
+      ticks: tuning.ticks,
+      gravity: tuning.gravity,
+      scalar: tuning.scalar,
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
       zIndex: 9999,
@@ -84,29 +98,29 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
       ...defaults,
       particleCount: baseCount,
       angle: 60,
-      spread: 50,
-      origin: { x: 0.05, y: 0.7 },
+      spread: isMobile ? 45 : 55,
+      origin: { x: isMobile ? 0.1 : 0.05, y: 0.7 },
     });
 
     confetti({
       ...defaults,
       particleCount: baseCount,
       angle: 120,
-      spread: 50,
-      origin: { x: 0.95, y: 0.7 },
+      spread: isMobile ? 45 : 55,
+      origin: { x: isMobile ? 0.9 : 0.95, y: 0.7 },
     });
-  }, [prefersReducedMotion, enabled, intensity]);
+  }, [prefersReducedMotion, enabled, intensity, tuning, isMobile]);
 
   // Easter egg: pequeno burst (clique no banner)
   const fireMiniConfetti = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
     confetti({
-      particleCount: 18 + clickCount * 6,
-      spread: 50,
-      startVelocity: 25,
-      scalar: 0.8,
-      ticks: 150,
+      particleCount: tuning.mini + clickCount * (isMobile ? 4 : 6),
+      spread: isMobile ? 40 : 50,
+      startVelocity: isMobile ? 20 : 25,
+      scalar: tuning.scalar - 0.1,
+      ticks: Math.max(120, tuning.ticks - 40),
       origin: { x: 0.5, y: 0.6 },
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
@@ -114,7 +128,7 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     });
 
     setClickCount((prev) => Math.min(prev + 1, 5));
-  }, [prefersReducedMotion, enabled, clickCount]);
+  }, [prefersReducedMotion, enabled, clickCount, tuning, isMobile]);
 
   // Sequência principal — agora curta e elegante
   const fireCelebration = useCallback(() => {
@@ -128,22 +142,22 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     fireConfettiCannons();
 
     if (intensity === 'epic') {
-      setTimeout(fireConfettiCannons, 600);
+      setTimeout(fireConfettiCannons, isMobile ? 450 : 600);
       setTimeout(() => {
         confetti({
-          particleCount: 100,
-          spread: 140,
-          startVelocity: 30,
-          ticks: 200,
-          scalar: 1,
+          particleCount: isMobile ? 60 : 100,
+          spread: isMobile ? 110 : 140,
+          startVelocity: isMobile ? 24 : 30,
+          ticks: tuning.ticks,
+          scalar: tuning.scalar + 0.05,
           origin: { x: 0.5, y: 0.4 },
           colors: PREMIUM_PALETTE,
           disableForReducedMotion: true,
           zIndex: 9999,
         });
-      }, 1100);
+      }, isMobile ? 850 : 1100);
     }
-  }, [intensity, fireSubtleBurst, fireConfettiCannons, prefersReducedMotion, enabled]);
+  }, [intensity, fireSubtleBurst, fireConfettiCannons, prefersReducedMotion, enabled, isMobile, tuning]);
 
   const markModalShown = useCallback(() => {
     const modalKey = getSessionKey('modal');

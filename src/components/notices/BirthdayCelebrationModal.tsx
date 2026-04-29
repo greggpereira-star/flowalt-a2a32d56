@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Cake, Sparkles } from 'lucide-react';
 import { useBirthdayEffects } from '@/hooks/useBirthdayEffects';
 import { cn } from '@/lib/utils';
@@ -9,6 +10,8 @@ interface BirthdayCelebrationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userName?: string;
+  /** Persiste no perfil que o usuário não quer ver mais este modal. */
+  onDontShowAgain?: () => void | Promise<void>;
 }
 
 /**
@@ -22,6 +25,7 @@ export function BirthdayCelebrationModal({
   open,
   onOpenChange,
   userName = 'Você',
+  onDontShowAgain,
 }: BirthdayCelebrationModalProps) {
   const {
     fireSubtleBurst,
@@ -32,6 +36,12 @@ export function BirthdayCelebrationModal({
 
   const primaryBtnRef = useRef<HTMLButtonElement>(null);
   const interactedRef = useRef(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Reset checkbox toda vez que o modal reabre
+  useEffect(() => {
+    if (open) setDontShowAgain(false);
+  }, [open]);
 
   // Disparo único e foco no botão primário
   useEffect(() => {
@@ -44,6 +54,16 @@ export function BirthdayCelebrationModal({
 
     return () => clearTimeout(t);
   }, [open, fireSubtleBurst]);
+
+  const persistPreferenceIfNeeded = () => {
+    if (dontShowAgain && onDontShowAgain) {
+      try {
+        void onDontShowAgain();
+      } catch {
+        /* silencioso — UI já fechou */
+      }
+    }
+  };
 
   // Auto-dismiss elegante após 8s — pausa se houver interação
   useEffect(() => {
@@ -68,6 +88,7 @@ export function BirthdayCelebrationModal({
     markInteraction();
     fireCelebration();
     markModalShown();
+    persistPreferenceIfNeeded();
     setTimeout(() => onOpenChange(false), 1200);
   };
 
@@ -75,6 +96,7 @@ export function BirthdayCelebrationModal({
     if (!next) {
       markInteraction();
       markModalShown();
+      persistPreferenceIfNeeded();
     }
     onOpenChange(next);
   };
@@ -177,6 +199,29 @@ export function BirthdayCelebrationModal({
               Obrigado
             </Button>
           </div>
+
+          {onDontShowAgain && (
+            <label
+              htmlFor="birthday-dont-show"
+              className={cn(
+                'mt-6 flex items-center justify-center gap-2',
+                'text-xs text-muted-foreground',
+                'cursor-pointer select-none hover:text-foreground transition-colors',
+              )}
+              onMouseEnter={markInteraction}
+            >
+              <Checkbox
+                id="birthday-dont-show"
+                checked={dontShowAgain}
+                onCheckedChange={(v) => {
+                  markInteraction();
+                  setDontShowAgain(v === true);
+                }}
+                className="h-4 w-4"
+              />
+              <span>Não mostrar esta celebração novamente</span>
+            </label>
+          )}
         </div>
       </DialogContent>
     </Dialog>

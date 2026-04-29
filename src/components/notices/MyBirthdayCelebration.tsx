@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTodayBirthdays } from '@/hooks/useBirthdays';
+import { useBirthdayCelebrationPref } from '@/hooks/useBirthdayCelebrationPref';
 import { BirthdayCelebrationModal } from './BirthdayCelebrationModal';
 
 /**
@@ -8,24 +9,28 @@ import { BirthdayCelebrationModal } from './BirthdayCelebrationModal';
  * de celebração com confete. Independente do sistema de notices —
  * funciona sempre que houver `birthday` preenchido no perfil.
  *
- * O modal usa sessionStorage para evitar reaparecer várias vezes no mesmo dia.
+ * Respeita a preferência `hide_birthday_celebration` salva no perfil.
+ * Usa sessionStorage para evitar reaparecer várias vezes no mesmo dia.
  */
 export function MyBirthdayCelebration() {
   const { user } = useAuth();
   const { data: birthdays = [], isLoading } = useTodayBirthdays();
+  const { hideCelebration, loading: prefLoading, setPreference } =
+    useBirthdayCelebrationPref();
   const [open, setOpen] = useState(false);
 
-  const isMyBirthday = !isLoading && birthdays.some((b) => b.user_id === user?.id);
+  const isMyBirthday =
+    !isLoading && birthdays.some((b) => b.user_id === user?.id);
 
   useEffect(() => {
-    if (!isMyBirthday) return;
+    if (!isMyBirthday || prefLoading || hideCelebration) return;
     const key = `birthday-modal-${new Date().toDateString()}`;
     if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
       setOpen(true);
     }
-  }, [isMyBirthday]);
+  }, [isMyBirthday, prefLoading, hideCelebration]);
 
-  if (!isMyBirthday) return null;
+  if (!isMyBirthday || hideCelebration) return null;
 
   const userName =
     user?.user_metadata?.full_name?.split(' ')[0] ||
@@ -37,6 +42,7 @@ export function MyBirthdayCelebration() {
       open={open}
       onOpenChange={setOpen}
       userName={userName}
+      onDontShowAgain={() => setPreference(true)}
     />
   );
 }
