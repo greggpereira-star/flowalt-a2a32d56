@@ -7,6 +7,7 @@ import { NotificationCenter } from '@/components/notifications/NotificationCente
 import { NotificationToast } from '@/components/notifications/NotificationToast';
 import { NoticesCenter } from '@/components/notices/NoticesCenter';
 import { MyBirthdayCelebration } from '@/components/notices/MyBirthdayCelebration';
+import { ThemeToggle } from './ThemeToggle';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
@@ -59,6 +60,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
           <div className="flex items-center gap-2 px-4">
             <BadgeProgress compact />
             <Separator orientation="vertical" className="h-6" />
+            <ThemeToggle />
             <NoticesCenter />
             <NotificationCenter />
           </div>

@@ -116,64 +116,110 @@
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* ===== CORES BASE — superfícies sólidas, alto contraste ===== */
+    --background: 224 32% 7%;
+    --foreground: 210 28% 96%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 28% 10%;
+    --card-foreground: 210 28% 96%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 28% 11%;
+    --popover-foreground: 210 28% 96%;
 
-    --primary: 235 72% 65%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 235 72% 70%;
-    --primary-muted: 235 40% 15%;
+    /* ===== PRIMÁRIA — Indigo iluminado (AA sobre bg dark) ===== */
+    --primary: 235 85% 70%;
+    --primary-foreground: 224 32% 8%;
+    --primary-hover: 235 90% 76%;
+    --primary-muted: 235 40% 18%;
 
-    --secondary: 217 33% 15%;
-    --secondary-foreground: 210 40% 90%;
+    /* ===== SECUNDÁRIAS / SUPERFÍCIES ELEVADAS ===== */
+    --secondary: 222 22% 16%;
+    --secondary-foreground: 210 28% 92%;
 
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20% 60%;
+    --muted: 222 22% 14%;
+    --muted-foreground: 215 18% 70%; /* WCAG AA contraste sobre bg */
 
-    --accent: 235 40% 15%;
-    --accent-foreground: 235 72% 75%;
+    --accent: 235 40% 18%;
+    --accent-foreground: 235 90% 82%;
 
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 210 40% 98%;
+    /* ===== ESTADOS — saturação ajustada para dark ===== */
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 60% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 142 65% 52%;
+    --success-foreground: 224 32% 8%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
+    --warning: 38 95% 60%;
+    --warning-foreground: 224 32% 8%;
 
-    --info: 199 89% 55%;
-    --info-foreground: 0 0% 100%;
+    --info: 199 90% 62%;
+    --info-foreground: 224 32% 8%;
 
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 235 72% 65%;
+    /* ===== URGÊNCIAS — recalibradas para dark ===== */
+    --urgency-low: 142 65% 52%;
+    --urgency-medium: 38 95% 60%;
+    --urgency-high: 25 95% 62%;
+    --urgency-critical: 0 75% 62%;
 
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 235 72% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 235 40% 15%;
-    --sidebar-accent-foreground: 235 72% 75%;
-    --sidebar-border: 217 33% 15%;
-    --sidebar-ring: 235 72% 65%;
+    /* ===== STATUS DO CARD — recalibrados ===== */
+    --status-backlog: 220 14% 65%;
+    --status-briefing: 280 75% 70%;
+    --status-todo: 199 90% 62%;
+    --status-in-progress: 235 85% 70%;
+    --status-review: 38 95% 60%;
+    --status-approved: 142 65% 52%;
+    --status-delivered: 160 65% 55%;
+    --status-archived: 220 14% 55%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(235 72% 60%), hsl(280 72% 60%));
-    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 8%), hsl(222 47% 6%));
-    --gradient-card: linear-gradient(135deg, hsl(222 47% 9%) 0%, hsl(222 47% 7%) 100%);
+    /* ===== ESPAÇOS — recalibrados ===== */
+    --space-designer: 280 75% 70%;
+    --space-audiovisual: 350 75% 65%;
+    --space-social: 199 90% 62%;
+    --space-traffic: 25 95% 62%;
+    --space-admin: 220 18% 60%;
+    --space-coordination: 235 85% 70%;
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.35), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.4), 0 8px 10px -6px hsl(0 0% 0% / 0.2);
-    --shadow-glow: 0 0 25px hsl(235 72% 65% / 0.2);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.2), 0 1px 2px hsl(0 0% 0% / 0.15);
+    /* ===== BORDAS — visíveis sem agredir ===== */
+    --border: 222 20% 20%;
+    --input: 222 20% 22%;
+    --ring: 235 85% 70%;
+
+    /* ===== SIDEBAR — superfície ligeiramente distinta do bg ===== */
+    --sidebar-background: 224 32% 9%;
+    --sidebar-foreground: 210 24% 88%;
+    --sidebar-primary: 235 85% 70%;
+    --sidebar-primary-foreground: 224 32% 8%;
+    --sidebar-accent: 235 40% 18%;
+    --sidebar-accent-foreground: 235 90% 82%;
+    --sidebar-border: 222 22% 16%;
+    --sidebar-ring: 235 85% 70%;
+
+    /* ===== GRADIENTES ===== */
+    --gradient-primary: linear-gradient(135deg, hsl(235 85% 65%), hsl(280 80% 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(224 28% 10%), hsl(224 32% 7%));
+    --gradient-card: linear-gradient(135deg, hsl(224 28% 11%) 0%, hsl(224 28% 9%) 100%);
+
+    /* ===== SOMBRAS — discretas (dark já tem contraste natural) ===== */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.25);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.35), 0 2px 4px -2px hsl(0 0% 0% / 0.25);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -4px hsl(0 0% 0% / 0.25);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.45), 0 8px 10px -6px hsl(0 0% 0% / 0.25);
+    --shadow-glow: 0 0 24px hsl(235 85% 70% / 0.18);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 1px 2px hsl(0 0% 0% / 0.2);
+  }
+
+  /* Suaviza transição entre temas — evita "flash" agressivo nas superfícies */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      fill 200ms ease,
+      stroke 200ms ease !important;
+    transition-delay: 0 !important;
   }
 }
 
