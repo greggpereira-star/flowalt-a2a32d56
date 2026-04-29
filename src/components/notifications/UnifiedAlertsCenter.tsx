@@ -765,3 +765,98 @@ function PendingInviteItem({
     </div>
   );
 }
+
+/* ───────── Birthdays alert card ───────── */
+
+function BirthdaysAlertCard({
+  members,
+  onDismiss,
+}: {
+  members: Array<{
+    user_id: string;
+    full_name: string;
+    avatar_url: string | null;
+  }>;
+  onDismiss: () => void;
+}) {
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+  const message = (() => {
+    if (members.length === 1) {
+      const first = members[0].full_name.split(' ')[0];
+      return (
+        <>
+          Hoje é aniversário de{' '}
+          <span className="font-semibold text-foreground">{first}</span>. Não
+          esqueça de parabenizar! 🎉
+        </>
+      );
+    }
+    const names = members
+      .map((p) => p.full_name.split(' ')[0])
+      .join(', ')
+      .replace(/, ([^,]*)$/, ' e $1');
+    return (
+      <>
+        Hoje é aniversário de{' '}
+        <span className="font-semibold text-foreground">{names}</span>. Mande
+        seus parabéns! 🎉
+      </>
+    );
+  })();
+
+  return (
+    <div
+      className={cn(
+        'p-3 rounded-lg border-l-4 border-pink-400 dark:border-pink-500',
+        'bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100/70 dark:hover:bg-pink-950/40',
+        'transition-colors',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="p-1.5 rounded-full bg-pink-500/15 text-pink-600 dark:text-pink-400 shrink-0">
+          <Cake className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-foreground/90">{message}</p>
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            {members.map((person) => (
+              <div
+                key={person.user_id}
+                className="flex items-center gap-1.5 rounded-full border border-pink-200/70 dark:border-pink-800/60 bg-background/70 px-2 py-0.5"
+              >
+                <Avatar className="h-5 w-5">
+                  <AvatarImage
+                    src={person.avatar_url || undefined}
+                    alt={person.full_name}
+                  />
+                  <AvatarFallback className="text-[9px]">
+                    {getInitials(person.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[11px] font-medium text-foreground">
+                  {person.full_name.split(' ')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onDismiss}
+          className="h-7 w-7 shrink-0"
+          aria-label="Dispensar lembrete de aniversariantes"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
