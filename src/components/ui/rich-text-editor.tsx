@@ -4,6 +4,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
+import Link from '@tiptap/extension-link';
 import { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { 
