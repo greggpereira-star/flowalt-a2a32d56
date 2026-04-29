@@ -289,7 +289,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         {/* Priority */}
         <FieldRow icon={<Flag className="h-3.5 w-3.5" />} label="Prioridade">
           <Select value={urgency} onValueChange={onUrgencyChange}>
-            <SelectTrigger className="h-7 w-auto border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5">
+            <SelectTrigger className="h-7 w-auto min-w-fit border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5 whitespace-nowrap [&>span]:flex [&>span]:items-center [&>span]:whitespace-nowrap">
               <UrgencyBadge urgency={urgency} />
             </SelectTrigger>
             <SelectContent>
