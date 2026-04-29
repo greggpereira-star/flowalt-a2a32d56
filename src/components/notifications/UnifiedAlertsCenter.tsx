@@ -44,6 +44,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTodayBirthdays } from '@/hooks/useBirthdays';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Cake } from 'lucide-react';
 
 /* ───────── icons / colors ───────── */
 
