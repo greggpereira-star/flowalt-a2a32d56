@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UseBirthdayEffectsOptions {
   enabled?: boolean;
