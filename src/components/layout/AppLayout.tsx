@@ -60,8 +60,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
             <BadgeProgress compact />
             <Separator orientation="vertical" className="h-6" />
             <ThemeToggle />
-            <NoticesCenter />
-            <NotificationCenter />
+            <UnifiedAlertsCenter />
           </div>
         </header>
 
