@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      // Anti-FOUC: aplica tema antes do React montar
+      (function () {
+        try {
+          var stored = localStorage.getItem('flowalt-theme');
+          var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = stored === 'dark' || stored === 'light'
+            ? stored
+            : (sysDark ? 'dark' : 'light');
+          if (resolved === 'dark') document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#7c3aed" />
