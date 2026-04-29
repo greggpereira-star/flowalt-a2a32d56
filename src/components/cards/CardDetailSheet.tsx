@@ -257,7 +257,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="max-w-[1100px] w-[92vw] h-[min(90vh,820px)] p-0 flex flex-col overflow-hidden bg-background gap-0 rounded-xl shadow-lg"
+          className="max-w-[1320px] w-[95vw] h-[min(92vh,860px)] p-0 flex flex-col overflow-hidden bg-background gap-0 rounded-xl shadow-lg"
           hideCloseButton
         >
         <VisuallyHidden.Root>
