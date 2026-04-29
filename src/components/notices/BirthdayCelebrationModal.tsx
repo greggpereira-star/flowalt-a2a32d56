@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Cake, Sparkles } from 'lucide-react';
 import { useBirthdayEffects } from '@/hooks/useBirthdayEffects';
 import { cn } from '@/lib/utils';
@@ -9,6 +10,8 @@ interface BirthdayCelebrationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userName?: string;
+  /** Persiste no perfil que o usuário não quer ver mais este modal. */
+  onDontShowAgain?: () => void | Promise<void>;
 }
 
 /**
