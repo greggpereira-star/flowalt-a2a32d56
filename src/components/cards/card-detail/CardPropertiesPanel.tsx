@@ -24,6 +24,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { StatusBadge, UrgencyBadge } from '../CardBadges';
+import { PROPERTY_TRIGGER_BASE } from './badgeStyles';
 import {
   CircleDot,
   Users,
