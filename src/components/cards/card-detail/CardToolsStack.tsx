@@ -24,6 +24,7 @@ import { CardFinancialTab } from '../CardFinancialTab';
 import { CardKitTab } from '../CardKitTab';
 import { CardInvitePanel } from '../CardInvitePanel';
 import { SocialPostButton } from '@/components/social-media/SocialPostButton';
+import { SectionHeader } from './SectionHeader';
 
 export interface CardToolsStackProps {
   cardId: string;
@@ -208,37 +209,32 @@ export const CardToolsStack = React.forwardRef<HTMLDivElement, CardToolsStackPro
         ref={ref}
         data-testid="card-tools-stack"
         aria-label="Ferramentas da demanda"
-        className="pt-4 scroll-mt-4"
+        className="scroll-mt-4"
       >
-        {/* Section meta header */}
-        <header className="flex items-center gap-2 px-1 mb-3">
-          <span className="h-3 w-[3px] rounded-full bg-primary" aria-hidden />
-          <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-            Ferramentas da demanda
-          </p>
-          <div
-            className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2"
-            aria-hidden
-          />
-          <button
-            type="button"
-            onClick={() => {
-              const allOpen = sections
-                .filter((s) => !s.hidden)
-                .every((s) => openMap[s.id]);
-              const next: Record<string, boolean> = {};
-              sections.forEach((s) => {
-                if (!s.hidden) next[s.id] = !allOpen;
-              });
-              setOpenMap(next);
-            }}
-            className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {sections.filter((s) => !s.hidden).every((s) => openMap[s.id])
-              ? 'Recolher tudo'
-              : 'Expandir tudo'}
-          </button>
-        </header>
+        <SectionHeader
+          title="Ferramentas da demanda"
+          accent="bg-primary"
+          actions={
+            <button
+              type="button"
+              onClick={() => {
+                const allOpen = sections
+                  .filter((s) => !s.hidden)
+                  .every((s) => openMap[s.id]);
+                const next: Record<string, boolean> = {};
+                sections.forEach((s) => {
+                  if (!s.hidden) next[s.id] = !allOpen;
+                });
+                setOpenMap(next);
+              }}
+              className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {sections.filter((s) => !s.hidden).every((s) => openMap[s.id])
+                ? 'Recolher tudo'
+                : 'Expandir tudo'}
+            </button>
+          }
+        />
 
         <div className="space-y-2">
           {sections
