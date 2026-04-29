@@ -12,7 +12,7 @@ import {
   CardDescriptionSection,
   CardActivityPanel,
   CardBriefingSection,
-  CardToolsSection,
+  CardToolsStack,
   InlineTimerWidget,
   AIBar,
 } from './card-detail';
