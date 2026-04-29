@@ -145,19 +145,8 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     fontWeight: node.fontWeight || undefined,
     fontStyle: node.fontStyle || undefined,
   };
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') onEditSave();
-    if (e.key === 'Escape') onEditCancel();
-  };
+  // Editing is handled by AutoGrowEditor; keep a noop keydown for non-editing usage.
+  const handleKeyDown = (_e: React.KeyboardEvent) => {};
 
   // ===== ROOT NODE =====
   if (isRoot) {
