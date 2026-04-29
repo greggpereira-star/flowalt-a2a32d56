@@ -71,6 +71,62 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Reset session-bound UI state whenever the modal switches to a different
+   * card (or is closed). Without this, reopening the modal could surface the
+   * previous card's active tool tab and leave stale handlers wired to the
+   * old card id.
+   */
+  useEffect(() => {
+    setActiveResourceTab('checklist');
+    setBriefingDialogOpen(false);
+    setDeleteDialogOpen(false);
+  }, [cardId, open]);
+
+  /**
+   * Scroll the tools section into view reliably, including on small screens
+   * where the Radix ScrollArea owns the overflow. We resolve the scroll
+   * container by walking up from the section ref so we don't depend on
+   * private Radix selectors. Falls back to scrollIntoView if no container
+   * is found.
+   */
+  const scrollToTools = useCallback(() => {
+    requestAnimationFrame(() => {
+      const node = resourceTabsRef.current;
+      if (!node) return;
+
+      const viewport = node.closest<HTMLElement>(
+        '[data-radix-scroll-area-viewport]',
+      );
+
+      if (viewport) {
+        const top = node.getBoundingClientRect().top
+          - viewport.getBoundingClientRect().top
+          + viewport.scrollTop
+          - 8; // breathing room above the header
+        viewport.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Move focus into the section for keyboard / screen-reader users
+      // without stealing it away from typing inputs.
+      const active = document.activeElement as HTMLElement | null;
+      const isTyping = active && (active.tagName === 'INPUT'
+        || active.tagName === 'TEXTAREA'
+        || active.isContentEditable);
+      if (!isTyping) {
+        node.setAttribute('tabindex', '-1');
+        node.focus({ preventScroll: true });
+      }
+    });
+  }, []);
+
+  const openTool = useCallback((tab: string) => {
+    setActiveResourceTab(tab);
+    scrollToTools();
+  }, [scrollToTools]);
+
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
 
