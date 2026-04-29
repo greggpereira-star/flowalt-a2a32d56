@@ -430,29 +430,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
-                    {/* Section: Tools / Resources — placed ABOVE description for higher relevance */}
-                    <div className="pt-4">
-                      <div className="flex items-center gap-2 px-1 mb-2">
-                        <span className="h-3 w-[3px] rounded-full bg-primary" />
-                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-                          Ferramentas da demanda
-                        </p>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2" />
-                      </div>
-
-                      <CardResourceTabs
-                        ref={resourceTabsRef}
-                        value={activeResourceTab}
-                        onValueChange={setActiveResourceTab}
-                        cardId={card.id}
-                        clientId={card.client_id}
-                        checklistCompleted={checklistCompleted}
-                        checklistTotal={checklistTotal}
-                        attachmentsCount={attachmentsCount}
-                        hasSocialPublish={hasSocialPublish}
-                        socialPostsCount={socialPostsCount}
-                      />
-                    </div>
+                    {/* Tools / Resources — standardised section, always above content */}
+                    <CardToolsSection
+                      ref={resourceTabsRef}
+                      cardId={card.id}
+                      clientId={card.client_id}
+                      activeTab={activeResourceTab}
+                      onTabChange={setActiveResourceTab}
+                      checklistCompleted={checklistCompleted}
+                      checklistTotal={checklistTotal}
+                      attachmentsCount={attachmentsCount}
+                      hasSocialPublish={hasSocialPublish}
+                      socialPostsCount={socialPostsCount}
+                    />
 
                     {/* Section: Content & Description */}
                     <div className="pt-5">
