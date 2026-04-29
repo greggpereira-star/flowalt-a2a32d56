@@ -199,6 +199,29 @@ export function BirthdayCelebrationModal({
               Obrigado
             </Button>
           </div>
+
+          {onDontShowAgain && (
+            <label
+              htmlFor="birthday-dont-show"
+              className={cn(
+                'mt-6 flex items-center justify-center gap-2',
+                'text-xs text-muted-foreground',
+                'cursor-pointer select-none hover:text-foreground transition-colors',
+              )}
+              onMouseEnter={markInteraction}
+            >
+              <Checkbox
+                id="birthday-dont-show"
+                checked={dontShowAgain}
+                onCheckedChange={(v) => {
+                  markInteraction();
+                  setDontShowAgain(v === true);
+                }}
+                className="h-4 w-4"
+              />
+              <span>Não mostrar esta celebração novamente</span>
+            </label>
+          )}
         </div>
       </DialogContent>
     </Dialog>
