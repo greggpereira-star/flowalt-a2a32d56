@@ -15,6 +15,7 @@ import {
   CardToolsStack,
   InlineTimerWidget,
   AIBar,
+  SectionHeader,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
