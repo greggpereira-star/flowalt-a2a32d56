@@ -875,3 +875,22 @@
   padding: 0 !important;
   background: transparent !important;
 }
+
+/* ============================================================
+ * Card Detail — vertical rhythm tokens
+ * ------------------------------------------------------------
+ * Use `.card-section` for top-level blocks inside the card
+ * detail body so spacing between "Conteúdo & Descrição",
+ * "Ferramentas da demanda" and other sibling sections stays
+ * visually consistent without relying on ad-hoc paddings.
+ * ============================================================ */
+.card-section {
+  padding-top: 1.75rem; /* 28px — generous breathing room */
+}
+.card-section + .card-section {
+  padding-top: 1.75rem;
+  margin-top: 0.25rem;
+}
+.card-section:first-of-type {
+  padding-top: 0.5rem;
+}
