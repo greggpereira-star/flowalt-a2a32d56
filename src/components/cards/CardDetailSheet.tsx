@@ -15,7 +15,6 @@ import {
   CardResourceTabs,
   InlineTimerWidget,
   AIBar,
-  TaskInlineActions,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
