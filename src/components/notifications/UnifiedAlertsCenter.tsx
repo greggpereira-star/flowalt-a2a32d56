@@ -187,6 +187,44 @@ export function UnifiedAlertsCenter() {
     acceptInvite.mutate(token, { onSuccess: () => setOpen(false) });
   };
 
+  /* ── Listas derivadas (filtros rápidos) ── */
+  const visibleNotifications = useMemo(
+    () => (onlyUnreadNotifs ? notifications.filter((n) => !n.is_read) : notifications),
+    [notifications, onlyUnreadNotifs],
+  );
+
+  const visibleNotices = useMemo(
+    () =>
+      onlyUnreadNotices
+        ? notices.filter((n) => !readNotices.includes(n.id))
+        : notices,
+    [notices, readNotices, onlyUnreadNotices],
+  );
+
+  /* ── "Limpar" do tipo selecionado ── */
+  const clearCurrentTab = () => {
+    if (tab === 'notifications') {
+      // Remove apenas as visíveis (respeita filtro "só não lidas")
+      if (onlyUnreadNotifs) {
+        visibleNotifications.forEach((n) => deleteNotification.mutate(n.id));
+      } else {
+        clearAll.mutate();
+      }
+      return;
+    }
+    // Aba "Avisos": dispensa (marca como lido) os não obrigatórios da lista visível
+    visibleNotices
+      .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+      .forEach((n) => markNoticeAsRead.mutate(n.id));
+  };
+
+  const canClearCurrentTab =
+    tab === 'notifications'
+      ? visibleNotifications.length > 0
+      : visibleNotices.some(
+          (n) => !n.requires_confirmation && !readNotices.includes(n.id),
+        );
+
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
