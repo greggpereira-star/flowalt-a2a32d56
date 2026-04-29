@@ -128,7 +128,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   // changes via user action (e.g. switching to "checklist" on small screens).
   // We intentionally skip the very first render so we don't yank the modal
   // when it opens.
-  const didMountRef = useRef(false);
   useEffect(() => {
     if (!didMountRef.current) {
       didMountRef.current = true;
