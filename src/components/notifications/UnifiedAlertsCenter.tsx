@@ -520,6 +520,46 @@ export function UnifiedAlertsCenter() {
 
 /* ───────── helpers ───────── */
 
+function FilterBar({
+  onlyUnread,
+  onToggleUnread,
+  unreadCount,
+  rightSlot,
+}: {
+  onlyUnread: boolean;
+  onToggleUnread: () => void;
+  unreadCount: number;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <div className="px-6 pb-2 flex items-center justify-between gap-2">
+      <Button
+        type="button"
+        variant={onlyUnread ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={onToggleUnread}
+        className={cn(
+          'h-7 px-2 text-xs gap-1.5 !ring-0',
+          'transition-colors',
+        )}
+        aria-pressed={onlyUnread}
+      >
+        <Filter className="h-3 w-3" />
+        Só não lidas
+        {unreadCount > 0 && (
+          <Badge
+            variant={onlyUnread ? 'default' : 'outline'}
+            className="ml-1 h-4 min-w-4 px-1 text-[10px] leading-none"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Badge>
+        )}
+      </Button>
+      <div className="flex items-center">{rightSlot}</div>
+    </div>
+  );
+}
+
 function EmptyState({
   icon,
   text,
