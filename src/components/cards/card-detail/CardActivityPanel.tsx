@@ -214,8 +214,8 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
       </div>
 
       {/* Feed */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="px-4 py-3">
+      <ScrollArea className="flex-1 min-h-0 w-full [&>[data-radix-scroll-area-viewport]>div]:!block">
+        <div className="px-4 py-3 min-w-0 w-full">
           {(activeTab === 'all' || activeTab === 'comments') ? (
             isLoading ? (
               <div className="flex items-center justify-center py-8">
