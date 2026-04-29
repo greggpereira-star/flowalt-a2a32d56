@@ -198,5 +198,8 @@ export const CardResourceTabs = React.forwardRef<HTMLDivElement, CardResourceTab
         )}
       </div>
     </Tabs>
+    </div>
   );
-};
+});
+CardResourceTabs.displayName = 'CardResourceTabs';
+
