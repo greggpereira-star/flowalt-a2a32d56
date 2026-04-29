@@ -19,6 +19,5 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function () {};
 }
 if (!window.HTMLElement.prototype.scrollTo) {
-  // @ts-expect-error - polyfill
-  window.HTMLElement.prototype.scrollTo = function () {};
+  (window.HTMLElement.prototype as unknown as { scrollTo: () => void }).scrollTo = function () {};
 }
