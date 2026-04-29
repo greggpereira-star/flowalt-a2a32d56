@@ -378,6 +378,7 @@ export function RichTextEditor({
         code: false,
         blockquote: false,
         horizontalRule: false,
+        link: false, // configured separately below to avoid duplicate autolink plugin
       }),
       Highlight.configure({
         HTMLAttributes: {
@@ -533,6 +534,7 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
         code: false,
         blockquote: false,
         horizontalRule: false,
+        link: false, // configured separately below to avoid duplicate autolink plugin
       }),
       Highlight.configure({
         HTMLAttributes: {
