@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Flag } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import { PROPERTY_BADGE_BASE } from './card-detail/badgeStyles';
 
 export const statusConfig: Record<CardStatus, { label: string; color: string; bgColor: string; dotColor: string }> = {
   backlog: { label: 'Backlog', color: 'text-status-backlog', bgColor: 'bg-status-backlog/10', dotColor: 'bg-status-backlog' },
@@ -31,16 +32,19 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, sho
   const config = statusConfig[status];
   return (
     <span
+      data-testid="status-badge"
+      title={config.label}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80',
+        PROPERTY_BADGE_BASE,
+        'gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80',
         config.bgColor,
         config.color,
         className
       )}
     >
       <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', config.dotColor)} />
-      {config.label}
-      {showChevron && <ChevronDown className="h-3 w-3 opacity-50" />}
+      <span className="whitespace-nowrap">{config.label}</span>
+      {showChevron && <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />}
     </span>
   );
 };
@@ -54,8 +58,11 @@ export const UrgencyBadge: React.FC<UrgencyBadgeProps> = ({ urgency, className }
   const config = urgencyConfig[urgency];
   return (
     <span
+      data-testid="urgency-badge"
+      title={config.label}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap leading-none',
+        PROPERTY_BADGE_BASE,
+        'rounded-full px-2 py-0.5 text-xs font-medium',
         config.bgColor,
         config.color,
         className

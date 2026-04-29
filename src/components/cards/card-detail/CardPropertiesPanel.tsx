@@ -24,6 +24,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { StatusBadge, UrgencyBadge } from '../CardBadges';
+import { PROPERTY_TRIGGER_BASE } from './badgeStyles';
 import {
   CircleDot,
   Users,
@@ -153,7 +154,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         {/* Status */}
         <FieldRow icon={<CircleDot className="h-3.5 w-3.5" />} label="Status">
           <Select value={status} onValueChange={onStatusChange}>
-            <SelectTrigger className="h-7 w-auto border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5">
+            <SelectTrigger className={PROPERTY_TRIGGER_BASE} data-testid="status-trigger">
               <StatusBadge status={status} showChevron />
             </SelectTrigger>
             <SelectContent>
@@ -289,7 +290,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         {/* Priority */}
         <FieldRow icon={<Flag className="h-3.5 w-3.5" />} label="Prioridade">
           <Select value={urgency} onValueChange={onUrgencyChange}>
-            <SelectTrigger className="h-7 w-auto min-w-fit border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5 whitespace-nowrap [&>span]:flex [&>span]:items-center [&>span]:whitespace-nowrap">
+            <SelectTrigger className={PROPERTY_TRIGGER_BASE} data-testid="priority-trigger">
               <UrgencyBadge urgency={urgency} />
             </SelectTrigger>
             <SelectContent>
@@ -326,7 +327,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             value={clientId || '__none__'}
             onValueChange={(v) => onClientChange(v === '__none__' ? null : v)}
           >
-            <SelectTrigger className="h-7 w-auto border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5">
+            <SelectTrigger className={cn(PROPERTY_TRIGGER_BASE, 'max-w-[220px]')} data-testid="client-trigger">
               {selectedClient ? (
                 <div className="flex items-center gap-1.5 truncate">
                   {selectedClient.color && (
