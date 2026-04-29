@@ -3,9 +3,8 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
-import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { UnifiedAlertsCenter } from '@/components/notifications/UnifiedAlertsCenter';
 import { NotificationToast } from '@/components/notifications/NotificationToast';
-import { NoticesCenter } from '@/components/notices/NoticesCenter';
 import { MyBirthdayCelebration } from '@/components/notices/MyBirthdayCelebration';
 import { ThemeToggle } from './ThemeToggle';
 import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
