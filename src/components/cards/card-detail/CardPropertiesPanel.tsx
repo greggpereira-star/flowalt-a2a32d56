@@ -327,7 +327,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             value={clientId || '__none__'}
             onValueChange={(v) => onClientChange(v === '__none__' ? null : v)}
           >
-            <SelectTrigger className="h-7 w-auto border-none bg-transparent shadow-none hover:bg-muted/50 px-2 text-sm gap-1.5">
+            <SelectTrigger className={cn(PROPERTY_TRIGGER_BASE, 'max-w-[220px]')} data-testid="client-trigger">
               {selectedClient ? (
                 <div className="flex items-center gap-1.5 truncate">
                   {selectedClient.color && (
