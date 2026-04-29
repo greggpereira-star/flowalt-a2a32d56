@@ -95,9 +95,7 @@ const priorityBorder: Record<Notice['priority'], string> = {
 export function UnifiedAlertsCenter() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'notifications' | 'notices'>('notifications');
-  const [onlyUnreadNotifs, setOnlyUnreadNotifs] = useState(false);
-  const [onlyUnreadNotices, setOnlyUnreadNotices] = useState(false);
+  const [mandatoryNoticeOpen, setMandatoryNoticeOpen] = useState(false);
   const [mandatoryNotice, setMandatoryNotice] = useState<Notice | null>(null);
 
   // Notifications (inbox de sistema)
