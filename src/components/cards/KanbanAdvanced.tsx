@@ -89,6 +89,7 @@ import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useDependencies } from '@/hooks/useDependencies';
 import { useCapacity } from '@/hooks/useCapacity';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
@@ -154,6 +155,17 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard();
   const { data: members } = useWorkspaceMembers();
+  const { data: cardAssignments } = useCardMemberAssignments();
+
+  // Map of card_id -> array of user_ids assigned via card_members
+  const cardMembersMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    cardAssignments?.forEach(({ card_id, user_id }) => {
+      if (!map.has(card_id)) map.set(card_id, []);
+      map.get(card_id)!.push(user_id);
+    });
+    return map;
+  }, [cardAssignments]);
   const { data: clientCards } = useClientCards();
   
   // Build a map of user_id -> assignee info for quick lookup
@@ -623,9 +635,10 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     const ownerUtilization = card.owner_id 
       ? userSummaries.find(u => u.userId === card.owner_id)?.utilizationPercent || 0
       : 0;
-    const assignees: Assignee[] = card.owner_id && memberMap.has(card.owner_id)
-      ? [memberMap.get(card.owner_id)!]
-      : [];
+    const assignedIds = cardMembersMap.get(card.id) || [];
+    const assignees: Assignee[] = assignedIds.length > 0
+      ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
+      : (card.owner_id && memberMap.has(card.owner_id) ? [memberMap.get(card.owner_id)!] : []);
     
     return (
       <DraggableCard key={card.id} id={card.id} disabled={isSelectionMode}>

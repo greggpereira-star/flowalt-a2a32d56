@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +69,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
+  const resourceTabsRef = useRef<HTMLDivElement>(null);
 
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
@@ -374,7 +376,24 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     )}
 
                     {/* Task inline actions */}
-                    <TaskInlineActions />
+                    <TaskInlineActions
+                      onAddSubtask={() => {
+                        setActiveResourceTab('checklist');
+                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                      }}
+                      onLinkItems={() => {
+                        setActiveResourceTab('invites');
+                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                      }}
+                      onCreateChecklist={() => {
+                        setActiveResourceTab('checklist');
+                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                      }}
+                      onAttachFile={() => {
+                        setActiveResourceTab('attachments');
+                        requestAnimationFrame(() => resourceTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                      }}
+                    />
 
                     {/* Task Actions - Quick actions */}
                     <div className="flex flex-col gap-0 border-t border-border/30 pt-2 mt-2">
@@ -391,6 +410,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                     {/* Resource Tabs */}
                     <CardResourceTabs
+                      ref={resourceTabsRef}
+                      value={activeResourceTab}
+                      onValueChange={setActiveResourceTab}
                       cardId={card.id}
                       clientId={card.client_id}
                       checklistCompleted={checklistCompleted}
@@ -399,6 +421,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       hasSocialPublish={hasSocialPublish}
                       socialPostsCount={socialPostsCount}
                     />
+
                   </div>
                 </ScrollArea>
               </div>
