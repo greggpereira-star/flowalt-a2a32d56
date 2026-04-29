@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import { Plus, Minus, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MindMapNode as NodeType } from './types';
@@ -8,6 +8,95 @@ const normalizeNodeLink = (value?: string) => {
   if (!value) return '#';
   if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
   return `https://${value}`;
+};
+
+interface AutoGrowEditorProps {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  minWidth?: number;
+  maxWidth?: number;
+  placeholderColor?: string;
+}
+
+/**
+ * Auto-growing textarea for inline node editing.
+ * - Expands width to fit text up to maxWidth, then wraps and grows height.
+ * - Enter saves; Shift+Enter inserts a newline; Escape cancels.
+ */
+const AutoGrowEditor: React.FC<AutoGrowEditorProps> = ({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  className,
+  style,
+  minWidth = 120,
+  maxWidth = 360,
+}) => {
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (taRef.current) {
+      taRef.current.focus();
+      taRef.current.select();
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    const mirror = mirrorRef.current;
+    if (!ta || !mirror) return;
+    // Measure with mirror to get the desired width.
+    mirror.textContent = value || ' ';
+    const measured = Math.ceil(mirror.getBoundingClientRect().width) + 4;
+    const w = Math.max(minWidth, Math.min(maxWidth, measured));
+    ta.style.width = `${w}px`;
+    // Reset height then grow to scrollHeight for wrapped lines.
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [value, minWidth, maxWidth]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <>
+      <textarea
+        ref={taRef}
+        value={value}
+        rows={1}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onSave}
+        onKeyDown={handleKeyDown}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={cn(
+          'bg-transparent border-none outline-none resize-none overflow-hidden align-middle',
+          className
+        )}
+        style={{ ...style, lineHeight: 1.35 }}
+      />
+      {/* Hidden mirror for width measurement (matches textarea typography) */}
+      <span
+        ref={mirrorRef}
+        aria-hidden
+        className={cn('invisible absolute whitespace-pre pointer-events-none', className)}
+        style={{ ...style, position: 'absolute', left: -9999, top: -9999, whiteSpace: 'pre' }}
+      />
+    </>
+  );
 };
 
 interface Props {
@@ -56,19 +145,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     fontWeight: node.fontWeight || undefined,
     fontStyle: node.fontStyle || undefined,
   };
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') onEditSave();
-    if (e.key === 'Escape') onEditCancel();
-  };
+  // Editing is handled by AutoGrowEditor (focus/select, Enter/Escape, auto-grow).
 
   // ===== ROOT NODE =====
   if (isRoot) {
@@ -107,14 +184,15 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             )}
 
             {isEditing ? (
-              <input
-                ref={inputRef}
+              <AutoGrowEditor
                 value={editText}
-                onChange={(e) => onEditChange(e.target.value)}
-                onBlur={onEditSave}
-                onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-lg font-bold text-white min-w-[160px] placeholder:text-white/30"
-                onClick={(e) => e.stopPropagation()}
+                onChange={onEditChange}
+                onSave={onEditSave}
+                onCancel={onEditCancel}
+                className="text-lg font-bold text-white placeholder:text-white/30"
+                style={textStyle}
+                minWidth={180}
+                maxWidth={420}
               />
             ) : (
               <span className="text-lg font-bold tracking-tight whitespace-nowrap" style={textStyle}>{node.text}</span>
@@ -176,14 +254,15 @@ export const MindMapNodeComponent: React.FC<Props> = ({
             )}
 
             {isEditing ? (
-              <input
-                ref={inputRef}
+              <AutoGrowEditor
                 value={editText}
-                onChange={(e) => onEditChange(e.target.value)}
-                onBlur={onEditSave}
-                onKeyDown={handleKeyDown}
-                className="bg-transparent border-none outline-none text-[13px] font-semibold tracking-wide text-white min-w-[60px] max-w-[180px] placeholder:text-white/40"
-                onClick={(e) => e.stopPropagation()}
+                onChange={onEditChange}
+                onSave={onEditSave}
+                onCancel={onEditCancel}
+                className="text-[13px] font-semibold tracking-wide text-white placeholder:text-white/40"
+                style={textStyle}
+                minWidth={120}
+                maxWidth={360}
               />
             ) : (
               <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap text-white drop-shadow-sm" style={textStyle}>
@@ -259,16 +338,28 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px', width: node.nodeWidth ? `${node.nodeWidth}px` : undefined }}>
+        <div
+          className="flex flex-col gap-0.5"
+          style={
+            isEditing
+              ? { minWidth: '120px' }
+              : {
+                  minWidth: '100px',
+                  maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px',
+                  width: node.nodeWidth ? `${node.nodeWidth}px` : undefined,
+                }
+          }
+        >
           {isEditing ? (
-            <input
-              ref={inputRef}
+            <AutoGrowEditor
               value={editText}
-              onChange={(e) => onEditChange(e.target.value)}
-              onBlur={onEditSave}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-[13px] min-w-[100px] text-foreground"
-              onClick={(e) => e.stopPropagation()}
+              onChange={onEditChange}
+              onSave={onEditSave}
+              onCancel={onEditCancel}
+              className="text-[13px] text-foreground"
+              style={textStyle}
+              minWidth={140}
+              maxWidth={node.nodeWidth ? Math.max(node.nodeWidth, 240) : 360}
             />
           ) : (
             <span
