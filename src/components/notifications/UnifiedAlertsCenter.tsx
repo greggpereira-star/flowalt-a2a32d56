@@ -306,31 +306,40 @@ export function UnifiedAlertsCenter() {
               value="notifications"
               className="flex-1 min-h-0 mt-3 flex flex-col"
             >
-              {unreadNotifications > 0 && (
-                <div className="px-6 pb-2 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => markAllAsRead.mutate()}
-                  >
-                    <CheckCheck className="h-3 w-3 mr-1" />
-                    Marcar todas como lidas
-                  </Button>
-                </div>
-              )}
+              <FilterBar
+                onlyUnread={onlyUnreadNotifs}
+                onToggleUnread={() => setOnlyUnreadNotifs((v) => !v)}
+                unreadCount={unreadNotifications}
+                rightSlot={
+                  unreadNotifications > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => markAllAsRead.mutate()}
+                    >
+                      <CheckCheck className="h-3 w-3 mr-1" />
+                      Marcar lidas
+                    </Button>
+                  ) : null
+                }
+              />
 
               <ScrollArea className="flex-1 px-6 pb-4">
                 {loadingNotifications ? (
                   <EmptyState text="Carregando..." />
-                ) : notifications.length === 0 ? (
+                ) : visibleNotifications.length === 0 ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text="Nenhuma notificação"
+                    text={
+                      onlyUnreadNotifs
+                        ? 'Nenhuma notificação não lida'
+                        : 'Nenhuma notificação'
+                    }
                   />
                 ) : (
                   <ul className="space-y-2">
-                    {notifications.map((n) => (
+                    {visibleNotifications.map((n) => (
                       <li key={n.id}>
                         <button
                           type="button"
@@ -401,20 +410,6 @@ export function UnifiedAlertsCenter() {
                   </ul>
                 )}
               </ScrollArea>
-
-              {notifications.length > 0 && (
-                <div className="px-6 py-3 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground hover:text-destructive"
-                    onClick={() => clearAll.mutate()}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar todas
-                  </Button>
-                </div>
-              )}
             </TabsContent>
 
             {/* ───────── Notices tab ───────── */}
