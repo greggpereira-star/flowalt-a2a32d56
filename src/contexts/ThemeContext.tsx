@@ -40,6 +40,12 @@ function applyTheme(resolved: ResolvedTheme) {
   const root = document.documentElement;
   root.classList.toggle('dark', resolved === 'dark');
   root.style.colorScheme = resolved;
+
+  // Atualiza <meta name="theme-color"> (mobile/PWA chrome)
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', resolved === 'dark' ? '#0F1421' : '#7c3aed');
+  }
 }
 
 interface ThemeProviderProps {
