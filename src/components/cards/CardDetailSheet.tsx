@@ -445,25 +445,18 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     )}
 
                     {/* Section: Content & Description (acima das ferramentas) */}
-                    <div className="pt-6">
-                      <div className="flex items-center gap-2 px-1 mb-3">
-                        <span className="h-3 w-[3px] rounded-full bg-muted-foreground/40" />
-                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-                          Conteúdo & Descrição
-                        </p>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2" />
-                      </div>
-
+                    <section className="card-section">
+                      <SectionHeader title="Conteúdo & Descrição" />
                       <CardDescriptionSection
                         description={description}
                         onChange={setDescription}
                         onSave={() => description !== card.description && handleSave({ description })}
                         isDirty={description !== card.description}
                       />
-                    </div>
+                    </section>
 
                     {/* Tools / Resources — stacked sections, ClickUp-style */}
-                    <div className="pt-6">
+                    <section className="card-section">
                       <CardToolsStack
                         ref={resourceTabsRef}
                         cardId={card.id}
@@ -475,7 +468,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         socialPostsCount={socialPostsCount}
                         forceOpenId={activeResourceTab}
                       />
-                    </div>
+                    </section>
 
                   </div>
                 </ScrollArea>
