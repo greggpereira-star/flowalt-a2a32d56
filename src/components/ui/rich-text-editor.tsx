@@ -635,7 +635,7 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
     content: (() => {
       if (!value) return '';
       try {
-        return JSON.parse(value);
+        return linkifyJSON(JSON.parse(value));
       } catch {
         return value;
       }
