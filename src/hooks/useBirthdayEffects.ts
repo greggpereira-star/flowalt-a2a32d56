@@ -3,19 +3,41 @@ import confetti from 'canvas-confetti';
 
 interface UseBirthdayEffectsOptions {
   enabled?: boolean;
-  intensity?: 'normal' | 'epic';
+  /**
+   * `subtle`  → confete único, sóbrio (default no modal premium)
+   * `normal`  → 2 disparos discretos
+   * `epic`    → sequência completa (apenas easter egg)
+   */
+  intensity?: 'subtle' | 'normal' | 'epic';
 }
 
+// Paleta premium alinhada ao design system (tons quentes refinados)
+const PREMIUM_PALETTE = [
+  '#F59E0B', // amber-500
+  '#FBBF24', // amber-400
+  '#FB7185', // rose-400
+  '#F472B6', // pink-400
+  '#A78BFA', // violet-400
+  '#FDE68A', // amber-200 (highlight)
+];
+
 export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
-  const { enabled = true, intensity = 'normal' } = options;
+  const { enabled = true, intensity = 'subtle' } = options;
   const [hasShownModal, setHasShownModal] = useState(false);
   const [clickCount, setClickCount] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const prefersReducedMotion = typeof window !== 'undefined'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
+  // Reactive prefers-reduced-motion (acompanha mudança em tempo real)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
-  const getSessionKey = (type: string) => 
+  const getSessionKey = (type: string) =>
     `birthday-${type}-${new Date().toDateString()}`;
 
   // Check if modal was already shown today
@@ -26,104 +48,113 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     }
   }, []);
 
-  // Fire confetti cannons from both sides
+  // Disparo único, refinado — para o modal premium
+  const fireSubtleBurst = useCallback(() => {
+    if (prefersReducedMotion || !enabled) return;
+
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      startVelocity: 35,
+      gravity: 1.1,
+      ticks: 180,
+      scalar: 0.9,
+      origin: { x: 0.5, y: 0.35 },
+      colors: PREMIUM_PALETTE,
+      disableForReducedMotion: true,
+      zIndex: 9999,
+    });
+  }, [prefersReducedMotion, enabled]);
+
+  // Dois disparos laterais discretos
   const fireConfettiCannons = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
-    const count = intensity === 'epic' ? 200 : 100;
+    const baseCount = intensity === 'epic' ? 120 : 50;
     const defaults = {
-      origin: { y: 0.7 },
+      ticks: 200,
+      gravity: 1,
+      scalar: 0.95,
+      colors: PREMIUM_PALETTE,
+      disableForReducedMotion: true,
       zIndex: 9999,
     };
 
-    // Left cannon
     confetti({
       ...defaults,
-      particleCount: count,
+      particleCount: baseCount,
       angle: 60,
-      spread: 55,
-      origin: { x: 0, y: 0.7 },
-      colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff9ff3', '#ffeaa7'],
+      spread: 50,
+      origin: { x: 0.05, y: 0.7 },
     });
 
-    // Right cannon
     confetti({
       ...defaults,
-      particleCount: count,
+      particleCount: baseCount,
       angle: 120,
-      spread: 55,
-      origin: { x: 1, y: 0.7 },
-      colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff9ff3', '#ffeaa7'],
+      spread: 50,
+      origin: { x: 0.95, y: 0.7 },
     });
-
-    // Extra burst from center for epic intensity
-    if (intensity === 'epic') {
-      setTimeout(() => {
-        confetti({
-          particleCount: 150,
-          spread: 100,
-          origin: { x: 0.5, y: 0.5 },
-          colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB'],
-          shapes: ['star', 'circle'],
-          scalar: 1.2,
-          zIndex: 9999,
-        });
-      }, 300);
-    }
   }, [prefersReducedMotion, enabled, intensity]);
 
-  // Fire a small burst of confetti (for easter eggs)
+  // Easter egg: pequeno burst (clique no banner)
   const fireMiniConfetti = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
     confetti({
-      particleCount: 30 + (clickCount * 10),
-      spread: 60,
+      particleCount: 18 + clickCount * 6,
+      spread: 50,
+      startVelocity: 25,
+      scalar: 0.8,
+      ticks: 150,
       origin: { x: 0.5, y: 0.6 },
-      colors: ['#FFD700', '#FF69B4', '#00CED1'],
+      colors: PREMIUM_PALETTE,
+      disableForReducedMotion: true,
       zIndex: 9999,
     });
 
-    setClickCount(prev => Math.min(prev + 1, 5));
+    setClickCount((prev) => Math.min(prev + 1, 5));
   }, [prefersReducedMotion, enabled, clickCount]);
 
-  // Celebration sequence for modal
+  // Sequência principal — agora curta e elegante
   const fireCelebration = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
-    // Initial burst
+    if (intensity === 'subtle') {
+      fireSubtleBurst();
+      return;
+    }
+
     fireConfettiCannons();
 
-    // Staggered bursts
-    setTimeout(fireConfettiCannons, 500);
-    setTimeout(fireConfettiCannons, 1000);
+    if (intensity === 'epic') {
+      setTimeout(fireConfettiCannons, 600);
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          spread: 140,
+          startVelocity: 30,
+          ticks: 200,
+          scalar: 1,
+          origin: { x: 0.5, y: 0.4 },
+          colors: PREMIUM_PALETTE,
+          disableForReducedMotion: true,
+          zIndex: 9999,
+        });
+      }, 1100);
+    }
+  }, [intensity, fireSubtleBurst, fireConfettiCannons, prefersReducedMotion, enabled]);
 
-    // Final big burst
-    setTimeout(() => {
-      confetti({
-        particleCount: 200,
-        spread: 180,
-        origin: { x: 0.5, y: 0.4 },
-        colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB', '#32CD32'],
-        shapes: ['star', 'circle', 'square'],
-        scalar: 1.5,
-        gravity: 0.8,
-        zIndex: 9999,
-      });
-    }, 1500);
-  }, [fireConfettiCannons, prefersReducedMotion, enabled]);
-
-  // Mark modal as shown
   const markModalShown = useCallback(() => {
     const modalKey = getSessionKey('modal');
     sessionStorage.setItem(modalKey, 'shown');
     setHasShownModal(true);
   }, []);
 
-  // Check if should show modal
   const shouldShowModal = !hasShownModal && enabled;
 
   return {
+    fireSubtleBurst,
     fireConfettiCannons,
     fireMiniConfetti,
     fireCelebration,
