@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { TodayBirthdaysReminder } from '@/components/notices/TodayBirthdaysReminder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -161,6 +162,9 @@ const Dashboard: React.FC = () => {
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
+        {/* Birthday reminder */}
+        <TodayBirthdaysReminder />
+
         {/* Header */}
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
