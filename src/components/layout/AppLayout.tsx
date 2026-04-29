@@ -74,6 +74,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
         
         {/* Realtime Toast Notifications */}
         <NotificationToast />
+
+        {/* Birthday celebration (own birthday — opens once per day) */}
+        <MyBirthdayCelebration />
       </SidebarInset>
     </SidebarProvider>
   );
