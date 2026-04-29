@@ -142,22 +142,22 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     fireConfettiCannons();
 
     if (intensity === 'epic') {
-      setTimeout(fireConfettiCannons, 600);
+      setTimeout(fireConfettiCannons, isMobile ? 450 : 600);
       setTimeout(() => {
         confetti({
-          particleCount: 100,
-          spread: 140,
-          startVelocity: 30,
-          ticks: 200,
-          scalar: 1,
+          particleCount: isMobile ? 60 : 100,
+          spread: isMobile ? 110 : 140,
+          startVelocity: isMobile ? 24 : 30,
+          ticks: tuning.ticks,
+          scalar: tuning.scalar + 0.05,
           origin: { x: 0.5, y: 0.4 },
           colors: PREMIUM_PALETTE,
           disableForReducedMotion: true,
           zIndex: 9999,
         });
-      }, 1100);
+      }, isMobile ? 850 : 1100);
     }
-  }, [intensity, fireSubtleBurst, fireConfettiCannons, prefersReducedMotion, enabled]);
+  }, [intensity, fireSubtleBurst, fireConfettiCannons, prefersReducedMotion, enabled, isMobile, tuning]);
 
   const markModalShown = useCallback(() => {
     const modalKey = getSessionKey('modal');
