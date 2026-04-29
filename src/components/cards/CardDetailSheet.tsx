@@ -81,6 +81,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     setActiveResourceTab('checklist');
     setBriefingDialogOpen(false);
     setDeleteDialogOpen(false);
+    didMountRef.current = false; // skip the next auto-scroll for the new card
   }, [cardId, open]);
 
   /**
