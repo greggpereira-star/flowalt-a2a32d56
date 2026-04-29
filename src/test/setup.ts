@@ -1,0 +1,23 @@
+import "@testing-library/jest-dom";
+
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});
+
+// jsdom doesn't implement scrollIntoView / scrollTo
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
+}
+if (!window.HTMLElement.prototype.scrollTo) {
+  (window.HTMLElement.prototype as unknown as { scrollTo: () => void }).scrollTo = function () {};
+}

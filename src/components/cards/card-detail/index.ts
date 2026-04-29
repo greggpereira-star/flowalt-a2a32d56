@@ -5,6 +5,7 @@ export { CardDescriptionSection } from './CardDescriptionSection';
 export { CardActivityPanel } from './CardActivityPanel';
 export { CardBriefingSection } from './CardBriefingSection';
 export { CardResourceTabs } from './CardResourceTabs';
+export { CardToolsSection } from './CardToolsSection';
 export { InlineTimerWidget } from './InlineTimerWidget';
 export { AIBar } from './AIBar';
 export { TaskInlineActions } from './TaskInlineActions';

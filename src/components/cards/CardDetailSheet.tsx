@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   CardDescriptionSection,
   CardActivityPanel,
   CardBriefingSection,
-  CardResourceTabs,
+  CardToolsSection,
   InlineTimerWidget,
   AIBar,
 } from './card-detail';
@@ -70,6 +70,71 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
+
+  /**
+   * Reset session-bound UI state whenever the modal switches to a different
+   * card (or is closed). Without this, reopening the modal could surface the
+   * previous card's active tool tab and leave stale handlers wired to the
+   * old card id.
+   */
+  useEffect(() => {
+    setActiveResourceTab('checklist');
+    setBriefingDialogOpen(false);
+    setDeleteDialogOpen(false);
+    didMountRef.current = false; // skip the next auto-scroll for the new card
+  }, [cardId, open]);
+
+  /**
+   * Scroll the tools section into view reliably, including on small screens
+   * where the Radix ScrollArea owns the overflow. We resolve the scroll
+   * container by walking up from the section ref so we don't depend on
+   * private Radix selectors. Falls back to scrollIntoView if no container
+   * is found.
+   */
+  const scrollToTools = useCallback(() => {
+    requestAnimationFrame(() => {
+      const node = resourceTabsRef.current;
+      if (!node) return;
+
+      const viewport = node.closest<HTMLElement>(
+        '[data-radix-scroll-area-viewport]',
+      );
+
+      if (viewport) {
+        const top = node.getBoundingClientRect().top
+          - viewport.getBoundingClientRect().top
+          + viewport.scrollTop
+          - 8; // breathing room above the header
+        viewport.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Move focus into the section for keyboard / screen-reader users
+      // without stealing it away from typing inputs.
+      const active = document.activeElement as HTMLElement | null;
+      const isTyping = active && (active.tagName === 'INPUT'
+        || active.tagName === 'TEXTAREA'
+        || active.isContentEditable);
+      if (!isTyping) {
+        node.setAttribute('tabindex', '-1');
+        node.focus({ preventScroll: true });
+      }
+    });
+  }, []);
+
+  // Auto-scroll the tools section into view whenever the active tool tab
+  // changes via user action (e.g. switching to "checklist" on small screens).
+  // We intentionally skip the very first render so we don't yank the modal
+  // when it opens.
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    scrollToTools();
+  }, [activeResourceTab, scrollToTools]);
 
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
@@ -374,29 +439,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
-                    {/* Section: Tools / Resources — placed ABOVE description for higher relevance */}
-                    <div className="pt-4">
-                      <div className="flex items-center gap-2 px-1 mb-2">
-                        <span className="h-3 w-[3px] rounded-full bg-primary" />
-                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-                          Ferramentas da demanda
-                        </p>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2" />
-                      </div>
-
-                      <CardResourceTabs
-                        ref={resourceTabsRef}
-                        value={activeResourceTab}
-                        onValueChange={setActiveResourceTab}
-                        cardId={card.id}
-                        clientId={card.client_id}
-                        checklistCompleted={checklistCompleted}
-                        checklistTotal={checklistTotal}
-                        attachmentsCount={attachmentsCount}
-                        hasSocialPublish={hasSocialPublish}
-                        socialPostsCount={socialPostsCount}
-                      />
-                    </div>
+                    {/* Tools / Resources — standardised section, always above content */}
+                    <CardToolsSection
+                      ref={resourceTabsRef}
+                      cardId={card.id}
+                      clientId={card.client_id}
+                      activeTab={activeResourceTab}
+                      onTabChange={setActiveResourceTab}
+                      checklistCompleted={checklistCompleted}
+                      checklistTotal={checklistTotal}
+                      attachmentsCount={attachmentsCount}
+                      hasSocialPublish={hasSocialPublish}
+                      socialPostsCount={socialPostsCount}
+                    />
 
                     {/* Section: Content & Description */}
                     <div className="pt-5">
