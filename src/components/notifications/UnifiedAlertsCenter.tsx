@@ -216,43 +216,69 @@ export function UnifiedAlertsCenter() {
     acceptInvite.mutate(token, { onSuccess: () => setOpen(false) });
   };
 
-  /* ── Listas derivadas (filtros rápidos) ── */
-  const visibleNotifications = useMemo(
-    () => (onlyUnreadNotifs ? notifications.filter((n) => !n.is_read) : notifications),
-    [notifications, onlyUnreadNotifs],
+  /* ── Lista unificada (notificações + avisos) ── */
+  type FeedItem =
+    | { kind: 'notification'; id: string; createdAt: string; isUnread: boolean; data: Notification }
+    | { kind: 'notice'; id: string; createdAt: string; isUnread: boolean; data: Notice };
+
+  const [onlyUnread, setOnlyUnread] = useState(false);
+
+  const feedItems = useMemo<FeedItem[]>(() => {
+    const fromNotifications: FeedItem[] = notifications.map((n) => ({
+      kind: 'notification',
+      id: `notif-${n.id}`,
+      createdAt: n.created_at,
+      isUnread: !n.is_read,
+      data: n,
+    }));
+    const fromNotices: FeedItem[] = notices.map((n) => ({
+      kind: 'notice',
+      id: `notice-${n.id}`,
+      createdAt: n.starts_at,
+      isUnread: !readNotices.includes(n.id),
+      data: n,
+    }));
+    return [...fromNotifications, ...fromNotices].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [notifications, notices, readNotices]);
+
+  const visibleFeed = useMemo(
+    () => (onlyUnread ? feedItems.filter((i) => i.isUnread) : feedItems),
+    [feedItems, onlyUnread],
   );
 
-  const visibleNotices = useMemo(
-    () =>
-      onlyUnreadNotices
-        ? notices.filter((n) => !readNotices.includes(n.id))
-        : notices,
-    [notices, readNotices, onlyUnreadNotices],
+  const totalUnreadInFeed = useMemo(
+    () => feedItems.filter((i) => i.isUnread).length,
+    [feedItems],
   );
 
-  /* ── "Limpar" do tipo selecionado ── */
-  const clearCurrentTab = () => {
-    if (tab === 'notifications') {
-      // Remove apenas as visíveis (respeita filtro "só não lidas")
-      if (onlyUnreadNotifs) {
-        visibleNotifications.forEach((n) => deleteNotification.mutate(n.id));
-      } else {
-        clearAll.mutate();
-      }
-      return;
+  /* ── Limpar tudo (respeitando filtro) ── */
+  const clearVisible = () => {
+    if (onlyUnread) {
+      // marcar tudo que está visível como lido / dispensar
+      visibleFeed.forEach((item) => {
+        if (item.kind === 'notification') {
+          markAsRead.mutate(item.data.id);
+        } else if (!item.data.requires_confirmation) {
+          markNoticeAsRead.mutate(item.data.id);
+        }
+      });
+    } else {
+      // limpar notificações + dispensar avisos não obrigatórios
+      clearAll.mutate();
+      notices
+        .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+        .forEach((n) => markNoticeAsRead.mutate(n.id));
     }
-    // Aba "Avisos": dispensa (marca como lido) os não obrigatórios da lista visível
-    visibleNotices
-      .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
-      .forEach((n) => markNoticeAsRead.mutate(n.id));
   };
 
-  const canClearCurrentTab =
-    tab === 'notifications'
-      ? visibleNotifications.length > 0
-      : visibleNotices.some(
-          (n) => !n.requires_confirmation && !readNotices.includes(n.id),
-        );
+  const canClear =
+    visibleFeed.some(
+      (i) =>
+        i.kind === 'notification' ||
+        (i.kind === 'notice' && !i.data.requires_confirmation && i.isUnread),
+    );
 
   return (
     <>
