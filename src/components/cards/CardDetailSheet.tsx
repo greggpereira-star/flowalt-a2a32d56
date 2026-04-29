@@ -409,20 +409,22 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     <InlineTimerWidget cardId={card.id} />
 
                     {/* Divider */}
-                    <div className="border-t border-border/30 my-3" />
+                    <div className="border-t border-border/30 my-4" />
 
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
-                      <CardBriefingSection
-                        isCompleted={card.briefing_completed || false}
-                        briefingData={briefingData}
-                        onOpenBriefing={() => setBriefingDialogOpen(true)}
-                      />
+                      <div className="pt-1">
+                        <CardBriefingSection
+                          isCompleted={card.briefing_completed || false}
+                          briefingData={briefingData}
+                          onOpenBriefing={() => setBriefingDialogOpen(true)}
+                        />
+                      </div>
                     )}
 
                     {/* Traffic Briefing - Conditional */}
                     {isTrafficSpace && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mt-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Truck className="h-4 w-4 text-primary" />
                           <h4 className="text-sm font-medium">Briefing de Tráfego</h4>
@@ -436,12 +438,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                     {/* Social Media Fields - Conditional */}
                     {isSocialMediaSpace && cardId && (
-                      <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
+                      <div className="mt-4">
+                        <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
+                      </div>
                     )}
 
                     {/* Section: Content & Description (acima das ferramentas) */}
-                    <div>
-                      <div className="flex items-center gap-2 px-1 mb-2">
+                    <div className="pt-6">
+                      <div className="flex items-center gap-2 px-1 mb-3">
                         <span className="h-3 w-[3px] rounded-full bg-muted-foreground/40" />
                         <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
                           Conteúdo & Descrição
@@ -458,17 +462,19 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     </div>
 
                     {/* Tools / Resources — stacked sections, ClickUp-style */}
-                    <CardToolsStack
-                      ref={resourceTabsRef}
-                      cardId={card.id}
-                      clientId={card.client_id}
-                      checklistCompleted={checklistCompleted}
-                      checklistTotal={checklistTotal}
-                      attachmentsCount={attachmentsCount}
-                      hasSocialPublish={hasSocialPublish}
-                      socialPostsCount={socialPostsCount}
-                      forceOpenId={activeResourceTab}
-                    />
+                    <div className="pt-6">
+                      <CardToolsStack
+                        ref={resourceTabsRef}
+                        cardId={card.id}
+                        clientId={card.client_id}
+                        checklistCompleted={checklistCompleted}
+                        checklistTotal={checklistTotal}
+                        attachmentsCount={attachmentsCount}
+                        hasSocialPublish={hasSocialPublish}
+                        socialPostsCount={socialPostsCount}
+                        forceOpenId={activeResourceTab}
+                      />
+                    </div>
 
                   </div>
                 </ScrollArea>
