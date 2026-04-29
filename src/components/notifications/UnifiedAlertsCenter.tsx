@@ -498,7 +498,8 @@ export function UnifiedAlertsCenter() {
                     ))}
                   </div>
                 ) : visibleNotices.length === 0 &&
-                  pendingInvites.length === 0 ? (
+                  pendingInvites.length === 0 &&
+                  !birthdaysVisible ? (
                   <EmptyState
                     icon={<Bell className="h-10 w-10 opacity-50" />}
                     text={
