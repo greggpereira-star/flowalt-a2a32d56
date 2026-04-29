@@ -389,6 +389,16 @@ export function RichTextEditor({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
       }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+          class: 'text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary cursor-pointer break-all',
+        },
+      }),
       Mention.configure({
         HTMLAttributes: {
           class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
