@@ -350,16 +350,28 @@ export const MindMapNodeComponent: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5" style={{ minWidth: '100px', maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px', width: node.nodeWidth ? `${node.nodeWidth}px` : undefined }}>
+        <div
+          className="flex flex-col gap-0.5"
+          style={
+            isEditing
+              ? { minWidth: '120px' }
+              : {
+                  minWidth: '100px',
+                  maxWidth: node.nodeWidth ? `${node.nodeWidth}px` : '240px',
+                  width: node.nodeWidth ? `${node.nodeWidth}px` : undefined,
+                }
+          }
+        >
           {isEditing ? (
-            <input
-              ref={inputRef}
+            <AutoGrowEditor
               value={editText}
-              onChange={(e) => onEditChange(e.target.value)}
-              onBlur={onEditSave}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-[13px] min-w-[100px] text-foreground"
-              onClick={(e) => e.stopPropagation()}
+              onChange={onEditChange}
+              onSave={onEditSave}
+              onCancel={onEditCancel}
+              className="text-[13px] text-foreground"
+              style={textStyle}
+              minWidth={140}
+              maxWidth={node.nodeWidth ? Math.max(node.nodeWidth, 240) : 360}
             />
           ) : (
             <span
