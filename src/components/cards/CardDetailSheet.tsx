@@ -439,18 +439,17 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
-                    {/* Tools / Resources — standardised section, always above content */}
-                    <CardToolsSection
+                    {/* Tools / Resources — stacked sections, ClickUp-style */}
+                    <CardToolsStack
                       ref={resourceTabsRef}
                       cardId={card.id}
                       clientId={card.client_id}
-                      activeTab={activeResourceTab}
-                      onTabChange={setActiveResourceTab}
                       checklistCompleted={checklistCompleted}
                       checklistTotal={checklistTotal}
                       attachmentsCount={attachmentsCount}
                       hasSocialPublish={hasSocialPublish}
                       socialPostsCount={socialPostsCount}
+                      forceOpenId={activeResourceTab}
                     />
 
                     {/* Section: Content & Description */}
