@@ -375,7 +375,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                     )}
 
-                    {/* Task inline actions */}
+                    {/* Task inline actions — open tools above the content section */}
                     <TaskInlineActions
                       onAddSubtask={() => {
                         setActiveResourceTab('checklist');
@@ -395,32 +395,47 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       }}
                     />
 
-                    {/* Task Actions - Quick actions */}
-                    <div className="flex flex-col gap-0 border-t border-border/30 pt-2 mt-2">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">Conteúdo</p>
+                    {/* Section: Tools / Resources — placed ABOVE description for higher relevance */}
+                    <div className="pt-4">
+                      <div className="flex items-center gap-2 px-1 mb-2">
+                        <span className="h-3 w-[3px] rounded-full bg-primary" />
+                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                          Ferramentas da demanda
+                        </p>
+                        <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2" />
+                      </div>
+
+                      <CardResourceTabs
+                        ref={resourceTabsRef}
+                        value={activeResourceTab}
+                        onValueChange={setActiveResourceTab}
+                        cardId={card.id}
+                        clientId={card.client_id}
+                        checklistCompleted={checklistCompleted}
+                        checklistTotal={checklistTotal}
+                        attachmentsCount={attachmentsCount}
+                        hasSocialPublish={hasSocialPublish}
+                        socialPostsCount={socialPostsCount}
+                      />
                     </div>
 
-                    {/* Description Section */}
-                    <CardDescriptionSection
-                      description={description}
-                      onChange={setDescription}
-                      onSave={() => description !== card.description && handleSave({ description })}
-                      isDirty={description !== card.description}
-                    />
+                    {/* Section: Content & Description */}
+                    <div className="pt-5">
+                      <div className="flex items-center gap-2 px-1 mb-2">
+                        <span className="h-3 w-[3px] rounded-full bg-muted-foreground/40" />
+                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                          Conteúdo & Descrição
+                        </p>
+                        <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent ml-2" />
+                      </div>
 
-                    {/* Resource Tabs */}
-                    <CardResourceTabs
-                      ref={resourceTabsRef}
-                      value={activeResourceTab}
-                      onValueChange={setActiveResourceTab}
-                      cardId={card.id}
-                      clientId={card.client_id}
-                      checklistCompleted={checklistCompleted}
-                      checklistTotal={checklistTotal}
-                      attachmentsCount={attachmentsCount}
-                      hasSocialPublish={hasSocialPublish}
-                      socialPostsCount={socialPostsCount}
-                    />
+                      <CardDescriptionSection
+                        description={description}
+                        onChange={setDescription}
+                        onSave={() => description !== card.description && handleSave({ description })}
+                        isDirty={description !== card.description}
+                      />
+                    </div>
 
                   </div>
                 </ScrollArea>
