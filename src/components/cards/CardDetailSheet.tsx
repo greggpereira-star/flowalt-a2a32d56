@@ -122,10 +122,18 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     });
   }, []);
 
-  const openTool = useCallback((tab: string) => {
-    setActiveResourceTab(tab);
+  // Auto-scroll the tools section into view whenever the active tool tab
+  // changes via user action (e.g. switching to "checklist" on small screens).
+  // We intentionally skip the very first render so we don't yank the modal
+  // when it opens.
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
     scrollToTools();
-  }, [scrollToTools]);
+  }, [activeResourceTab, scrollToTools]);
 
   const hasSocialPublish = has('social_publish');
   const socialPostsCount = socialPosts?.length || 0;
