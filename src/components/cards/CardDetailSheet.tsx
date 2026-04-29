@@ -70,6 +70,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
 
   /**
    * Reset session-bound UI state whenever the modal switches to a different
