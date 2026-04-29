@@ -145,8 +145,7 @@ export const MindMapNodeComponent: React.FC<Props> = ({
     fontWeight: node.fontWeight || undefined,
     fontStyle: node.fontStyle || undefined,
   };
-  // Editing is handled by AutoGrowEditor; keep a noop keydown for non-editing usage.
-  const handleKeyDown = (_e: React.KeyboardEvent) => {};
+  // Editing is handled by AutoGrowEditor (focus/select, Enter/Escape, auto-grow).
 
   // ===== ROOT NODE =====
   if (isRoot) {
