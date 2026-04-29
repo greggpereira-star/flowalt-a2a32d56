@@ -52,10 +52,12 @@ export function RichTextViewer({ content, className, fallback, mentionResolver }
   return (
     <div className={cn(
       'prose prose-sm dark:prose-invert max-w-none',
-      '[&_p]:my-1',
+      'break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0',
+      '[&_p]:my-1 [&_p]:break-words [&_p]:[overflow-wrap:anywhere]',
       '[&_ul]:my-1 [&_ul]:pl-5',
       '[&_ol]:my-1 [&_ol]:pl-5',
-      '[&_li]:my-0.5',
+      '[&_li]:my-0.5 [&_li]:break-words',
+      '[&_a]:break-all',
       className
     )}>
       {renderedContent}
