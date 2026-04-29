@@ -150,7 +150,12 @@ function renderNode(
 
   // Texto com marcações
   if (node.type === 'text') {
-    let element: React.ReactNode = node.text || '';
+    const rawText = node.text || '';
+    const linkMark = node.marks?.find((m) => m.type === 'link');
+
+    // Texto base: se tem marca link, mantemos o texto cru dentro do <a>;
+    // caso contrário, auto-linkificamos URLs em texto puro.
+    let element: React.ReactNode = linkMark ? rawText : linkifyText(rawText);
 
     // Aplicar marcações na ordem correta
     if (node.marks) {
@@ -170,14 +175,29 @@ function renderNode(
             break;
           case 'highlight':
             element = (
-              <mark 
-                key={`highlight-${key}`} 
+              <mark
+                key={`highlight-${key}`}
                 className="bg-warning/30 rounded px-0.5"
               >
                 {element}
               </mark>
             );
             break;
+          case 'link': {
+            const href = (mark.attrs?.href as string) || '#';
+            element = (
+              <a
+                key={`link-${key}`}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {element}
+              </a>
+            );
+            break;
+          }
         }
       }
     }
