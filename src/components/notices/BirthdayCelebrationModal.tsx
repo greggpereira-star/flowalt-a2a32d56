@@ -25,6 +25,7 @@ export function BirthdayCelebrationModal({
   open,
   onOpenChange,
   userName = 'Você',
+  onDontShowAgain,
 }: BirthdayCelebrationModalProps) {
   const {
     fireSubtleBurst,
