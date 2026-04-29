@@ -55,14 +55,14 @@ export const UrgencyBadge: React.FC<UrgencyBadgeProps> = ({ urgency, className }
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap leading-none',
         config.bgColor,
         config.color,
         className
       )}
     >
-      <Flag className="h-3 w-3" />
-      {config.label}
+      <Flag className="h-3 w-3 flex-shrink-0" />
+      <span className="whitespace-nowrap">{config.label}</span>
     </span>
   );
 };
