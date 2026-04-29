@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { List, PenTool } from 'lucide-react';
+import { List, PenTool, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TaskMindMap } from './TaskMindMap';
 import { MindMapManager } from './MindMapManager';
+import { useMindMaps } from '@/hooks/useMindMaps';
 import type { Card } from '@/hooks/useCards';
 
 interface MindMapViewProps {
@@ -41,6 +42,24 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
     return 'select';
   });
 
+  // Track whether the user explicitly went back to the selection screen
+  // so we don't auto-redirect them back into the manager.
+  const userRequestedSelect = useRef(false);
+
+  // Fetch existing mind maps for this space to decide if we can skip the selector
+  const { data: existingMindMaps, isLoading: isLoadingMindMaps } = useMindMaps(spaceId);
+
+  // Auto-route to "free" (manager) when there are saved mind maps and the user
+  // hasn't explicitly asked to see the selection screen.
+  useEffect(() => {
+    if (mode !== 'select') return;
+    if (userRequestedSelect.current) return;
+    if (isLoadingMindMaps) return;
+    if ((existingMindMaps?.length ?? 0) > 0) {
+      setMode('free');
+    }
+  }, [mode, isLoadingMindMaps, existingMindMaps]);
+
   // Save mode when it changes
   useEffect(() => {
     if (mode !== 'select') {
@@ -52,8 +71,9 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
     }
   }, [mode, viewId]);
 
-  // Handle back - optionally reset saved mode
+  // Handle back - reset saved mode and remember the user's intent
   const handleBack = () => {
+    userRequestedSelect.current = true;
     setMode('select');
     try {
       localStorage.removeItem(getModeStorageKey(viewId));
@@ -61,6 +81,21 @@ export const MindMapView: React.FC<MindMapViewProps> = ({
       // Ignore
     }
   };
+
+  // While we don't know yet if there are mind maps, show a quiet loader
+  // instead of flashing the selection screen.
+  if (
+    mode === 'select' &&
+    !userRequestedSelect.current &&
+    isLoadingMindMaps
+  ) {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
 
   // Selection screen
   if (mode === 'select') {
