@@ -67,28 +67,28 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     if (prefersReducedMotion || !enabled) return;
 
     confetti({
-      particleCount: 60,
-      spread: 70,
-      startVelocity: 35,
-      gravity: 1.1,
-      ticks: 180,
-      scalar: 0.9,
-      origin: { x: 0.5, y: 0.35 },
+      particleCount: tuning.subtle,
+      spread: isMobile ? 60 : 75,
+      startVelocity: isMobile ? 28 : 35,
+      gravity: tuning.gravity,
+      ticks: tuning.ticks,
+      scalar: tuning.scalar,
+      origin: { x: 0.5, y: isMobile ? 0.4 : 0.35 },
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
       zIndex: 9999,
     });
-  }, [prefersReducedMotion, enabled]);
+  }, [prefersReducedMotion, enabled, tuning, isMobile]);
 
   // Dois disparos laterais discretos
   const fireConfettiCannons = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
-    const baseCount = intensity === 'epic' ? 120 : 50;
+    const baseCount = intensity === 'epic' ? (isMobile ? 70 : 120) : tuning.cannon;
     const defaults = {
-      ticks: 200,
-      gravity: 1,
-      scalar: 0.95,
+      ticks: tuning.ticks,
+      gravity: tuning.gravity,
+      scalar: tuning.scalar,
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
       zIndex: 9999,
@@ -98,29 +98,29 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
       ...defaults,
       particleCount: baseCount,
       angle: 60,
-      spread: 50,
-      origin: { x: 0.05, y: 0.7 },
+      spread: isMobile ? 45 : 55,
+      origin: { x: isMobile ? 0.1 : 0.05, y: 0.7 },
     });
 
     confetti({
       ...defaults,
       particleCount: baseCount,
       angle: 120,
-      spread: 50,
-      origin: { x: 0.95, y: 0.7 },
+      spread: isMobile ? 45 : 55,
+      origin: { x: isMobile ? 0.9 : 0.95, y: 0.7 },
     });
-  }, [prefersReducedMotion, enabled, intensity]);
+  }, [prefersReducedMotion, enabled, intensity, tuning, isMobile]);
 
   // Easter egg: pequeno burst (clique no banner)
   const fireMiniConfetti = useCallback(() => {
     if (prefersReducedMotion || !enabled) return;
 
     confetti({
-      particleCount: 18 + clickCount * 6,
-      spread: 50,
-      startVelocity: 25,
-      scalar: 0.8,
-      ticks: 150,
+      particleCount: tuning.mini + clickCount * (isMobile ? 4 : 6),
+      spread: isMobile ? 40 : 50,
+      startVelocity: isMobile ? 20 : 25,
+      scalar: tuning.scalar - 0.1,
+      ticks: Math.max(120, tuning.ticks - 40),
       origin: { x: 0.5, y: 0.6 },
       colors: PREMIUM_PALETTE,
       disableForReducedMotion: true,
@@ -128,7 +128,7 @@ export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
     });
 
     setClickCount((prev) => Math.min(prev + 1, 5));
-  }, [prefersReducedMotion, enabled, clickCount]);
+  }, [prefersReducedMotion, enabled, clickCount, tuning, isMobile]);
 
   // Sequência principal — agora curta e elegante
   const fireCelebration = useCallback(() => {
