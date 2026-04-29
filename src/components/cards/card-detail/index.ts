@@ -7,6 +7,7 @@ export { CardBriefingSection } from './CardBriefingSection';
 export { CardResourceTabs } from './CardResourceTabs';
 export { CardToolsSection } from './CardToolsSection';
 export { CardToolsStack } from './CardToolsStack';
+export { SectionHeader } from './SectionHeader';
 export { InlineTimerWidget } from './InlineTimerWidget';
 export { AIBar } from './AIBar';
 export { TaskInlineActions } from './TaskInlineActions';
