@@ -28,7 +28,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
@@ -95,9 +95,7 @@ const priorityBorder: Record<Notice['priority'], string> = {
 export function UnifiedAlertsCenter() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'notifications' | 'notices'>('notifications');
-  const [onlyUnreadNotifs, setOnlyUnreadNotifs] = useState(false);
-  const [onlyUnreadNotices, setOnlyUnreadNotices] = useState(false);
+  
   const [mandatoryNotice, setMandatoryNotice] = useState<Notice | null>(null);
 
   // Notifications (inbox de sistema)
@@ -216,43 +214,69 @@ export function UnifiedAlertsCenter() {
     acceptInvite.mutate(token, { onSuccess: () => setOpen(false) });
   };
 
-  /* ── Listas derivadas (filtros rápidos) ── */
-  const visibleNotifications = useMemo(
-    () => (onlyUnreadNotifs ? notifications.filter((n) => !n.is_read) : notifications),
-    [notifications, onlyUnreadNotifs],
+  /* ── Lista unificada (notificações + avisos) ── */
+  type FeedItem =
+    | { kind: 'notification'; id: string; createdAt: string; isUnread: boolean; data: Notification }
+    | { kind: 'notice'; id: string; createdAt: string; isUnread: boolean; data: Notice };
+
+  const [onlyUnread, setOnlyUnread] = useState(false);
+
+  const feedItems = useMemo<FeedItem[]>(() => {
+    const fromNotifications: FeedItem[] = notifications.map((n) => ({
+      kind: 'notification',
+      id: `notif-${n.id}`,
+      createdAt: n.created_at,
+      isUnread: !n.is_read,
+      data: n,
+    }));
+    const fromNotices: FeedItem[] = notices.map((n) => ({
+      kind: 'notice',
+      id: `notice-${n.id}`,
+      createdAt: n.starts_at,
+      isUnread: !readNotices.includes(n.id),
+      data: n,
+    }));
+    return [...fromNotifications, ...fromNotices].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [notifications, notices, readNotices]);
+
+  const visibleFeed = useMemo(
+    () => (onlyUnread ? feedItems.filter((i) => i.isUnread) : feedItems),
+    [feedItems, onlyUnread],
   );
 
-  const visibleNotices = useMemo(
-    () =>
-      onlyUnreadNotices
-        ? notices.filter((n) => !readNotices.includes(n.id))
-        : notices,
-    [notices, readNotices, onlyUnreadNotices],
+  const totalUnreadInFeed = useMemo(
+    () => feedItems.filter((i) => i.isUnread).length,
+    [feedItems],
   );
 
-  /* ── "Limpar" do tipo selecionado ── */
-  const clearCurrentTab = () => {
-    if (tab === 'notifications') {
-      // Remove apenas as visíveis (respeita filtro "só não lidas")
-      if (onlyUnreadNotifs) {
-        visibleNotifications.forEach((n) => deleteNotification.mutate(n.id));
-      } else {
-        clearAll.mutate();
-      }
-      return;
+  /* ── Limpar tudo (respeitando filtro) ── */
+  const clearVisible = () => {
+    if (onlyUnread) {
+      // marcar tudo que está visível como lido / dispensar
+      visibleFeed.forEach((item) => {
+        if (item.kind === 'notification') {
+          markAsRead.mutate(item.data.id);
+        } else if (!item.data.requires_confirmation) {
+          markNoticeAsRead.mutate(item.data.id);
+        }
+      });
+    } else {
+      // limpar notificações + dispensar avisos não obrigatórios
+      clearAll.mutate();
+      notices
+        .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+        .forEach((n) => markNoticeAsRead.mutate(n.id));
     }
-    // Aba "Avisos": dispensa (marca como lido) os não obrigatórios da lista visível
-    visibleNotices
-      .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
-      .forEach((n) => markNoticeAsRead.mutate(n.id));
   };
 
-  const canClearCurrentTab =
-    tab === 'notifications'
-      ? visibleNotifications.length > 0
-      : visibleNotices.some(
-          (n) => !n.requires_confirmation && !readNotices.includes(n.id),
-        );
+  const canClear =
+    visibleFeed.some(
+      (i) =>
+        i.kind === 'notification' ||
+        (i.kind === 'notice' && !i.data.requires_confirmation && i.isUnread),
+    );
 
   return (
     <>
@@ -295,257 +319,136 @@ export function UnifiedAlertsCenter() {
             </SheetTitle>
           </SheetHeader>
 
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as typeof tab)}
-            className="flex-1 flex flex-col min-h-0"
-          >
-            <div className="px-6 pt-3">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="notifications" className="gap-2">
-                  Notificações
-                  {unreadNotifications > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 min-w-5 px-1 text-[10px]"
-                    >
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="notices" className="gap-2">
-                  Avisos
-                  {noticesPending > 0 && (
-                    <Badge
-                      variant={urgent ? 'default' : 'secondary'}
-                      className={cn(
-                        'h-5 min-w-5 px-1 text-[10px]',
-                        urgent && 'bg-amber-500 text-white hover:bg-amber-500',
-                      )}
-                    >
-                      {noticesPending > 9 ? '9+' : noticesPending}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* ───────── Notifications tab ───────── */}
-            <TabsContent
-              value="notifications"
-              className="flex-1 min-h-0 mt-3 flex flex-col"
+          {/* ───────── Filtro + ações ───────── */}
+          <div className="px-6 pt-3 pb-2 flex items-center justify-between gap-2 border-b border-border/60">
+            <Button
+              type="button"
+              variant={onlyUnread ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setOnlyUnread((v) => !v)}
+              className="h-7 px-2 text-xs gap-1.5 !ring-0"
+              aria-pressed={onlyUnread}
             >
-              <FilterBar
-                onlyUnread={onlyUnreadNotifs}
-                onToggleUnread={() => setOnlyUnreadNotifs((v) => !v)}
-                unreadCount={unreadNotifications}
-                rightSlot={
-                  unreadNotifications > 0 ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => markAllAsRead.mutate()}
-                    >
-                      <CheckCheck className="h-3 w-3 mr-1" />
-                      Marcar lidas
-                    </Button>
-                  ) : null
+              <Filter className="h-3 w-3" />
+              Só não lidas
+              {totalUnreadInFeed > 0 && (
+                <Badge
+                  variant={onlyUnread ? 'default' : 'outline'}
+                  className="ml-1 h-4 min-w-4 px-1 text-[10px] leading-none"
+                >
+                  {totalUnreadInFeed > 9 ? '9+' : totalUnreadInFeed}
+                </Badge>
+              )}
+            </Button>
+
+            {totalUnreadInFeed > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  if (unreadNotifications > 0) markAllAsRead.mutate();
+                  notices
+                    .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+                    .forEach((n) => markNoticeAsRead.mutate(n.id));
+                }}
+              >
+                <CheckCheck className="h-3 w-3 mr-1" />
+                Marcar lidas
+              </Button>
+            )}
+          </div>
+
+          {/* ───────── Lista unificada ───────── */}
+          <ScrollArea className="flex-1 min-h-0 px-6 py-3">
+            {/* Aniversariantes do dia — destaque acionável */}
+            {birthdaysVisible && (
+              <div className="mb-3">
+                <BirthdaysAlertCard
+                  members={otherBirthdays}
+                  onDismiss={dismissBirthdays}
+                  onOpenCalendar={() => {
+                    navigate('/birthdays');
+                    setOpen(false);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Convites pendentes */}
+            {pendingInvites.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {pendingInvites.map((invite) => (
+                  <PendingInviteItem
+                    key={invite.id}
+                    invite={invite}
+                    onAccept={() => handleAcceptInvite(invite.token)}
+                    isAccepting={acceptInvite.isPending}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Loading */}
+            {(loadingNotifications || loadingNotices || loadingInvites) &&
+            feedItems.length === 0 ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-16 rounded-lg bg-muted animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : visibleFeed.length === 0 &&
+              !birthdaysVisible &&
+              pendingInvites.length === 0 ? (
+              <EmptyState
+                icon={<Bell className="h-10 w-10 opacity-50" />}
+                text={
+                  onlyUnread
+                    ? 'Nada não lido por aqui'
+                    : 'Tudo em dia. Sem alertas no momento.'
                 }
               />
-
-              <ScrollArea className="flex-1 px-6 pb-4">
-                {loadingNotifications ? (
-                  <EmptyState text="Carregando..." />
-                ) : visibleNotifications.length === 0 ? (
-                  <EmptyState
-                    icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text={
-                      onlyUnreadNotifs
-                        ? 'Nenhuma notificação não lida'
-                        : 'Nenhuma notificação'
-                    }
-                  />
-                ) : (
-                  <ul className="space-y-2">
-                    {visibleNotifications.map((n) => (
-                      <li key={n.id}>
-                        <button
-                          type="button"
-                          onClick={() => handleNotificationClick(n)}
-                          className={cn(
-                            'w-full text-left rounded-lg p-3 border border-transparent',
-                            'hover:bg-accent/50 transition-colors',
-                            !n.is_read && 'bg-muted/50 border-border',
-                          )}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 shrink-0">
-                              {notificationIcons[n.type] || (
-                                <Bell className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={cn(
-                                  'text-sm line-clamp-1',
-                                  !n.is_read && 'font-medium',
-                                )}
-                              >
-                                {n.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                                {n.message}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                                {formatDistanceToNow(new Date(n.created_at), {
-                                  addSuffix: true,
-                                  locale: ptBR,
-                                })}
-                              </p>
-                            </div>
-                            <div className="flex gap-1 shrink-0">
-                              {!n.is_read && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markAsRead.mutate(n.id);
-                                  }}
-                                  aria-label="Marcar como lida"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNotification.mutate(n.id);
-                                }}
-                                aria-label="Remover"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            {/* ───────── Notices tab ───────── */}
-            <TabsContent
-              value="notices"
-              className="flex-1 min-h-0 mt-3 flex flex-col"
-            >
-              <FilterBar
-                onlyUnread={onlyUnreadNotices}
-                onToggleUnread={() => setOnlyUnreadNotices((v) => !v)}
-                unreadCount={unreadNotices.length}
-              />
-
-              <ScrollArea className="flex-1 px-6 pb-4">
-                {/* Aniversariantes do dia — destaque acionável */}
-                {birthdaysVisible && (
-                  <section className="mb-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-pink-600 dark:text-pink-400 flex items-center gap-2 mb-2">
-                      <Cake className="h-3.5 w-3.5" />
-                      Aniversariantes do dia
-                    </h3>
-                    <BirthdaysAlertCard
-                      members={otherBirthdays}
-                      onDismiss={dismissBirthdays}
-                    />
-                  </section>
-                )}
-
-                {/* Convites pendentes — sempre visíveis (são acionáveis) */}
-                {pendingInvites.length > 0 && (
-                  <section className="mb-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-2 mb-2">
-                      <Building2 className="h-3.5 w-3.5" />
-                      Convites pendentes
-                    </h3>
-                    <div className="space-y-2">
-                      {pendingInvites.map((invite) => (
-                        <PendingInviteItem
-                          key={invite.id}
-                          invite={invite}
-                          onAccept={() => handleAcceptInvite(invite.token)}
-                          isAccepting={acceptInvite.isPending}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Avisos */}
-                {loadingNotices || loadingInvites ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-20 rounded-lg bg-muted animate-pulse"
+            ) : (
+              <ul className="space-y-1.5">
+                {visibleFeed.map((item) =>
+                  item.kind === 'notification' ? (
+                    <li key={item.id}>
+                      <NotificationRow
+                        notification={item.data}
+                        onClick={() => handleNotificationClick(item.data)}
+                        onMarkRead={() => markAsRead.mutate(item.data.id)}
+                        onDelete={() => deleteNotification.mutate(item.data.id)}
                       />
-                    ))}
-                  </div>
-                ) : visibleNotices.length === 0 &&
-                  pendingInvites.length === 0 &&
-                  !birthdaysVisible ? (
-                  <EmptyState
-                    icon={<Bell className="h-10 w-10 opacity-50" />}
-                    text={
-                      onlyUnreadNotices
-                        ? 'Nenhum aviso não lido'
-                        : 'Nenhum aviso no momento'
-                    }
-                  />
-                ) : (
-                  visibleNotices.length > 0 && (
-                    <div className="space-y-2">
-                      {visibleNotices.map((notice) => (
-                        <NoticeItem
-                          key={notice.id}
-                          notice={notice}
-                          isRead={readNotices.includes(notice.id)}
-                          onMarkRead={() =>
-                            markNoticeAsRead.mutate(notice.id)
-                          }
-                          onOpenMandatory={() => setMandatoryNotice(notice)}
-                        />
-                      ))}
-                    </div>
-                  )
+                    </li>
+                  ) : (
+                    <li key={item.id}>
+                      <NoticeRow
+                        notice={item.data}
+                        isRead={!item.isUnread}
+                        onMarkRead={() => markNoticeAsRead.mutate(item.data.id)}
+                        onOpenMandatory={() => setMandatoryNotice(item.data)}
+                      />
+                    </li>
+                  ),
                 )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+              </ul>
+            )}
+          </ScrollArea>
 
-          {/* Footer único — limpa SOMENTE o tipo selecionado */}
-          {canClearCurrentTab && (
+          {/* Footer único */}
+          {canClear && (
             <div className="px-6 py-3 border-t border-border">
               <Button
                 variant="ghost"
                 size="sm"
                 className="w-full text-muted-foreground hover:text-destructive"
-                onClick={clearCurrentTab}
+                onClick={clearVisible}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {tab === 'notifications'
-                  ? onlyUnreadNotifs
-                    ? 'Limpar não lidas'
-                    : 'Limpar notificações'
-                  : onlyUnreadNotices
-                    ? 'Dispensar avisos não lidos'
-                    : 'Dispensar avisos'}
+                {onlyUnread ? 'Limpar não lidas' : 'Limpar tudo'}
               </Button>
             </div>
           )}
@@ -564,45 +467,6 @@ export function UnifiedAlertsCenter() {
 
 /* ───────── helpers ───────── */
 
-function FilterBar({
-  onlyUnread,
-  onToggleUnread,
-  unreadCount,
-  rightSlot,
-}: {
-  onlyUnread: boolean;
-  onToggleUnread: () => void;
-  unreadCount: number;
-  rightSlot?: React.ReactNode;
-}) {
-  return (
-    <div className="px-6 pb-2 flex items-center justify-between gap-2">
-      <Button
-        type="button"
-        variant={onlyUnread ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={onToggleUnread}
-        className={cn(
-          'h-7 px-2 text-xs gap-1.5 !ring-0',
-          'transition-colors',
-        )}
-        aria-pressed={onlyUnread}
-      >
-        <Filter className="h-3 w-3" />
-        Só não lidas
-        {unreadCount > 0 && (
-          <Badge
-            variant={onlyUnread ? 'default' : 'outline'}
-            className="ml-1 h-4 min-w-4 px-1 text-[10px] leading-none"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </Badge>
-        )}
-      </Button>
-      <div className="flex items-center">{rightSlot}</div>
-    </div>
-  );
-}
 
 function EmptyState({
   icon,
@@ -619,102 +483,6 @@ function EmptyState({
   );
 }
 
-function NoticeItem({
-  notice,
-  isRead,
-  onMarkRead,
-  onOpenMandatory,
-}: {
-  notice: Notice;
-  isRead: boolean;
-  onMarkRead: () => void;
-  onOpenMandatory: () => void;
-}) {
-  const needsMandatory = notice.requires_confirmation && !isRead;
-
-  return (
-    <div
-      className={cn(
-        'p-3 rounded-lg border-l-4 transition-colors',
-        priorityBorder[notice.priority],
-        isRead ? 'bg-muted/30 opacity-70' : 'bg-card hover:bg-accent/40',
-        needsMandatory && 'ring-1 ring-amber-500/30',
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'p-1.5 rounded-full shrink-0',
-            noticeCategoryColors[notice.category],
-          )}
-        >
-          {noticeIcons[notice.category]}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-            <h4 className={cn('text-sm', !isRead && 'font-medium')}>
-              {notice.title}
-            </h4>
-            {!isRead && (
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                Novo
-              </Badge>
-            )}
-            {needsMandatory && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-4 px-1.5 text-amber-600 border-amber-500/50"
-              >
-                <Shield className="h-2.5 w-2.5 mr-0.5" />
-                Obrigatório
-              </Badge>
-            )}
-          </div>
-          {notice.content && (
-            <p className="text-xs text-muted-foreground line-clamp-2">
-              {notice.content}
-            </p>
-          )}
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {format(new Date(notice.starts_at), "d 'de' MMM, HH:mm", {
-              locale: ptBR,
-            })}
-          </p>
-        </div>
-        {!isRead && (
-          <div className="flex gap-1 shrink-0">
-            {notice.requires_confirmation ? (
-              <Button
-                size="sm"
-                onClick={onOpenMandatory}
-                className="h-7 px-2 text-xs"
-              >
-                <Shield className="h-3 w-3 mr-1" />
-                Confirmar
-              </Button>
-            ) : (
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={onMarkRead}
-                className="h-7 w-7"
-                aria-label="Descartar aviso"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        )}
-        {isRead && notice.requires_confirmation && (
-          <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-[11px] shrink-0">
-            <Check className="h-3.5 w-3.5" />
-            <span>Confirmado</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function PendingInviteItem({
   invite,
@@ -771,6 +539,7 @@ function PendingInviteItem({
 function BirthdaysAlertCard({
   members,
   onDismiss,
+  onOpenCalendar,
 }: {
   members: Array<{
     user_id: string;
@@ -778,6 +547,7 @@ function BirthdaysAlertCard({
     avatar_url: string | null;
   }>;
   onDismiss: () => void;
+  onOpenCalendar: () => void;
 }) {
   const getInitials = (name: string) =>
     name
@@ -824,6 +594,14 @@ function BirthdaysAlertCard({
           <Cake className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide border-pink-300/70 dark:border-pink-700/60 text-pink-700 dark:text-pink-300"
+            >
+              Aniversário
+            </Badge>
+          </div>
           <p className="text-sm text-foreground/90">{message}</p>
           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             {members.map((person) => (
@@ -846,6 +624,14 @@ function BirthdaysAlertCard({
               </div>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onOpenCalendar}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-pink-700 dark:text-pink-300 hover:underline !ring-0"
+          >
+            <Calendar className="h-3 w-3" />
+            Ver calendário de aniversários
+          </button>
         </div>
         <Button
           size="icon"
@@ -856,6 +642,202 @@ function BirthdaysAlertCard({
         >
           <X className="h-3.5 w-3.5" />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Row wrappers (lista unificada) ───────── */
+
+function NotificationRow({
+  notification: n,
+  onClick,
+  onMarkRead,
+  onDelete,
+}: {
+  notification: Notification;
+  onClick: () => void;
+  onMarkRead: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full text-left rounded-lg p-3 border border-transparent',
+        'hover:bg-accent/50 transition-colors',
+        !n.is_read && 'bg-muted/40 border-border/60',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0">
+          {notificationIcons[n.type] || <Bell className="h-4 w-4" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground"
+            >
+              Notificação
+            </Badge>
+            {!n.is_read && (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                aria-hidden
+              />
+            )}
+          </div>
+          <p
+            className={cn(
+              'text-sm line-clamp-1',
+              !n.is_read && 'font-medium',
+            )}
+          >
+            {n.title}
+          </p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {n.message}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {formatDistanceToNow(new Date(n.created_at), {
+              addSuffix: true,
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          {!n.is_read && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkRead();
+              }}
+              aria-label="Marcar como lida"
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            aria-label="Remover"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function NoticeRow({
+  notice,
+  isRead,
+  onMarkRead,
+  onOpenMandatory,
+}: {
+  notice: Notice;
+  isRead: boolean;
+  onMarkRead: () => void;
+  onOpenMandatory: () => void;
+}) {
+  const needsMandatory = notice.requires_confirmation && !isRead;
+  return (
+    <div
+      className={cn(
+        'p-3 rounded-lg border-l-4 transition-colors',
+        priorityBorder[notice.priority],
+        isRead ? 'bg-muted/30 opacity-70' : 'bg-card hover:bg-accent/40',
+        needsMandatory && 'ring-1 ring-amber-500/30',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'p-1.5 rounded-full shrink-0',
+            noticeCategoryColors[notice.category],
+          )}
+        >
+          {noticeIcons[notice.category]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <Badge
+              variant="outline"
+              className="h-4 px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground"
+            >
+              Aviso
+            </Badge>
+            {needsMandatory && (
+              <Badge
+                variant="outline"
+                className="text-[10px] h-4 px-1.5 text-amber-600 border-amber-500/50"
+              >
+                <Shield className="h-2.5 w-2.5 mr-0.5" />
+                Obrigatório
+              </Badge>
+            )}
+            {!isRead && !needsMandatory && (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                aria-hidden
+              />
+            )}
+          </div>
+          <h4 className={cn('text-sm', !isRead && 'font-medium')}>
+            {notice.title}
+          </h4>
+          {notice.content && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+              {notice.content}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {format(new Date(notice.starts_at), "d 'de' MMM, HH:mm", {
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        {!isRead && (
+          <div className="flex gap-1 shrink-0">
+            {notice.requires_confirmation ? (
+              <Button
+                size="sm"
+                onClick={onOpenMandatory}
+                className="h-7 px-2 text-xs"
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Confirmar
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onMarkRead}
+                className="h-7 w-7"
+                aria-label="Descartar aviso"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+        {isRead && notice.requires_confirmation && (
+          <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-[11px] shrink-0">
+            <Check className="h-3.5 w-3.5" />
+            <span>Confirmado</span>
+          </div>
+        )}
       </div>
     </div>
   );
