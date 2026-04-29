@@ -4,6 +4,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
+import Link from '@tiptap/extension-link';
 import { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { 
@@ -388,6 +389,16 @@ export function RichTextEditor({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
       }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+          class: 'text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary cursor-pointer break-all',
+        },
+      }),
       Mention.configure({
         HTMLAttributes: {
           class: 'mention-chip bg-primary/15 text-primary font-medium px-1.5 py-0.5 rounded-md inline-block cursor-default',
@@ -532,6 +543,16 @@ export function useRichTextEditor(options: Omit<RichTextEditorProps, 'className'
       Placeholder.configure({
         placeholder: placeholder || 'Escreva aqui...',
         emptyEditorClass: 'is-editor-empty',
+      }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+          class: 'text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary cursor-pointer break-all',
+        },
       }),
       Mention.configure({
         HTMLAttributes: {
