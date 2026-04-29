@@ -36,6 +36,12 @@ export function BirthdayCelebrationModal({
 
   const primaryBtnRef = useRef<HTMLButtonElement>(null);
   const interactedRef = useRef(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Reset checkbox toda vez que o modal reabre
+  useEffect(() => {
+    if (open) setDontShowAgain(false);
+  }, [open]);
 
   // Disparo único e foco no botão primário
   useEffect(() => {
@@ -48,6 +54,16 @@ export function BirthdayCelebrationModal({
 
     return () => clearTimeout(t);
   }, [open, fireSubtleBurst]);
+
+  const persistPreferenceIfNeeded = () => {
+    if (dontShowAgain && onDontShowAgain) {
+      try {
+        void onDontShowAgain();
+      } catch {
+        /* silencioso — UI já fechou */
+      }
+    }
+  };
 
   // Auto-dismiss elegante após 8s — pausa se houver interação
   useEffect(() => {
@@ -72,6 +88,7 @@ export function BirthdayCelebrationModal({
     markInteraction();
     fireCelebration();
     markModalShown();
+    persistPreferenceIfNeeded();
     setTimeout(() => onOpenChange(false), 1200);
   };
 
@@ -79,6 +96,7 @@ export function BirthdayCelebrationModal({
     if (!next) {
       markInteraction();
       markModalShown();
+      persistPreferenceIfNeeded();
     }
     onOpenChange(next);
   };
