@@ -24,9 +24,22 @@ const PREMIUM_PALETTE = [
 
 export function useBirthdayEffects(options: UseBirthdayEffectsOptions = {}) {
   const { enabled = true, intensity = 'subtle' } = options;
+  const isMobile = useIsMobile();
   const [hasShownModal, setHasShownModal] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  /**
+   * Tuning responsivo: mobile recebe menos partículas e ticks menores
+   * para preservar 60fps em GPUs limitadas. Desktop ganha mais densidade.
+   */
+  const tuning = useMemo(
+    () =>
+      isMobile
+        ? { subtle: 36, cannon: 32, mini: 12, ticks: 140, scalar: 0.75, gravity: 1.2 }
+        : { subtle: 70, cannon: 55, mini: 20, ticks: 200, scalar: 0.95, gravity: 1.05 },
+    [isMobile],
+  );
 
   // Reactive prefers-reduced-motion (acompanha mudança em tempo real)
   useEffect(() => {
