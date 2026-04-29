@@ -359,13 +359,14 @@ export function RichTextEditor({
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
   
-  // Helper to safely parse content - handles both JSON and plain text
+  // Helper to safely parse content - handles both JSON and plain text.
+  // Also runs autolink on legacy content where URLs were saved as plain text
+  // without a `link` mark, so they become clickable as soon as the editor mounts.
   const parseContent = useCallback((content: string) => {
     if (!content) return '';
     try {
-      return JSON.parse(content);
+      return linkifyJSON(JSON.parse(content));
     } catch {
-      // If not valid JSON, treat as plain text
       return content;
     }
   }, []);
