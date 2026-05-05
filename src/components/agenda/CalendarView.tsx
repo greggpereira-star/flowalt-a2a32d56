@@ -168,7 +168,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   };
 
   const handleEventClick = async (event: Event, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.preventDefault();
     setEditingEvent(event);
     const startDate = parseISO(event.start_time);
     const endDate = parseISO(event.end_time);
