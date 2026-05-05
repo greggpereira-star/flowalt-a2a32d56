@@ -93,6 +93,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(currentDate);
@@ -107,13 +110,91 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
 
   useEffect(() => {
     if (dialogOpen) {
-      // Small timeout to ensure the modal is mounted before focusing
       const timer = setTimeout(() => {
         titleInputRef.current?.focus();
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [dialogOpen]);
+
+  useEffect(() => {
+    const validateForm = () => {
+      const errors: Record<string, string> = {};
+      if (!formData.title) errors.title = 'Título é obrigatório';
+      if (!formData.start_date) errors.start_date = 'Data de início é obrigatória';
+      
+      if (!formData.all_day) {
+        if (!formData.start_time) errors.start_time = 'Início obrigatório';
+        if (!formData.end_time) errors.end_time = 'Término obrigatório';
+        
+        if (formData.start_date === formData.end_date && formData.start_time >= formData.end_time) {
+          errors.end_time = 'Horário inválido';
+        }
+      }
+      setFormErrors(errors);
+    };
+    validateForm();
+  }, [formData.title, formData.start_date, formData.start_time, formData.end_date, formData.end_time, formData.all_day]);
+
+  useEffect(() => {
+    const checkConflicts = async () => {
+      if (!formData.start_date || formData.participant_ids.length === 0) {
+        setConflicts([]);
+        return;
+      }
+
+      setIsCheckingConflicts(true);
+      try {
+        const startTime = formData.all_day
+          ? new Date(`${formData.start_date}T00:00:00`).toISOString()
+          : new Date(`${formData.start_date}T${formData.start_time}:00`).toISOString();
+
+        const endTime = formData.all_day
+          ? new Date(`${formData.end_date || formData.start_date}T23:59:59`).toISOString()
+          : new Date(`${formData.end_date || formData.start_date}T${formData.end_time}:00`).toISOString();
+
+        const { data: conflictingEvents } = await supabase
+          .from('events')
+          .select('id, title, start_time, end_time')
+          .neq('id', editingEvent?.id || '00000000-0000-0000-0000-000000000000')
+          .lt('start_time', endTime)
+          .gt('end_time', startTime);
+
+        if (conflictingEvents && conflictingEvents.length > 0) {
+          const eventIds = conflictingEvents.map(e => e.id);
+          const { data: participants } = await supabase
+            .from('event_participants')
+            .select('user_id, event_id')
+            .in('event_id', eventIds)
+            .in('user_id', formData.participant_ids);
+
+          if (participants && participants.length > 0) {
+            const foundConflicts = participants.map(p => {
+              const event = conflictingEvents.find(e => e.id === p.event_id);
+              const member = members?.find(m => m.user_id === p.user_id);
+              return {
+                userName: member?.profile?.full_name || member?.profile?.email,
+                eventTitle: event?.title,
+                startTime: event?.start_time
+              };
+            });
+            setConflicts(foundConflicts);
+          } else {
+            setConflicts([]);
+          }
+        } else {
+          setConflicts([]);
+        }
+      } catch (err) {
+        console.error('Error checking conflicts:', err);
+      } finally {
+        setIsCheckingConflicts(false);
+      }
+    };
+
+    const timer = setTimeout(checkConflicts, 500);
+    return () => clearTimeout(timer);
+  }, [formData.start_date, formData.start_time, formData.end_date, formData.end_time, formData.participant_ids, formData.all_day, editingEvent, members]);
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
