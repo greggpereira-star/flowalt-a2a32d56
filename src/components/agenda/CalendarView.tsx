@@ -618,6 +618,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                                 : 'hover:bg-muted/50 border-l-2 border-l-transparent'
                             )}
                           >
+                            <div
+                              role="checkbox"
+                              aria-checked={isSelected}
+                              tabIndex={0}
+                              className="sr-only"
+                              onKeyDown={(e) => {
+                                if (e.key === ' ' || e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (!isSelected) {
+                                    setFormData(f => ({
+                                      ...f,
+                                      participant_ids: [...f.participant_ids, member.user_id],
+                                    }));
+                                  } else {
+                                    setFormData(f => ({
+                                      ...f,
+                                      participant_ids: f.participant_ids.filter(id => id !== member.user_id),
+                                    }));
+                                  }
+                                }
+                              }}
+                            />
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -635,6 +657,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                                 }
                               }}
                               className="sr-only"
+                              onClick={(e) => e.stopPropagation()}
                             />
                             <Avatar className="h-8 w-8 shrink-0">
                               <AvatarImage src={member.profile?.avatar_url || undefined} />
