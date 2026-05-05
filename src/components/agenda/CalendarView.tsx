@@ -528,6 +528,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           <div className="flex-1 overflow-y-auto scrollbar-minimal">
             <div className="p-6 space-y-6">
               
+              {/* Conflicts Alert */}
+              {conflicts.length > 0 && (
+                <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 py-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold leading-none">Conflito de Agenda</p>
+                      <AlertDescription className="text-xs">
+                        Os seguintes membros já possuem compromissos neste horário:
+                        <ul className="list-disc list-inside mt-1 font-medium">
+                          {conflicts.map((c, i) => (
+                            <li key={i}>{c.userName}: {c.eventTitle} ({format(parseISO(c.startTime), 'HH:mm')})</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </div>
+                  </div>
+                </Alert>
+              )}
+
               {/* Section: Basic Info */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -540,7 +560,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                     placeholder="Ex: Reunião de planejamento"
                     value={formData.title}
                     onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
+                    className={cn(formErrors.title && "border-destructive focus-visible:ring-destructive")}
                   />
+                  {formErrors.title && <p className="text-[10px] text-destructive font-medium">{formErrors.title}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
