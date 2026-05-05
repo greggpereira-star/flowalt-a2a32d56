@@ -452,6 +452,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   </Label>
                   <Input
                     id="title"
+                    ref={titleInputRef}
                     placeholder="Ex: Reunião de planejamento"
                     value={formData.title}
                     onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
