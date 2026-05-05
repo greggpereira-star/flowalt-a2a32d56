@@ -638,14 +638,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                      className={cn(formErrors.start_date && "border-destructive")}
                     />
                     {!formData.all_day && (
                       <Input
                         type="time"
                         value={formData.start_time}
                         onChange={(e) => setFormData(f => ({ ...f, start_time: e.target.value }))}
+                        className={cn(formErrors.start_time && "border-destructive")}
                       />
                     )}
+                    {formErrors.start_date && <p className="text-[10px] text-destructive font-medium">{formErrors.start_date}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">Fim</Label>
@@ -659,8 +662,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                         type="time"
                         value={formData.end_time}
                         onChange={(e) => setFormData(f => ({ ...f, end_time: e.target.value }))}
+                        className={cn(formErrors.end_time && "border-destructive")}
                       />
                     )}
+                    {formErrors.end_time && <p className="text-[10px] text-destructive font-medium">{formErrors.end_time}</p>}
                   </div>
                 </div>
               </div>
