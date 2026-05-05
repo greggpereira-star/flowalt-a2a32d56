@@ -592,7 +592,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                 </Label>
                 <div className="border rounded-lg overflow-hidden">
                   <div className="max-h-36 overflow-y-auto scrollbar-minimal">
-                    {members && members.length > 0 ? (
+                    {isParticipantsLoading || isMembersLoading ? (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <div className="space-y-1 flex-1">
+                              <Skeleton className="h-4 w-3/4" />
+                              <Skeleton className="h-3 w-1/2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : members && members.length > 0 ? (
                       members.map((member, index) => {
                         const isSelected = formData.participant_ids.includes(member.user_id);
                         return (
