@@ -90,6 +90,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -98,8 +100,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
 
   const { data: events, isLoading } = useEvents(calendarStart, calendarEnd);
   const { data: spaces } = useSpaces();
-  const { data: members } = useWorkspaceMembers();
+  const { data: members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { birthdayNotices } = useNotices();
+
+  useEffect(() => {
+    if (dialogOpen) {
+      // Small timeout to ensure the modal is mounted before focusing
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [dialogOpen]);
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
