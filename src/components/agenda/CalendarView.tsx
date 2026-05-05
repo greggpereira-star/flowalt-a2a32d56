@@ -108,6 +108,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const { data: members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { birthdayNotices } = useNotices();
 
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    event_type: 'meeting' as EventType,
+    start_date: '',
+    start_time: '09:00',
+    end_date: '',
+    end_time: '10:00',
+    all_day: false,
+    location: '',
+    space_id: '',
+    participant_ids: [] as string[],
+  });
+
+  const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
+  const addParticipant = useAddParticipant();
+  const removeParticipant = useRemoveParticipant();
+
   useEffect(() => {
     if (dialogOpen) {
       const timer = setTimeout(() => {
@@ -195,25 +215,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
     const timer = setTimeout(checkConflicts, 500);
     return () => clearTimeout(timer);
   }, [formData.start_date, formData.start_time, formData.end_date, formData.end_time, formData.participant_ids, formData.all_day, editingEvent, members]);
-  const createEvent = useCreateEvent();
-  const updateEvent = useUpdateEvent();
-  const deleteEvent = useDeleteEvent();
-  const addParticipant = useAddParticipant();
-  const removeParticipant = useRemoveParticipant();
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    event_type: 'meeting' as EventType,
-    start_date: '',
-    start_time: '09:00',
-    end_date: '',
-    end_time: '10:00',
-    all_day: false,
-    location: '',
-    space_id: '',
-    participant_ids: [] as string[],
-  });
 
   const calendarDays = useMemo(() => {
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
