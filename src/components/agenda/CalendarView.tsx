@@ -843,9 +843,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={createEvent.isPending || updateEvent.isPending || !formData.title || !formData.start_date}
+                disabled={
+                  createEvent.isPending || 
+                  updateEvent.isPending || 
+                  Object.keys(formErrors).length > 0 || 
+                  isCheckingConflicts || 
+                  (conflicts.length > 0 && formData.event_type === 'meeting')
+                }
               >
-                {(createEvent.isPending || updateEvent.isPending) && (
+                {(createEvent.isPending || updateEvent.isPending || isCheckingConflicts) && (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 )}
                 {editingEvent ? 'Salvar Alterações' : 'Criar Evento'}
