@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import {
   Link2,
   Loader2,
   Cake,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -91,6 +93,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(currentDate);
@@ -102,21 +107,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const { data: spaces } = useSpaces();
   const { data: members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { birthdayNotices } = useNotices();
-
-  useEffect(() => {
-    if (dialogOpen) {
-      // Small timeout to ensure the modal is mounted before focusing
-      const timer = setTimeout(() => {
-        titleInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [dialogOpen]);
-  const createEvent = useCreateEvent();
-  const updateEvent = useUpdateEvent();
-  const deleteEvent = useDeleteEvent();
-  const addParticipant = useAddParticipant();
-  const removeParticipant = useRemoveParticipant();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -131,6 +121,100 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
     space_id: '',
     participant_ids: [] as string[],
   });
+
+  const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
+  const addParticipant = useAddParticipant();
+  const removeParticipant = useRemoveParticipant();
+
+  useEffect(() => {
+    if (dialogOpen) {
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [dialogOpen]);
+
+  useEffect(() => {
+    const validateForm = () => {
+      const errors: Record<string, string> = {};
+      if (!formData.title) errors.title = 'Título é obrigatório';
+      if (!formData.start_date) errors.start_date = 'Data de início é obrigatória';
+      
+      if (!formData.all_day) {
+        if (!formData.start_time) errors.start_time = 'Início obrigatório';
+        if (!formData.end_time) errors.end_time = 'Término obrigatório';
+        
+        if (formData.start_date === formData.end_date && formData.start_time >= formData.end_time) {
+          errors.end_time = 'Horário inválido';
+        }
+      }
+      setFormErrors(errors);
+    };
+    validateForm();
+  }, [formData.title, formData.start_date, formData.start_time, formData.end_date, formData.end_time, formData.all_day]);
+
+  useEffect(() => {
+    const checkConflicts = async () => {
+      if (!formData.start_date || formData.participant_ids.length === 0) {
+        setConflicts([]);
+        return;
+      }
+
+      setIsCheckingConflicts(true);
+      try {
+        const startTime = formData.all_day
+          ? new Date(`${formData.start_date}T00:00:00`).toISOString()
+          : new Date(`${formData.start_date}T${formData.start_time}:00`).toISOString();
+
+        const endTime = formData.all_day
+          ? new Date(`${formData.end_date || formData.start_date}T23:59:59`).toISOString()
+          : new Date(`${formData.end_date || formData.start_date}T${formData.end_time}:00`).toISOString();
+
+        const { data: conflictingEvents } = await supabase
+          .from('events')
+          .select('id, title, start_time, end_time')
+          .neq('id', editingEvent?.id || '00000000-0000-0000-0000-000000000000')
+          .lt('start_time', endTime)
+          .gt('end_time', startTime);
+
+        if (conflictingEvents && conflictingEvents.length > 0) {
+          const eventIds = conflictingEvents.map(e => e.id);
+          const { data: participants } = await supabase
+            .from('event_participants')
+            .select('user_id, event_id')
+            .in('event_id', eventIds)
+            .in('user_id', formData.participant_ids);
+
+          if (participants && participants.length > 0) {
+            const foundConflicts = participants.map(p => {
+              const event = conflictingEvents.find(e => e.id === p.event_id);
+              const member = members?.find(m => m.user_id === p.user_id);
+              return {
+                userName: member?.profile?.full_name || member?.profile?.email,
+                eventTitle: event?.title,
+                startTime: event?.start_time
+              };
+            });
+            setConflicts(foundConflicts);
+          } else {
+            setConflicts([]);
+          }
+        } else {
+          setConflicts([]);
+        }
+      } catch (err) {
+        console.error('Error checking conflicts:', err);
+      } finally {
+        setIsCheckingConflicts(false);
+      }
+    };
+
+    const timer = setTimeout(checkConflicts, 500);
+    return () => clearTimeout(timer);
+  }, [formData.start_date, formData.start_time, formData.end_date, formData.end_time, formData.participant_ids, formData.all_day, editingEvent, members]);
 
   const calendarDays = useMemo(() => {
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
@@ -444,6 +528,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           <div className="flex-1 overflow-y-auto scrollbar-minimal">
             <div className="p-6 space-y-6">
               
+              {/* Conflicts Alert */}
+              {conflicts.length > 0 && (
+                <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 py-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold leading-none">Conflito de Agenda</p>
+                      <AlertDescription className="text-xs">
+                        Os seguintes membros já possuem compromissos neste horário:
+                        <ul className="list-disc list-inside mt-1 font-medium">
+                          {conflicts.map((c, i) => (
+                            <li key={i}>{c.userName}: {c.eventTitle} ({format(parseISO(c.startTime), 'HH:mm')})</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </div>
+                  </div>
+                </Alert>
+              )}
+
               {/* Section: Basic Info */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -456,7 +560,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                     placeholder="Ex: Reunião de planejamento"
                     value={formData.title}
                     onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
+                    className={cn(formErrors.title && "border-destructive focus-visible:ring-destructive")}
                   />
+                  {formErrors.title && <p className="text-[10px] text-destructive font-medium">{formErrors.title}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -532,14 +638,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                      className={cn(formErrors.start_date && "border-destructive")}
                     />
                     {!formData.all_day && (
                       <Input
                         type="time"
                         value={formData.start_time}
                         onChange={(e) => setFormData(f => ({ ...f, start_time: e.target.value }))}
+                        className={cn(formErrors.start_time && "border-destructive")}
                       />
                     )}
+                    {formErrors.start_date && <p className="text-[10px] text-destructive font-medium">{formErrors.start_date}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">Fim</Label>
@@ -553,8 +662,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                         type="time"
                         value={formData.end_time}
                         onChange={(e) => setFormData(f => ({ ...f, end_time: e.target.value }))}
+                        className={cn(formErrors.end_time && "border-destructive")}
                       />
                     )}
+                    {formErrors.end_time && <p className="text-[10px] text-destructive font-medium">{formErrors.end_time}</p>}
                   </div>
                 </div>
               </div>
@@ -732,9 +843,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={createEvent.isPending || updateEvent.isPending || !formData.title || !formData.start_date}
+                disabled={
+                  createEvent.isPending || 
+                  updateEvent.isPending || 
+                  Object.keys(formErrors).length > 0 || 
+                  isCheckingConflicts || 
+                  (conflicts.length > 0 && formData.event_type === 'meeting')
+                }
               >
-                {(createEvent.isPending || updateEvent.isPending) && (
+                {(createEvent.isPending || updateEvent.isPending || isCheckingConflicts) && (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 )}
                 {editingEvent ? 'Salvar Alterações' : 'Criar Evento'}
