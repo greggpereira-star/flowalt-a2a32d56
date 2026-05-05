@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -89,6 +90,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -97,8 +100,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
 
   const { data: events, isLoading } = useEvents(calendarStart, calendarEnd);
   const { data: spaces } = useSpaces();
-  const { data: members } = useWorkspaceMembers();
+  const { data: members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { birthdayNotices } = useNotices();
+
+  useEffect(() => {
+    if (dialogOpen) {
+      // Small timeout to ensure the modal is mounted before focusing
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [dialogOpen]);
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
@@ -170,31 +183,36 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const handleEventClick = async (event: Event, e: React.MouseEvent) => {
     e.preventDefault();
     setEditingEvent(event);
+    setIsParticipantsLoading(true);
+    setDialogOpen(true);
+    
     const startDate = parseISO(event.start_time);
     const endDate = parseISO(event.end_time);
     
-    // Load existing participants
-    const { data: existingParticipants } = await supabase
-      .from('event_participants')
-      .select('user_id')
-      .eq('event_id', event.id);
-    
-    const participantIds = existingParticipants?.map(p => p.user_id) || [];
-    
-    setFormData({
-      title: event.title,
-      description: event.description || '',
-      event_type: event.event_type,
-      start_date: format(startDate, 'yyyy-MM-dd'),
-      start_time: format(startDate, 'HH:mm'),
-      end_date: format(endDate, 'yyyy-MM-dd'),
-      end_time: format(endDate, 'HH:mm'),
-      all_day: event.all_day,
-      location: event.location || '',
-      space_id: event.space_id || '',
-      participant_ids: participantIds,
-    });
-    setDialogOpen(true);
+    try {
+      const { data: existingParticipants } = await supabase
+        .from('event_participants')
+        .select('user_id')
+        .eq('event_id', event.id);
+      
+      const participantIds = existingParticipants?.map(p => p.user_id) || [];
+      
+      setFormData({
+        title: event.title,
+        description: event.description || '',
+        event_type: event.event_type,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        start_time: format(startDate, 'HH:mm'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        end_time: format(endDate, 'HH:mm'),
+        all_day: event.all_day,
+        location: event.location || '',
+        space_id: event.space_id || '',
+        participant_ids: participantIds,
+      });
+    } finally {
+      setIsParticipantsLoading(false);
+    }
     onEventClick?.(event);
   };
 
@@ -434,6 +452,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   </Label>
                   <Input
                     id="title"
+                    ref={titleInputRef}
                     placeholder="Ex: Reunião de planejamento"
                     value={formData.title}
                     onChange={(e) => setFormData(f => ({ ...f, title: e.target.value }))}
@@ -573,7 +592,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                 </Label>
                 <div className="border rounded-lg overflow-hidden">
                   <div className="max-h-36 overflow-y-auto scrollbar-minimal">
-                    {members && members.length > 0 ? (
+                    {isParticipantsLoading || isMembersLoading ? (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <div className="space-y-1 flex-1">
+                              <Skeleton className="h-4 w-3/4" />
+                              <Skeleton className="h-3 w-1/2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : members && members.length > 0 ? (
                       members.map((member, index) => {
                         const isSelected = formData.participant_ids.includes(member.user_id);
                         return (
