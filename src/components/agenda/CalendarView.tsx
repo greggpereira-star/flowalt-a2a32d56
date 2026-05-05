@@ -183,31 +183,36 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const handleEventClick = async (event: Event, e: React.MouseEvent) => {
     e.preventDefault();
     setEditingEvent(event);
+    setIsParticipantsLoading(true);
+    setDialogOpen(true);
+    
     const startDate = parseISO(event.start_time);
     const endDate = parseISO(event.end_time);
     
-    // Load existing participants
-    const { data: existingParticipants } = await supabase
-      .from('event_participants')
-      .select('user_id')
-      .eq('event_id', event.id);
-    
-    const participantIds = existingParticipants?.map(p => p.user_id) || [];
-    
-    setFormData({
-      title: event.title,
-      description: event.description || '',
-      event_type: event.event_type,
-      start_date: format(startDate, 'yyyy-MM-dd'),
-      start_time: format(startDate, 'HH:mm'),
-      end_date: format(endDate, 'yyyy-MM-dd'),
-      end_time: format(endDate, 'HH:mm'),
-      all_day: event.all_day,
-      location: event.location || '',
-      space_id: event.space_id || '',
-      participant_ids: participantIds,
-    });
-    setDialogOpen(true);
+    try {
+      const { data: existingParticipants } = await supabase
+        .from('event_participants')
+        .select('user_id')
+        .eq('event_id', event.id);
+      
+      const participantIds = existingParticipants?.map(p => p.user_id) || [];
+      
+      setFormData({
+        title: event.title,
+        description: event.description || '',
+        event_type: event.event_type,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        start_time: format(startDate, 'HH:mm'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        end_time: format(endDate, 'HH:mm'),
+        all_day: event.all_day,
+        location: event.location || '',
+        space_id: event.space_id || '',
+        participant_ids: participantIds,
+      });
+    } finally {
+      setIsParticipantsLoading(false);
+    }
     onEventClick?.(event);
   };
 
