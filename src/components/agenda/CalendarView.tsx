@@ -608,43 +608,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       members.map((member, index) => {
                         const isSelected = formData.participant_ids.includes(member.user_id);
                         return (
-                          <label
+                          <div
                             key={member.user_id}
-                            className={cn(
-                              'flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all',
-                              index !== 0 && 'border-t',
-                              isSelected 
-                                ? 'bg-primary/5 border-l-2 border-l-primary' 
-                                : 'hover:bg-muted/50 border-l-2 border-l-transparent'
-                            )}
-                          >
-                            <div
-                              role="checkbox"
-                              aria-checked={isSelected}
-                              tabIndex={0}
-                              className="sr-only"
-                              onKeyDown={(e) => {
-                                if (e.key === ' ' || e.key === 'Enter') {
-                                  e.preventDefault();
-                                  if (!isSelected) {
-                                    setFormData(f => ({
-                                      ...f,
-                                      participant_ids: [...f.participant_ids, member.user_id],
-                                    }));
-                                  } else {
-                                    setFormData(f => ({
-                                      ...f,
-                                      participant_ids: f.participant_ids.filter(id => id !== member.user_id),
-                                    }));
-                                  }
-                                }
-                              }}
-                            />
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
+                            onClick={() => {
+                              if (!isSelected) {
+                                setFormData(f => ({
+                                  ...f,
+                                  participant_ids: [...f.participant_ids, member.user_id],
+                                }));
+                              } else {
+                                setFormData(f => ({
+                                  ...f,
+                                  participant_ids: f.participant_ids.filter(id => id !== member.user_id),
+                                }));
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault();
+                                if (!isSelected) {
                                   setFormData(f => ({
                                     ...f,
                                     participant_ids: [...f.participant_ids, member.user_id],
@@ -655,10 +637,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                                     participant_ids: f.participant_ids.filter(id => id !== member.user_id),
                                   }));
                                 }
-                              }}
-                              className="sr-only"
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              'flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all outline-none focus-visible:bg-muted',
+                              index !== 0 && 'border-t',
+                              isSelected 
+                                ? 'bg-primary/5 border-l-2 border-l-primary' 
+                                : 'hover:bg-muted/50 border-l-2 border-l-transparent'
+                            )}
+                          >
                             <Avatar className="h-8 w-8 shrink-0">
                               <AvatarImage src={member.profile?.avatar_url || undefined} />
                               <AvatarFallback className="text-xs bg-muted">
@@ -690,7 +681,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                                 </svg>
                               )}
                             </div>
-                          </label>
+                          </div>
                         );
                       })
                     ) : (
