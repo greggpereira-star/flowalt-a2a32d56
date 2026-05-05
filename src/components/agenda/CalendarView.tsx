@@ -606,9 +606,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                               className="sr-only"
                             />
                             <Avatar className="h-8 w-8 shrink-0">
-                              <AvatarImage src={(member as any).profile?.avatar_url} />
+                              <AvatarImage src={member.profile?.avatar_url || undefined} />
                               <AvatarFallback className="text-xs bg-muted">
-                                {((member as any).profile?.full_name || (member as any).profile?.email || 'U')
+                                {(member.profile?.full_name || member.profile?.email || 'U')
                                   .split(' ')
                                   .map((n: string) => n[0])
                                   .join('')
@@ -618,7 +618,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">
-                                {(member as any).profile?.full_name || (member as any).profile?.email}
+                                {member.profile?.full_name || member.profile?.email}
                               </p>
                               <p className="text-xs text-muted-foreground capitalize">
                                 {member.role}
