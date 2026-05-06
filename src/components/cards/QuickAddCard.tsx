@@ -167,6 +167,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         urgency,
         due_date: dueDate?.toISOString(),
         client_id: clientId || undefined,
+        owner_id: ownerId || undefined,
         card_type: mode === 'quick' ? 'quick' : 'full',
       });
 
