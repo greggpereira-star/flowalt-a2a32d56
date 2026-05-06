@@ -508,6 +508,13 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
         </AlertDialog>
       )}
 
+      {/* Edit Folder Dialog */}
+      <EditFolderDialog
+        open={!!editFolderDialog?.open}
+        onOpenChange={(open) => !open && setEditFolderDialog(null)}
+        folder={editFolderDialog?.folder || null}
+      />
+
       {/* Delete View Confirmation */}
       {deleteViewDialog && (
         <AlertDialog 
