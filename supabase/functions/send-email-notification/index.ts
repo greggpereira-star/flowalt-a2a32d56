@@ -465,7 +465,7 @@ async function sendEmail(
     const errorText = await response.clone().text();
     if (errorText.includes("not verified") && DEFAULT_SENDER !== "Flowalt <onboarding@resend.dev>") {
       logger.warn("Custom domain not verified, falling back to default sender", {
-        failedEmail: RESEND_FROM_EMAIL_FLOW
+        failedEmail: DEFAULT_SENDER
       });
       response = await trySend("Flowalt <onboarding@resend.dev>");
     }
