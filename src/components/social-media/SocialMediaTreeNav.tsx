@@ -438,6 +438,10 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
                 selectedViewId={currentViewId}
                 onViewSelect={handleViewSelect}
                 onCreateView={() => handleCreateViewForFolder(folder.id)}
+                onEditFolder={() => setEditFolderDialog({
+                  open: true,
+                  folder: { id: folder.id, name: folder.name }
+                })}
                 onDeleteFolder={() => setDeleteFolderDialog({ 
                   open: true, 
                   folderId: folder.id, 
