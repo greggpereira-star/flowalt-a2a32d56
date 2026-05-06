@@ -35,6 +35,7 @@ import { CreateFolderWithTemplateDialog } from '@/components/social-media/Create
 import { CreateViewDialog } from '@/components/social-media/CreateViewDialog';
 import { SaveSpaceAsTemplateDialog } from '@/components/spaces/SaveSpaceAsTemplateDialog';
 import { useToast } from '@/hooks/use-toast';
+import { EditFolderDialog } from './EditFolderDialog';
 import {
   ChevronDown,
   Folder,
@@ -57,6 +58,7 @@ import {
   Target,
   Briefcase,
   Save,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
