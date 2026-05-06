@@ -123,9 +123,14 @@ export function useCreateWorkspaceInvite() {
         });
         
         toast.success('Convite enviado por email!');
-      } catch (emailError) {
+      } catch (emailError: any) {
         console.error('Erro ao enviar email:', emailError);
-        toast.success('Convite criado! (email não enviado)');
+        const isDomainError = emailError.message?.includes('not verified');
+        toast.error(
+          isDomainError 
+            ? 'Convite criado, mas o domínio de email não está verificado no Resend. Verifique as configurações.' 
+            : 'Convite criado! (email não pôde ser enviado)'
+        );
       }
     },
     onError: (error: Error) => {
