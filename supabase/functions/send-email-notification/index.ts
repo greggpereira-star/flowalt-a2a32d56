@@ -1,10 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
-// Usando diretamente os nomes das variáveis para evitar que o builder as substitua por literais errados
+
 const getSender = () => {
-  const flow = Deno.env.get("RESEND_FROM_EMAIL_FLOW");
-  const fallback = Deno.env.get("RESEND_FROM_EMAIL");
+  // Use indexed access to bypass any potential build-time string literal replacement
+  const env = Deno.env.toObject();
+  const flow = env["RESEND_FROM_EMAIL_FLOW"];
+  const fallback = env["RESEND_FROM_EMAIL"];
   return flow || fallback || "Flowalt <onboarding@resend.dev>";
 };
 
