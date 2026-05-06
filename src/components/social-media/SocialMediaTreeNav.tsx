@@ -35,6 +35,7 @@ import { RestrictedBadge, PermissionTooltip } from '@/components/governance';
 import { CreateFolderWithTemplateDialog } from './CreateFolderWithTemplateDialog';
 import { CreateViewDialog } from './CreateViewDialog';
 import { useToast } from '@/hooks/use-toast';
+import { EditFolderDialog } from '../spaces/EditFolderDialog';
 import {
   ChevronDown,
   Folder,
@@ -53,6 +54,7 @@ import {
   Edit,
   Share2,
   Lock,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
