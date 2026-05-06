@@ -106,12 +106,13 @@ const FolderItem: React.FC<FolderItemProps> = ({
   selectedViewId,
   onViewSelect,
   onCreateView,
+  onEditFolder,
   onDeleteFolder,
   onDeleteView,
   currentUserId,
 }) => {
   const { data: views, isLoading } = useFolderViews(folder.id);
-  const folderPermissions = useFolderPermissions(folder.owner_id);
+  const folderPermissions = useFolderPermissions(folder.id, folder.owner_id);
   
   // Determine folder visibility type for badge
   const isPersonalFolder = folder.is_personal && folder.owner_id;
