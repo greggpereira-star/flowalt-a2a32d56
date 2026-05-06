@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
 const DEFAULT_SENDER = Deno.env.get("RESEND_FROM_EMAIL_FLOW") || Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
 
-// Ensure we don't have literal string values from build-time replacement
-const FINAL_SENDER = DEFAULT_SENDER.includes("RESEND_FROM_EMAIL") ? "Flowalt <onboarding@resend.dev>" : DEFAULT_SENDER;
+// Use a simpler check that doesn't rely on string literals that might be replaced
+const FINAL_SENDER = (DEFAULT_SENDER && DEFAULT_SENDER.length > 20 && DEFAULT_SENDER.includes("@")) ? DEFAULT_SENDER : "Flowalt <onboarding@resend.dev>";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
