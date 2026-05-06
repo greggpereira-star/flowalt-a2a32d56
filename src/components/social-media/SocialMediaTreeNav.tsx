@@ -288,6 +288,7 @@ export const SocialMediaTreeNav: React.FC<SocialMediaTreeNavProps> = ({
   
   // Delete confirmation dialogs
   const [deleteFolderDialog, setDeleteFolderDialog] = useState<{ open: boolean; folderId: string; folderName: string } | null>(null);
+  const [editFolderDialog, setEditFolderDialog] = useState<{ open: boolean; folder: { id: string; name: string } } | null>(null);
   const [deleteViewDialog, setDeleteViewDialog] = useState<{ open: boolean; viewId: string; folderId: string } | null>(null);
 
   const searchParams = new URLSearchParams(location.search);
