@@ -458,8 +458,8 @@ async function sendEmail(
     });
   };
 
-  logger.info("Attempting to send email", { from: RESEND_SENDER, to });
-  let response = await trySend(RESEND_SENDER);
+  logger.info("Attempting to send email", { from: RESEND_FROM_EMAIL_FLOW, to });
+  let response = await trySend(RESEND_FROM_EMAIL_FLOW);
 
   if (response.status === 403) {
     const errorText = await response.clone().text();
