@@ -129,7 +129,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   currentUserId,
 }) => {
   const { data: views, isLoading } = useFolderViews(folder.id);
-  const folderPermissions = useFolderPermissions(folder.owner_id);
+  const folderPermissions = useFolderPermissions(folder.id, folder.owner_id);
   
   const isPersonalFolder = folder.is_personal && folder.owner_id;
   const isOwnFolder = folder.owner_id === currentUserId;
