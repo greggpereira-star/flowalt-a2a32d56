@@ -35,6 +35,7 @@ import { CreateFolderWithTemplateDialog } from '@/components/social-media/Create
 import { CreateViewDialog } from '@/components/social-media/CreateViewDialog';
 import { SaveSpaceAsTemplateDialog } from '@/components/spaces/SaveSpaceAsTemplateDialog';
 import { useToast } from '@/hooks/use-toast';
+import { EditFolderDialog } from './EditFolderDialog';
 import {
   ChevronDown,
   Folder,
@@ -57,6 +58,7 @@ import {
   Target,
   Briefcase,
   Save,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -106,6 +108,7 @@ interface FolderItemProps {
   selectedViewId?: string | null;
   onViewSelect: (viewId: string, viewType: string) => void;
   onCreateView: () => void;
+  onEditFolder: () => void;
   onDeleteFolder: () => void;
   onDeleteView: (viewId: string) => void;
   currentUserId?: string;
@@ -120,12 +123,13 @@ const FolderItem: React.FC<FolderItemProps> = ({
   selectedViewId,
   onViewSelect,
   onCreateView,
+  onEditFolder,
   onDeleteFolder,
   onDeleteView,
   currentUserId,
 }) => {
   const { data: views, isLoading } = useFolderViews(folder.id);
-  const folderPermissions = useFolderPermissions(folder.owner_id);
+  const folderPermissions = useFolderPermissions(folder.id, folder.owner_id);
   
   const isPersonalFolder = folder.is_personal && folder.owner_id;
   const isOwnFolder = folder.owner_id === currentUserId;
@@ -190,6 +194,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
               <DropdownMenuItem onClick={onCreateView}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova View
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onEditFolder}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar Pasta
               </DropdownMenuItem>
               {folderPermissions.canDelete && (
                 <>
@@ -286,6 +294,7 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   
   const [deleteFolderDialog, setDeleteFolderDialog] = useState<{ open: boolean; folderId: string; folderName: string } | null>(null);
+  const [editFolderDialog, setEditFolderDialog] = useState<{ open: boolean; folder: { id: string; name: string } } | null>(null);
   const [deleteViewDialog, setDeleteViewDialog] = useState<{ open: boolean; viewId: string; folderId: string } | null>(null);
 
   const searchParams = new URLSearchParams(location.search);
@@ -439,6 +448,10 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
                 selectedViewId={currentViewId}
                 onViewSelect={handleViewSelect}
                 onCreateView={() => handleCreateViewForFolder(folder.id)}
+                onEditFolder={() => setEditFolderDialog({
+                  open: true,
+                  folder: { id: folder.id, name: folder.name }
+                })}
                 onDeleteFolder={() => setDeleteFolderDialog({ 
                   open: true, 
                   folderId: folder.id, 
@@ -504,6 +517,13 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Edit Folder Dialog */}
+      <EditFolderDialog
+        open={!!editFolderDialog?.open}
+        onOpenChange={(open) => !open && setEditFolderDialog(null)}
+        folder={editFolderDialog?.folder || null}
+      />
 
       {/* Delete View Confirmation */}
       {deleteViewDialog && (
