@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FolderPermissions {
   canView: boolean;
@@ -13,39 +15,59 @@ interface FolderPermissions {
 }
 
 /**
- * Hook to check folder-specific permissions based on ownership and role.
+ * Hook to check folder-specific permissions based on ownership, workspace role, and folder membership.
  * 
  * Rules:
  * - Admin/Owner/Coordinator: Full access to all folders
- * - Collaborator (member): Only access to folders where owner_id = their user_id
+ * - Collaborator (member): Access to folders where owner_id = their user_id OR folder_members.can_edit = true
  */
-export function useFolderPermissions(folderOwnerId: string | null | undefined): FolderPermissions {
+export function useFolderPermissions(folderId: string | undefined, folderOwnerId: string | null | undefined): FolderPermissions {
   const { user } = useAuth();
   const permissions = usePermissions();
+
+  const { data: memberPermissions } = useQuery({
+    queryKey: ['folder-member-permissions', folderId, user?.id],
+    queryFn: async () => {
+      if (!folderId || !user?.id) return null;
+      const { data, error } = await supabase
+        .from('folder_members')
+        .select('can_edit, can_delete')
+        .eq('folder_id', folderId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!folderId && !!user?.id,
+  });
 
   return useMemo(() => {
     const userId = user?.id;
     const isAdmin = permissions.canManageWorkspace; // admin, owner, coordinator
     const isOwner = folderOwnerId === userId;
     
-    // Shared folders (no owner) are accessible by everyone
+    // Shared folders (no owner) are accessible by everyone in the workspace
     const isSharedFolder = folderOwnerId === null || folderOwnerId === undefined;
     
-    // Can view if: admin OR owner OR shared folder
-    const canView = isAdmin || isOwner || isSharedFolder;
+    // Member specific permissions
+    const canEditMember = memberPermissions?.can_edit || false;
+    const canDeleteMember = memberPermissions?.can_delete || false;
     
-    // Can edit if: admin OR owner
-    const canEdit = isAdmin || isOwner;
+    // Can view if: admin OR owner OR shared folder OR member
+    const canView = isAdmin || isOwner || isSharedFolder || !!memberPermissions;
     
-    // Can delete if: admin only (even owner can't delete their own folder without admin)
-    // Updated: owner can delete their own folder
-    const canDelete = isAdmin || isOwner;
+    // Can edit if: admin OR owner OR member.can_edit
+    const canEdit = isAdmin || isOwner || canEditMember;
     
-    // Can manage views (create/edit/delete) if: admin OR owner
-    const canManageViews = isAdmin || isOwner;
+    // Can delete if: admin OR owner OR member.can_delete
+    const canDelete = isAdmin || isOwner || canDeleteMember;
     
-    // Can manage checklist if: admin OR owner
-    const canManageChecklist = isAdmin || isOwner;
+    // Can manage views (create/edit/delete) if: admin OR owner OR member.can_edit
+    const canManageViews = isAdmin || isOwner || canEditMember;
+    
+    // Can manage checklist if: admin OR owner OR member.can_edit
+    const canManageChecklist = isAdmin || isOwner || canEditMember;
 
     return {
       canView,
@@ -56,7 +78,7 @@ export function useFolderPermissions(folderOwnerId: string | null | undefined): 
       isOwner,
       isAdmin,
     };
-  }, [user?.id, folderOwnerId, permissions.canManageWorkspace]);
+  }, [user?.id, folderOwnerId, permissions.canManageWorkspace, memberPermissions]);
 }
 
 /**
