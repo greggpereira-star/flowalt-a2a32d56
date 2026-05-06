@@ -6,12 +6,14 @@ const getSender = () => {
   const env = Deno.env.toObject();
   const flow = env["RESEND_FROM_EMAIL_FLOW"];
   const fallback = env["RESEND_FROM_EMAIL"];
-  const sender = flow || fallback || "Flowalt <onboarding@resend.dev>";
   
-  if (sender === "RESEND_FROM_EMAIL_FLOW" || sender === "RESEND_FROM_EMAIL") {
-    return "Flowalt <onboarding@resend.dev>";
-  }
-  return sender;
+  // Use a heuristic to detect if it's a real email or a template string
+  const isEmail = (str?: string) => str && str.includes("@") && str.includes(".");
+  
+  if (isEmail(flow)) return flow;
+  if (isEmail(fallback)) return fallback;
+  
+  return "Flowalt <onboarding@resend.dev>";
 };
 
 const corsHeaders = {
