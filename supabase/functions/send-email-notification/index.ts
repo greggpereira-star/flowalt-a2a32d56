@@ -1,8 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
-// Get from env vars directly to ensure we have the most up to date values
-const getSender = () => Deno.env.get("RESEND_FROM_EMAIL_FLOW") || Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
+// Usando diretamente os nomes das variáveis para evitar que o builder as substitua por literais errados
+const getSender = () => {
+  const flow = Deno.env.get("RESEND_FROM_EMAIL_FLOW");
+  const fallback = Deno.env.get("RESEND_FROM_EMAIL");
+  return flow || fallback || "Flowalt <onboarding@resend.dev>";
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
