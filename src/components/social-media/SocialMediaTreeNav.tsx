@@ -183,6 +183,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
                 <Plus className="h-4 w-4 mr-2" />
                 Nova View
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={onEditFolder}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar Pasta
+              </DropdownMenuItem>
               {folderPermissions.canDelete && (
                 <>
                   <DropdownMenuSeparator />
