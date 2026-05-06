@@ -251,7 +251,7 @@ async function sendFailureAlert(
   responseBody: string,
   logger: ReturnType<typeof createLogger>
 ) {
-  const resendKey = Deno.env.get('RESEND_API_KEY')
+  const resendKey = Deno.env.get('RESEND_FLOWALT') || Deno.env.get('RESEND_API_KEY')
   if (!resendKey) {
     logger.debug('RESEND_API_KEY not configured, skipping email alert')
     return
