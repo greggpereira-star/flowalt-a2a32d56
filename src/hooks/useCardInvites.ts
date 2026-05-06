@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { sendCardInviteEmail, fetchUserProfile } from '@/hooks/useEmailNotifications';
 
 export interface CardInvite {
   id: string;
@@ -111,9 +112,39 @@ export const useCreateCardInvite = () => {
       }
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['card_invites', variables.cardId] });
-      toast.success('Convite enviado com sucesso');
+      
+      // Enviar email de notificação
+      try {
+        const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
+        
+        // Buscar título do card para o email
+        const { data: cardData } = await supabase
+          .from('cards')
+          .select('title')
+          .eq('id', variables.cardId)
+          .single();
+
+        await sendCardInviteEmail({
+          email: variables.email,
+          workspace_id: currentWorkspace!.id,
+          card_id: variables.cardId,
+          card_title: cardData?.title || 'Novo Card',
+          permission: variables.permission || 'view',
+          inviter_name: inviterProfile?.name || 'Administrador',
+        });
+        
+        toast.success('Convite enviado com sucesso');
+      } catch (emailError: any) {
+        console.error('Erro ao enviar email do card:', emailError);
+        const isDomainError = emailError.message?.includes('not verified');
+        toast.error(
+          isDomainError 
+            ? 'Colaborador adicionado, mas o domínio de email não está verificado no Resend.' 
+            : 'Colaborador adicionado! (email não pôde ser enviado)'
+        );
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Erro ao enviar convite');
