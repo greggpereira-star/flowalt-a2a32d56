@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { sendCardInviteEmail, fetchUserProfile } from '@/hooks/useEmailNotifications';
 
 export interface CardInvite {
   id: string;
