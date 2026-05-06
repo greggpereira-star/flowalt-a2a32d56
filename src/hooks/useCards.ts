@@ -56,6 +56,7 @@ export interface CreateCardInput {
   workflow_id?: string;
   current_stage?: string;
   card_type?: CardType; // 'quick' or 'full' - defaults to 'full'
+  owner_id?: string;
 }
 
 export const useCards = (spaceId: string | undefined) => {
@@ -233,7 +234,7 @@ export const useCreateCard = () => {
           urgency,
           due_date: input.due_date,
           client_id: input.client_id,
-          owner_id: null, // Initially created without an owner
+          owner_id: input.owner_id || null, // Initially created without an owner unless specified
           created_by: user.id,
           estimated_hours: input.estimated_hours,
           briefing_data: input.briefing_data,
