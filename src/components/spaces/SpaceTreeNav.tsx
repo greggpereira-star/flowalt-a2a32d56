@@ -123,6 +123,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   selectedViewId,
   onViewSelect,
   onCreateView,
+  onEditFolder,
   onDeleteFolder,
   onDeleteView,
   currentUserId,
