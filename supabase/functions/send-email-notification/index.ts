@@ -459,6 +459,7 @@ async function sendEmail(
   };
 
   const sender = Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
+  logger.info("Attempting to send email", { from: sender, to });
   let response = await trySend(sender);
 
   if (response.status === 403) {
