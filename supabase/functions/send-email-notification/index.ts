@@ -26,6 +26,7 @@ const corsHeaders = {
 // ============================================================
 type EmailNotificationType =
   // Autenticação
+  | "welcome"
   | "email_confirmation"
   | "password_reset"
   | "password_changed"
@@ -41,7 +42,8 @@ type EmailNotificationType =
   // Governança
   | "role_changed"
   | "ownership_transferred"
-  // Sistema (legacy)
+  // Sistema
+  | "time_alert"
   | "overdue_card"
   | "webhook_failure"
   | "goal_completed"
@@ -50,6 +52,7 @@ type EmailNotificationType =
 
 // Mapeamento de tipo para categoria
 const TYPE_TO_CATEGORY: Record<EmailNotificationType, string> = {
+  welcome: "authentication",
   email_confirmation: "authentication",
   password_reset: "authentication",
   password_changed: "authentication",
@@ -62,6 +65,7 @@ const TYPE_TO_CATEGORY: Record<EmailNotificationType, string> = {
   card_member_removed: "cards",
   role_changed: "governance",
   ownership_transferred: "governance",
+  time_alert: "system",
   overdue_card: "system",
   webhook_failure: "system",
   goal_completed: "gamification",
