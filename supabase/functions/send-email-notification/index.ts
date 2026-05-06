@@ -1,7 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
-const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
+
+const getSender = () => {
+  const env = Deno.env.toObject();
+  const flow = env["RESEND_FROM_EMAIL_FLOW"];
+  const fallback = env["RESEND_FROM_EMAIL"];
+  
+  // Use a heuristic to detect if it's a real email or a template string
+  const isEmail = (str?: string) => str && str.includes("@") && str.includes(".");
+  
+  if (isEmail(flow)) return flow;
+  if (isEmail(fallback)) return fallback;
+  
+  return "Flowalt <onboarding@resend.dev>";
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -458,7 +471,7 @@ async function sendEmail(
     });
   };
 
-  const sender = Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
+  const sender = getSender();
   logger.info("Attempting to send email", { from: sender, to });
   let response = await trySend(sender);
 
