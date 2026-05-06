@@ -442,19 +442,34 @@ async function sendEmail(
 ) {
   logger.debug("Sending email via Resend", { to, subject });
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: RESEND_FROM_EMAIL,
-      to: [to],
-      subject,
-      html,
-    }),
-  });
+  const trySend = async (from: string) => {
+    return await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+  };
+
+  let response = await trySend(RESEND_FROM_EMAIL);
+
+  // Se falhar por causa de domínio não verificado e o remetente não for o padrão, tenta o padrão
+  if (response.status === 403) {
+    const errorText = await response.clone().text();
+    if (errorText.includes("not verified") && RESEND_FROM_EMAIL !== "Flowalt <notifications@resend.dev>") {
+      logger.warn("Custom domain not verified, falling back to default sender", {
+        failedEmail: RESEND_FROM_EMAIL
+      });
+      response = await trySend("Flowalt <onboarding@resend.dev>");
+    }
+  }
 
   if (!response.ok) {
     const error = await response.text();
