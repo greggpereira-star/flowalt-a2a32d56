@@ -223,6 +223,25 @@ const EmailComponents = {
 // ============================================================
 const EMAIL_TEMPLATES: Record<EmailNotificationType, (data: any) => { subject: string; html: string }> = {
   // ======= AUTENTICAÇÃO =======
+  welcome: (data) => ({
+    subject: "Bem-vindo ao Flowalt! 🚀",
+    html:
+      EMAIL_BASE.header("Boas-vindas") +
+      EmailComponents.heading("Sua jornada começa agora! 🚀") +
+      EmailComponents.paragraph(`Olá ${data.name || "usuário"}, seja muito bem-vindo ao Flowalt.`) +
+      EmailComponents.paragraph("Estamos animados para ajudar você e sua equipe a alcançarem novos níveis de produtividade e organização.") +
+      EmailComponents.infoBox(`
+        <p style="margin: 0; color: #1e40af;">Por onde começar?</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #1e40af;">
+          <li>Explore seus espaços de trabalho</li>
+          <li>Crie seu primeiro card ou tarefa</li>
+          <li>Convide sua equipe para colaborar</li>
+        </ul>
+      `) +
+      (data.action_url ? EmailComponents.button("Acessar minha conta", data.action_url, "#3b82f6") : "") +
+      EMAIL_BASE.footer(),
+  }),
+
   email_confirmation: (data) => ({
     subject: "Confirme seu email no Flowalt",
     html:
