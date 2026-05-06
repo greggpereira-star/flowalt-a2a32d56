@@ -518,6 +518,13 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
         </AlertDialog>
       )}
 
+      {/* Edit Folder Dialog */}
+      <EditFolderDialog
+        open={!!editFolderDialog?.open}
+        onOpenChange={(open) => !open && setEditFolderDialog(null)}
+        folder={editFolderDialog?.folder || null}
+      />
+
       {/* Delete View Confirmation */}
       {deleteViewDialog && (
         <AlertDialog 
