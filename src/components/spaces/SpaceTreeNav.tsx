@@ -502,7 +502,7 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Excluir pasta "{deleteFolderDialog.folderName}"?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Todos os cards e views dentro desta pasta serão arquivados.
+                Esta ação não pode ser desfeita. Todos os cards e views dentro desta pasta serão arquivados e o histórico de alterações será registrado para auditoria.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -511,7 +511,7 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
                 onClick={() => handleDeleteFolder(deleteFolderDialog.folderId)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Excluir
+                Excluir Permanentemente
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

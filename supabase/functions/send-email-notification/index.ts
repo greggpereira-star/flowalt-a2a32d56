@@ -26,6 +26,7 @@ const corsHeaders = {
 // ============================================================
 type EmailNotificationType =
   // Autenticação
+  | "welcome"
   | "email_confirmation"
   | "password_reset"
   | "password_changed"
@@ -41,7 +42,8 @@ type EmailNotificationType =
   // Governança
   | "role_changed"
   | "ownership_transferred"
-  // Sistema (legacy)
+  // Sistema
+  | "time_alert"
   | "overdue_card"
   | "webhook_failure"
   | "goal_completed"
@@ -50,6 +52,7 @@ type EmailNotificationType =
 
 // Mapeamento de tipo para categoria
 const TYPE_TO_CATEGORY: Record<EmailNotificationType, string> = {
+  welcome: "authentication",
   email_confirmation: "authentication",
   password_reset: "authentication",
   password_changed: "authentication",
@@ -62,6 +65,7 @@ const TYPE_TO_CATEGORY: Record<EmailNotificationType, string> = {
   card_member_removed: "cards",
   role_changed: "governance",
   ownership_transferred: "governance",
+  time_alert: "system",
   overdue_card: "system",
   webhook_failure: "system",
   goal_completed: "gamification",
@@ -219,6 +223,25 @@ const EmailComponents = {
 // ============================================================
 const EMAIL_TEMPLATES: Record<EmailNotificationType, (data: any) => { subject: string; html: string }> = {
   // ======= AUTENTICAÇÃO =======
+  welcome: (data) => ({
+    subject: "Bem-vindo ao Flowalt! 🚀",
+    html:
+      EMAIL_BASE.header("Boas-vindas") +
+      EmailComponents.heading("Sua jornada começa agora! 🚀") +
+      EmailComponents.paragraph(`Olá ${data.name || "usuário"}, seja muito bem-vindo ao Flowalt.`) +
+      EmailComponents.paragraph("Estamos animados para ajudar você e sua equipe a alcançarem novos níveis de produtividade e organização.") +
+      EmailComponents.infoBox(`
+        <p style="margin: 0; color: #1e40af;">Por onde começar?</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #1e40af;">
+          <li>Explore seus espaços de trabalho</li>
+          <li>Crie seu primeiro card ou tarefa</li>
+          <li>Convide sua equipe para colaborar</li>
+        </ul>
+      `) +
+      (data.action_url ? EmailComponents.button("Acessar minha conta", data.action_url, "#3b82f6") : "") +
+      EMAIL_BASE.footer(),
+  }),
+
   email_confirmation: (data) => ({
     subject: "Confirme seu email no Flowalt",
     html:
@@ -376,7 +399,25 @@ const EMAIL_TEMPLATES: Record<EmailNotificationType, (data: any) => { subject: s
       EMAIL_BASE.footer(),
   }),
 
-  // ======= SISTEMA (LEGACY) =======
+  // ======= SISTEMA =======
+  time_alert: (data) => ({
+    subject: `⏰ Alerta de Tempo: ${data.card_title || "Atividade"}`,
+    html:
+      EMAIL_BASE.header("Alerta de Tempo") +
+      EmailComponents.heading("Alerta de Tempo ⏰", "#f59e0b") +
+      EmailComponents.paragraph(`Este é um alerta sobre o tempo dedicado à atividade <strong>"${data.card_title || "Sem título"}"</strong>.`) +
+      EmailComponents.infoBox(`
+        ${EmailComponents.highlight("Tempo Estimado", data.estimated_time || "Não definido")}
+        ${EmailComponents.highlight("Tempo Gasto", data.spent_time || "0h 0m")}
+        ${data.percentage ? EmailComponents.highlight("Progresso", `${data.percentage}%`) : ""}
+      `) +
+      (data.percentage >= 100 
+        ? EmailComponents.warningBox("O tempo gasto atingiu ou superou o tempo estimado originalmente.")
+        : EmailComponents.paragraph("Você está se aproximando do limite de tempo definido para esta tarefa.")) +
+      (data.card_url ? EmailComponents.button("Ver Atividade", data.card_url, "#f59e0b") : "") +
+      EMAIL_BASE.footer(),
+  }),
+
   overdue_card: (data) => ({
     subject: `⚠️ Card atrasado: ${data.card_title}`,
     html:
