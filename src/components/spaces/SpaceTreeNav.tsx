@@ -497,6 +497,7 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
         <AlertDialog 
           open={deleteFolderDialog.open} 
           onOpenChange={(open) => !open && setDeleteFolderDialog(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Excluir pasta "{deleteFolderDialog.folderName}"?</AlertDialogTitle>
