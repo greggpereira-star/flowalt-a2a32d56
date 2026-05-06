@@ -458,14 +458,14 @@ async function sendEmail(
     });
   };
 
-  logger.info("Attempting to send email", { from: RESEND_FROM_EMAIL, to });
-  let response = await trySend(RESEND_FROM_EMAIL);
+  logger.info("Attempting to send email", { from: RESEND_FROM_EMAIL_ENV, to });
+  let response = await trySend(RESEND_FROM_EMAIL_ENV);
 
   if (response.status === 403) {
     const errorText = await response.clone().text();
-    if (errorText.includes("not verified") && RESEND_FROM_EMAIL !== "Flowalt <onboarding@resend.dev>") {
+    if (errorText.includes("not verified") && RESEND_FROM_EMAIL_ENV !== "Flowalt <onboarding@resend.dev>") {
       logger.warn("Custom domain not verified, falling back to default sender", {
-        failedEmail: RESEND_FROM_EMAIL
+        failedEmail: RESEND_FROM_EMAIL_ENV
       });
       response = await trySend("Flowalt <onboarding@resend.dev>");
     }
