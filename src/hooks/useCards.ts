@@ -233,7 +233,7 @@ export const useCreateCard = () => {
           urgency,
           due_date: input.due_date,
           client_id: input.client_id,
-          owner_id: user.id,
+          owner_id: null, // Initially created without an owner
           created_by: user.id,
           estimated_hours: input.estimated_hours,
           briefing_data: input.briefing_data,
@@ -264,13 +264,13 @@ export const useCreateCard = () => {
         }
       }
 
-      // Add creator as card member
+      // Add creator as card member with is_owner = false initially or just skip is_owner true
       const { error: memberError } = await supabase
         .from('card_members')
         .insert({
           card_id: cardId,
           user_id: user.id,
-          is_owner: true,
+          is_owner: false,
         });
 
       if (memberError) {
@@ -299,7 +299,7 @@ export const useCreateCard = () => {
         urgency,
         due_date: input.due_date ?? null,
         client_id: input.client_id ?? null,
-        owner_id: user.id,
+        owner_id: null,
         created_by: user.id,
       } as unknown as Card;
     },
