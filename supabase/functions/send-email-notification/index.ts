@@ -399,7 +399,25 @@ const EMAIL_TEMPLATES: Record<EmailNotificationType, (data: any) => { subject: s
       EMAIL_BASE.footer(),
   }),
 
-  // ======= SISTEMA (LEGACY) =======
+  // ======= SISTEMA =======
+  time_alert: (data) => ({
+    subject: `⏰ Alerta de Tempo: ${data.card_title || "Atividade"}`,
+    html:
+      EMAIL_BASE.header("Alerta de Tempo") +
+      EmailComponents.heading("Alerta de Tempo ⏰", "#f59e0b") +
+      EmailComponents.paragraph(`Este é um alerta sobre o tempo dedicado à atividade <strong>"${data.card_title || "Sem título"}"</strong>.`) +
+      EmailComponents.infoBox(`
+        ${EmailComponents.highlight("Tempo Estimado", data.estimated_time || "Não definido")}
+        ${EmailComponents.highlight("Tempo Gasto", data.spent_time || "0h 0m")}
+        ${data.percentage ? EmailComponents.highlight("Progresso", `${data.percentage}%`) : ""}
+      `) +
+      (data.percentage >= 100 
+        ? EmailComponents.warningBox("O tempo gasto atingiu ou superou o tempo estimado originalmente.")
+        : EmailComponents.paragraph("Você está se aproximando do limite de tempo definido para esta tarefa.")) +
+      (data.card_url ? EmailComponents.button("Ver Atividade", data.card_url, "#f59e0b") : "") +
+      EMAIL_BASE.footer(),
+  }),
+
   overdue_card: (data) => ({
     subject: `⚠️ Card atrasado: ${data.card_title}`,
     html:
