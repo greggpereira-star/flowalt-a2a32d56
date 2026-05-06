@@ -458,14 +458,14 @@ async function sendEmail(
     });
   };
 
-  let response = await trySend(RESEND_FROM_EMAIL);
+  const sender = Deno.env.get("RESEND_FROM_EMAIL") || "Flowalt <onboarding@resend.dev>";
+  let response = await trySend(sender);
 
-  // Se falhar por causa de domínio não verificado e o remetente não for o padrão, tenta o padrão
   if (response.status === 403) {
     const errorText = await response.clone().text();
-    if (errorText.includes("not verified") && RESEND_FROM_EMAIL !== "Flowalt <notifications@resend.dev>") {
+    if (errorText.includes("not verified") && sender !== "Flowalt <onboarding@resend.dev>") {
       logger.warn("Custom domain not verified, falling back to default sender", {
-        failedEmail: RESEND_FROM_EMAIL
+        failedEmail: sender
       });
       response = await trySend("Flowalt <onboarding@resend.dev>");
     }
