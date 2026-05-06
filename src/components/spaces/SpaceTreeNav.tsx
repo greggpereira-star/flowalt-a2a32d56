@@ -108,6 +108,7 @@ interface FolderItemProps {
   selectedViewId?: string | null;
   onViewSelect: (viewId: string, viewType: string) => void;
   onCreateView: () => void;
+  onEditFolder: () => void;
   onDeleteFolder: () => void;
   onDeleteView: (viewId: string) => void;
   currentUserId?: string;
