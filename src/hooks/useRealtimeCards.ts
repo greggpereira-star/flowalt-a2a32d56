@@ -35,7 +35,6 @@ export const useRealtimeCards = (spaceId?: string) => {
           // Show toast for new cards created by others
           if (payload.eventType === 'INSERT') {
             const newCard = payload.new as { title: string; created_by: string };
-            // Only show if created by someone else (we'd need to compare with current user)
             toast({
               title: 'Novo card criado',
               description: newCard.title,
@@ -46,6 +45,24 @@ export const useRealtimeCards = (spaceId?: string) => {
           if (payload.eventType === 'UPDATE') {
             const updatedCard = payload.new as { id: string };
             queryClient.invalidateQueries({ queryKey: ['card', updatedCard.id] });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'card_spaces',
+        },
+        (payload) => {
+          console.log('Realtime card_spaces update:', payload);
+          queryClient.invalidateQueries({ queryKey: ['cards'] });
+          if (spaceId) {
+            queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
+          }
+          if (payload.new && (payload.new as any).card_id) {
+            queryClient.invalidateQueries({ queryKey: ['card', (payload.new as any).card_id] });
           }
         }
       )
