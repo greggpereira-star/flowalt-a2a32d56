@@ -67,10 +67,22 @@ type FormData = z.infer<typeof transactionSchema>;
 interface TransactionFormProps {
   transaction?: Transaction;
   onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
-export function TransactionForm({ transaction, onSuccess }: TransactionFormProps) {
-  const [open, setOpen] = useState(false);
+export function TransactionForm({ 
+  transaction, 
+  onSuccess, 
+  open: controlledOpen, 
+  onOpenChange: setControlledOpen,
+  showTrigger = true
+}: TransactionFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
+
   const [createdTransactionId, setCreatedTransactionId] = useState<string | null>(null);
   const [clientSearch, setClientSearch] = useState("");
   const [isNewClientDialogOpen, setIsNewClientDialogOpen] = useState(false);
@@ -177,12 +189,15 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
         isSubmittingRef.current = false;
       } else setOpen(true); 
     }}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Lançamento
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Lançamento
+          </Button>
+        </DialogTrigger>
+      )}
+
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{transaction ? "Editar" : "Novo"} Lançamento</DialogTitle>
