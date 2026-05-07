@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,6 +22,8 @@ import {
   X,
   ArrowUpDown,
   FileSpreadsheet,
+  ChevronLeftCircle,
+  ChevronRightCircle,
 } from "lucide-react";
 // @ts-ignore
 import * as XLSX from 'xlsx';
@@ -99,6 +101,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   }, [filters, setSearchParams]);
   
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
+  const [showScrollButtons, setShowScrollButtons] = useState(false);
+  const tabsListRef = useRef<HTMLDivElement>(null);
+
+
   
   const { data: allTransactions = [], isLoading } = useTransactions({
     startDate: filters.month ? startOfMonth(filters.month).toISOString().split("T")[0] : undefined,
@@ -119,6 +125,30 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const { data: members = [] } = useWorkspaceMembers();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
+
+  const checkScroll = () => {
+    if (tabsListRef.current) {
+      const { scrollWidth, clientWidth } = tabsListRef.current;
+      setShowScrollButtons(scrollWidth > clientWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [categories, allTransactions]);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsListRef.current) {
+      const scrollAmount = 200;
+      tabsListRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -433,31 +463,55 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                     }}
                     className="w-full"
                   >
-                    <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 flex-wrap overflow-visible">
-                      <TabsTrigger 
-                        value="all"
-                        className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
+                    <div className="relative flex items-center group">
+                      {showScrollButtons && (
+                        <button 
+                          onClick={() => scrollTabs('left')}
+                          className="absolute left-0 z-10 bg-background/80 backdrop-blur-sm p-1 rounded-full shadow-md border border-border hidden group-hover:block hover:bg-background transition-all -ml-2"
+                        >
+                          <ChevronLeftCircle className="w-5 h-5 text-primary" />
+                        </button>
+                      )}
+                      
+                      <TabsList 
+                        ref={tabsListRef}
+                        className="w-full justify-start h-10 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 overflow-x-auto scrollbar-hide no-scrollbar"
                       >
-                        Todos
-                        <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
-                          {allTransactions.length}
-                        </Badge>
-                      </TabsTrigger>
-                      {categories
-                        .filter(cat => allTransactions.some(t => t.category_id === cat.id))
-                        .map((cat) => (
-                          <TabsTrigger 
-                            key={cat.id} 
-                            value={cat.id}
-                            className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
-                          >
-                            {cat.name}
-                            <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
-                              {allTransactions.filter(t => t.category_id === cat.id).length}
-                            </Badge>
-                          </TabsTrigger>
-                        ))}
-                    </TabsList>
+                        <TabsTrigger 
+                          value="all"
+                          className="h-10 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-xs text-muted-foreground whitespace-nowrap"
+                        >
+                          Todos
+                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px] bg-muted/50 text-muted-foreground border-none">
+                            {allTransactions.length}
+                          </Badge>
+                        </TabsTrigger>
+                        {categories
+                          .filter(cat => allTransactions.some(t => t.category_id === cat.id))
+                          .map((cat) => (
+                            <TabsTrigger 
+                              key={cat.id} 
+                              value={cat.id}
+                              className="h-10 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-xs text-muted-foreground whitespace-nowrap"
+                            >
+                              {cat.name}
+                              <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px] bg-muted/50 text-muted-foreground border-none">
+                                {allTransactions.filter(t => t.category_id === cat.id).length}
+                              </Badge>
+                            </TabsTrigger>
+                          ))}
+                      </TabsList>
+
+                      {showScrollButtons && (
+                        <button 
+                          onClick={() => scrollTabs('right')}
+                          className="absolute right-0 z-10 bg-background/80 backdrop-blur-sm p-1 rounded-full shadow-md border border-border hidden group-hover:block hover:bg-background transition-all -mr-2"
+                        >
+                          <ChevronRightCircle className="w-5 h-5 text-primary" />
+                        </button>
+                      )}
+                    </div>
+
                   </Tabs>
                 </TableHead>
               </TableRow>
