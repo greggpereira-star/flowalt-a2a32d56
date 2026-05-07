@@ -121,6 +121,7 @@ export const useSocialPosts = (filters?: {
   cardId?: string;
   startDate?: string;
   endDate?: string;
+  allSpaces?: boolean;
 }) => {
   const { currentWorkspace } = useWorkspace();
 

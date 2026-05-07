@@ -154,12 +154,12 @@ export const useCard = (cardId: string | undefined) => {
 
       const { data, error } = await supabase
         .from('cards')
-        .select('*')
+        .select('*, card_spaces(space_id)')
         .eq('id', cardId)
         .maybeSingle();
 
       if (error) throw error;
-      return data as Card | null;
+      return data as any;
     },
     enabled: !!cardId,
   });
