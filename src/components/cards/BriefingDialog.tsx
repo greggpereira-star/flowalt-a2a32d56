@@ -35,6 +35,8 @@ import type { BriefingData } from './BriefingForm';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { BriefingSummarySheet } from './BriefingSummarySheet';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
+import { useForm } from 'react-hook-form';
 
 interface ValidationResult {
   isValid: boolean;
@@ -167,6 +169,28 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const [localData, setLocalData] = useState<BriefingData>(data);
   const hasUnsavedChanges = useRef(false);
 
+  // Persistence setup
+  const formForPersistence = useForm<BriefingData>({
+    values: localData
+  });
+
+  const { clearPersistence } = useFormPersistence(
+    formForPersistence,
+    `briefing-draft-${cardTitle || 'general'}`,
+    open,
+    (loadedData) => {
+      setLocalData(prev => ({ ...prev, ...loadedData }));
+      hasUnsavedChanges.current = true;
+    }
+  );
+
+  // Keep persistence form in sync with local data
+  useEffect(() => {
+    if (hasUnsavedChanges.current) {
+      formForPersistence.reset(localData);
+    }
+  }, [localData, formForPersistence]);
+
   // Sync local data when dialog opens or external data changes significantly
   useEffect(() => {
     if (open) {
@@ -244,6 +268,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     // Save all changes before completing
     onChange(localData);
     onMarkComplete();
+    clearPersistence();
     toast.success('Briefing completo!');
     onOpenChange(false);
   }, [requiredStepsComplete, localData, onChange, onMarkComplete, onOpenChange]);

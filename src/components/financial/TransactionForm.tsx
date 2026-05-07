@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,6 +41,7 @@ import { useCreateTransaction, useCategories, Transaction } from "@/hooks/useFin
 import { useClients } from "@/hooks/useClients";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { CreateClientDialog } from "../clients/CreateClientDialog";
 import { TransactionAttachments } from "./TransactionAttachments";
 
@@ -102,6 +103,21 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const watchType = form.watch("type");
   const watchRecurrence = form.watch("recurrence");
 
+  const { clearPersistence } = useFormPersistence(
+    form, 
+    "transaction-form-draft", 
+    open && !transaction // Only persist for new transactions when the form is open
+  );
+
+  // Clear persistence when the dialog is closed if it wasn't a successful submission
+  useEffect(() => {
+    if (!open && !transaction) {
+      // We might want to keep it if they just closed it, 
+      // but the requirement is "if I leave the screen". 
+      // Keeping it in localStorage is safe enough.
+    }
+  }, [open, transaction]);
+
   const onSubmit = async (data: FormData) => {
     const amount = parseCurrencyToNumber(data.amount);
 
@@ -126,6 +142,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
     if (result?.id) {
       setCreatedTransactionId(result.id);
     } else {
+      clearPersistence();
       form.reset();
       setOpen(false);
     }
