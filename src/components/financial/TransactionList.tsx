@@ -266,7 +266,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             variant="ghost"
             size="icon"
             className="h-7 w-7 hover:bg-muted"
-            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) }))}
+            onClick={() => setFilters(prev => ({ 
+              ...prev, 
+              month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) 
+            }))}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
@@ -282,7 +285,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             variant="ghost"
             size="icon"
             className="h-7 w-7 hover:bg-muted"
-            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) }))}
+            onClick={() => setFilters(prev => ({ 
+              ...prev, 
+              month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) 
+            }))}
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
