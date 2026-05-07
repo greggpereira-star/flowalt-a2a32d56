@@ -108,7 +108,7 @@ export const AppSidebar: React.FC = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/auth', { replace: true });
   };
 
   return (
