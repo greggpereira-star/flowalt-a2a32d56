@@ -92,6 +92,14 @@ export default function FirstAccessPage() {
     // Se o usuário já tem workspace, não faz sentido ficar preso no onboarding.
     if (!workspaceLoading && workspaces.length > 0) {
       navigate('/');
+      return;
+    }
+
+    // Se temos um token de convite pendente no sessionStorage, redireciona para a página do convite
+    // Isso garante que após o login o usuário seja levado de volta ao convite mesmo que tenha caído aqui.
+    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    if (pendingToken) {
+      navigate(`/invite/${pendingToken}`);
     }
   }, [navigate, workspaceLoading, workspaces.length]);
 
