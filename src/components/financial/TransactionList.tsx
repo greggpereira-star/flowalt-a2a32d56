@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowDownCircle,
@@ -18,6 +19,7 @@ import {
   ChevronRight,
   FileDown,
   User,
+  X,
 } from "lucide-react";
 // @ts-ignore
 import * as XLSX from 'xlsx';
