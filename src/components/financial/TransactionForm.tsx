@@ -116,10 +116,11 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
 
   // Clear persistence when the dialog is closed if it wasn't a successful submission
   useEffect(() => {
-    if (open && !transaction) {
-      // Logic to trigger when form is opened
+    if (!open && !transaction && !isSubmittingRef.current) {
+      // Clear persistence when user manually cancels/closes a NEW transaction form
+      clearPersistence();
     }
-  }, [open, transaction]);
+  }, [open, transaction, clearPersistence]);
 
   const onSubmit = async (data: FormData) => {
     isSubmittingRef.current = true;
