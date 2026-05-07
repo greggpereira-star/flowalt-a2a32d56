@@ -218,11 +218,13 @@ export const AppSidebar: React.FC = () => {
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
+                    asChild
                     isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '?')}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <Link to={item.path}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
