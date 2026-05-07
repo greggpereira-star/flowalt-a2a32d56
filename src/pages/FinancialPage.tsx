@@ -86,8 +86,8 @@ export default function FinancialPage() {
         <meta name="description" content="Gestão financeira completa com lançamentos, notas fiscais, DRE, centros de custo e conciliação bancária" />
       </Helmet>
 
-      <AppLayout>
-        <div className="flex flex-col h-full bg-muted/20">
+      <div className="flex flex-col h-full bg-muted/20">
+
           {/* Header Section */}
           <div className="bg-background border-b border-border/30">
             <div className="px-6 lg:px-8 pt-8 pb-8">
@@ -312,7 +312,7 @@ export default function FinancialPage() {
           onOpenChange={(open) => !open && setEditingInvoice(null)}
           invoice={editingInvoice}
         />
-      </AppLayout>
+      </div>
     </PermissionGuard>
   );
 }
