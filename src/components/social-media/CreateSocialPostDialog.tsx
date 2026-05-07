@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -53,6 +54,8 @@ import {
   Eye,
   Music,
   Info,
+  Copy,
+  Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -76,6 +79,8 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSpaces } from '@/hooks/useSpaces';
+import { useCreateCard } from '@/hooks/useCards';
 
 interface MediaFile {
   id: string;
@@ -142,8 +147,10 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 }) => {
   const createPost = useCreateSocialPost();
   const updatePost = useUpdateSocialPost();
+  const createCard = useCreateCard();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
+  const { data: spaces } = useSpaces();
   
   // Fetch existing post if in edit mode
   const { data: existingPost, isLoading: isLoadingPost } = useSocialPost(editPostId || null);
@@ -163,6 +170,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [utmCampaign, setUtmCampaign] = useState('');
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Cross-sector duplication
+  const [duplicateToSpace, setDuplicateToSpace] = useState<string>('');
+  const [isDuplicateEnabled, setIsDuplicateEnabled] = useState(false);
+
   // Engagement fields
   const [locationName, setLocationName] = useState('');
   const [locationId, setLocationId] = useState('');
@@ -259,6 +271,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUtmCampaign('');
       setMedia([]);
       setIsUploading(false);
+      setIsDuplicateEnabled(false);
+      setDuplicateToSpace('');
       // Reset engagement fields
       setLocationName('');
       setLocationId('');
