@@ -497,17 +497,33 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
               </TableHead>
             </TableRow>
             <TableRow className="hover:bg-transparent border-b border-border/50">
-              <TableHead className="w-[60px] text-center font-semibold">Tipo</TableHead>
-              <TableHead className="font-semibold">Descrição</TableHead>
+              <TableHead className="w-[60px] text-center font-semibold">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="-ml-2 h-8 font-semibold">
+                  Tipo <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="font-semibold">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('description')} className="-ml-2 h-8 font-semibold">
+                  Descrição <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead className="font-semibold">Centro de Custo</TableHead>
-              <TableHead className="font-semibold">Vencimento</TableHead>
-              <TableHead className="font-semibold text-right">Valor</TableHead>
+              <TableHead className="font-semibold">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('due_date')} className="-ml-2 h-8 font-semibold">
+                  Vencimento <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="font-semibold text-right">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('amount')} className="-mr-2 h-8 font-semibold ml-auto">
+                  Valor <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.length === 0 ? (
+            {sortedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum lançamento encontrado
