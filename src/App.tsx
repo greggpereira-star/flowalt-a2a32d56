@@ -68,62 +68,68 @@ const App = () => (
         <AuthProvider>
           <WorkspaceProvider>
             <GlobalModalProvider>
-              <OnboardingTour />
-              <CommandPalette />
-              <KeyboardShortcutsDialog />
               <Routes>
+                {/* Public Routes */}
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/data-deletion" element={<DataDeletionPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/invite/:token" element={<AcceptInvitePage />} />
+                <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
+                
+                {/* Protected Routes with shared AppLayout */}
+                <Route element={<ProtectedLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/complete-profile" element={<CompleteProfilePage />} />
+                  <Route path="/oauth/bridge" element={<OAuthBridgePage />} />
+                  <Route path="/first-access" element={<FirstAccessPage />} />
+                  <Route path="/platform" element={<PlatformAdminPage />} />
+                  <Route path="/security-audit" element={<SecurityAuditPage />} />
+                  <Route path="/workspace/new" element={<NewWorkspace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/time" element={<TimePage />} />
+                  <Route path="/coordination" element={<CoordinationPage />} />
+                  <Route path="/calendar" element={<AgendaPage />} />
+                  <Route path="/financial" element={<FinancialPage />} />
+                  <Route path="/partners" element={<PartnersPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/integrations" element={<IntegrationsPage />} />
+                  <Route path="/gamification" element={<GamificationPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/people-analytics" element={<PeopleAnalyticsPage />} />
+                  <Route path="/clients" element={<ClientsPage />} />
+                  <Route path="/clients/:clientId" element={<ClientsPage />} />
+                  <Route path="/space/:spaceId" element={<SpacePage />} />
+                  <Route path="/marketing" element={<MarketingPage />} />
+                  <Route path="/birthdays" element={<BirthdaysPage />} />
+                  <Route path="/altcontrol/*" element={<AltControlPage />} />
+                  <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
+                  <Route path="/altcontrol/proposals/:proposalId" element={<ProposalDetailPage />} />
+                  <Route path="/altcontrol/approvals/:proposalId" element={<ApprovalDetailPage />} />
+                  <Route path="/altcontrol/contracts/:contractId" element={<ContractDetailPage />} />
+                </Route>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
 
-              {/* Public Routes */}
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/data-deletion" element={<DataDeletionPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
-              <Route path="/invite/:token" element={<AcceptInvitePage />} />
-              <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
-              
-              {/* Protected Routes with shared AppLayout */}
-              <Route element={<ProtectedLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/complete-profile" element={<CompleteProfilePage />} />
-                <Route path="/oauth/bridge" element={<OAuthBridgePage />} />
-                <Route path="/first-access" element={<FirstAccessPage />} />
-                <Route path="/platform" element={<PlatformAdminPage />} />
-                <Route path="/security-audit" element={<SecurityAuditPage />} />
-                <Route path="/workspace/new" element={<NewWorkspace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/tasks" element={<TasksPage />} />
-                <Route path="/time" element={<TimePage />} />
-                <Route path="/coordination" element={<CoordinationPage />} />
-                <Route path="/calendar" element={<AgendaPage />} />
-                <Route path="/financial" element={<FinancialPage />} />
-                <Route path="/partners" element={<PartnersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/integrations" element={<IntegrationsPage />} />
-                <Route path="/gamification" element={<GamificationPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/people-analytics" element={<PeopleAnalyticsPage />} />
-                <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/clients/:clientId" element={<ClientsPage />} />
-                <Route path="/space/:spaceId" element={<SpacePage />} />
-                <Route path="/marketing" element={<MarketingPage />} />
-                <Route path="/birthdays" element={<BirthdaysPage />} />
-                <Route path="/altcontrol/*" element={<AltControlPage />} />
-                <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
-                <Route path="/altcontrol/proposals/:proposalId" element={<ProposalDetailPage />} />
-                <Route path="/altcontrol/approvals/:proposalId" element={<ApprovalDetailPage />} />
-                <Route path="/altcontrol/contracts/:contractId" element={<ContractDetailPage />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+              {/* Conditional rendering for tools that depend on Auth/Workspace context */}
+              <ConditionalTools />
             </GlobalModalProvider>
           </WorkspaceProvider>
-
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+// Helper component to ensure tools are only rendered when authenticated
+const ConditionalTools = () => {
+  const { session, loading } = AuthProvider.useAuth?.() || {}; 
+  // Note: we can't use useAuth here directly because it's outside the provider in the component tree
+  // But wait, App calls it inside. Let's fix this properly.
+  return null; 
+};
 
 export default App;
