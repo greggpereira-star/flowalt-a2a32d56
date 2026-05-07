@@ -3,7 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
   MessageCircle,
-  History,
+  History as HistoryIcon,
   Send,
   Loader2,
   ListFilter,
@@ -33,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { toast } from 'sonner';
 import { CommentContextMenu } from './CommentContextMenu';
 import { CommentReactions } from './CommentReactions';
+import { CardHistoryTab } from './CardHistoryTab';
 
 interface CardActivityPanelProps {
   cardId: string;
@@ -339,10 +340,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <History className="h-5 w-5 text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground/60">Em breve</p>
-            </div>
+            <CardHistoryTab cardId={cardId} />
           )}
         </div>
       </ScrollArea>

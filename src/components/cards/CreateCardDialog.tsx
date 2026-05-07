@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -148,175 +149,177 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: Criar posts para campanha X"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Descrição breve da tarefa..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="grid gap-4 py-4 px-1">
               <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as CardStatus)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(statusConfig).map(([key, config]) => (
-                      key !== 'archived' && (
-                        <SelectItem key={key} value={key}>
-                          {config.label}
-                        </SelectItem>
-                      )
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Urgência</Label>
-                <Select value={urgency} onValueChange={(v) => setUrgency(v as CardUrgency)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(urgencyConfig).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        {config.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dueDate">Prazo (data e hora)</Label>
+                <Label htmlFor="title">Título *</Label>
                 <Input
-                  id="dueDate"
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  id="title"
+                  placeholder="Ex: Criar posts para campanha X"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Cliente
-                  {!clientId && (
-                    <Badge variant="outline" className="text-[9px] h-4 text-muted-foreground ml-1">
-                      <BanknoteIcon className="h-2.5 w-2.5 mr-0.5" />
-                      Não faturável
-                    </Badge>
-                  )}
-                </Label>
-                <Select
-                  value={clientId || '__none__'}
-                  onValueChange={(v) => setClientId(v === '__none__' ? '' : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar cliente..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <BanknoteIcon className="h-3 w-3" />
-                        Sem cliente (Não faturável)
-                      </div>
-                    </SelectItem>
-                    {allClients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        <div className="flex items-center gap-2">
-                          {client.color && (
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: client.color }}
-                            />
-                          )}
-                          {!client.color && <Building2 className="h-3 w-3 text-muted-foreground" />}
-                          {client.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Descrição breve da tarefa..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                />
               </div>
-            </div>
 
-            {/* Duplication to other sectors (Visible only if isSocialMedia is true) */}
-            {isSocialMedia && (
-              <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Copy className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold">Duplicar para outro setor</h4>
-                      <p className="text-[10px] text-muted-foreground">Crie uma cópia desta demanda em outro quadro</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={isDuplicateEnabled} 
-                    onCheckedChange={setIsDuplicateEnabled}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v as CardStatus)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusConfig).map(([key, config]) => (
+                        key !== 'archived' && (
+                          <SelectItem key={key} value={key}>
+                            {config.label}
+                          </SelectItem>
+                        )
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Urgência</Label>
+                  <Select value={urgency} onValueChange={(v) => setUrgency(v as CardUrgency)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(urgencyConfig).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          {config.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Prazo (data e hora)</Label>
+                  <Input
+                    id="dueDate"
+                    type="datetime-local"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
                   />
                 </div>
 
-                {isDuplicateEnabled && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Label className="text-[10px] font-medium mb-1.5 block">Selecione o Quadro de Destino</Label>
-                    <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
-                      <SelectTrigger className="bg-background h-8">
-                        <SelectValue placeholder="Escolher setor responsável..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {spaces?.filter(s => s.id !== spaceId).map(space => (
-                          <SelectItem key={space.id} value={space.id}>
-                            <div className="flex items-center gap-2">
-                              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs">{space.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Cliente
+                    {!clientId && (
+                      <Badge variant="outline" className="text-[9px] h-4 text-muted-foreground ml-1">
+                        <BanknoteIcon className="h-2.5 w-2.5 mr-0.5" />
+                        Não faturável
+                      </Badge>
+                    )}
+                  </Label>
+                  <Select
+                    value={clientId || '__none__'}
+                    onValueChange={(v) => setClientId(v === '__none__' ? '' : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <BanknoteIcon className="h-3 w-3" />
+                          Sem cliente (Não faturável)
+                        </div>
+                      </SelectItem>
+                      {allClients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          <div className="flex items-center gap-2">
+                            {client.color && (
+                              <div 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: client.color }}
+                              />
+                            )}
+                            {!client.color && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                            {client.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
 
-            {/* Access Impact Summary - shows who will see the card */}
-            <div className="pt-2 border-t">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                <Users className="h-3.5 w-3.5" />
-                <span>Visibilidade do card</span>
+              {/* Duplication to other sectors (Visible only if isSocialMedia is true) */}
+              {isSocialMedia && (
+                <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Copy className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold">Duplicar para outro setor</h4>
+                        <p className="text-[10px] text-muted-foreground">Crie uma cópia desta demanda em outro quadro</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={isDuplicateEnabled} 
+                      onCheckedChange={setIsDuplicateEnabled}
+                    />
+                  </div>
+
+                  {isDuplicateEnabled && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label className="text-[10px] font-medium mb-1.5 block">Selecione o Quadro de Destino</Label>
+                      <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
+                        <SelectTrigger className="bg-background h-8">
+                          <SelectValue placeholder="Escolher setor responsável..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {spaces?.filter(s => s.id !== spaceId).map(space => (
+                            <SelectItem key={space.id} value={space.id}>
+                              <div className="flex items-center gap-2">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-xs">{space.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Access Impact Summary - shows who will see the card */}
+              <div className="pt-2 border-t">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                  <Users className="h-3.5 w-3.5" />
+                  <span>Visibilidade do card</span>
+                </div>
+                <AccessImpactSummary
+                  entityType="card"
+                  targetVisibility="public"
+                  showDetails={false}
+                />
               </div>
-              <AccessImpactSummary
-                entityType="card"
-                targetVisibility="public"
-                showDetails={false}
-              />
             </div>
-          </div>
+          </ScrollArea>
 
           <DialogFooter>
             <Button

@@ -21,7 +21,7 @@ export const useChecklists = (cardId: string | undefined) => {
   useRealtimeSubscription({
     table: 'checklists',
     filter: cardId ? `card_id=eq.${cardId}` : undefined,
-    queryKeys: [['checklists', cardId || '']],
+    queryKeys: [['checklists', cardId || ''], ['card-history', cardId || '']],
     enabled: !!cardId,
   });
 
