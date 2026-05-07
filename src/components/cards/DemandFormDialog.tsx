@@ -187,7 +187,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         try {
           await shareCard.mutateAsync({
             cardId: result.id,
-            space_id: duplicateToSpace,
+            spaceId: duplicateToSpace,
           });
         } catch (dupError) {
           console.error('Error sharing card across spaces:', dupError);
