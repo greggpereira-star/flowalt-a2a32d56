@@ -114,10 +114,8 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
 
   // Clear persistence when the dialog is closed if it wasn't a successful submission
   useEffect(() => {
-    if (!open && !transaction) {
-      // We might want to keep it if they just closed it, 
-      // but the requirement is "if I leave the screen". 
-      // Keeping it in localStorage is safe enough.
+    if (open && !transaction) {
+      // Logic to trigger when form is opened
     }
   }, [open, transaction]);
 
