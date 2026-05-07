@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCategories } from "@/hooks/useFinancial";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -61,6 +62,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const [filters, setFilters] = useState({
     type: initialFilters?.type || "all",
     status: initialFilters?.status || "all",
+    category: "all",
     costCenter: "all",
     collaborator: "all",
     month: null as Date | null,
@@ -71,6 +73,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const { data: transactions = [], isLoading } = useTransactions({
     type: filters.type === "all" ? undefined : filters.type as any,
     status: filters.status === "all" ? undefined : filters.status as any,
+    categoryId: filters.category === "all" ? undefined : filters.category,
     costCenterId: filters.costCenter === "all" || filters.costCenter === "unassigned" ? undefined : filters.costCenter,
     collaboratorId: filters.collaborator === "all" || filters.collaborator === "unassigned" ? undefined : filters.collaborator,
     startDate: filters.month ? startOfMonth(filters.month).toISOString().split("T")[0] : undefined,
@@ -175,6 +178,32 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
 
   return (
     <div className="space-y-4">
+      <Tabs
+        value={filters.category}
+        onValueChange={(value) => {
+          setFilters(prev => ({ ...prev, category: value }));
+        }}
+        className="w-full"
+      >
+        <TabsList className="mb-4 flex-wrap h-auto bg-transparent gap-2">
+          <TabsTrigger 
+            value="all"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
+          >
+            Todos <Badge variant="secondary" className="ml-1.5">{transactions.length}</Badge>
+          </TabsTrigger>
+          {categories.map((cat) => (
+            <TabsTrigger 
+              key={cat.id} 
+              value={cat.id}
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
+            >
+              {cat.name} <Badge variant="secondary" className="ml-1.5">{transactions.filter(t => t.category_id === cat.id).length}</Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       <div className="flex gap-4 flex-wrap">
         <Select
           value={filters.type}
