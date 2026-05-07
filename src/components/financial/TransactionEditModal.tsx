@@ -120,7 +120,10 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
   const { clearPersistence } = useFormPersistence(
     form,
     `transaction-edit-${transaction?.id}`,
-    open && !!transaction
+    open && !!transaction,
+    (data) => {
+      // Data loaded
+    }
   );
 
   const onSubmit = async (data: FormData) => {
