@@ -147,7 +147,10 @@ export const AppSidebar: React.FC = () => {
               </DropdownMenuItem>
             ))}
             {workspaces.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem onClick={() => navigate('/workspace/new')}>
+            <DropdownMenuItem onClick={(e) => {
+              e.preventDefault();
+              navigate('/workspace/new');
+            }}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Workspace
             </DropdownMenuItem>
