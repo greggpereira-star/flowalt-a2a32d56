@@ -233,14 +233,16 @@ const FolderItem: React.FC<FolderItemProps> = ({
                   <Button
                     variant={isActive ? 'secondary' : 'ghost'}
                     size="sm"
+                    asChild
                     className={cn(
                       'flex-1 justify-start gap-2 px-2 h-7 font-normal text-sm',
                       isActive && 'bg-primary/10 text-primary'
                     )}
-                    onClick={() => onViewSelect(view.id, view.view_type)}
                   >
-                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{view.name}</span>
+                    <Link to={`/space/${spaceId}?view=${view.id}`}>
+                      <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{view.name}</span>
+                    </Link>
                   </Button>
                   
                   {folderPermissions.canManageViews && (
