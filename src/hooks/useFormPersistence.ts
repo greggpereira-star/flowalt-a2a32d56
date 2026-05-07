@@ -10,7 +10,8 @@ import { UseFormReturn } from "react-hook-form";
 export function useFormPersistence<TFieldValues extends Record<string, any>>(
   form: UseFormReturn<TFieldValues>,
   storageKey: string,
-  enabled: boolean = true
+  enabled: boolean = true,
+  onLoad?: (data: TFieldValues) => void
 ) {
   // Load initial data from localStorage
   useEffect(() => {
@@ -37,6 +38,10 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
           ...form.getValues(),
           ...revivedData
         });
+        
+        if (onLoad) {
+          onLoad(revivedData);
+        }
       } catch (error) {
         console.error("Failed to load persisted form data:", error);
       }
