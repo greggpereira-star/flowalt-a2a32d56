@@ -507,9 +507,10 @@ export const useShareCardAcrossSpaces = () => {
       }
     },
     onSuccess: (data) => {
+      // Invalidate everything related to cards to force a fresh board state
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
+      // This specifically targets 'cards', 'space', undefined or any spaceId to ensure UI reflects changes
+      queryClient.refetchQueries({ queryKey: ['cards', 'space'] });
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
       toast.success('Card compartilhado com sucesso!');
     },
