@@ -1848,6 +1848,42 @@ export type Database = {
           },
         ]
       }
+      card_spaces: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          space_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          space_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_spaces_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_spaces_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_stage_history: {
         Row: {
           card_id: string

@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 import {
   CalendarIcon,
   Plus,
@@ -171,7 +172,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     }
 
     try {
-      await createCard.mutateAsync({
+      const result = await createCard.mutateAsync({
         title,
         space_id: spaceId,
         folder_id: folderId,
@@ -184,24 +185,23 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         card_type: mode === 'quick' ? 'quick' : 'full',
       });
 
-      // Handle cross-sector duplication if enabled
+      // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          await createCard.mutateAsync({
-            title: `[SOCIAL] ${title.trim()}`,
-            space_id: duplicateToSpace,
-            description: `Demanda originada do Social Media.\n\n${description || ''}`,
-            client_id: clientId || undefined,
-            due_date: dueDate?.toISOString(),
-            urgency: urgency,
-            status: 'todo',
-            card_type: 'full'
-          });
-          toast({ title: 'Card duplicado para o setor selecionado' });
+          const { error: junctionError } = await supabase
+            .from('card_spaces')
+            .insert({
+              card_id: result.id,
+              space_id: duplicateToSpace,
+            });
+
+          if (junctionError) throw junctionError;
+          
+          toast({ title: 'Card compartilhado com o setor selecionado' });
         } catch (dupError) {
-          console.error('Error duplicating card:', dupError);
+          console.error('Error sharing card across spaces:', dupError);
           toast({
-            title: 'Erro ao duplicar tarefa',
+            title: 'Erro ao compartilhar tarefa',
             variant: 'destructive',
           });
         }

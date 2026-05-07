@@ -519,23 +519,22 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
         const postResult = await createPost.mutateAsync(input);
         
-        // Handle cross-sector duplication if enabled
-        if (isDuplicateEnabled && duplicateToSpace) {
+        // Handle cross-sector visibility using junction table card_spaces
+        if (isDuplicateEnabled && duplicateToSpace && postResult.card_id) {
           try {
-            await createCard.mutateAsync({
-              title: `[SOCIAL] ${title || 'Nova Postagem'}`,
-              space_id: duplicateToSpace,
-              description: `Demanda originada do Social Media.\n\nPlataforma: ${platformConfig[platform as SocialPlatform]?.name}\nTipo: ${contentTypeConfig[contentType as SocialContentType]?.name}\n\nLegenda: ${caption}`,
-              client_id: clientId || undefined,
-              due_date: scheduledAt,
-              urgency: 'medium',
-              status: 'todo',
-              card_type: 'full'
-            });
-            toast.success('Tarefa duplicada para o setor selecionado');
+            const { error: junctionError } = await supabase
+              .from('card_spaces')
+              .insert({
+                card_id: postResult.card_id,
+                space_id: duplicateToSpace,
+              });
+
+            if (junctionError) throw junctionError;
+            
+            toast.success('Tarefa compartilhada com o setor selecionado');
           } catch (dupError) {
-            console.error('Error duplicating card:', dupError);
-            toast.error('Erro ao duplicar tarefa para outro setor');
+            console.error('Error sharing card across spaces:', dupError);
+            toast.error('Erro ao compartilhar tarefa com outro setor');
           }
         }
       }

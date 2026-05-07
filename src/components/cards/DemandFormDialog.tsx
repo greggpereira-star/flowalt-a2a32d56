@@ -29,6 +29,7 @@ import { useSpaces } from '@/hooks/useSpaces';
 import { useDefaultWorkflow, useWorkflowStages } from '@/hooks/useWorkflow';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Loader2, 
   ChevronRight, 
@@ -180,25 +181,22 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         current_stage: firstStage?.id,
       });
 
-      // Handle cross-sector duplication if enabled
+      // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          await createCard.mutateAsync({
-            title: `[SOCIAL] ${title.trim()}`,
-            space_id: duplicateToSpace,
-            description: `Demanda originada do Social Media.\n\n${description.trim()}`,
-            client_id: clientId || undefined,
-            due_date: dueDate || undefined,
-            urgency: 'medium',
-            status: 'todo',
-            card_type: 'full',
-            briefing_data: isBriefingValid ? briefingData : undefined,
-            briefing_completed: isBriefingValid,
-          });
-          toast.success('Tarefa duplicada para o setor selecionado');
+          const { error: junctionError } = await supabase
+            .from('card_spaces')
+            .insert({
+              card_id: result.id,
+              space_id: duplicateToSpace,
+            });
+
+          if (junctionError) throw junctionError;
+
+          toast.success('Tarefa compartilhada com o setor selecionado');
         } catch (dupError) {
-          console.error('Error duplicating card:', dupError);
-          toast.error('Erro ao duplicar tarefa');
+          console.error('Error sharing card across spaces:', dupError);
+          toast.error('Erro ao compartilhar tarefa');
         }
       }
 
