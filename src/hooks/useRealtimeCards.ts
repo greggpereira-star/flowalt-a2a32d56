@@ -37,11 +37,13 @@ export const useRealtimeCards = (spaceId?: string) => {
           // Show toast for new cards created by others
           if (payload.eventType === 'INSERT') {
             const newCard = payload.new as { title: string; created_by: string };
-            toast({
-              title: 'Novo card criado',
-              description: newCard.title,
-              duration: 3000,
-            });
+            if (newCard.created_by !== user?.id) {
+              toast({
+                title: 'Novo card criado',
+                description: newCard.title,
+                duration: 3000,
+              });
+            }
           }
 
           if (payload.eventType === 'UPDATE') {
