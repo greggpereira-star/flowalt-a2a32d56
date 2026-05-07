@@ -67,10 +67,21 @@ export const useCards = (spaceId: string | undefined) => {
     queryFn: async () => {
       if (!spaceId || !currentWorkspace?.id) return [];
 
+      // Use the junction table to find cards associated with this space
+      const { data: junctionData, error: junctionError } = await supabase
+        .from('card_spaces')
+        .select('card_id')
+        .eq('space_id', spaceId);
+
+      if (junctionError) throw junctionError;
+      if (!junctionData.length) return [];
+
+      const cardIds = junctionData.map(j => j.card_id);
+
       const { data, error } = await supabase
         .from('cards')
         .select('*')
-        .eq('space_id', spaceId)
+        .in('id', cardIds)
         .neq('status', 'archived')
         .order('sort_order', { ascending: true });
 
@@ -248,6 +259,19 @@ export const useCreateCard = () => {
       if (cardError) {
         console.error('useCreateCard: insert into cards failed', cardError);
         throw new Error(getErrorMessage(cardError, 'Falha ao criar card.'));
+      }
+
+      // Add to junction table card_spaces
+      const { error: spaceError } = await supabase
+        .from('card_spaces')
+        .insert({
+          card_id: cardId,
+          space_id: input.space_id,
+        });
+
+      if (spaceError) {
+        console.error('useCreateCard: insert into card_spaces failed', spaceError);
+        throw new Error(getErrorMessage(spaceError, 'Falha ao vincular espaço.'));
       }
 
       // Add to folder if specified
