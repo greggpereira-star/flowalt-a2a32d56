@@ -336,26 +336,24 @@ const SpacePage: React.FC = () => {
 
   if (spaceLoading) {
     return (
-      <AppLayout>
-        <div className="p-6">
-          <Skeleton className="h-8 w-48 mb-4" />
-          <Skeleton className="h-[400px] w-full" />
-        </div>
-      </AppLayout>
+      <div className="p-6">
+        <Skeleton className="h-8 w-48 mb-4" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
     );
+
   }
 
   if (!space) {
     return (
-      <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Espaço não encontrado</p>
-          <Button variant="outline" onClick={() => navigate('/')} className="mt-4">
-            Voltar ao início
-          </Button>
-        </div>
-      </AppLayout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground">Espaço não encontrado</p>
+        <Button variant="outline" onClick={() => navigate('/')} className="mt-4">
+          Voltar ao início
+        </Button>
+      </div>
     );
+
   }
 
   const isSocialMedia = space.type === 'social_media';
@@ -364,20 +362,19 @@ const SpacePage: React.FC = () => {
   // Show empty state for blank spaces (except social_media which has auto-structure)
   if (isEmptySpace && !isSocialMedia) {
     return (
-      <AppLayout spaceId={spaceId}>
-        <EmptySpaceState
-          spaceId={spaceId!}
-          spaceName={space.name}
-          spaceColor={space.color}
-          spaceType={space.type}
-        />
-      </AppLayout>
+      <EmptySpaceState
+        spaceId={spaceId!}
+        spaceName={space.name}
+        spaceColor={space.color}
+        spaceType={space.type}
+      />
     );
+
   }
 
   return (
-    <AppLayout spaceId={spaceId} folderId={selectedFolder || undefined}>
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+
         {/* Fixed Header - Always visible */}
         <div className="flex-shrink-0 border-b border-border bg-background">
           <div className="px-4 py-2.5 flex items-center justify-between gap-3">
@@ -777,7 +774,7 @@ const SpacePage: React.FC = () => {
         folderId={activeFolderId || undefined}
         onSuccess={(cardId) => setSelectedCardId(cardId)}
       />
-    </AppLayout>
+    </div>
   );
 };
 
