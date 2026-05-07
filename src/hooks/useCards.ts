@@ -467,40 +467,42 @@ export const useShareCardAcrossSpaces = () => {
 
   return useMutation({
     mutationFn: async ({ cardId, spaceId }: { cardId: string; spaceId: string }) => {
-      console.log(`[useShareCardAcrossSpaces] Starting mutation for cardId: ${cardId}, spaceId: ${spaceId}`);
+      console.log(`[useShareCardAcrossSpaces] Starting share for cardId: ${cardId}, spaceId: ${spaceId}`);
       
       try {
-        const { error } = await supabase
+        // Link the card to the new space
+        const { error: insertError } = await supabase
           .from('card_spaces')
           .insert({
             card_id: cardId,
             space_id: spaceId,
           });
 
-        if (error) {
-          console.error(`[useShareCardAcrossSpaces] Database error sharing card ${cardId} to space ${spaceId}:`, {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            stack: new Error().stack
-          });
-
-          if (error.code === '23505') { // Unique constraint violation
-            throw new Error('Este card já está presente neste setor.');
+        if (insertError) {
+          if (insertError.code === '23505') {
+            console.log(`[useShareCardAcrossSpaces] Card ${cardId} already exists in space ${spaceId}`);
+            return { cardId, spaceId }; // Not an error if already shared
           }
-          throw error;
+          throw insertError;
         }
 
-        console.log(`[useShareCardAcrossSpaces] Success: Card ${cardId} linked to space ${spaceId}`);
+        // Verification check: ensure the record actually exists
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('card_spaces')
+          .select('id')
+          .eq('card_id', cardId)
+          .eq('space_id', spaceId)
+          .maybeSingle();
+
+        if (verifyError || !verifyData) {
+          console.error(`[useShareCardAcrossSpaces] Verification failed for card ${cardId} in space ${spaceId}`);
+          throw new Error('Falha na verificação de vínculo do card com o setor de destino.');
+        }
+
+        console.log(`[useShareCardAcrossSpaces] Success and Verified: Card ${cardId} linked to space ${spaceId}`);
         return { cardId, spaceId };
       } catch (err: any) {
-        console.error(`[useShareCardAcrossSpaces] Catch block error:`, {
-          cardId,
-          spaceId,
-          message: err.message,
-          stack: err.stack
-        });
+        console.error(`[useShareCardAcrossSpaces] Mutation failed:`, err);
         throw err;
       }
     },
