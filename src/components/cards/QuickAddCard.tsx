@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -35,6 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCreateCard } from '@/hooks/useCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useClientCards } from '@/hooks/useClientCards';
+import { useSpaces } from '@/hooks/useSpaces';
 import { useToast } from '@/hooks/use-toast';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -46,6 +48,8 @@ import {
   CheckSquare,
   Paperclip,
   Upload,
+  Copy,
+  Users,
 } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
@@ -59,6 +63,7 @@ interface QuickAddCardProps {
   folderId?: string;
   defaultStatus?: CardStatus;
   initialMode?: QuickAddMode;
+  isSocialMedia?: boolean;
 }
 
 const STATUS_OPTIONS: { value: CardStatus; label: string }[] = [
@@ -87,12 +92,14 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   folderId,
   defaultStatus = 'backlog',
   initialMode = 'quick',
+  isSocialMedia = false,
 }) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const createCard = useCreateCard();
   const { data: members } = useWorkspaceMembers();
   const { data: clientCards } = useClientCards();
+  const { data: spaces } = useSpaces();
   
   // Use only active clients from client_cards (new system)
   const clients = useMemo(() => {
@@ -113,6 +120,10 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   const [clientId, setClientId] = useState<string>('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  
+  // Cross-sector duplication
+  const [isDuplicateEnabled, setIsDuplicateEnabled] = useState(false);
+  const [duplicateToSpace, setDuplicateToSpace] = useState<string>('');
 
   useEffect(() => {
     if (open) setMode(initialMode);
@@ -130,6 +141,8 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     setChecklist([]);
     setNewChecklistItem('');
     setMode(initialMode);
+    setIsDuplicateEnabled(false);
+    setDuplicateToSpace('');
   };
 
   // Add checklist item
@@ -170,6 +183,29 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         owner_id: ownerId || undefined,
         card_type: mode === 'quick' ? 'quick' : 'full',
       });
+
+      // Handle cross-sector duplication if enabled
+      if (isDuplicateEnabled && duplicateToSpace) {
+        try {
+          await createCard.mutateAsync({
+            title: `[SOCIAL] ${title.trim()}`,
+            space_id: duplicateToSpace,
+            description: `Demanda originada do Social Media.\n\n${description || ''}`,
+            client_id: clientId || undefined,
+            due_date: dueDate?.toISOString(),
+            urgency: urgency,
+            status: 'todo',
+            card_type: 'full'
+          });
+          toast({ title: 'Card duplicado para o setor selecionado' });
+        } catch (dupError) {
+          console.error('Error duplicating card:', dupError);
+          toast({
+            title: 'Erro ao duplicar tarefa',
+            variant: 'destructive',
+          });
+        }
+      }
 
       toast({ title: 'Card criado com sucesso!' });
       resetForm();
@@ -280,7 +316,43 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
               </SelectContent>
             </Select>
           </div>
-        </div>
+          </div>
+
+          {/* Duplication to other sectors */}
+          {isSocialMedia && (
+            <div className="p-3 rounded-lg border bg-primary/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Copy className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold">Duplicar para outro setor</span>
+                </div>
+                <Switch 
+                  checked={isDuplicateEnabled} 
+                  onCheckedChange={setIsDuplicateEnabled}
+                />
+              </div>
+
+              {isDuplicateEnabled && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
+                    <SelectTrigger className="bg-background h-8">
+                      <SelectValue placeholder="Escolher setor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {spaces?.filter(s => s.id !== spaceId).map(space => (
+                        <SelectItem key={space.id} value={space.id}>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-xs">{space.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
       ) : (
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
