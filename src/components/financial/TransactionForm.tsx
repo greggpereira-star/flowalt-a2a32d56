@@ -112,6 +112,8 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
     }
   );
 
+  const isSubmittingRef = useRef(false);
+
   // Clear persistence when the dialog is closed if it wasn't a successful submission
   useEffect(() => {
     if (open && !transaction) {
