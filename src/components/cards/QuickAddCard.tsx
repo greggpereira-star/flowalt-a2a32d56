@@ -564,7 +564,11 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         <DialogHeader>
           <DialogTitle>Novo Card</DialogTitle>
         </DialogHeader>
-        {content}
+        <ScrollArea className="max-h-[80vh]">
+          <div className="px-1 py-1">
+            {content}
+          </div>
+        </ScrollArea>
         <DialogFooter>
           {footer}
         </DialogFooter>
