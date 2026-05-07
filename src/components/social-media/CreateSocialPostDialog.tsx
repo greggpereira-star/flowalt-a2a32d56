@@ -517,7 +517,27 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           alt_text: altText || undefined,
         };
 
-        await createPost.mutateAsync(input);
+        const postResult = await createPost.mutateAsync(input);
+        
+        // Handle cross-sector duplication if enabled
+        if (isDuplicateEnabled && duplicateToSpace) {
+          try {
+            await createCard.mutateAsync({
+              title: `[SOCIAL] ${title || 'Nova Postagem'}`,
+              space_id: duplicateToSpace,
+              description: `Demanda originada do Social Media.\n\nPlataforma: ${platformConfig[platform as SocialPlatform]?.name}\nTipo: ${contentTypeConfig[contentType as SocialContentType]?.name}\n\nLegenda: ${caption}`,
+              client_id: clientId || undefined,
+              due_date: scheduledAt,
+              urgency: 'medium',
+              status: 'todo',
+              card_type: 'full'
+            });
+            toast.success('Tarefa duplicada para o setor selecionado');
+          } catch (dupError) {
+            console.error('Error duplicating card:', dupError);
+            toast.error('Erro ao duplicar tarefa para outro setor');
+          }
+        }
       }
       
       onOpenChange(false);
