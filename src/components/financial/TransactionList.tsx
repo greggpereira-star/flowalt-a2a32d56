@@ -462,29 +462,29 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                 </TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent border-b border-border/50">
-                <TableHead className="w-[8%] min-w-[60px] text-center font-semibold px-1">
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 font-semibold p-1 hover:bg-transparent">
+                <TableHead className="w-[60px] text-center font-semibold px-2 py-3">
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 font-semibold p-1 hover:bg-transparent -ml-1">
                     Tipo <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[40%] min-w-[200px] font-semibold px-2">
+                <TableHead className="font-semibold px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('description')} className="h-8 font-semibold p-1 -ml-1 hover:bg-transparent">
                     Descrição <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[15%] min-w-[120px] font-semibold px-2">C. Custo</TableHead>
-                <TableHead className="w-[12%] min-w-[100px] font-semibold px-2">
+                <TableHead className="font-semibold px-4 py-3">Centro de Custo</TableHead>
+                <TableHead className="w-[120px] font-semibold px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('due_date')} className="h-8 font-semibold p-1 -ml-1 hover:bg-transparent">
-                    Venc. <ArrowUpDown className="ml-1 h-3 w-3" />
+                    Vencimento <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[12%] min-w-[110px] font-semibold text-right px-2">
+                <TableHead className="w-[140px] font-semibold text-right px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('amount')} className="h-8 font-semibold p-1 -mr-1 ml-auto hover:bg-transparent">
                     Valor <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[10%] min-w-[90px] font-semibold px-2">Status</TableHead>
-                <TableHead className="w-[3%] min-w-[40px] px-1"></TableHead>
+                <TableHead className="w-[110px] font-semibold px-4 py-3">Status</TableHead>
+                <TableHead className="w-[50px] px-2 py-3"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
