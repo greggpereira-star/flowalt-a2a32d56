@@ -6,6 +6,7 @@ import { UseFormReturn } from "react-hook-form";
  * @param form The react-hook-form instance
  * @param storageKey Unique key to store the data
  * @param enabled Whether persistence is enabled
+ * @param onLoad Optional callback when data is loaded
  */
 export function useFormPersistence<TFieldValues extends Record<string, any>>(
   form: UseFormReturn<TFieldValues>,
@@ -14,9 +15,10 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
   onLoad?: (data: TFieldValues) => void
 ) {
   const isLoadedRef = useRef(false);
+
   // Load initial data from localStorage
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || isLoadedRef.current) return;
 
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
@@ -33,8 +35,7 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
           return acc;
         }, {} as TFieldValues);
 
-        // Update form values. Using reset with current values merged with saved data
-        // to keep default values for fields not in storage
+        // Update form values
         form.reset({
           ...form.getValues(),
           ...revivedData
@@ -43,11 +44,13 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
         if (onLoad) {
           onLoad(revivedData);
         }
+        
+        isLoadedRef.current = true;
       } catch (error) {
         console.error("Failed to load persisted form data:", error);
       }
     }
-  }, [enabled, storageKey]); // Only on mount or if key changes
+  }, [enabled, storageKey, form, onLoad]);
 
   // Save data to localStorage on change
   useEffect(() => {
@@ -63,6 +66,7 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
   // Function to clear storage (call this after successful submit)
   const clearPersistence = () => {
     localStorage.removeItem(storageKey);
+    isLoadedRef.current = false;
   };
 
   return { clearPersistence };
