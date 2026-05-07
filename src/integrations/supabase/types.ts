@@ -9480,6 +9480,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workspace_members_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
