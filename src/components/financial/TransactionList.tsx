@@ -203,6 +203,25 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     toast.success("Excel gerado com sucesso!");
   };
 
+  const clearFilters = () => {
+    setFilters({
+      type: "all",
+      status: "all",
+      category: "all",
+      costCenter: "all",
+      collaborator: "all",
+      month: null,
+    });
+  };
+
+  const hasActiveFilters = 
+    filters.type !== "all" || 
+    filters.status !== "all" || 
+    filters.category !== "all" || 
+    filters.costCenter !== "all" || 
+    filters.collaborator !== "all" || 
+    filters.month !== null;
+
   if (isLoading) {
     return <div className="text-muted-foreground p-4">Carregando...</div>;
   }
@@ -321,11 +340,86 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
           </Button>
         </div>
 
-        <Button variant="outline" onClick={handleExportExcel} className="ml-auto">
+        <Button variant="outline" onClick={handleExportExcel} className="ml-auto shrink-0">
           <FileDown className="w-4 h-4 mr-2" />
           Exportar Excel
         </Button>
       </div>
+
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 pb-2">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Filtros ativos:</span>
+          
+          {filters.category !== "all" && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {categories.find(c => c.id === filters.category)?.name || "Categoria"}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, category: "all" }))}
+              />
+            </Badge>
+          )}
+
+          {filters.month && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {format(filters.month, "MMM yyyy", { locale: ptBR })}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, month: null }))}
+              />
+            </Badge>
+          )}
+
+          {filters.type !== "all" && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {filters.type === "income" ? "Receitas" : "Despesas"}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, type: "all" }))}
+              />
+            </Badge>
+          )}
+
+          {filters.status !== "all" && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {filters.status === "paid" ? "Pago" : filters.status === "pending" ? "Pendente" : filters.status === "overdue" ? "Vencido" : "Cancelado"}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, status: "all" }))}
+              />
+            </Badge>
+          )}
+
+          {filters.costCenter !== "all" && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {filters.costCenter === "unassigned" ? "Sem C. Custo" : costCenters.find(cc => cc.id === filters.costCenter)?.name || "Centro de Custo"}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, costCenter: "all" }))}
+              />
+            </Badge>
+          )}
+
+          {filters.collaborator !== "all" && (
+            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+              {filters.collaborator === "unassigned" ? "Sem Colab." : members.find(m => m.id === filters.collaborator)?.profile?.full_name || "Colaborador"}
+              <X 
+                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
+                onClick={() => setFilters(prev => ({ ...prev, collaborator: "all" }))}
+              />
+            </Badge>
+          )}
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearFilters}
+            className="h-7 text-xs text-muted-foreground hover:text-destructive transition-colors"
+          >
+            Limpar todos
+          </Button>
+        </div>
+      )}
 
       <div className="rounded-xl border border-border/50 bg-background overflow-hidden shadow-sm">
         <Table>
