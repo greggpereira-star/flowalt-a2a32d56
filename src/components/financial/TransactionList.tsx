@@ -104,28 +104,6 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const [showScrollButtons, setShowScrollButtons] = useState(false);
   const tabsListRef = useRef<HTMLDivElement>(null);
 
-  const checkScroll = () => {
-    if (tabsListRef.current) {
-      const { scrollWidth, clientWidth } = tabsListRef.current;
-      setShowScrollButtons(scrollWidth > clientWidth);
-    }
-  };
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [categories, allTransactions]);
-
-  const scrollTabs = (direction: 'left' | 'right') => {
-    if (tabsListRef.current) {
-      const scrollAmount = 200;
-      tabsListRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   
   const { data: allTransactions = [], isLoading } = useTransactions({
