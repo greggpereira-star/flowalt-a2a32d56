@@ -43,6 +43,10 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   category?: FinancialCategory;
+  collaborator_profile?: {
+    full_name: string | null;
+    email: string;
+  };
 }
 
 export function useCategories() {
@@ -72,6 +76,7 @@ export function useTransactions(filters?: {
   startDate?: string;
   endDate?: string;
   categoryId?: string;
+  collaboratorId?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
 
@@ -100,7 +105,8 @@ export function useTransactions(filters?: {
         .from("transactions")
         .select(`
           *,
-          category:financial_categories(*)
+          category:financial_categories(*),
+          collaborator_profile:profiles!transactions_collaborator_id_fkey(full_name, email)
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("due_date", { ascending: false });
@@ -119,6 +125,9 @@ export function useTransactions(filters?: {
       }
       if (filters?.categoryId) {
         query = query.eq("category_id", filters.categoryId);
+      }
+      if (filters?.collaboratorId) {
+        query = query.eq("collaborator_id", filters.collaboratorId);
       }
 
       const { data, error } = await query;
