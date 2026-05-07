@@ -421,7 +421,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
       )}
 
       <div className="rounded-xl border border-border/50 bg-background overflow-hidden shadow-sm">
-        <div className="w-full">
+        <div className="w-full overflow-hidden">
           <Table className="w-full border-collapse">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-none">
