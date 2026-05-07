@@ -373,7 +373,9 @@ const SpacePage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <>
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+
 
         {/* Fixed Header - Always visible */}
         <div className="flex-shrink-0 border-b border-border bg-background">
@@ -774,7 +776,8 @@ const SpacePage: React.FC = () => {
         folderId={activeFolderId || undefined}
         onSuccess={(cardId) => setSelectedCardId(cardId)}
       />
-    </div>
+    </>
+
   );
 };
 
