@@ -179,17 +179,25 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   return (
     <div className="space-y-4">
       <Tabs
-        defaultValue="all"
+        value={filters.category}
         onValueChange={(value) => {
-          setFilters(prev => ({ ...prev, category: value === "all" ? null : value }));
+          setFilters(prev => ({ ...prev, category: value }));
         }}
+        className="w-full"
       >
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">
+        <TabsList className="mb-4 flex-wrap h-auto bg-transparent gap-2">
+          <TabsTrigger 
+            value="all"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
+          >
             Todos <Badge variant="secondary" className="ml-1.5">{transactions.length}</Badge>
           </TabsTrigger>
           {categories.map((cat) => (
-            <TabsTrigger key={cat.id} value={cat.id}>
+            <TabsTrigger 
+              key={cat.id} 
+              value={cat.id}
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
+            >
               {cat.name} <Badge variant="secondary" className="ml-1.5">{transactions.filter(t => t.category_id === cat.id).length}</Badge>
             </TabsTrigger>
           ))}
