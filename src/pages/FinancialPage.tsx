@@ -312,7 +312,7 @@ export default function FinancialPage() {
           onOpenChange={(open) => !open && setEditingInvoice(null)}
           invoice={editingInvoice}
         />
-      </div>
     </PermissionGuard>
+
   );
 }
