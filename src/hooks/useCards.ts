@@ -330,9 +330,16 @@ export const useCreateCard = () => {
       } as unknown as Card;
     },
     onSuccess: (data, variables) => {
+      // Immediate invalidation of all card lists to catch the new card and its relationships
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
+      
+      // Target specific space if provided
+      if (variables.space_id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
+        // Force refetch to ensure background sync
+        queryClient.refetchQueries({ queryKey: ['cards', 'space', variables.space_id] });
+      }
+
       // Invalidate folder cache if card was linked to a folder
       if (variables.folder_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'folder', variables.folder_id] });
@@ -507,11 +514,20 @@ export const useShareCardAcrossSpaces = () => {
       }
     },
     onSuccess: (data) => {
-      // Invalidate everything related to cards to force a fresh board state
+      // Step 1: Invalidate the general cards key
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-      // This specifically targets 'cards', 'space', undefined or any spaceId to ensure UI reflects changes
-      queryClient.refetchQueries({ queryKey: ['cards', 'space'] });
+      
+      // Step 2: Force refetch of all space boards to ensure the duplicated card appears
+      // We use refetch instead of just invalidate to trigger an immediate network request
+      queryClient.refetchQueries({ 
+        queryKey: ['cards', 'space'],
+        type: 'active'
+      });
+
+      // Step 3: Specifically invalidate the target space and the single card
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
+      
       toast.success('Card compartilhado com sucesso!');
     },
     onError: (error: Error) => {
