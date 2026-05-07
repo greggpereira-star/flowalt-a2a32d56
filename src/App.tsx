@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
@@ -58,6 +58,21 @@ const ProtectedLayout = () => (
     </AppLayout>
   </AuthGuard>
 );
+
+// Helper component to ensure tools are only rendered when authenticated
+const ConditionalTools = () => {
+  const { session, loading } = useAuth();
+  
+  if (loading || !session) return null;
+
+  return (
+    <>
+      <OnboardingTour />
+      <CommandPalette />
+      <KeyboardShortcutsDialog />
+    </>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -114,7 +129,6 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
 
-              {/* Conditional rendering for tools that depend on Auth/Workspace context */}
               <ConditionalTools />
             </GlobalModalProvider>
           </WorkspaceProvider>
@@ -123,13 +137,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
-
-// Helper component to ensure tools are only rendered when authenticated
-const ConditionalTools = () => {
-  const { session, loading } = AuthProvider.useAuth?.() || {}; 
-  // Note: we can't use useAuth here directly because it's outside the provider in the component tree
-  // But wait, App calls it inside. Let's fix this properly.
-  return null; 
-};
 
 export default App;
