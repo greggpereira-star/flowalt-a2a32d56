@@ -108,8 +108,8 @@ export function useTransactions(filters?: {
         .select(`
           *,
           category:financial_categories(*),
-          collaborator:workspace_members(
-            profile:profiles(full_name, email)
+          collaborator:workspace_members!transactions_collaborator_id_fkey(
+            profile:profiles!workspace_members_profiles_fkey(full_name, email)
           )
         `)
         .eq("workspace_id", currentWorkspace.id)
