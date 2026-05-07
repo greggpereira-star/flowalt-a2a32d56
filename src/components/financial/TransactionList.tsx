@@ -421,8 +421,8 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
       )}
 
       <div className="rounded-xl border border-border/50 bg-background overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <Table className="table-fixed w-full min-w-[800px]">
+        <div className="w-full overflow-hidden">
+          <Table className="w-full border-collapse">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead colSpan={7} className="p-0 h-auto">
@@ -433,10 +433,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                     }}
                     className="w-full"
                   >
-                    <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 overflow-x-auto no-scrollbar">
+                    <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 flex-wrap overflow-visible">
                       <TabsTrigger 
                         value="all"
-                        className="h-12 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
+                        className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
                       >
                         Todos
                         <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
@@ -449,7 +449,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           <TabsTrigger 
                             key={cat.id} 
                             value={cat.id}
-                            className="h-12 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
+                            className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
                           >
                             {cat.name}
                             <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
@@ -462,29 +462,29 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                 </TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent border-b border-border/50">
-                <TableHead className="w-[8%] min-w-[60px] text-center font-semibold px-1">
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 font-semibold p-1 hover:bg-transparent">
+                <TableHead className="w-[60px] text-center font-semibold px-2 py-3">
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 font-semibold p-1 hover:bg-transparent -ml-1">
                     Tipo <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[40%] min-w-[200px] font-semibold px-2">
+                <TableHead className="font-semibold px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('description')} className="h-8 font-semibold p-1 -ml-1 hover:bg-transparent">
                     Descrição <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[15%] min-w-[120px] font-semibold px-2">C. Custo</TableHead>
-                <TableHead className="w-[12%] min-w-[100px] font-semibold px-2">
+                <TableHead className="font-semibold px-4 py-3">Centro de Custo</TableHead>
+                <TableHead className="w-[120px] font-semibold px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('due_date')} className="h-8 font-semibold p-1 -ml-1 hover:bg-transparent">
-                    Venc. <ArrowUpDown className="ml-1 h-3 w-3" />
+                    Vencimento <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[12%] min-w-[110px] font-semibold text-right px-2">
+                <TableHead className="w-[140px] font-semibold text-right px-4 py-3">
                   <Button variant="ghost" size="sm" onClick={() => handleSort('amount')} className="h-8 font-semibold p-1 -mr-1 ml-auto hover:bg-transparent">
                     Valor <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[10%] min-w-[90px] font-semibold px-2">Status</TableHead>
-                <TableHead className="w-[3%] min-w-[40px] px-1"></TableHead>
+                <TableHead className="w-[110px] font-semibold px-4 py-3">Status</TableHead>
+                <TableHead className="w-[50px] px-2 py-3"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -499,45 +499,47 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                   const costCenter = getCostCenterById(transaction.cost_center_id);
                   
                   return (
-                    <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0 h-12">
-                      <TableCell className="text-center px-1">
+                    <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0 min-h-[56px]">
+                      <TableCell className="text-center px-2 py-4">
                         {transaction.type === "income" ? (
                           <div className="flex justify-center">
-                            <div className="p-1 rounded-full bg-green-500/10">
-                              <ArrowUpCircle className="w-3.5 h-3.5 text-green-500" />
+                            <div className="p-2 rounded-full bg-green-500/10">
+                              <ArrowUpCircle className="w-4 h-4 text-green-500" />
                             </div>
                           </div>
                         ) : (
                           <div className="flex justify-center">
-                            <div className="p-1 rounded-full bg-red-500/10">
-                              <ArrowDownCircle className="w-3.5 h-3.5 text-red-500" />
+                            <div className="p-2 rounded-full bg-red-500/10">
+                              <ArrowDownCircle className="w-4 h-4 text-red-500" />
                             </div>
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium text-foreground py-2 px-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {transaction.description}
+                      <TableCell className="font-medium text-foreground py-4 px-4 max-w-[400px]">
+                        <div className="truncate" title={transaction.description}>
+                          {transaction.description}
+                        </div>
                       </TableCell>
-                      <TableCell className="px-2">
-                        <div className="flex items-center gap-1.5 overflow-hidden">
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-2">
                           <Select
                             value={transaction.cost_center_id || "none"}
                             onValueChange={(value) => handleAssignCostCenter(transaction.id, value)}
                             disabled={assigningCostCenter === transaction.id}
                           >
-                            <SelectTrigger className="h-7 text-[11px] w-full bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none px-1">
+                            <SelectTrigger className="h-8 text-xs w-[160px] bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none px-2">
                               {assigningCostCenter === transaction.id ? (
                                 <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                               ) : costCenter ? (
-                                <div className="flex items-center gap-1.5 overflow-hidden">
+                                <div className="flex items-center gap-2 overflow-hidden">
                                   <div
-                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    className="w-2 h-2 rounded-full shrink-0"
                                     style={{ backgroundColor: costCenter.color || "#3B82F6" }}
                                   />
                                   <span className="truncate">{costCenter.name}</span>
                                 </div>
                               ) : (
-                                <span className="text-amber-600/70 font-medium">N/D</span>
+                                <span className="text-amber-600 font-medium">Não atribuído</span>
                               )}
                             </SelectTrigger>
                             <SelectContent>
@@ -559,19 +561,19 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           </Select>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap px-2 text-[13px]">
-                        {format(new Date(transaction.due_date), "dd/MM/yy", { locale: ptBR })}
+                      <TableCell className="text-muted-foreground whitespace-nowrap px-4 py-4">
+                        {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
-                      <TableCell className={`text-right font-semibold whitespace-nowrap px-2 text-[13px] ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                      <TableCell className={`text-right font-semibold whitespace-nowrap px-4 py-4 ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
                         {transaction.type === "income" ? "+" : "-"}
                         {formatCurrency(transaction.amount)}
                       </TableCell>
-                      <TableCell className="px-2">{getStatusBadge(transaction.status)}</TableCell>
-                      <TableCell className="px-1">
+                      <TableCell className="px-4 py-4">{getStatusBadge(transaction.status)}</TableCell>
+                      <TableCell className="px-2 py-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
