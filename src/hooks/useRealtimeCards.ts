@@ -30,6 +30,7 @@ export const useRealtimeCards = (spaceId?: string) => {
           // Invalidate queries to refresh data
           queryClient.invalidateQueries({ queryKey: ['cards'] });
           queryClient.invalidateQueries({ queryKey: ['card-history'] });
+          queryClient.invalidateQueries({ queryKey: ['client-cards'] }); // Refresh client card associations if any
           
           if (spaceId) {
             queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
