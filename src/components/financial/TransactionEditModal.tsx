@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,6 +117,12 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
   const watchType = form.watch("type");
   const watchRecurrence = form.watch("recurrence");
 
+  const { clearPersistence } = useFormPersistence(
+    form,
+    `transaction-edit-${transaction?.id}`,
+    open && !!transaction
+  );
+
   const onSubmit = async (data: FormData) => {
     if (!transaction) return;
 
@@ -138,6 +145,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
       notes: data.notes || null,
     });
 
+    clearPersistence();
     onOpenChange(false);
   };
 
