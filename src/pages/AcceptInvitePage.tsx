@@ -116,19 +116,22 @@ export default function AcceptInvitePage() {
     if (token) {
       sessionStorage.setItem('pending_invite_token', token);
     }
-    navigate('/auth');
+    navigate('/auth', { state: { from: location } });
   };
 
-  // Auto-accept after login if we have a pending invite
+  // Auto-accept after login if we have a pending invite or if the user is already logged in with the correct email
   useEffect(() => {
-    if (user && !authLoading && status === 'valid') {
+    if (user && !authLoading && status === 'valid' && inviteInfo) {
       const pendingToken = sessionStorage.getItem('pending_invite_token');
-      if (pendingToken === token) {
+      const isCorrectEmail = user.email?.toLowerCase() === inviteInfo.email.toLowerCase();
+      
+      // Se veio do login (tem token salvo) OU se já está logado com o email correto, aceita automaticamente
+      if (pendingToken === token || isCorrectEmail) {
         sessionStorage.removeItem('pending_invite_token');
         handleAcceptInvite();
       }
     }
-  }, [user, authLoading, status]);
+  }, [user, authLoading, status, inviteInfo, token]);
 
   if (authLoading || status === 'loading') {
     return (
