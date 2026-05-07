@@ -86,6 +86,7 @@ const getManagementItems = (hasIntegrationAccess: boolean, hasSocialPublish: boo
 };
 
 export const AppSidebar: React.FC = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
