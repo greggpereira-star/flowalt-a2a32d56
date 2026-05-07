@@ -178,33 +178,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
 
   return (
     <div className="space-y-4">
-      <Tabs
-        value={filters.category}
-        onValueChange={(value) => {
-          setFilters(prev => ({ ...prev, category: value }));
-        }}
-        className="w-full"
-      >
-        <TabsList className="mb-4 flex-wrap h-auto bg-transparent gap-2">
-          <TabsTrigger 
-            value="all"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
-          >
-            Todos <Badge variant="secondary" className="ml-1.5">{transactions.length}</Badge>
-          </TabsTrigger>
-          {categories.map((cat) => (
-            <TabsTrigger 
-              key={cat.id} 
-              value={cat.id}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
-            >
-              {cat.name} <Badge variant="secondary" className="ml-1.5">{transactions.filter(t => t.category_id === cat.id).length}</Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex gap-4 flex-wrap items-center">
         <Select
           value={filters.type}
           onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
@@ -282,12 +256,12 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
         </Select>
 
         {/* Month Filter */}
-        <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10">
+        <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10 bg-background">
           <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-muted"
             onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) }))}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -303,7 +277,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-muted"
             onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) }))}
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -316,17 +290,54 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
         </Button>
       </div>
 
-      <div className="rounded-md border border-border">
+      <div className="rounded-xl border border-border/50 bg-background overflow-hidden shadow-sm">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Centro de Custo</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Status</TableHead>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead colSpan={8} className="p-0 h-auto">
+                <Tabs
+                  value={filters.category}
+                  onValueChange={(value) => {
+                    setFilters(prev => ({ ...prev, category: value }));
+                  }}
+                  className="w-full"
+                >
+                  <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0">
+                    <TabsTrigger 
+                      value="all"
+                      className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground"
+                    >
+                      Todos
+                      <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
+                        {transactions.length}
+                      </Badge>
+                    </TabsTrigger>
+                    {categories
+                      .filter(cat => transactions.some(t => t.category_id === cat.id))
+                      .map((cat) => (
+                        <TabsTrigger 
+                          key={cat.id} 
+                          value={cat.id}
+                          className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground"
+                        >
+                          {cat.name}
+                          <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
+                            {transactions.filter(t => t.category_id === cat.id).length}
+                          </Badge>
+                        </TabsTrigger>
+                      ))}
+                  </TabsList>
+                </Tabs>
+              </TableHead>
+            </TableRow>
+            <TableRow className="hover:bg-transparent border-b border-border/50">
+              <TableHead className="w-[60px] text-center font-semibold">Tipo</TableHead>
+              <TableHead className="font-semibold">Descrição</TableHead>
+              <TableHead className="font-semibold">Categoria</TableHead>
+              <TableHead className="font-semibold">Centro de Custo</TableHead>
+              <TableHead className="font-semibold">Vencimento</TableHead>
+              <TableHead className="font-semibold text-right">Valor</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -342,18 +353,36 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                 const costCenter = getCostCenterById(transaction.cost_center_id);
                 
                 return (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
+                  <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0">
+                    <TableCell className="text-center">
                       {transaction.type === "income" ? (
-                        <ArrowUpCircle className="w-5 h-5 text-green-500" />
+                        <div className="flex justify-center">
+                          <div className="p-1.5 rounded-full bg-green-500/10">
+                            <ArrowUpCircle className="w-4 h-4 text-green-500" />
+                          </div>
+                        </div>
                       ) : (
-                        <ArrowDownCircle className="w-5 h-5 text-red-500" />
+                        <div className="flex justify-center">
+                          <div className="p-1.5 rounded-full bg-red-500/10">
+                            <ArrowDownCircle className="w-4 h-4 text-red-500" />
+                          </div>
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell className="font-medium text-foreground py-4">
+                      {transaction.description}
+                    </TableCell>
                     <TableCell>
-                      {transaction.category?.name || (
-                        <span className="text-muted-foreground">Sem categoria</span>
+                      {transaction.category ? (
+                        <Badge 
+                          variant="outline" 
+                          className="font-normal border-border/50 bg-muted/20"
+                          style={transaction.category.color ? { borderLeftColor: transaction.category.color, borderLeftWidth: '3px' } : {}}
+                        >
+                          {transaction.category.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Sem categoria</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -363,19 +392,19 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           onValueChange={(value) => handleAssignCostCenter(transaction.id, value)}
                           disabled={assigningCostCenter === transaction.id}
                         >
-                          <SelectTrigger className="h-8 text-xs w-[140px]">
+                          <SelectTrigger className="h-8 text-xs w-[140px] bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none">
                             {assigningCostCenter === transaction.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                             ) : costCenter ? (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 overflow-hidden">
                                 <div
-                                  className="w-2 h-2 rounded-full"
+                                  className="w-1.5 h-1.5 rounded-full shrink-0"
                                   style={{ backgroundColor: costCenter.color || "#3B82F6" }}
                                 />
                                 <span className="truncate">{costCenter.name}</span>
                               </div>
                             ) : (
-                              <span className="text-amber-600">Não atribuído</span>
+                              <span className="text-amber-600/80 font-medium">Não atribuído</span>
                             )}
                           </SelectTrigger>
                           <SelectContent>
@@ -397,10 +426,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                         </Select>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
                       {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className={transaction.type === "income" ? "text-green-500" : "text-red-500"}>
+                    <TableCell className={`text-right font-semibold whitespace-nowrap ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
                       {transaction.type === "income" ? "+" : "-"}
                       {formatCurrency(transaction.amount)}
                     </TableCell>
