@@ -70,7 +70,12 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
-  const { data: transactions = [], isLoading } = useTransactions({
+  const { data: allTransactions = [], isLoading } = useTransactions({
+    startDate: filters.month ? startOfMonth(filters.month).toISOString().split("T")[0] : undefined,
+    endDate: filters.month ? endOfMonth(filters.month).toISOString().split("T")[0] : undefined,
+  });
+
+  const { data: filteredTransactionsFromApi = [] } = useTransactions({
     type: filters.type === "all" ? undefined : filters.type as any,
     status: filters.status === "all" ? undefined : filters.status as any,
     categoryId: filters.category === "all" ? undefined : filters.category,
