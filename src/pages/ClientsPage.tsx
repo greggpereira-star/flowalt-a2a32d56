@@ -178,7 +178,7 @@ export const ClientsPage: React.FC = () => {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
           {/* Header */}
@@ -314,7 +314,7 @@ export const ClientsPage: React.FC = () => {
         open={!!selectedClientId}
         onOpenChange={(open) => !open && handleCloseSheet()}
       />
-    </AppLayout>
+    </>
   );
 };
 
