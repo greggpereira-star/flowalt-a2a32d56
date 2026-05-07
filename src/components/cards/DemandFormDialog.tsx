@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ import {
   Clock,
   AlertCircle,
   Sparkles,
+  Copy,
 } from 'lucide-react';
 import type { BriefingData } from './BriefingForm';
 
@@ -50,6 +52,7 @@ interface DemandFormDialogProps {
   spaceId?: string;
   folderId?: string;
   onSuccess?: (cardId: string) => void;
+  isSocialMedia?: boolean;
 }
 
 type Step = 'info' | 'briefing' | 'review';
@@ -66,6 +69,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
   spaceId: defaultSpaceId,
   folderId,
   onSuccess,
+  isSocialMedia = false,
 }) => {
   const { toast: toastHook } = useToast();
   const createCard = useCreateCard();
@@ -85,6 +89,10 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
   
+  // Cross-sector duplication
+  const [isDuplicateEnabled, setIsDuplicateEnabled] = useState(false);
+  const [duplicateToSpace, setDuplicateToSpace] = useState<string>('');
+
   // Form state - Briefing
   const [briefingData, setBriefingData] = useState<BriefingData>({
     context: '',
@@ -172,6 +180,28 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         current_stage: firstStage?.id,
       });
 
+      // Handle cross-sector duplication if enabled
+      if (isDuplicateEnabled && duplicateToSpace) {
+        try {
+          await createCard.mutateAsync({
+            title: `[SOCIAL] ${title.trim()}`,
+            space_id: duplicateToSpace,
+            description: `Demanda originada do Social Media.\n\n${description.trim()}`,
+            client_id: clientId || undefined,
+            due_date: dueDate || undefined,
+            urgency: 'medium',
+            status: 'todo',
+            card_type: 'full',
+            briefing_data: isBriefingValid ? briefingData : undefined,
+            briefing_completed: isBriefingValid,
+          });
+          toast.success('Tarefa duplicada para o setor selecionado');
+        } catch (dupError) {
+          console.error('Error duplicating card:', dupError);
+          toast.error('Erro ao duplicar tarefa');
+        }
+      }
+
       toast.success('Demanda criada com sucesso!', {
         description: isBriefingValid 
           ? 'Card criado com briefing completo.' 
@@ -200,6 +230,8 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
     setClientId('');
     setDueDate('');
     setEstimatedHours('');
+    setIsDuplicateEnabled(false);
+    setDuplicateToSpace('');
     setBriefingData({
       context: '',
       target_audience: '',
@@ -358,6 +390,48 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* Duplication to other sectors */}
+                {isSocialMedia && (
+                  <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Copy className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold">Duplicar para outro setor</h4>
+                          <p className="text-xs text-muted-foreground">Crie uma cópia desta demanda em outro quadro</p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={isDuplicateEnabled} 
+                        onCheckedChange={setIsDuplicateEnabled}
+                      />
+                    </div>
+
+                    {isDuplicateEnabled && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Label className="text-xs font-medium mb-1.5 block">Selecione o Quadro de Destino</Label>
+                        <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Escolher setor responsável..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {spaces?.filter(s => s.id !== spaceId).map(space => (
+                              <SelectItem key={space.id} value={space.id}>
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  <span>{space.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
