@@ -505,6 +505,8 @@ export const useShareCardAcrossSpaces = () => {
       }
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
       queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
       toast.success('Card compartilhado com sucesso!');
