@@ -777,6 +777,7 @@ const SpacePage: React.FC = () => {
         spaceId={spaceId}
         folderId={activeFolderId || undefined}
         onSuccess={(cardId) => setSelectedCardId(cardId)}
+        isSocialMedia={isSocialMedia}
       />
     </>
 
