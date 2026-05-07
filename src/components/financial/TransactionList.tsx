@@ -19,6 +19,7 @@ import {
   FileDown,
   User,
 } from "lucide-react";
+// @ts-ignore
 import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
