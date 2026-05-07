@@ -178,7 +178,7 @@ const TasksPage: React.FC = () => {
           </div>
           <Skeleton className="h-96" />
         </div>
-    </div>
+
 
     );
   }
