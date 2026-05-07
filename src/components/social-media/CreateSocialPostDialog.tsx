@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -53,6 +54,8 @@ import {
   Eye,
   Music,
   Info,
+  Copy,
+  Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -76,6 +79,8 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSpaces } from '@/hooks/useSpaces';
+import { useCreateCard } from '@/hooks/useCards';
 
 interface MediaFile {
   id: string;
@@ -142,8 +147,10 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 }) => {
   const createPost = useCreateSocialPost();
   const updatePost = useUpdateSocialPost();
+  const createCard = useCreateCard();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
+  const { data: spaces } = useSpaces();
   
   // Fetch existing post if in edit mode
   const { data: existingPost, isLoading: isLoadingPost } = useSocialPost(editPostId || null);
@@ -163,6 +170,11 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const [utmCampaign, setUtmCampaign] = useState('');
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Cross-sector duplication
+  const [duplicateToSpace, setDuplicateToSpace] = useState<string>('');
+  const [isDuplicateEnabled, setIsDuplicateEnabled] = useState(false);
+
   // Engagement fields
   const [locationName, setLocationName] = useState('');
   const [locationId, setLocationId] = useState('');
@@ -259,6 +271,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUtmCampaign('');
       setMedia([]);
       setIsUploading(false);
+      setIsDuplicateEnabled(false);
+      setDuplicateToSpace('');
       // Reset engagement fields
       setLocationName('');
       setLocationId('');
@@ -503,7 +517,27 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           alt_text: altText || undefined,
         };
 
-        await createPost.mutateAsync(input);
+        const postResult = await createPost.mutateAsync(input);
+        
+        // Handle cross-sector duplication if enabled
+        if (isDuplicateEnabled && duplicateToSpace) {
+          try {
+            await createCard.mutateAsync({
+              title: `[SOCIAL] ${title || 'Nova Postagem'}`,
+              space_id: duplicateToSpace,
+              description: `Demanda originada do Social Media.\n\nPlataforma: ${platformConfig[platform as SocialPlatform]?.name}\nTipo: ${contentTypeConfig[contentType as SocialContentType]?.name}\n\nLegenda: ${caption}`,
+              client_id: clientId || undefined,
+              due_date: scheduledAt,
+              urgency: 'medium',
+              status: 'todo',
+              card_type: 'full'
+            });
+            toast.success('Tarefa duplicada para o setor selecionado');
+          } catch (dupError) {
+            console.error('Error duplicating card:', dupError);
+            toast.error('Erro ao duplicar tarefa para outro setor');
+          }
+        }
       }
       
       onOpenChange(false);
@@ -724,18 +758,20 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {isEditMode ? (
-              <>
-                <Edit className="h-5 w-5 text-primary" />
-                Editar Postagem
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5 text-primary" />
-                Nova Postagem Social
-              </>
-            )}
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <>
+                  <Edit className="h-5 w-5 text-primary" />
+                  Editar Postagem
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Nova Postagem Social
+                </>
+              )}
+            </div>
           </DialogTitle>
           <DialogDescription>
             {isEditMode 
@@ -745,8 +781,54 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[65vh] pr-4">
           <div className="space-y-6 py-4">
+            {/* Duplication to other sectors (Visible only in Create Mode) */}
+            {!isEditMode && (
+              <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Copy className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold">Duplicar para outro setor</h4>
+                      <p className="text-xs text-muted-foreground">Crie uma cópia desta demanda em outro quadro</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={isDuplicateEnabled} 
+                    onCheckedChange={setIsDuplicateEnabled}
+                  />
+                </div>
+
+                {isDuplicateEnabled && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Label className="text-xs font-medium mb-1.5 block">Selecione o Quadro de Destino</Label>
+                    <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Escolher setor responsável..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {spaces?.filter(s => s.type !== 'social_media').map(space => (
+                          <SelectItem key={space.id} value={space.id}>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span>{space.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      O card será visível tanto no Social Media quanto no setor selecionado.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Platform Selection */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Plataforma *</Label>
