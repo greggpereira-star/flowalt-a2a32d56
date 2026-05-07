@@ -126,6 +126,30 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
 
+  const checkScroll = () => {
+    if (tabsListRef.current) {
+      const { scrollWidth, clientWidth } = tabsListRef.current;
+      setShowScrollButtons(scrollWidth > clientWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [categories, allTransactions]);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsListRef.current) {
+      const scrollAmount = 200;
+      tabsListRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
