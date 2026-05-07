@@ -20,6 +20,8 @@ import {
   FileDown,
   User,
   X,
+  ArrowUpDown,
+  FileSpreadsheet,
 } from "lucide-react";
 // @ts-ignore
 import * as XLSX from 'xlsx';
@@ -62,6 +64,7 @@ interface TransactionListProps {
 
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   
   const [filters, setFilters] = useState(() => {
     const monthParam = searchParams.get("month");
@@ -117,6 +120,38 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedTransactions = useMemo(() => {
+    const filtered = filteredTransactionsFromApi.filter((t) => {
+      if (filters.costCenter === "unassigned" && t.cost_center_id) return false;
+      if (filters.collaborator === "unassigned" && t.collaborator_id) return false;
+      return true;
+    });
+
+    if (!sortConfig) return filtered;
+
+    return [...filtered].sort((a, b) => {
+      let aVal = a[sortConfig.key as keyof typeof a];
+      let bVal = b[sortConfig.key as keyof typeof b];
+
+      if (sortConfig.key === 'amount') {
+        aVal = Number(aVal);
+        bVal = Number(bVal);
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredTransactionsFromApi, filters.costCenter, filters.collaborator, sortConfig]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -127,15 +162,15 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-green-500/20 text-green-500 border-green-500/30"><Check className="w-3 h-3 mr-1" /> Pago</Badge>;
+        return <Badge className="bg-green-500/20 text-green-500 border-green-500/30 whitespace-nowrap"><Check className="w-3 h-3 mr-1" /> Pago</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 whitespace-nowrap"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
       case "overdue":
-        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30"><AlertCircle className="w-3 h-3 mr-1" /> Vencido</Badge>;
+        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30 whitespace-nowrap"><AlertCircle className="w-3 h-3 mr-1" /> Vencido</Badge>;
       case "cancelled":
-        return <Badge variant="secondary">Cancelado</Badge>;
+        return <Badge variant="secondary" className="whitespace-nowrap">Cancelado</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="whitespace-nowrap">{status}</Badge>;
     }
   };
 
@@ -183,7 +218,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   };
 
   const handleExportExcel = () => {
-    const dataToExport = filteredTransactions.map(t => ({
+    const dataToExport = sortedTransactions.map(t => ({
       'Tipo': t.type === 'income' ? 'Receita' : 'Despesa',
       'Descrição': t.description,
       'Categoria': t.category?.name || 'Sem categoria',
@@ -199,8 +234,8 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-    XLSX.writeFile(wb, `lancamentos_financeiros_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
-    toast.success("Excel gerado com sucesso!");
+    XLSX.writeFile(wb, `lancamentos_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+    toast.success("Arquivo gerado com sucesso!");
   };
 
   const clearFilters = () => {
