@@ -14,6 +14,8 @@ import { OverLimitBanner } from '@/components/billing/OverLimitBanner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
+import { GlobalModals } from './GlobalModals';
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -77,7 +79,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
         {/* Birthday celebration (own birthday — opens once per day) */}
         <MyBirthdayCelebration />
+
+        {/* Global Modals - Persist across routes */}
+        <GlobalModals />
       </SidebarInset>
+
     </SidebarProvider>
   );
 };
