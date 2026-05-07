@@ -2,11 +2,13 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export const useRealtimeCards = (spaceId?: string) => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export const useRealtimeCards = (spaceId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentWorkspace?.id, spaceId, queryClient, toast]);
+  }, [currentWorkspace?.id, user?.id, spaceId, queryClient, toast]);
 };
 
 export const useRealtimeNotifications = () => {
