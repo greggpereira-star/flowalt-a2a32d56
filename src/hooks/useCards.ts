@@ -466,21 +466,42 @@ export const useShareCardAcrossSpaces = () => {
 
   return useMutation({
     mutationFn: async ({ cardId, spaceId }: { cardId: string; spaceId: string }) => {
-      const { error } = await supabase
-        .from('card_spaces')
-        .insert({
-          card_id: cardId,
-          space_id: spaceId,
-        });
+      console.log(`[useShareCardAcrossSpaces] Starting mutation for cardId: ${cardId}, spaceId: ${spaceId}`);
+      
+      try {
+        const { error } = await supabase
+          .from('card_spaces')
+          .insert({
+            card_id: cardId,
+            space_id: spaceId,
+          });
 
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          throw new Error('Este card já está presente neste setor.');
+        if (error) {
+          console.error(`[useShareCardAcrossSpaces] Database error sharing card ${cardId} to space ${spaceId}:`, {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            stack: new Error().stack
+          });
+
+          if (error.code === '23505') { // Unique constraint violation
+            throw new Error('Este card já está presente neste setor.');
+          }
+          throw error;
         }
-        throw error;
-      }
 
-      return { cardId, spaceId };
+        console.log(`[useShareCardAcrossSpaces] Success: Card ${cardId} linked to space ${spaceId}`);
+        return { cardId, spaceId };
+      } catch (err: any) {
+        console.error(`[useShareCardAcrossSpaces] Catch block error:`, {
+          cardId,
+          spaceId,
+          message: err.message,
+          stack: err.stack
+        });
+        throw err;
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
