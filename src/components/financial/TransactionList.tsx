@@ -61,14 +61,39 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
-  const [filters, setFilters] = useState({
-    type: initialFilters?.type || "all",
-    status: initialFilters?.status || "all",
-    category: "all",
-    costCenter: "all",
-    collaborator: "all",
-    month: null as Date | null,
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const [filters, setFilters] = useState(() => {
+    const monthParam = searchParams.get("month");
+    let initialMonth: Date | null = null;
+    if (monthParam) {
+      const parsedDate = parseISO(monthParam);
+      if (isValid(parsedDate)) {
+        initialMonth = parsedDate;
+      }
+    }
+
+    return {
+      type: searchParams.get("type") || initialFilters?.type || "all",
+      status: searchParams.get("status") || initialFilters?.status || "all",
+      category: searchParams.get("category") || "all",
+      costCenter: searchParams.get("costCenter") || "all",
+      collaborator: searchParams.get("collaborator") || "all",
+      month: initialMonth,
+    };
   });
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (filters.type !== "all") params.type = filters.type;
+    if (filters.status !== "all") params.status = filters.status;
+    if (filters.category !== "all") params.category = filters.category;
+    if (filters.costCenter !== "all") params.costCenter = filters.costCenter;
+    if (filters.collaborator !== "all") params.collaborator = filters.collaborator;
+    if (filters.month) params.month = filters.month.toISOString().split('T')[0];
+    
+    setSearchParams(params, { replace: true });
+  }, [filters, setSearchParams]);
   
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
