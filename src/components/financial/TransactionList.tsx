@@ -382,19 +382,6 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                       {transaction.description}
                     </TableCell>
                     <TableCell>
-                      {transaction.category ? (
-                        <Badge 
-                          variant="outline" 
-                          className="font-normal border-border/50 bg-muted/20"
-                          style={transaction.category.color ? { borderLeftColor: transaction.category.color, borderLeftWidth: '3px' } : {}}
-                        >
-                          {transaction.category.name}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs italic">Sem categoria</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Select
                           value={transaction.cost_center_id || "none"}
