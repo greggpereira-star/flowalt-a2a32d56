@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -108,7 +108,7 @@ export const AppSidebar: React.FC = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/auth', { replace: true });
   };
 
   return (
@@ -147,7 +147,10 @@ export const AppSidebar: React.FC = () => {
               </DropdownMenuItem>
             ))}
             {workspaces.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem onClick={() => navigate('/workspace/new')}>
+            <DropdownMenuItem onClick={(e) => {
+              e.preventDefault();
+              navigate('/workspace/new');
+            }}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Workspace
             </DropdownMenuItem>
@@ -162,11 +165,13 @@ export const AppSidebar: React.FC = () => {
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
+                    asChild
                     isActive={location.pathname === item.path}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <Link to={item.path}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -216,11 +221,13 @@ export const AppSidebar: React.FC = () => {
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
+                    asChild
                     isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '?')}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <Link to={item.path}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -252,9 +259,11 @@ export const AppSidebar: React.FC = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurações
+            <DropdownMenuItem asChild>
+              <Link to="/settings" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurações
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">

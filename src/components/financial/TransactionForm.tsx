@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -106,19 +106,24 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const { clearPersistence } = useFormPersistence(
     form, 
     "transaction-form-draft", 
-    open && !transaction // Only persist for new transactions when the form is open
+    open && !transaction, // Only persist for new transactions when the form is open
+    (data) => {
+      // Logic to handle loaded data if needed
+    }
   );
+
+  const isSubmittingRef = useRef(false);
 
   // Clear persistence when the dialog is closed if it wasn't a successful submission
   useEffect(() => {
-    if (!open && !transaction) {
-      // We might want to keep it if they just closed it, 
-      // but the requirement is "if I leave the screen". 
-      // Keeping it in localStorage is safe enough.
+    if (!open && !transaction && !isSubmittingRef.current) {
+      // Clear persistence when user manually cancels/closes a NEW transaction form
+      clearPersistence();
     }
-  }, [open, transaction]);
+  }, [open, transaction, clearPersistence]);
 
   const onSubmit = async (data: FormData) => {
+    isSubmittingRef.current = true;
     const amount = parseCurrencyToNumber(data.amount);
 
     const result = await createTransaction.mutateAsync({
@@ -166,7 +171,12 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
+    <Dialog open={open} onOpenChange={(v) => { 
+      if (!v) {
+        handleClose();
+        isSubmittingRef.current = false;
+      } else setOpen(true); 
+    }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
