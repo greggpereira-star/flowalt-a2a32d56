@@ -13,6 +13,7 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
   enabled: boolean = true,
   onLoad?: (data: TFieldValues) => void
 ) {
+  const isLoadedRef = useRef(false);
   // Load initial data from localStorage
   useEffect(() => {
     if (!enabled) return;
