@@ -170,15 +170,16 @@ const TasksPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
+
           <Skeleton className="h-8 w-48" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24" />)}
           </div>
           <Skeleton className="h-96" />
         </div>
-      </AppLayout>
+    </div>
+
     );
   }
 
@@ -240,7 +241,7 @@ const TasksPage: React.FC = () => {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -385,7 +386,7 @@ const TasksPage: React.FC = () => {
         open={!!selectedCardId}
         onOpenChange={(open) => !open && setSelectedCardId(null)}
       />
-    </AppLayout>
+    </>
   );
 };
 
