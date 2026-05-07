@@ -110,6 +110,7 @@ export const useStartTimer = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['running_timer', data.card_id] });
+      queryClient.invalidateQueries({ queryKey: ['card-history', data.card_id] });
     },
   });
 };
@@ -187,6 +188,7 @@ export const useStopTimer = () => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['running_timer', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['card', data.card_id] });
+      queryClient.invalidateQueries({ queryKey: ['card-history', data.card_id] });
     },
   });
 };
