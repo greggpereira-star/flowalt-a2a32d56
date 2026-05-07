@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCategories } from "@/hooks/useFinancial";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -61,6 +62,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const [filters, setFilters] = useState({
     type: initialFilters?.type || "all",
     status: initialFilters?.status || "all",
+    category: "all",
     costCenter: "all",
     collaborator: "all",
     month: null as Date | null,
@@ -71,6 +73,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const { data: transactions = [], isLoading } = useTransactions({
     type: filters.type === "all" ? undefined : filters.type as any,
     status: filters.status === "all" ? undefined : filters.status as any,
+    categoryId: filters.category === "all" ? undefined : filters.category,
     costCenterId: filters.costCenter === "all" || filters.costCenter === "unassigned" ? undefined : filters.costCenter,
     collaboratorId: filters.collaborator === "all" || filters.collaborator === "unassigned" ? undefined : filters.collaborator,
     startDate: filters.month ? startOfMonth(filters.month).toISOString().split("T")[0] : undefined,
