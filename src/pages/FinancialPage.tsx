@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useGlobalModal } from "@/contexts/GlobalModalContext";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermissions";
 import { TransactionList } from "@/components/financial/TransactionList";
@@ -57,9 +61,11 @@ import { useAccessLogging } from '@/hooks/useAccessLogging';
 export default function FinancialPage() {
   usePageTracking('financial');
   const { logFinancialAccess } = useAccessLogging();
+  const { openModal } = useGlobalModal();
   const { canViewSalaries } = usePermissions();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+
 
   useEffect(() => {
     logFinancialAccess('dashboard_view');
@@ -96,8 +102,15 @@ export default function FinancialPage() {
                 <div className="flex items-center gap-3">
                   <OFXImporter />
                   <InvoiceXMLImporter />
-                  <InvoiceForm />
-                  <TransactionForm />
+                  <Button onClick={() => openModal('invoice')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Nota Fiscal
+                  </Button>
+                  <Button onClick={() => openModal('transaction')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Lançamento
+                  </Button>
+
                 </div>
               </div>
 
