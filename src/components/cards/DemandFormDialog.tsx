@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useCreateCard } from '@/hooks/useCards';
+import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useDefaultWorkflow, useWorkflowStages } from '@/hooks/useWorkflow';
@@ -74,6 +74,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 }) => {
   const { toast: toastHook } = useToast();
   const createCard = useCreateCard();
+  const shareCard = useShareCardAcrossSpaces();
   const { data: clientCards } = useClientCards();
   const { data: spaces } = useSpaces();
   const { data: defaultWorkflow } = useDefaultWorkflow();
@@ -184,19 +185,12 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
       // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          const { error: junctionError } = await supabase
-            .from('card_spaces')
-            .insert({
-              card_id: result.id,
-              space_id: duplicateToSpace,
-            });
-
-          if (junctionError) throw junctionError;
-
-          toast.success('Tarefa compartilhada com o setor selecionado');
+          await shareCard.mutateAsync({
+            cardId: result.id,
+            space_id: duplicateToSpace,
+          });
         } catch (dupError) {
           console.error('Error sharing card across spaces:', dupError);
-          toast.error('Erro ao compartilhar tarefa');
         }
       }
 
