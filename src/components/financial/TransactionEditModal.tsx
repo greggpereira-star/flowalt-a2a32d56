@@ -274,6 +274,33 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
                 )}
               />
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="collaborator_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Colaborador</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Opcional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.profile?.full_name || member.profile?.email || "Membro"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="client_id"
@@ -299,6 +326,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
                   </FormItem>
                 )}
               />
+            </div>
             </div>
 
             {/* Centro de Custo */}
