@@ -97,28 +97,27 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
         client_id: clientId || undefined,
       });
 
-      // Handle cross-sector duplication if enabled
+      // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          await createCard.mutateAsync({
-            title: `[SOCIAL] ${title.trim()}`,
-            space_id: duplicateToSpace,
-            description: `Demanda originada do Social Media.\n\n${description.trim()}`,
-            client_id: clientId || undefined,
-            due_date: dueDate || undefined,
-            urgency: urgency,
-            status: 'todo',
-            card_type: 'full'
-          });
+          const { error: junctionError } = await supabase
+            .from('card_spaces')
+            .insert({
+              card_id: result.id,
+              space_id: duplicateToSpace,
+            });
+
+          if (junctionError) throw junctionError;
+
           toast({
-            title: 'Card duplicado!',
-            description: 'A tarefa também foi enviada para o setor selecionado.',
+            title: 'Card compartilhado!',
+            description: 'A tarefa agora também está visível no setor selecionado.',
           });
         } catch (dupError) {
-          console.error('Error duplicating card:', dupError);
+          console.error('Error sharing card across spaces:', dupError);
           toast({
             title: 'Aviso',
-            description: 'O card principal foi criado, mas houve um erro ao duplicar para o outro setor.',
+            description: 'O card foi criado, mas houve um erro ao compartilhar com o outro setor.',
             variant: 'destructive',
           });
         }
