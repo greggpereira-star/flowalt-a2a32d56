@@ -514,11 +514,20 @@ export const useShareCardAcrossSpaces = () => {
       }
     },
     onSuccess: (data) => {
-      // Invalidate everything related to cards to force a fresh board state
+      // Step 1: Invalidate the general cards key
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-      // This specifically targets 'cards', 'space', undefined or any spaceId to ensure UI reflects changes
-      queryClient.refetchQueries({ queryKey: ['cards', 'space'] });
+      
+      // Step 2: Force refetch of all space boards to ensure the duplicated card appears
+      // We use refetch instead of just invalidate to trigger an immediate network request
+      queryClient.refetchQueries({ 
+        queryKey: ['cards', 'space'],
+        type: 'active'
+      });
+
+      // Step 3: Specifically invalidate the target space and the single card
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
+      
       toast.success('Card compartilhado com sucesso!');
     },
     onError: (error: Error) => {
