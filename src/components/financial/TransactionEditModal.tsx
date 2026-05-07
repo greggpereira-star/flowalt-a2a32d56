@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useUpdateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
-import { useClients } from "@/hooks/useClients";
+import { useClientCards } from "@/hooks/useClientCards";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { TransactionAttachments } from "./TransactionAttachments";
@@ -70,7 +70,7 @@ interface TransactionEditModalProps {
 export function TransactionEditModal({ open, onOpenChange, transaction }: TransactionEditModalProps) {
   const updateTransaction = useUpdateTransaction();
   const { data: categories = [] } = useCategories();
-  const { data: clients = [] } = useClients();
+  const { data: clients = [] } = useClientCards();
   const { data: costCenters = [] } = useCostCenters();
   const { data: members = [] } = useWorkspaceMembers();
 
