@@ -43,9 +43,11 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   category?: FinancialCategory;
-  collaborator_profile?: {
-    full_name: string | null;
-    email: string;
+  collaborator?: {
+    profile: {
+      full_name: string | null;
+      email: string;
+    } | null;
   };
 }
 
@@ -106,7 +108,9 @@ export function useTransactions(filters?: {
         .select(`
           *,
           category:financial_categories(*),
-          collaborator_profile:profiles!transactions_collaborator_id_fkey(full_name, email)
+          collaborator:workspace_members(
+            profile:profiles(full_name, email)
+          )
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("due_date", { ascending: false });
