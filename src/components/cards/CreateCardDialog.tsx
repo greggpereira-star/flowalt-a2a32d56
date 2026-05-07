@@ -103,13 +103,20 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 
       // Step 2: If duplication is enabled, link the SAME card to the target space
       if (isDuplicateEnabled && duplicateToSpace && result?.id) {
+        console.log(`[CreateCardDialog] Duplication enabled. Triggering share for card ${result.id} to space ${duplicateToSpace}`);
         try {
           await shareCard.mutateAsync({
             cardId: result.id,
             spaceId: duplicateToSpace,
           });
-        } catch (dupError) {
-          console.error('Error sharing card across spaces:', dupError);
+        } catch (dupError: any) {
+          console.error('[CreateCardDialog] Critical failure during card duplication:', {
+            cardId: result?.id,
+            targetSpaceId: duplicateToSpace,
+            mutation: 'shareCard',
+            error: dupError.message,
+            stack: dupError.stack
+          });
           // We don't throw here to not interrupt the main flow if duplication fails
           toast({
             title: 'Aviso',
