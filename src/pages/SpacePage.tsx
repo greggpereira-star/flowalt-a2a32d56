@@ -621,6 +621,7 @@ const SpacePage: React.FC = () => {
         spaceId={spaceId!}
         folderId={selectedFolder || undefined}
         defaultStatus={defaultStatus}
+        isSocialMedia={isSocialMedia}
       />
 
       {/* Folder Dialog - Use template dialog for social_media spaces */}
@@ -766,6 +767,7 @@ const SpacePage: React.FC = () => {
         folderId={activeFolderId || selectedFolder || undefined}
         defaultStatus={defaultStatus}
         initialMode={quickAddInitialMode}
+        isSocialMedia={isSocialMedia}
       />
 
       {/* Demand Form Dialog (with Briefing) */}
