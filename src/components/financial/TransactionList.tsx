@@ -66,7 +66,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     month: null as Date | null,
   });
   
-  const { data: transactions = [], isLoading } = useTransactions({
+  const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
     type: filters.type === "all" ? undefined : filters.type as any,
     status: filters.status === "all" ? undefined : filters.status as any,
     costCenterId: filters.costCenter === "all" || filters.costCenter === "unassigned" ? undefined : filters.costCenter,
