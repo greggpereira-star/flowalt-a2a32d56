@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useCreateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
-import { useClients } from "@/hooks/useClients";
+import { useClientCards } from "@/hooks/useClientCards";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
@@ -88,7 +88,7 @@ export function TransactionForm({
   const [isNewClientDialogOpen, setIsNewClientDialogOpen] = useState(false);
   const createTransaction = useCreateTransaction();
   const { data: categories = [] } = useCategories();
-  const { data: clients = [] } = useClients();
+  const { data: clients = [] } = useClientCards();
   const { data: costCenters = [] } = useCostCenters();
   const { data: members = [] } = useWorkspaceMembers();
 
