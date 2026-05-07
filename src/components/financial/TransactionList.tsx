@@ -263,185 +263,149 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-wrap items-center">
-        <Select
-          value={filters.type}
-          onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
-        >
-          <SelectTrigger className="w-[150px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="income">Receitas</SelectItem>
-            <SelectItem value="expense">Despesas</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.status}
-          onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="pending">Pendentes</SelectItem>
-            <SelectItem value="paid">Pagos</SelectItem>
-            <SelectItem value="overdue">Vencidos</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select 
-          value={filters.costCenter} 
-          onValueChange={(value) => setFilters(prev => ({ ...prev, costCenter: value }))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <FolderTree className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Centro de Custo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Centros</SelectItem>
-            <SelectItem value="unassigned">
-              <span className="text-amber-600">⚠️ Sem Centro de Custo</span>
-            </SelectItem>
-            {costCenters.map((cc) => (
-              <SelectItem key={cc.id} value={cc.id}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: cc.color || "#3B82F6" }}
-                  />
-                  {cc.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select 
-          value={filters.collaborator} 
-          onValueChange={(value) => setFilters(prev => ({ ...prev, collaborator: value }))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <User className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Colaborador" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos Colaboradores</SelectItem>
-            <SelectItem value="unassigned">Sem Colaborador</SelectItem>
-            {members.map((member) => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.profile?.full_name || member.profile?.email || "Membro"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Month Filter */}
-        <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10 bg-background">
-          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-muted"
-            onClick={() => setFilters(prev => ({ 
-              ...prev, 
-              month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) 
-            }))}
+      {/* Search and Filters Header */}
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center w-full md:w-auto">
+          <Select
+            value={filters.type}
+            onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </Button>
-          <button
-            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? null : new Date() }))}
-            className="text-xs font-medium min-w-[100px] text-center hover:text-primary transition-colors"
+            <SelectTrigger className="w-full md:w-[130px] bg-background">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="income">Receitas</SelectItem>
+              <SelectItem value="expense">Despesas</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={filters.costCenter} 
+            onValueChange={(value) => setFilters(prev => ({ ...prev, costCenter: value }))}
           >
-            {filters.month
-              ? format(filters.month, "MMM yyyy", { locale: ptBR })
-              : "Todos os meses"}
-          </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-muted"
-            onClick={() => setFilters(prev => ({ 
-              ...prev, 
-              month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) 
-            }))}
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
+            <SelectTrigger className="w-full md:w-[160px] bg-background">
+              <FolderTree className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="C. Custo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Centros</SelectItem>
+              <SelectItem value="unassigned">⚠️ Sem C. Custo</SelectItem>
+              {costCenters.map((cc) => (
+                <SelectItem key={cc.id} value={cc.id}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cc.color || "#3B82F6" }} />
+                    {cc.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10 bg-background w-full md:w-auto overflow-hidden">
+            <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 hover:bg-muted"
+              onClick={() => setFilters(prev => ({ 
+                ...prev, 
+                month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) 
+              }))}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </Button>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? null : new Date() }))}
+              className="text-xs font-medium min-w-[90px] text-center hover:text-primary transition-colors"
+            >
+              {filters.month
+                ? format(filters.month, "MMM yyyy", { locale: ptBR })
+                : "Todo período"}
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 hover:bg-muted"
+              onClick={() => setFilters(prev => ({ 
+                ...prev, 
+                month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) 
+              }))}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
 
-        <Button variant="outline" onClick={handleExportExcel} className="ml-auto shrink-0">
-          <FileDown className="w-4 h-4 mr-2" />
-          Exportar Excel
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button variant="outline" size="sm" onClick={handleExportExcel} className="flex-1 md:flex-none">
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Status Filters */}
+      <div className="flex flex-wrap gap-2 items-center bg-muted/30 p-2 rounded-lg border border-border/40">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2">Filtrar por Status:</span>
+        <Button 
+          variant={filters.status === "all" ? "default" : "ghost"} 
+          size="sm" 
+          onClick={() => setFilters(prev => ({ ...prev, status: "all" }))}
+          className="h-7 rounded-full text-xs px-4"
+        >
+          Todos
+        </Button>
+        <Button 
+          variant={filters.status === "paid" ? "default" : "ghost"} 
+          size="sm" 
+          onClick={() => setFilters(prev => ({ ...prev, status: "paid" }))}
+          className={`h-7 rounded-full text-xs px-4 ${filters.status === "paid" ? "" : "text-green-600 hover:bg-green-50"}`}
+        >
+          Pagos
+        </Button>
+        <Button 
+          variant={filters.status === "pending" ? "default" : "ghost"} 
+          size="sm" 
+          onClick={() => setFilters(prev => ({ ...prev, status: "pending" }))}
+          className={`h-7 rounded-full text-xs px-4 ${filters.status === "pending" ? "" : "text-yellow-600 hover:bg-yellow-50"}`}
+        >
+          Pendentes
+        </Button>
+        <Button 
+          variant={filters.status === "overdue" ? "default" : "ghost"} 
+          size="sm" 
+          onClick={() => setFilters(prev => ({ ...prev, status: "overdue" }))}
+          className={`h-7 rounded-full text-xs px-4 ${filters.status === "overdue" ? "" : "text-red-600 hover:bg-red-50"}`}
+        >
+          Vencidos
         </Button>
       </div>
 
+      {/* Reordered Active Chips */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-2 pb-2">
-          <span className="text-xs font-medium text-muted-foreground mr-1">Filtros ativos:</span>
-          
-          {filters.category !== "all" && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
-              {categories.find(c => c.id === filters.category)?.name || "Categoria"}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, category: "all" }))}
-              />
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {filters.month && (
+            <Badge className="gap-1 px-3 py-1 bg-primary text-primary-foreground font-semibold shadow-sm">
+              <CalendarDays className="w-3 h-3" />
+              {format(filters.month, "MMM yyyy", { locale: ptBR })}
+              <X className="w-3.5 h-3.5 cursor-pointer ml-1 hover:bg-white/20 rounded-full" onClick={() => setFilters(prev => ({ ...prev, month: null }))} />
             </Badge>
           )}
 
-          {filters.month && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
-              {format(filters.month, "MMM yyyy", { locale: ptBR })}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, month: null }))}
-              />
+          {filters.category !== "all" && (
+            <Badge className="gap-1 px-3 py-1 bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+              <Filter className="w-3 h-3" />
+              {categories.find(c => c.id === filters.category)?.name || "Categoria"}
+              <X className="w-3.5 h-3.5 cursor-pointer ml-1 hover:bg-white/20 rounded-full" onClick={() => setFilters(prev => ({ ...prev, category: "all" }))} />
             </Badge>
           )}
 
           {filters.type !== "all" && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
+            <Badge variant="outline" className="gap-1 px-2 py-1 bg-background border-primary/20 text-primary">
               {filters.type === "income" ? "Receitas" : "Despesas"}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, type: "all" }))}
-              />
-            </Badge>
-          )}
-
-          {filters.status !== "all" && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
-              {filters.status === "paid" ? "Pago" : filters.status === "pending" ? "Pendente" : filters.status === "overdue" ? "Vencido" : "Cancelado"}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, status: "all" }))}
-              />
-            </Badge>
-          )}
-
-          {filters.costCenter !== "all" && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
-              {filters.costCenter === "unassigned" ? "Sem C. Custo" : costCenters.find(cc => cc.id === filters.costCenter)?.name || "Centro de Custo"}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, costCenter: "all" }))}
-              />
-            </Badge>
-          )}
-
-          {filters.collaborator !== "all" && (
-            <Badge variant="secondary" className="gap-1 px-2 py-1 bg-primary/10 text-primary border-primary/20">
-              {filters.collaborator === "unassigned" ? "Sem Colab." : members.find(m => m.id === filters.collaborator)?.profile?.full_name || "Colaborador"}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors" 
-                onClick={() => setFilters(prev => ({ ...prev, collaborator: "all" }))}
-              />
+              <X className="w-3 h-3 cursor-pointer ml-1 text-muted-foreground" onClick={() => setFilters(prev => ({ ...prev, type: "all" }))} />
             </Badge>
           )}
 
@@ -449,9 +413,9 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             variant="ghost" 
             size="sm" 
             onClick={clearFilters}
-            className="h-7 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            className="h-7 text-[10px] uppercase font-bold text-muted-foreground hover:text-destructive tracking-widest"
           >
-            Limpar todos
+            Limpar Filtros
           </Button>
         </div>
       )}
