@@ -110,7 +110,15 @@ const Auth: React.FC = () => {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
+    
+    // Se temos um convite pendente, passamos o token no redirect para que após a confirmação do email
+    // o usuário seja levado de volta para aceitar o convite.
+    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    const redirectTo = pendingToken 
+      ? `${window.location.origin}/invite/${pendingToken}`
+      : `${window.location.origin}/`;
+
+    const { error } = await signUp(signupEmail, signupPassword, signupName, redirectTo);
     setIsLoading(false);
 
     if (error) {
