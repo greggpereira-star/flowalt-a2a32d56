@@ -141,14 +141,13 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     }
   };
 
-  // Client-side filtering for cases not handled by the API (like "unassigned")
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    return filteredTransactionsFromApi.filter((t) => {
       if (filters.costCenter === "unassigned" && t.cost_center_id) return false;
       if (filters.collaborator === "unassigned" && t.collaborator_id) return false;
       return true;
     });
-  }, [transactions, filters.costCenter, filters.collaborator]);
+  }, [filteredTransactionsFromApi, filters.costCenter, filters.collaborator]);
 
   // Get cost center name by id
   const getCostCenterById = (id: string | null) => {
@@ -314,11 +313,11 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                     >
                       Todos
                       <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
-                        {transactions.length}
+                        {allTransactions.length}
                       </Badge>
                     </TabsTrigger>
                     {categories
-                      .filter(cat => transactions.some(t => t.category_id === cat.id))
+                      .filter(cat => allTransactions.some(t => t.category_id === cat.id))
                       .map((cat) => (
                         <TabsTrigger 
                           key={cat.id} 
@@ -327,7 +326,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                         >
                           {cat.name}
                           <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
-                            {transactions.filter(t => t.category_id === cat.id).length}
+                            {allTransactions.filter(t => t.category_id === cat.id).length}
                           </Badge>
                         </TabsTrigger>
                       ))}
