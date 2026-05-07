@@ -330,9 +330,16 @@ export const useCreateCard = () => {
       } as unknown as Card;
     },
     onSuccess: (data, variables) => {
+      // Immediate invalidation of all card lists to catch the new card and its relationships
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
-      queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
+      
+      // Target specific space if provided
+      if (variables.space_id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
+        // Force refetch to ensure background sync
+        queryClient.refetchQueries({ queryKey: ['cards', 'space', variables.space_id] });
+      }
+
       // Invalidate folder cache if card was linked to a folder
       if (variables.folder_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'folder', variables.folder_id] });
