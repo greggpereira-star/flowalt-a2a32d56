@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,7 @@ import { useCreateTransaction, useCategories, Transaction } from "@/hooks/useFin
 import { useClients } from "@/hooks/useClients";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { CreateClientDialog } from "../clients/CreateClientDialog";
 import { TransactionAttachments } from "./TransactionAttachments";
 
 const transactionSchema = z.object({
@@ -70,6 +71,8 @@ interface TransactionFormProps {
 export function TransactionForm({ transaction, onSuccess }: TransactionFormProps) {
   const [open, setOpen] = useState(false);
   const [createdTransactionId, setCreatedTransactionId] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
+  const [isNewClientDialogOpen, setIsNewClientDialogOpen] = useState(false);
   const createTransaction = useCreateTransaction();
   const { data: categories = [] } = useCategories();
   const { data: clients = [] } = useClients();
@@ -130,6 +133,14 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   };
 
   const filteredCategories = categories.filter(c => c.type === watchType);
+
+  const filteredClients = useMemo(() => {
+    const search = clientSearch.toLowerCase().trim();
+    if (!search) return clients;
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(search)
+    );
+  }, [clients, clientSearch]);
 
   const handleClose = () => {
     setOpen(false);
@@ -286,11 +297,41 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {clients.map((client) => (
+                        <div className="px-2 py-2 sticky top-0 bg-popover z-10 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar cliente..."
+                              className="pl-8 h-9"
+                              value={clientSearch}
+                              onChange={(e) => setClientSearch(e.target.value)}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {filteredClients.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
                           </SelectItem>
                         ))}
+                        {filteredClients.length === 0 && clientSearch && (
+                          <div className="p-4 text-center">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Nenhum cliente encontrado
+                            </p>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full gap-2"
+                              onClick={() => setIsNewClientDialogOpen(true)}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Cadastrar "{clientSearch}"
+                            </Button>
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -466,6 +507,16 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
 
             {/* Anexos */}
             <TransactionAttachments transactionId={createdTransactionId ?? transaction?.id} />
+
+            <CreateClientDialog 
+              open={isNewClientDialogOpen} 
+              onOpenChange={setIsNewClientDialogOpen}
+              onSuccess={(id) => {
+                form.setValue("client_id", id);
+                setIsNewClientDialogOpen(false);
+                setClientSearch("");
+              }}
+            />
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={handleClose}>
