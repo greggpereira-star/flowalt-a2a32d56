@@ -421,8 +421,8 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
       )}
 
       <div className="rounded-xl border border-border/50 bg-background overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <Table className="table-fixed w-full min-w-[800px]">
+        <div className="w-full">
+          <Table className="w-full border-collapse">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead colSpan={7} className="p-0 h-auto">
@@ -433,10 +433,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                     }}
                     className="w-full"
                   >
-                    <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 overflow-x-auto no-scrollbar">
+                    <TabsList className="w-full justify-start h-12 bg-transparent rounded-none border-b border-border/50 p-0 gap-0 flex-wrap overflow-visible">
                       <TabsTrigger 
                         value="all"
-                        className="h-12 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
+                        className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
                       >
                         Todos
                         <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
@@ -449,7 +449,7 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           <TabsTrigger 
                             key={cat.id} 
                             value={cat.id}
-                            className="h-12 px-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
+                            className="h-12 px-6 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-all font-medium text-muted-foreground whitespace-nowrap"
                           >
                             {cat.name}
                             <Badge variant="secondary" className="ml-2 bg-muted/50 text-muted-foreground border-none">
