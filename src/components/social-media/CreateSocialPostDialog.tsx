@@ -80,7 +80,7 @@ import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSpaces } from '@/hooks/useSpaces';
-import { useCreateCard } from '@/hooks/useCards';
+import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
 
 interface MediaFile {
   id: string;
@@ -148,6 +148,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const createPost = useCreateSocialPost();
   const updatePost = useUpdateSocialPost();
   const createCard = useCreateCard();
+  const shareCard = useShareCardAcrossSpaces();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
   const { data: spaces } = useSpaces();
@@ -522,19 +523,12 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         // Handle cross-sector visibility using junction table card_spaces
         if (isDuplicateEnabled && duplicateToSpace && postResult.card_id) {
           try {
-            const { error: junctionError } = await supabase
-              .from('card_spaces')
-              .insert({
-                card_id: postResult.card_id,
-                space_id: duplicateToSpace,
-              });
-
-            if (junctionError) throw junctionError;
-            
-            toast.success('Tarefa compartilhada com o setor selecionado');
+            await shareCard.mutateAsync({
+              cardId: postResult.card_id,
+              spaceId: duplicateToSpace,
+            });
           } catch (dupError) {
             console.error('Error sharing card across spaces:', dupError);
-            toast.error('Erro ao compartilhar tarefa com outro setor');
           }
         }
       }
