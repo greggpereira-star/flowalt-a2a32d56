@@ -26,6 +26,7 @@ import { useClientCards } from '@/hooks/useClientCards';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Building2, BanknoteIcon, Users, Copy, Info } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { statusConfig, urgencyConfig } from './CardBadges';

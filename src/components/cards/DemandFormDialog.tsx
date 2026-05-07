@@ -29,6 +29,7 @@ import { useSpaces } from '@/hooks/useSpaces';
 import { useDefaultWorkflow, useWorkflowStages } from '@/hooks/useWorkflow';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Loader2, 
   ChevronRight, 

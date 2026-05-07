@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 import {
   CalendarIcon,
   Plus,
@@ -171,7 +172,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     }
 
     try {
-      await createCard.mutateAsync({
+      const result = await createCard.mutateAsync({
         title,
         space_id: spaceId,
         folder_id: folderId,
