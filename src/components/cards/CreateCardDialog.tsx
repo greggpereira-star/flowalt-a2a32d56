@@ -89,6 +89,7 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
     }
 
     try {
+      // Step 1: Create the card in the current space
       const result = await createCard.mutateAsync({
         title: title.trim(),
         description: description.trim() || undefined,
@@ -100,8 +101,8 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
         client_id: clientId || undefined,
       });
 
-      // Handle cross-sector visibility using junction table card_spaces
-      if (isDuplicateEnabled && duplicateToSpace) {
+      // Step 2: If duplication is enabled, link the SAME card to the target space
+      if (isDuplicateEnabled && duplicateToSpace && result?.id) {
         try {
           await shareCard.mutateAsync({
             cardId: result.id,
@@ -109,6 +110,12 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
           });
         } catch (dupError) {
           console.error('Error sharing card across spaces:', dupError);
+          // We don't throw here to not interrupt the main flow if duplication fails
+          toast({
+            title: 'Aviso',
+            description: 'O card foi criado, mas não pôde ser duplicado para o outro setor.',
+            variant: 'destructive',
+          });
         }
       }
 
