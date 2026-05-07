@@ -14,6 +14,8 @@ import { OverLimitBanner } from '@/components/billing/OverLimitBanner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
+import { GlobalModals } from './GlobalModals';
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,9 +27,13 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderId, cardId }) => {
   const location = useLocation();
   const params = useParams();
+  const searchParams = new URLSearchParams(location.search);
 
-  // Use params if props not provided
+  // Use params or searchParams if props not provided
   const effectiveSpaceId = spaceId || params.spaceId;
+  const effectiveFolderId = folderId || searchParams.get('folder');
+  const effectiveCardId = cardId || searchParams.get('card');
+
 
   // Only Space pages should have fixed viewport + internal scrolling (Kanban area)
   const isSpaceRoute = location.pathname.startsWith('/space/');
@@ -52,9 +58,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
             <Separator orientation="vertical" className="mr-2 h-4" />
             <DynamicBreadcrumb
               spaceId={effectiveSpaceId}
-              folderId={folderId}
-              cardId={cardId}
+              folderId={effectiveFolderId || undefined}
+              cardId={effectiveCardId || undefined}
             />
+
           </div>
           <div className="flex items-center gap-2 px-4">
             <BadgeProgress compact />
@@ -77,7 +84,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
         {/* Birthday celebration (own birthday — opens once per day) */}
         <MyBirthdayCelebration />
+
+        {/* Global Modals - Persist across routes */}
+        <GlobalModals />
       </SidebarInset>
+
     </SidebarProvider>
   );
 };

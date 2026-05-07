@@ -2,13 +2,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
+
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { KeyboardShortcutsDialog } from "@/components/command/KeyboardShortcutsDialog";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NewWorkspace from "./pages/NewWorkspace";
@@ -48,6 +51,14 @@ import { ContractDetailPage } from "./pages/altcontrol/ContractDetailPage";
 
 const queryClient = new QueryClient();
 
+const ProtectedLayout = () => (
+  <AuthGuard>
+    <AppLayout>
+      <Outlet />
+    </AppLayout>
+  </AuthGuard>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -56,10 +67,13 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <OnboardingTour />
-            <CommandPalette />
-            <KeyboardShortcutsDialog />
-            <Routes>
+            <GlobalModalProvider>
+              <OnboardingTour />
+              <CommandPalette />
+              <KeyboardShortcutsDialog />
+              <Routes>
+
+              {/* Public Routes */}
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
@@ -67,38 +81,45 @@ const App = () => (
               <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/invite/:token" element={<AcceptInvitePage />} />
               <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
-              <Route path="/complete-profile" element={<AuthGuard><CompleteProfilePage /></AuthGuard>} />
-              <Route path="/oauth/bridge" element={<AuthGuard><OAuthBridgePage /></AuthGuard>} />
-              <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
-              <Route path="/first-access" element={<AuthGuard><FirstAccessPage /></AuthGuard>} />
-              <Route path="/platform" element={<AuthGuard><PlatformAdminPage /></AuthGuard>} />
-              <Route path="/security-audit" element={<AuthGuard><SecurityAuditPage /></AuthGuard>} />
-              <Route path="/workspace/new" element={<AuthGuard><NewWorkspace /></AuthGuard>} />
-              <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
-              <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
-              <Route path="/time" element={<AuthGuard><TimePage /></AuthGuard>} />
-              <Route path="/coordination" element={<AuthGuard><CoordinationPage /></AuthGuard>} />
-              <Route path="/calendar" element={<AuthGuard><AgendaPage /></AuthGuard>} />
-              <Route path="/financial" element={<AuthGuard><FinancialPage /></AuthGuard>} />
-              <Route path="/partners" element={<AuthGuard><PartnersPage /></AuthGuard>} />
-              <Route path="/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
-              <Route path="/integrations" element={<AuthGuard><IntegrationsPage /></AuthGuard>} />
-              <Route path="/gamification" element={<AuthGuard><GamificationPage /></AuthGuard>} />
-              <Route path="/analytics" element={<AuthGuard><AnalyticsPage /></AuthGuard>} />
-              <Route path="/people-analytics" element={<AuthGuard><PeopleAnalyticsPage /></AuthGuard>} />
-              <Route path="/clients" element={<AuthGuard><ClientsPage /></AuthGuard>} />
-              <Route path="/clients/:clientId" element={<AuthGuard><ClientsPage /></AuthGuard>} />
-              <Route path="/space/:spaceId" element={<AuthGuard><SpacePage /></AuthGuard>} />
-              <Route path="/marketing" element={<AuthGuard><MarketingPage /></AuthGuard>} />
-              <Route path="/birthdays" element={<AuthGuard><BirthdaysPage /></AuthGuard>} />
-              <Route path="/altcontrol/*" element={<AuthGuard><AltControlPage /></AuthGuard>} />
-              <Route path="/altcontrol/proposals/new" element={<AuthGuard><NewProposalPage /></AuthGuard>} />
-              <Route path="/altcontrol/proposals/:proposalId" element={<AuthGuard><ProposalDetailPage /></AuthGuard>} />
-              <Route path="/altcontrol/approvals/:proposalId" element={<AuthGuard><ApprovalDetailPage /></AuthGuard>} />
-              <Route path="/altcontrol/contracts/:contractId" element={<AuthGuard><ContractDetailPage /></AuthGuard>} />
+              
+              {/* Protected Routes with shared AppLayout */}
+              <Route element={<ProtectedLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/complete-profile" element={<CompleteProfilePage />} />
+                <Route path="/oauth/bridge" element={<OAuthBridgePage />} />
+                <Route path="/first-access" element={<FirstAccessPage />} />
+                <Route path="/platform" element={<PlatformAdminPage />} />
+                <Route path="/security-audit" element={<SecurityAuditPage />} />
+                <Route path="/workspace/new" element={<NewWorkspace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/time" element={<TimePage />} />
+                <Route path="/coordination" element={<CoordinationPage />} />
+                <Route path="/calendar" element={<AgendaPage />} />
+                <Route path="/financial" element={<FinancialPage />} />
+                <Route path="/partners" element={<PartnersPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/integrations" element={<IntegrationsPage />} />
+                <Route path="/gamification" element={<GamificationPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/people-analytics" element={<PeopleAnalyticsPage />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/clients/:clientId" element={<ClientsPage />} />
+                <Route path="/space/:spaceId" element={<SpacePage />} />
+                <Route path="/marketing" element={<MarketingPage />} />
+                <Route path="/birthdays" element={<BirthdaysPage />} />
+                <Route path="/altcontrol/*" element={<AltControlPage />} />
+                <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
+                <Route path="/altcontrol/proposals/:proposalId" element={<ProposalDetailPage />} />
+                <Route path="/altcontrol/approvals/:proposalId" element={<ApprovalDetailPage />} />
+                <Route path="/altcontrol/contracts/:contractId" element={<ContractDetailPage />} />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </GlobalModalProvider>
           </WorkspaceProvider>
+
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

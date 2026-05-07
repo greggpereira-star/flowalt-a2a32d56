@@ -63,10 +63,22 @@ type FormData = z.infer<typeof invoiceSchema>;
 interface InvoiceFormProps {
   invoice?: Invoice;
   onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
-export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
-  const [open, setOpen] = useState(false);
+export function InvoiceForm({ 
+  invoice, 
+  onSuccess, 
+  open: controlledOpen, 
+  onOpenChange: setControlledOpen,
+  showTrigger = true
+}: InvoiceFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
+
   const createInvoice = useCreateInvoice();
   const { data: clients = [] } = useClients();
   const { data: transactions = [] } = useTransactions({ status: "paid" });
@@ -121,12 +133,15 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Nota Fiscal
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Nota Fiscal
+          </Button>
+        </DialogTrigger>
+      )}
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

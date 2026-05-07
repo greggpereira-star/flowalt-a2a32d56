@@ -160,7 +160,8 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <AppLayout>
+    <>
+
       <div className="p-6 space-y-6">
         {/* Birthday reminder */}
         <TodayBirthdaysReminder />
@@ -410,7 +411,8 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </AppLayout>
+    </>
+
   );
 };
 
