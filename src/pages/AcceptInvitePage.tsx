@@ -116,7 +116,7 @@ export default function AcceptInvitePage() {
     if (token) {
       sessionStorage.setItem('pending_invite_token', token);
     }
-    navigate('/auth');
+    navigate('/auth', { state: { from: location } });
   };
 
   // Auto-accept after login if we have a pending invite
