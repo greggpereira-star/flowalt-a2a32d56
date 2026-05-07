@@ -343,7 +343,6 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             <TableRow className="hover:bg-transparent border-b border-border/50">
               <TableHead className="w-[60px] text-center font-semibold">Tipo</TableHead>
               <TableHead className="font-semibold">Descrição</TableHead>
-              <TableHead className="font-semibold">Categoria</TableHead>
               <TableHead className="font-semibold">Centro de Custo</TableHead>
               <TableHead className="font-semibold">Vencimento</TableHead>
               <TableHead className="font-semibold text-right">Valor</TableHead>
@@ -381,19 +380,6 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                     </TableCell>
                     <TableCell className="font-medium text-foreground py-4">
                       {transaction.description}
-                    </TableCell>
-                    <TableCell>
-                      {transaction.category ? (
-                        <Badge 
-                          variant="outline" 
-                          className="font-normal border-border/50 bg-muted/20"
-                          style={transaction.category.color ? { borderLeftColor: transaction.category.color, borderLeftWidth: '3px' } : {}}
-                        >
-                          {transaction.category.name}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs italic">Sem categoria</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
