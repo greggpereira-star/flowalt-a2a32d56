@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AccessImpactSummary } from '@/components/governance/AccessImpactSummary';
-import { useCreateCard } from '@/hooks/useCards';
+import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +51,7 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const createCard = useCreateCard();
+  const shareCard = useShareCardAcrossSpaces();
   const { data: clientCards } = useClientCards();
   const { data: spaces } = useSpaces();
 
@@ -101,26 +102,12 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
       // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          const { error: junctionError } = await supabase
-            .from('card_spaces')
-            .insert({
-              card_id: result.id,
-              space_id: duplicateToSpace,
-            });
-
-          if (junctionError) throw junctionError;
-
-          toast({
-            title: 'Card compartilhado!',
-            description: 'A tarefa agora também está visível no setor selecionado.',
+          await shareCard.mutateAsync({
+            cardId: result.id,
+            spaceId: duplicateToSpace,
           });
         } catch (dupError) {
           console.error('Error sharing card across spaces:', dupError);
-          toast({
-            title: 'Aviso',
-            description: 'O card foi criado, mas houve um erro ao compartilhar com o outro setor.',
-            variant: 'destructive',
-          });
         }
       }
 
