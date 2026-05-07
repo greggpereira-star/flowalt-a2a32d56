@@ -316,43 +316,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
               </SelectContent>
             </Select>
           </div>
-          </div>
-
-          {/* Duplication to other sectors */}
-          {isSocialMedia && (
-            <div className="p-3 rounded-lg border bg-primary/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Copy className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold">Duplicar para outro setor</span>
-                </div>
-                <Switch 
-                  checked={isDuplicateEnabled} 
-                  onCheckedChange={setIsDuplicateEnabled}
-                />
-              </div>
-
-              {isDuplicateEnabled && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
-                    <SelectTrigger className="bg-background h-8">
-                      <SelectValue placeholder="Escolher setor..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {spaces?.filter(s => s.id !== spaceId).map(space => (
-                        <SelectItem key={space.id} value={space.id}>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-xs">{space.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          )}
+        </div>
       ) : (
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
@@ -534,6 +498,42 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
             </div>
           </div>
         </ScrollArea>
+      )}
+
+      {/* Duplication to other sectors */}
+      {isSocialMedia && (
+        <div className="p-3 rounded-lg border bg-primary/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Copy className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold">Duplicar para outro setor</span>
+            </div>
+            <Switch 
+              checked={isDuplicateEnabled} 
+              onCheckedChange={setIsDuplicateEnabled}
+            />
+          </div>
+
+          {isDuplicateEnabled && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <Select value={duplicateToSpace} onValueChange={setDuplicateToSpace}>
+                <SelectTrigger className="bg-background h-8">
+                  <SelectValue placeholder="Escolher setor responsável..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {spaces?.filter(s => s.id !== spaceId).map(space => (
+                    <SelectItem key={space.id} value={space.id}>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs">{space.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
