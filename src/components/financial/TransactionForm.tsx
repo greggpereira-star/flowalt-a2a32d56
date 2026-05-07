@@ -299,20 +299,47 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
               />
             </div>
 
-            {/* Fornecedor */}
-            <FormField
-              control={form.control}
-              name="supplier_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fornecedor (opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Fornecedor XYZ" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="collaborator_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Colaborador</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Opcional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.profile?.full_name || member.profile?.email || "Membro"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="supplier_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fornecedor (opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Fornecedor XYZ" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Centro de Custo */}
             <FormField
