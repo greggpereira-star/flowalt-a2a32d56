@@ -29,6 +29,7 @@ export const useRealtimeCards = (spaceId?: string) => {
 
           // Invalidate queries to refresh data
           queryClient.invalidateQueries({ queryKey: ['cards'] });
+          queryClient.invalidateQueries({ queryKey: ['card-history'] });
           
           if (spaceId) {
             queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
@@ -62,6 +63,7 @@ export const useRealtimeCards = (spaceId?: string) => {
         (payload) => {
           console.log('Realtime card_spaces update:', payload);
           queryClient.invalidateQueries({ queryKey: ['cards'] });
+          queryClient.invalidateQueries({ queryKey: ['card-history'] });
           if (spaceId) {
             queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
           }
