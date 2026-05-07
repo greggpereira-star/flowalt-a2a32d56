@@ -106,7 +106,10 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const { clearPersistence } = useFormPersistence(
     form, 
     "transaction-form-draft", 
-    open && !transaction // Only persist for new transactions when the form is open
+    open && !transaction, // Only persist for new transactions when the form is open
+    (data) => {
+      // Logic to handle loaded data if needed
+    }
   );
 
   // Clear persistence when the dialog is closed if it wasn't a successful submission
