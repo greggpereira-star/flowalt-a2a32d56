@@ -79,6 +79,7 @@ export function useTransactions(filters?: {
   endDate?: string;
   categoryId?: string;
   collaboratorId?: string;
+  costCenterId?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
 
@@ -132,6 +133,9 @@ export function useTransactions(filters?: {
       }
       if (filters?.collaboratorId) {
         query = query.eq("collaborator_id", filters.collaboratorId);
+      }
+      if (filters?.costCenterId) {
+        query = query.eq("cost_center_id", filters.costCenterId);
       }
 
       const { data, error } = await query;

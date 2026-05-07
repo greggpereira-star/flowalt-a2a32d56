@@ -58,13 +58,24 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
-  const [filters, setFilters] = useState(initialFilters || {});
-  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
-  const [collaboratorFilter, setCollaboratorFilter] = useState<string>("all");
-  const [monthFilter, setMonthFilter] = useState<Date | null>(null);
+  const [filters, setFilters] = useState({
+    type: initialFilters?.type || "all",
+    status: initialFilters?.status || "all",
+    costCenter: "all",
+    collaborator: "all",
+    month: null as Date | null,
+  });
+  
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
-  const { data: transactions = [], isLoading } = useTransactions(filters);
+  const { data: transactions = [], isLoading } = useTransactions({
+    type: filters.type === "all" ? undefined : filters.type as any,
+    status: filters.status === "all" ? undefined : filters.status as any,
+    costCenterId: filters.costCenter === "all" || filters.costCenter === "unassigned" ? undefined : filters.costCenter,
+    collaboratorId: filters.collaborator === "all" || filters.collaborator === "unassigned" ? undefined : filters.collaborator,
+    startDate: filters.month ? startOfMonth(filters.month).toISOString().split("T")[0] : undefined,
+    endDate: filters.month ? endOfMonth(filters.month).toISOString().split("T")[0] : undefined,
+  });
   const { data: categories = [] } = useCategories();
   const { data: costCenters = [] } = useCostCenters();
   const { data: members = [] } = useWorkspaceMembers();
@@ -122,26 +133,14 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     }
   };
 
-  // Filter transactions by cost center, collaborator and month
+  // Client-side filtering for cases not handled by the API (like "unassigned")
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      if (costCenterFilter !== "all") {
-        if (costCenterFilter === "unassigned" && t.cost_center_id) return false;
-        if (costCenterFilter !== "unassigned" && t.cost_center_id !== costCenterFilter) return false;
-      }
-      if (collaboratorFilter !== "all") {
-        if (collaboratorFilter === "unassigned" && t.collaborator_id) return false;
-        if (collaboratorFilter !== "unassigned" && t.collaborator_id !== collaboratorFilter) return false;
-      }
-      if (monthFilter) {
-        const txDate = parseISO(t.due_date);
-        const start = startOfMonth(monthFilter);
-        const end = endOfMonth(monthFilter);
-        if (txDate < start || txDate > end) return false;
-      }
+      if (filters.costCenter === "unassigned" && t.cost_center_id) return false;
+      if (filters.collaborator === "unassigned" && t.collaborator_id) return false;
       return true;
     });
-  }, [transactions, costCenterFilter, monthFilter]);
+  }, [transactions, filters.costCenter, filters.collaborator]);
 
   // Get cost center name by id
   const getCostCenterById = (id: string | null) => {
@@ -178,36 +177,39 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     <div className="space-y-4">
       <div className="flex gap-4 flex-wrap">
         <Select
-          value={filters.type || "all"}
-          onValueChange={(value) => setFilters({ ...filters, type: value === "all" ? undefined : value as any })}
+          value={filters.type}
+          onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
         >
           <SelectTrigger className="w-[150px]">
             <Filter className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Todos os tipos</SelectItem>
             <SelectItem value="income">Receitas</SelectItem>
             <SelectItem value="expense">Despesas</SelectItem>
           </SelectContent>
         </Select>
 
         <Select
-          value={filters.status || "all"}
-          onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value as any })}
+          value={filters.status}
+          onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
         >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="pending">Pendentes</SelectItem>
             <SelectItem value="paid">Pagos</SelectItem>
             <SelectItem value="overdue">Vencidos</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={costCenterFilter} onValueChange={setCostCenterFilter}>
+        <Select 
+          value={filters.costCenter} 
+          onValueChange={(value) => setFilters(prev => ({ ...prev, costCenter: value }))}
+        >
           <SelectTrigger className="w-[200px]">
             <FolderTree className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Centro de Custo" />
@@ -231,7 +233,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
           </SelectContent>
         </Select>
 
-        <Select value={collaboratorFilter} onValueChange={setCollaboratorFilter}>
+        <Select 
+          value={filters.collaborator} 
+          onValueChange={(value) => setFilters(prev => ({ ...prev, collaborator: value }))}
+        >
           <SelectTrigger className="w-[200px]">
             <User className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Colaborador" />
@@ -254,23 +259,23 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => setMonthFilter((prev) => prev ? subMonths(prev, 1) : subMonths(new Date(), 1))}
+            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? subMonths(prev.month, 1) : subMonths(new Date(), 1) }))}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
           <button
-            onClick={() => setMonthFilter(monthFilter ? null : new Date())}
+            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? null : new Date() }))}
             className="text-xs font-medium min-w-[100px] text-center hover:text-primary transition-colors"
           >
-            {monthFilter
-              ? format(monthFilter, "MMM yyyy", { locale: ptBR })
+            {filters.month
+              ? format(filters.month, "MMM yyyy", { locale: ptBR })
               : "Todos os meses"}
           </button>
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => setMonthFilter((prev) => prev ? addMonths(prev, 1) : addMonths(new Date(), 1))}
+            onClick={() => setFilters(prev => ({ ...prev, month: prev.month ? addMonths(prev.month, 1) : addMonths(new Date(), 1) }))}
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
