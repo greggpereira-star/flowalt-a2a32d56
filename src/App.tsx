@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
+
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { KeyboardShortcutsDialog } from "@/components/command/KeyboardShortcutsDialog";
@@ -65,10 +67,12 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <OnboardingTour />
-            <CommandPalette />
-            <KeyboardShortcutsDialog />
-            <Routes>
+            <GlobalModalProvider>
+              <OnboardingTour />
+              <CommandPalette />
+              <KeyboardShortcutsDialog />
+              <Routes>
+
               {/* Public Routes */}
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
@@ -113,7 +117,9 @@ const App = () => (
               
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </GlobalModalProvider>
           </WorkspaceProvider>
+
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
