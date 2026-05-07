@@ -170,7 +170,12 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
+    <Dialog open={open} onOpenChange={(v) => { 
+      if (!v) {
+        handleClose();
+        isSubmittingRef.current = false;
+      } else setOpen(true); 
+    }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
