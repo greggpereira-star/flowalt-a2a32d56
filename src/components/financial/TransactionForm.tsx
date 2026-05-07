@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { useCreateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
 import { useClients } from "@/hooks/useClients";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { TransactionAttachments } from "./TransactionAttachments";
 
 const transactionSchema = z.object({
@@ -48,6 +49,7 @@ const transactionSchema = z.object({
   type: z.enum(["income", "expense", "transfer"]),
   due_date: z.date(),
   category_id: z.string().optional(),
+  collaborator_id: z.string().optional(),
   client_id: z.string().optional(),
   cost_center_id: z.string().optional(),
   status: z.enum(["pending", "paid"]).optional(),
@@ -72,6 +74,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   const { data: categories = [] } = useCategories();
   const { data: clients = [] } = useClients();
   const { data: costCenters = [] } = useCostCenters();
+  const { data: members = [] } = useWorkspaceMembers();
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -81,6 +84,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       type: transaction?.type || "expense",
       due_date: transaction?.due_date ? new Date(transaction.due_date) : new Date(),
       category_id: transaction?.category_id || "",
+      collaborator_id: transaction?.collaborator_id || "",
       client_id: transaction?.client_id || "",
       cost_center_id: (transaction as any)?.cost_center_id || "",
       status: transaction?.status === "paid" ? "paid" : "pending",
@@ -104,6 +108,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
       type: data.type,
       due_date: data.due_date.toISOString().split("T")[0],
       category_id: data.category_id || undefined,
+      collaborator_id: data.collaborator_id || undefined,
       client_id: data.client_id || undefined,
       cost_center_id: data.cost_center_id || undefined,
       status: data.status,
@@ -294,20 +299,47 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
               />
             </div>
 
-            {/* Fornecedor */}
-            <FormField
-              control={form.control}
-              name="supplier_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fornecedor (opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Fornecedor XYZ" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="collaborator_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Colaborador</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Opcional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.profile?.full_name || member.profile?.email || "Membro"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="supplier_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fornecedor (opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Fornecedor XYZ" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Centro de Custo */}
             <FormField

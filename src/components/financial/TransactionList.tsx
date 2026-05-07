@@ -16,7 +16,11 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  FileDown,
+  User,
 } from "lucide-react";
+// @ts-ignore
+import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCategories } from "@/hooks/useFinancial";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { toast } from "sonner";
 
 interface TransactionListProps {
@@ -55,12 +60,14 @@ interface TransactionListProps {
 export function TransactionList({ onEdit, filters: initialFilters }: TransactionListProps) {
   const [filters, setFilters] = useState(initialFilters || {});
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  const [collaboratorFilter, setCollaboratorFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<Date | null>(null);
   const [assigningCostCenter, setAssigningCostCenter] = useState<string | null>(null);
   
   const { data: transactions = [], isLoading } = useTransactions(filters);
   const { data: categories = [] } = useCategories();
   const { data: costCenters = [] } = useCostCenters();
+  const { data: members = [] } = useWorkspaceMembers();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
 
@@ -115,12 +122,16 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
     }
   };
 
-  // Filter transactions by cost center and month
+  // Filter transactions by cost center, collaborator and month
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       if (costCenterFilter !== "all") {
         if (costCenterFilter === "unassigned" && t.cost_center_id) return false;
         if (costCenterFilter !== "unassigned" && t.cost_center_id !== costCenterFilter) return false;
+      }
+      if (collaboratorFilter !== "all") {
+        if (collaboratorFilter === "unassigned" && t.collaborator_id) return false;
+        if (collaboratorFilter !== "unassigned" && t.collaborator_id !== collaboratorFilter) return false;
       }
       if (monthFilter) {
         const txDate = parseISO(t.due_date);
@@ -136,6 +147,27 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
   const getCostCenterById = (id: string | null) => {
     if (!id) return null;
     return costCenters.find((cc) => cc.id === id);
+  };
+
+  const handleExportExcel = () => {
+    const dataToExport = filteredTransactions.map(t => ({
+      'Tipo': t.type === 'income' ? 'Receita' : 'Despesa',
+      'Descrição': t.description,
+      'Categoria': t.category?.name || 'Sem categoria',
+      'Centro de Custo': costCenters.find(cc => cc.id === t.cost_center_id)?.name || 'Nenhum',
+      'Colaborador': t.collaborator?.profile?.full_name || t.collaborator?.profile?.email || 'Nenhum',
+      'Vencimento': format(new Date(t.due_date), 'dd/MM/yyyy'),
+      'Valor': t.amount,
+      'Status': t.status === 'paid' ? 'Pago' : t.status === 'pending' ? 'Pendente' : t.status === 'overdue' ? 'Vencido' : 'Cancelado',
+      'NF': t.invoice_number || '-',
+      'Notas': t.notes || '-'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+    XLSX.writeFile(wb, `lancamentos_financeiros_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+    toast.success("Excel gerado com sucesso!");
   };
 
   if (isLoading) {
@@ -199,6 +231,22 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
           </SelectContent>
         </Select>
 
+        <Select value={collaboratorFilter} onValueChange={setCollaboratorFilter}>
+          <SelectTrigger className="w-[200px]">
+            <User className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Colaborador" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Colaboradores</SelectItem>
+            <SelectItem value="unassigned">Sem Colaborador</SelectItem>
+            {members.map((member) => (
+              <SelectItem key={member.id} value={member.id}>
+                {member.profile?.full_name || member.profile?.email || "Membro"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {/* Month Filter */}
         <div className="flex items-center gap-1 border border-border rounded-md px-2 h-10">
           <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -227,6 +275,11 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
         </div>
+
+        <Button variant="outline" onClick={handleExportExcel} className="ml-auto">
+          <FileDown className="w-4 h-4 mr-2" />
+          Exportar Excel
+        </Button>
       </div>
 
       <div className="rounded-md border border-border">

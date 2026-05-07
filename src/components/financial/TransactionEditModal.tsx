@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { useUpdateTransaction, useCategories, Transaction } from "@/hooks/useFinancial";
 import { useClients } from "@/hooks/useClients";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { TransactionAttachments } from "./TransactionAttachments";
 
 const transactionSchema = z.object({
@@ -47,6 +48,7 @@ const transactionSchema = z.object({
   type: z.enum(["income", "expense", "transfer"]),
   due_date: z.date(),
   category_id: z.string().optional(),
+  collaborator_id: z.string().optional(),
   client_id: z.string().optional(),
   cost_center_id: z.string().optional(),
   status: z.enum(["pending", "paid", "cancelled", "overdue"]).optional(),
@@ -69,6 +71,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
   const { data: categories = [] } = useCategories();
   const { data: clients = [] } = useClients();
   const { data: costCenters = [] } = useCostCenters();
+  const { data: members = [] } = useWorkspaceMembers();
 
   const form = useForm<FormData>({
     resolver: zodResolver(transactionSchema),
@@ -78,6 +81,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
       type: "expense",
       due_date: new Date(),
       category_id: "",
+      collaborator_id: "",
       client_id: "",
       cost_center_id: "",
       status: "pending",
@@ -97,6 +101,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
         type: transaction.type || "expense",
         due_date: transaction.due_date ? new Date(transaction.due_date) : new Date(),
         category_id: transaction.category_id || "",
+        collaborator_id: transaction.collaborator_id || "",
         client_id: transaction.client_id || "",
         cost_center_id: (transaction as any).cost_center_id || "",
         status: transaction.status || "pending",
@@ -123,6 +128,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
       type: data.type,
       due_date: data.due_date.toISOString().split("T")[0],
       category_id: data.category_id || null,
+      collaborator_id: data.collaborator_id || null,
       client_id: data.client_id || null,
       cost_center_id: data.cost_center_id || null,
       status: data.status,
@@ -268,6 +274,33 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
                 )}
               />
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="collaborator_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Colaborador</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Opcional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.profile?.full_name || member.profile?.email || "Membro"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="client_id"
@@ -293,6 +326,7 @@ export function TransactionEditModal({ open, onOpenChange, transaction }: Transa
                   </FormItem>
                 )}
               />
+            </div>
             </div>
 
             {/* Centro de Custo */}
