@@ -353,18 +353,36 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                 const costCenter = getCostCenterById(transaction.cost_center_id);
                 
                 return (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
+                  <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0">
+                    <TableCell className="text-center">
                       {transaction.type === "income" ? (
-                        <ArrowUpCircle className="w-5 h-5 text-green-500" />
+                        <div className="flex justify-center">
+                          <div className="p-1.5 rounded-full bg-green-500/10">
+                            <ArrowUpCircle className="w-4 h-4 text-green-500" />
+                          </div>
+                        </div>
                       ) : (
-                        <ArrowDownCircle className="w-5 h-5 text-red-500" />
+                        <div className="flex justify-center">
+                          <div className="p-1.5 rounded-full bg-red-500/10">
+                            <ArrowDownCircle className="w-4 h-4 text-red-500" />
+                          </div>
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell className="font-medium text-foreground py-4">
+                      {transaction.description}
+                    </TableCell>
                     <TableCell>
-                      {transaction.category?.name || (
-                        <span className="text-muted-foreground">Sem categoria</span>
+                      {transaction.category ? (
+                        <Badge 
+                          variant="outline" 
+                          className="font-normal border-border/50 bg-muted/20"
+                          style={transaction.category.color ? { borderLeftColor: transaction.category.color, borderLeftWidth: '3px' } : {}}
+                        >
+                          {transaction.category.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Sem categoria</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -374,19 +392,19 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           onValueChange={(value) => handleAssignCostCenter(transaction.id, value)}
                           disabled={assigningCostCenter === transaction.id}
                         >
-                          <SelectTrigger className="h-8 text-xs w-[140px]">
+                          <SelectTrigger className="h-8 text-xs w-[140px] bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none">
                             {assigningCostCenter === transaction.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                             ) : costCenter ? (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 overflow-hidden">
                                 <div
-                                  className="w-2 h-2 rounded-full"
+                                  className="w-1.5 h-1.5 rounded-full shrink-0"
                                   style={{ backgroundColor: costCenter.color || "#3B82F6" }}
                                 />
                                 <span className="truncate">{costCenter.name}</span>
                               </div>
                             ) : (
-                              <span className="text-amber-600">Não atribuído</span>
+                              <span className="text-amber-600/80 font-medium">Não atribuído</span>
                             )}
                           </SelectTrigger>
                           <SelectContent>
@@ -408,10 +426,10 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                         </Select>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
                       {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className={transaction.type === "income" ? "text-green-500" : "text-red-500"}>
+                    <TableCell className={`text-right font-semibold whitespace-nowrap ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
                       {transaction.type === "income" ? "+" : "-"}
                       {formatCurrency(transaction.amount)}
                     </TableCell>
