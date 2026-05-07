@@ -159,7 +159,8 @@ const Index: React.FC = () => {
   // Se workspace está vazio (sem espaços), mostrar estado vazio
   if (!spaces || spaces.length === 0) {
     return (
-      <AppLayout>
+      <>
+
         <EmptyWorkspaceState
           workspaceName={currentWorkspace?.name || 'Workspace'}
           onCreateSpace={() => setShowCreateSpace(true)}
@@ -171,12 +172,13 @@ const Index: React.FC = () => {
           onSubmit={handleCreateSpace}
           isLoading={createSpace.isPending}
         />
-      </AppLayout>
+      </>
+
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
@@ -332,7 +334,7 @@ const Index: React.FC = () => {
           </Card>
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 };
 
