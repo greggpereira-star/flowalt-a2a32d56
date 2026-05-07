@@ -122,6 +122,7 @@ export function TransactionForm({ transaction, onSuccess }: TransactionFormProps
   }, [open, transaction]);
 
   const onSubmit = async (data: FormData) => {
+    isSubmittingRef.current = true;
     const amount = parseCurrencyToNumber(data.amount);
 
     const result = await createTransaction.mutateAsync({
