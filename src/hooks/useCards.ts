@@ -6,6 +6,7 @@ import { getErrorMessage } from '@/lib/utils';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 import { triggerWebhook } from '@/lib/webhookTrigger';
+import { toast } from 'sonner';
 
 
 export type CardType = 'quick' | 'full';
@@ -456,6 +457,38 @@ export const useDeleteCard = () => {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       queryClient.invalidateQueries({ queryKey: ['filtered-cards'] });
       queryClient.invalidateQueries({ queryKey: ['card', cardId] });
+    },
+  });
+};
+
+export const useShareCardAcrossSpaces = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ cardId, spaceId }: { cardId: string; spaceId: string }) => {
+      const { error } = await supabase
+        .from('card_spaces')
+        .insert({
+          card_id: cardId,
+          space_id: spaceId,
+        });
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          throw new Error('Este card já está presente neste setor.');
+        }
+        throw error;
+      }
+
+      return { cardId, spaceId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
+      queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
+      toast.success('Card compartilhado com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao compartilhar card.');
     },
   });
 };

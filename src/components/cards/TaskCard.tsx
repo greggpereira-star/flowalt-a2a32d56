@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,14 @@ import { RiskRadar } from './RiskRadar';
 import { CardQuickActions } from './CardQuickActions';
 import { CardAssignees, type Assignee } from './CardAssignees';
 import { VisibilityIcon } from '@/components/governance';
-import { Calendar, Clock, Building2, BanknoteIcon } from 'lucide-react';
+import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSpaces } from '@/hooks/useSpaces';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskCardProps {
   card: Card;
@@ -46,9 +48,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onDelete,
   showQuickActions = true,
 }) => {
+  const { data: allSpaces } = useSpaces();
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
   const isBillable = !!card.client_id;
+
+  // Shared spaces logic
+  const sharedSpaces = useMemo(() => {
+    const spaceIds = (card as any).card_spaces?.map((cs: any) => cs.space_id) || [];
+    if (spaceIds.length <= 1) return null;
+    
+    return spaceIds
+      .map((id: string) => allSpaces?.find(s => s.id === id))
+      .filter(Boolean);
+  }, [card, allSpaces]);
 
   const hasQuickActions = showQuickActions && onStatusChange && onUrgencyChange && onDuplicate && onDelete;
 
@@ -78,7 +91,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       )}
 
       {/* Top right actions area */}
-      <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+        {/* Shared space indicator */}
+        {sharedSpaces && sharedSpaces.length > 1 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-600 hover:bg-blue-500/20 transition-colors">
+                  <Layers className="h-3 w-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[200px]">
+                <p className="text-[10px] font-semibold mb-1">Compartilhado em:</p>
+                <div className="flex flex-wrap gap-1">
+                  {sharedSpaces.map((s: any) => (
+                    <Badge key={s.id} variant="outline" className="text-[9px] h-4 py-0 px-1 border-blue-200 bg-blue-50 text-blue-700">
+                      {s.name}
+                    </Badge>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
         {/* Quick actions button */}
         {hasQuickActions && (
           <CardQuickActions

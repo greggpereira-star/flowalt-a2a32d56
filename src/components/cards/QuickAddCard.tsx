@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCreateCard } from '@/hooks/useCards';
+import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -98,6 +98,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const createCard = useCreateCard();
+  const shareCard = useShareCardAcrossSpaces();
   const { data: members } = useWorkspaceMembers();
   const { data: clientCards } = useClientCards();
   const { data: spaces } = useSpaces();
@@ -188,22 +189,12 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
       // Handle cross-sector visibility using junction table card_spaces
       if (isDuplicateEnabled && duplicateToSpace) {
         try {
-          const { error: junctionError } = await supabase
-            .from('card_spaces')
-            .insert({
-              card_id: result.id,
-              space_id: duplicateToSpace,
-            });
-
-          if (junctionError) throw junctionError;
-          
-          toast({ title: 'Card compartilhado com o setor selecionado' });
+          await shareCard.mutateAsync({
+            cardId: result.id,
+            spaceId: duplicateToSpace,
+          });
         } catch (dupError) {
           console.error('Error sharing card across spaces:', dupError);
-          toast({
-            title: 'Erro ao compartilhar tarefa',
-            variant: 'destructive',
-          });
         }
       }
 

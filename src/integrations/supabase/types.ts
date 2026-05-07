@@ -1620,6 +1620,47 @@ export type Database = {
           },
         ]
       }
+      card_history: {
+        Row: {
+          action_type: string
+          card_id: string
+          created_at: string
+          field_name: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          card_id: string
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          card_id?: string
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_history_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_invites: {
         Row: {
           accepted_at: string | null
