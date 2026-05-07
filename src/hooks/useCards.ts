@@ -331,6 +331,7 @@ export const useCreateCard = () => {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
       queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
       // Invalidate folder cache if card was linked to a folder
       if (variables.folder_id) {
@@ -504,6 +505,8 @@ export const useShareCardAcrossSpaces = () => {
       }
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
       queryClient.invalidateQueries({ queryKey: ['cards', 'space', data.spaceId] });
       queryClient.invalidateQueries({ queryKey: ['card', data.cardId] });
       toast.success('Card compartilhado com sucesso!');
