@@ -166,26 +166,13 @@ export const useCard = (cardId: string | undefined) => {
   });
 };
 
-export const useCreateCard = () => {
+export const useCreateCard = (currentSpaceId?: string) => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
   const generateUuid = (): string => {
-    const c = globalThis.crypto as Crypto | undefined;
-    if (c?.randomUUID) return c.randomUUID();
-
-    if (c?.getRandomValues) {
-      const bytes = c.getRandomValues(new Uint8Array(16));
-      // RFC 4122 v4
-      bytes[6] = (bytes[6] & 0x0f) | 0x40;
-      bytes[8] = (bytes[8] & 0x3f) | 0x80;
-      const hex = Array.from(bytes)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-    }
-
+    // ... keep existing code
     return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
   };
 
@@ -330,17 +317,27 @@ export const useCreateCard = () => {
       } as unknown as Card;
     },
     onSuccess: (data, variables) => {
-      // Immediate invalidation of all card lists to catch the new card and its relationships
+      // Step 1: Invalidate and refetch all active card lists
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       
-      // Target specific space if provided
+      // Step 2: Specifically target the space where the card was created
       if (variables.space_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
-        // Force refetch to ensure background sync
         queryClient.refetchQueries({ queryKey: ['cards', 'space', variables.space_id] });
       }
 
-      // Invalidate folder cache if card was linked to a folder
+      // Step 3: If we have the current space from the hook parameter, refresh it too
+      if (currentSpaceId && currentSpaceId !== variables.space_id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'space', currentSpaceId] });
+        queryClient.refetchQueries({ queryKey: ['cards', 'space', currentSpaceId] });
+      }
+
+      // Step 4: Refetch active space queries to ensure the UI updates everywhere
+      queryClient.refetchQueries({ 
+        queryKey: ['cards', 'space'],
+        type: 'active'
+      });
+
       if (variables.folder_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'folder', variables.folder_id] });
       }
