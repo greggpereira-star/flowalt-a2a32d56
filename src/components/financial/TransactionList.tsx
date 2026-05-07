@@ -499,45 +499,47 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                   const costCenter = getCostCenterById(transaction.cost_center_id);
                   
                   return (
-                    <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0 h-12">
-                      <TableCell className="text-center px-1">
+                    <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0 min-h-[56px]">
+                      <TableCell className="text-center px-2 py-4">
                         {transaction.type === "income" ? (
                           <div className="flex justify-center">
-                            <div className="p-1 rounded-full bg-green-500/10">
-                              <ArrowUpCircle className="w-3.5 h-3.5 text-green-500" />
+                            <div className="p-2 rounded-full bg-green-500/10">
+                              <ArrowUpCircle className="w-4 h-4 text-green-500" />
                             </div>
                           </div>
                         ) : (
                           <div className="flex justify-center">
-                            <div className="p-1 rounded-full bg-red-500/10">
-                              <ArrowDownCircle className="w-3.5 h-3.5 text-red-500" />
+                            <div className="p-2 rounded-full bg-red-500/10">
+                              <ArrowDownCircle className="w-4 h-4 text-red-500" />
                             </div>
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium text-foreground py-2 px-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {transaction.description}
+                      <TableCell className="font-medium text-foreground py-4 px-4 max-w-[400px]">
+                        <div className="truncate" title={transaction.description}>
+                          {transaction.description}
+                        </div>
                       </TableCell>
-                      <TableCell className="px-2">
-                        <div className="flex items-center gap-1.5 overflow-hidden">
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-2">
                           <Select
                             value={transaction.cost_center_id || "none"}
                             onValueChange={(value) => handleAssignCostCenter(transaction.id, value)}
                             disabled={assigningCostCenter === transaction.id}
                           >
-                            <SelectTrigger className="h-7 text-[11px] w-full bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none px-1">
+                            <SelectTrigger className="h-8 text-xs w-[160px] bg-transparent border-none hover:bg-muted/50 transition-colors shadow-none px-2">
                               {assigningCostCenter === transaction.id ? (
                                 <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                               ) : costCenter ? (
-                                <div className="flex items-center gap-1.5 overflow-hidden">
+                                <div className="flex items-center gap-2 overflow-hidden">
                                   <div
-                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    className="w-2 h-2 rounded-full shrink-0"
                                     style={{ backgroundColor: costCenter.color || "#3B82F6" }}
                                   />
                                   <span className="truncate">{costCenter.name}</span>
                                 </div>
                               ) : (
-                                <span className="text-amber-600/70 font-medium">N/D</span>
+                                <span className="text-amber-600 font-medium">Não atribuído</span>
                               )}
                             </SelectTrigger>
                             <SelectContent>
@@ -559,19 +561,19 @@ export function TransactionList({ onEdit, filters: initialFilters }: Transaction
                           </Select>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap px-2 text-[13px]">
-                        {format(new Date(transaction.due_date), "dd/MM/yy", { locale: ptBR })}
+                      <TableCell className="text-muted-foreground whitespace-nowrap px-4 py-4">
+                        {format(new Date(transaction.due_date), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
-                      <TableCell className={`text-right font-semibold whitespace-nowrap px-2 text-[13px] ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                      <TableCell className={`text-right font-semibold whitespace-nowrap px-4 py-4 ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
                         {transaction.type === "income" ? "+" : "-"}
                         {formatCurrency(transaction.amount)}
                       </TableCell>
-                      <TableCell className="px-2">{getStatusBadge(transaction.status)}</TableCell>
-                      <TableCell className="px-1">
+                      <TableCell className="px-4 py-4">{getStatusBadge(transaction.status)}</TableCell>
+                      <TableCell className="px-2 py-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
