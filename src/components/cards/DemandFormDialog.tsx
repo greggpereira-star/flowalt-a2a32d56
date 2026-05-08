@@ -180,31 +180,8 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
         card_type: 'full', // DemandFormDialog always creates full cards with briefing process
         workflow_id: defaultWorkflow?.id,
         current_stage: firstStage?.id,
+        duplicate_to_space_id: isDuplicateEnabled && duplicateToSpace ? duplicateToSpace : undefined,
       });
-
-      // Step 2: Handle cross-sector visibility using junction table card_spaces
-      if (isDuplicateEnabled && duplicateToSpace && result?.id) {
-        console.log(`[DemandFormDialog] Duplication enabled. Triggering share for card ${result.id} to space ${duplicateToSpace}`);
-        try {
-          await shareCard.mutateAsync({
-            cardId: result.id,
-            spaceId: duplicateToSpace,
-          });
-          console.log(`[DemandFormDialog] Card shared successfully to ${duplicateToSpace}`);
-        } catch (dupError: any) {
-          console.error('[DemandFormDialog] Critical failure during card duplication:', {
-            cardId: result?.id,
-            targetSpaceId: duplicateToSpace,
-            error: dupError.message,
-            stack: dupError.stack
-          });
-          toastHook({
-            title: 'Aviso',
-            description: 'O card foi criado, mas não pôde ser duplicado para o outro setor.',
-            variant: 'destructive',
-          });
-        }
-      }
 
       toast.success('Demanda criada com sucesso!', {
         description: isBriefingValid 
