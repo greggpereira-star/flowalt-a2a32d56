@@ -173,7 +173,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     }
 
     try {
-      const result = await createCard.mutateAsync({
+      await createCard.mutateAsync({
         title,
         space_id: spaceId,
         folder_id: folderId,
@@ -184,31 +184,15 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         client_id: clientId || undefined,
         owner_id: ownerId || undefined,
         card_type: mode === 'quick' ? 'quick' : 'full',
+        duplicate_to_space_id: isDuplicateEnabled && duplicateToSpace ? duplicateToSpace : undefined,
       });
 
-      // Handle cross-sector visibility using junction table card_spaces
-      if (isDuplicateEnabled && duplicateToSpace && result?.id) {
-        console.log(`[QuickAddCard] Duplication enabled. Triggering share for card ${result.id} to space ${duplicateToSpace}`);
-        try {
-          await shareCard.mutateAsync({
-            cardId: result.id,
-            spaceId: duplicateToSpace,
-          });
-          console.log(`[QuickAddCard] Card shared successfully to ${duplicateToSpace}`);
-        } catch (dupError: any) {
-          console.error('[QuickAddCard] Critical failure during card duplication:', {
-            cardId: result?.id,
-            targetSpaceId: duplicateToSpace,
-            error: dupError.message,
-            stack: dupError.stack
-          });
-          toast({
-            title: 'Aviso',
-            description: 'O card foi criado, mas não pôde ser duplicado para o outro setor.',
-            variant: 'destructive',
-          });
-        }
-      }
+      toast({ 
+        title: 'Card criado!', 
+        description: isDuplicateEnabled && duplicateToSpace 
+          ? 'O card foi criado e espelhado com sucesso.' 
+          : 'O card foi criado com sucesso.'
+      });
 
       toast({ title: 'Card criado com sucesso!' });
       resetForm();
@@ -546,7 +530,10 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
       <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
         Cancelar
       </Button>
-      <Button onClick={handleSubmit} disabled={createCard.isPending}>
+      <Button 
+        onClick={handleSubmit} 
+        disabled={createCard.isPending || (isDuplicateEnabled && !duplicateToSpace)}
+      >
         {createCard.isPending ? 'Criando...' : 'Criar Card'}
       </Button>
     </div>

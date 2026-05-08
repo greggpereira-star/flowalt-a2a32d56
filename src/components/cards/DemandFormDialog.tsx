@@ -625,7 +625,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                   type="button" 
                   size="default"
                   onClick={goNext}
-                  disabled={!canGoNext()}
+                  disabled={!canGoNext() || (isDuplicateEnabled && currentStep === 'info' && !duplicateToSpace)}
                 >
                   Próximo
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -635,7 +635,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                   type="button" 
                   size="default"
                   onClick={handleSubmit}
-                  disabled={createCard.isPending}
+                  disabled={createCard.isPending || (isDuplicateEnabled && !duplicateToSpace)}
                 >
                   {createCard.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Criar Demanda
