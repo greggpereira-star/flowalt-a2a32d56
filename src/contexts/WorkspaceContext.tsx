@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { generateId } from '@/lib/utils';
 import type { AppRole, SpaceType } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 
