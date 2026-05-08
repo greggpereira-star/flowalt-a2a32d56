@@ -67,6 +67,7 @@ export const useRealtimeCards = (spaceId?: string) => {
           // Invalidate ALL space-based card queries to ensure any sector board showing the card updates
           queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
           queryClient.invalidateQueries({ queryKey: ['cards', 'all'] });
+          queryClient.invalidateQueries({ queryKey: ['cards', 'folder'] }); // Also invalidate folder queries
           
           if (payload.new && (payload.new as any).card_id) {
             queryClient.invalidateQueries({ queryKey: ['card', (payload.new as any).card_id] });
