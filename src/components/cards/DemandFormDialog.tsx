@@ -373,7 +373,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                 </div>
 
                 {/* Duplication to other sectors */}
-                {isSocialMedia && (
+                {true && (
                   <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

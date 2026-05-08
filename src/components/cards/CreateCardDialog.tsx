@@ -257,7 +257,7 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
               </div>
 
               {/* Duplication to other sectors (Visible only if isSocialMedia is true) */}
-              {isSocialMedia && (
+              {true && (
                 <div className="p-4 rounded-xl border-2 border-primary/10 bg-primary/5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
