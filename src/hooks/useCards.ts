@@ -355,22 +355,46 @@ export const useCreateCard = (currentSpaceId?: string) => {
           console.log('[useCreateCard] Atomic duplication successful in card_spaces');
           await info('cards-hook', 'Espelhamento card_spaces concluído', { cardId, targetSpaceId });
           
-          // Step 2: If the original card was in a folder, also duplicate it to a folder in the target space if one with the same name exists
+          // Step 2: If the original card was in a folder, mirror it in the target space
           if (input.folder_id) {
             const { data: sourceFolder } = await supabase
               .from('folders')
-              .select('name')
+              .select('*')
               .eq('id', input.folder_id)
               .maybeSingle();
 
             if (sourceFolder) {
-              const { data: targetFolder } = await supabase
+              // Try to find an existing folder with the same name in the target space
+              let { data: targetFolder } = await supabase
                 .from('folders')
                 .select('id')
                 .eq('space_id', targetSpaceId)
                 .eq('name', sourceFolder.name)
                 .eq('is_archived', false)
                 .maybeSingle();
+
+              // If it doesn't exist, create it automatically
+              if (!targetFolder) {
+                console.log(`[useCreateCard] Creating folder "${sourceFolder.name}" in target space`);
+                const { data: newFolder, error: createFolderError } = await supabase
+                  .from('folders')
+                  .insert({
+                    workspace_id: currentWorkspace.id,
+                    space_id: targetSpaceId,
+                    name: sourceFolder.name,
+                    icon: sourceFolder.icon,
+                    color: sourceFolder.color,
+                    description: sourceFolder.description,
+                  })
+                  .select('id')
+                  .single();
+                
+                if (createFolderError) {
+                  console.error('[useCreateCard] Failed to create destination folder:', createFolderError);
+                } else {
+                  targetFolder = newFolder;
+                }
+              }
 
               if (targetFolder) {
                 const { error: folderDupError } = await supabase
@@ -389,20 +413,13 @@ export const useCreateCard = (currentSpaceId?: string) => {
                     error: folderDupError 
                   });
                 } else {
-                  console.log(`[useCreateCard] Atomic duplication also mapped to folder "${sourceFolder.name}" in target space`);
+                  console.log(`[useCreateCard] Atomic duplication mapped to folder "${sourceFolder.name}" in target space`);
                   await info('cards-hook', 'Mapeamento de pasta no espelhamento concluído', { 
                     cardId, 
                     folderName: sourceFolder.name, 
                     targetFolderId: targetFolder.id 
                   });
                 }
-              } else {
-                console.log(`[useCreateCard] No matching folder found in target space for "${sourceFolder.name}"`);
-                await info('cards-hook', 'Nenhuma pasta correspondente encontrada no destino', { 
-                  cardId, 
-                  sourceFolderName: sourceFolder.name, 
-                  targetSpaceId 
-                });
               }
             }
           }
