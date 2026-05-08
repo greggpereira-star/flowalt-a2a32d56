@@ -64,13 +64,17 @@ export const useRealtimeCards = (spaceId?: string) => {
         },
         (payload) => {
           console.log('Realtime card_spaces update:', payload);
-          queryClient.invalidateQueries({ queryKey: ['cards'] });
-          queryClient.invalidateQueries({ queryKey: ['card-history'] });
-          if (spaceId) {
-            queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
-          }
+          // Invalidate ALL space-based card queries to ensure any sector board showing the card updates
+          queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
+          queryClient.invalidateQueries({ queryKey: ['cards', 'all'] });
+          
           if (payload.new && (payload.new as any).card_id) {
             queryClient.invalidateQueries({ queryKey: ['card', (payload.new as any).card_id] });
+          }
+          
+          // If we have a specific spaceId, focus on it, but the generic invalidation above covers most cases
+          if (spaceId) {
+            queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
           }
         }
       )
