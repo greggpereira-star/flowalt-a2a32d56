@@ -163,10 +163,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   columnLabels,
 }) => {
   const { toast } = useToast();
-  const { currentRole } = useWorkspace();
+  const { currentRole, currentWorkspace } = useWorkspace();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
-  const createCard = useCreateCard();
+  const createCard = useCreateCard(cards[0]?.display_space_id || cards[0]?.space_id);
   const transitionCard = useTransitionCard();
   
   // Clients data for displaying client info on cards
