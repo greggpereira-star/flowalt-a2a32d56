@@ -185,6 +185,7 @@ export const useCreateCard = (currentSpaceId?: string) => {
   const workspaceContext = useWorkspace();
   const currentWorkspace = workspaceContext?.currentWorkspace;
   const { user } = useAuth();
+  const { info, error: logError } = useLogWriter();
 
   return useMutation({
     mutationFn: async (input: CreateCardInput) => {
@@ -256,8 +257,15 @@ export const useCreateCard = (currentSpaceId?: string) => {
 
       if (cardError) {
         console.error('useCreateCard: insert into cards failed', cardError);
+        logError('cards-hook', 'Falha ao inserir card na tabela cards', { 
+          cardId, 
+          workspaceId: currentWorkspace.id,
+          error: cardError 
+        });
         throw new Error(getErrorMessage(cardError, 'Falha ao criar card.'));
       }
+
+      await info('cards-hook', 'Card criado com sucesso', { cardId, title: input.title, spaceId: input.space_id });
 
       // Add to junction table card_spaces
       const { error: spaceError } = await supabase
@@ -269,8 +277,15 @@ export const useCreateCard = (currentSpaceId?: string) => {
 
       if (spaceError) {
         console.error('useCreateCard: insert into card_spaces failed', spaceError);
+        logError('cards-hook', 'Falha ao vincular card ao espaço primário', { 
+          cardId, 
+          spaceId: input.space_id, 
+          error: spaceError 
+        });
         throw new Error(getErrorMessage(spaceError, 'Falha ao vincular espaço.'));
       }
+
+      await info('cards-hook', 'Vínculo card_spaces criado para espaço primário', { cardId, spaceId: input.space_id });
 
       // Add to folder if specified
       if (input.folder_id) {
@@ -313,20 +328,24 @@ export const useCreateCard = (currentSpaceId?: string) => {
 
       // Handle atomic duplication if requested
       if (input.duplicate_to_space_id) {
-        console.log(`[useCreateCard] Atomic duplication requested to space: ${input.duplicate_to_space_id}`);
+        const targetSpaceId = input.duplicate_to_space_id;
+        console.log(`[useCreateCard] Atomic duplication requested to space: ${targetSpaceId}`);
+        await info('cards-hook', 'Iniciando espelhamento atômico', { cardId, targetSpaceId });
         
         // Step 1: Link card to the target space
         const { error: dupError } = await supabase
           .from('card_spaces')
           .insert({
             card_id: cardId,
-            space_id: input.duplicate_to_space_id,
+            space_id: targetSpaceId,
           });
         
         if (dupError) {
           console.error('[useCreateCard] Atomic duplication failed (card_spaces):', dupError);
+          logError('cards-hook', 'Falha no espelhamento card_spaces', { cardId, targetSpaceId, error: dupError });
         } else {
           console.log('[useCreateCard] Atomic duplication successful in card_spaces');
+          await info('cards-hook', 'Espelhamento card_spaces concluído', { cardId, targetSpaceId });
           
           // Step 2: If the original card was in a folder, also duplicate it to a folder in the target space if one with the same name exists
           if (input.folder_id) {
@@ -340,7 +359,7 @@ export const useCreateCard = (currentSpaceId?: string) => {
               const { data: targetFolder } = await supabase
                 .from('folders')
                 .select('id')
-                .eq('space_id', input.duplicate_to_space_id)
+                .eq('space_id', targetSpaceId)
                 .eq('name', sourceFolder.name)
                 .eq('is_archived', false)
                 .maybeSingle();
@@ -355,9 +374,27 @@ export const useCreateCard = (currentSpaceId?: string) => {
                 
                 if (folderDupError) {
                   console.error('[useCreateCard] Atomic duplication folder mapping failed:', folderDupError);
+                  logError('cards-hook', 'Falha no mapeamento de pasta no espelhamento', { 
+                    cardId, 
+                    targetSpaceId, 
+                    targetFolderId: targetFolder.id, 
+                    error: folderDupError 
+                  });
                 } else {
                   console.log(`[useCreateCard] Atomic duplication also mapped to folder "${sourceFolder.name}" in target space`);
+                  await info('cards-hook', 'Mapeamento de pasta no espelhamento concluído', { 
+                    cardId, 
+                    folderName: sourceFolder.name, 
+                    targetFolderId: targetFolder.id 
+                  });
                 }
+              } else {
+                console.log(`[useCreateCard] No matching folder found in target space for "${sourceFolder.name}"`);
+                await info('cards-hook', 'Nenhuma pasta correspondente encontrada no destino', { 
+                  cardId, 
+                  sourceFolderName: sourceFolder.name, 
+                  targetSpaceId 
+                });
               }
             }
           }
