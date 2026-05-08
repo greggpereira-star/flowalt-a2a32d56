@@ -15,6 +15,7 @@ export interface Card {
   id: string;
   workspace_id: string;
   space_id: string;
+  display_space_id?: string; // Virtual field for UI logic
   client_id: string | null;
   title: string;
   description: string | null;
