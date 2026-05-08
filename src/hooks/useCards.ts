@@ -314,6 +314,8 @@ export const useCreateCard = (currentSpaceId?: string) => {
       // Handle atomic duplication if requested
       if (input.duplicate_to_space_id) {
         console.log(`[useCreateCard] Atomic duplication requested to space: ${input.duplicate_to_space_id}`);
+        
+        // Step 1: Link card to the target space
         const { error: dupError } = await supabase
           .from('card_spaces')
           .insert({
@@ -322,10 +324,43 @@ export const useCreateCard = (currentSpaceId?: string) => {
           });
         
         if (dupError) {
-          console.error('[useCreateCard] Atomic duplication failed:', dupError);
-          // We don't fail the whole creation, but we log it
+          console.error('[useCreateCard] Atomic duplication failed (card_spaces):', dupError);
         } else {
-          console.log('[useCreateCard] Atomic duplication successful');
+          console.log('[useCreateCard] Atomic duplication successful in card_spaces');
+          
+          // Step 2: If the original card was in a folder, also duplicate it to a folder in the target space if one with the same name exists
+          if (input.folder_id) {
+            const { data: sourceFolder } = await supabase
+              .from('folders')
+              .select('name')
+              .eq('id', input.folder_id)
+              .maybeSingle();
+
+            if (sourceFolder) {
+              const { data: targetFolder } = await supabase
+                .from('folders')
+                .select('id')
+                .eq('space_id', input.duplicate_to_space_id)
+                .eq('name', sourceFolder.name)
+                .eq('is_archived', false)
+                .maybeSingle();
+
+              if (targetFolder) {
+                const { error: folderDupError } = await supabase
+                  .from('card_folders')
+                  .insert({
+                    card_id: cardId,
+                    folder_id: targetFolder.id,
+                  });
+                
+                if (folderDupError) {
+                  console.error('[useCreateCard] Atomic duplication folder mapping failed:', folderDupError);
+                } else {
+                  console.log(`[useCreateCard] Atomic duplication also mapped to folder "${sourceFolder.name}" in target space`);
+                }
+              }
+            }
+          }
         }
       }
 
