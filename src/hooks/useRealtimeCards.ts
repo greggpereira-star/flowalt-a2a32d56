@@ -67,6 +67,14 @@ export const useRealtimeCards = (spaceId?: string) => {
           // Invalidate ALL space-based card queries to ensure any sector board showing the card updates
           queryClient.invalidateQueries({ queryKey: ['cards', 'space'] });
           queryClient.invalidateQueries({ queryKey: ['cards', 'all'] });
+          
+          if (payload.new && (payload.new as any).card_id) {
+            queryClient.invalidateQueries({ queryKey: ['card', (payload.new as any).card_id] });
+          }
+          
+          if (spaceId) {
+            queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
+          }
         }
       )
       .on(
@@ -80,12 +88,9 @@ export const useRealtimeCards = (spaceId?: string) => {
           console.log('Realtime card_folders update:', payload);
           queryClient.invalidateQueries({ queryKey: ['cards', 'folder'] });
           queryClient.invalidateQueries({ queryKey: ['cards', 'space'] }); // Folders often define board views
-        }
-      )
           
-          // If we have a specific spaceId, focus on it, but the generic invalidation above covers most cases
-          if (spaceId) {
-            queryClient.invalidateQueries({ queryKey: ['cards', 'space', spaceId] });
+          if (payload.new && (payload.new as any).card_id) {
+            queryClient.invalidateQueries({ queryKey: ['card', (payload.new as any).card_id] });
           }
         }
       )
