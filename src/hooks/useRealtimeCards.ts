@@ -7,7 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useRealtimeCards = (spaceId?: string) => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -83,7 +84,8 @@ export const useRealtimeCards = (spaceId?: string) => {
 
 export const useRealtimeNotifications = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   useEffect(() => {
     if (!currentWorkspace?.id) return;

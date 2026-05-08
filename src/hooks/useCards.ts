@@ -61,7 +61,8 @@ export interface CreateCardInput {
 }
 
 export const useCards = (spaceId: string | undefined) => {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useQuery({
     queryKey: ['cards', 'space', spaceId],
@@ -94,7 +95,8 @@ export const useCards = (spaceId: string | undefined) => {
 };
 
 export const useAllCards = () => {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useQuery({
     queryKey: ['cards', 'all', currentWorkspace?.id],
@@ -116,7 +118,8 @@ export const useAllCards = () => {
 };
 
 export const useCardsByFolder = (folderId: string | undefined) => {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useQuery({
     queryKey: ['cards', 'folder', folderId],
@@ -168,7 +171,8 @@ export const useCard = (cardId: string | undefined) => {
 
 export const useCreateCard = (currentSpaceId?: string) => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
   const { user } = useAuth();
 
   return useMutation({
