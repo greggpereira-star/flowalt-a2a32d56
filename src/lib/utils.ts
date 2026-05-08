@@ -41,3 +41,13 @@ export function getErrorMessage(
   return fallback;
 }
 
+export function generateId(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c?.randomUUID) return c.randomUUID();
+
+  // Simple UUID v4 fallback
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) =>
+    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+  );
+}
+
