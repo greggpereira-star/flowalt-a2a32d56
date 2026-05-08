@@ -171,18 +171,9 @@ export const useCreateCard = (currentSpaceId?: string) => {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
-  const generateUuid = (): string => {
-    // ... keep existing code
-    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
-  };
-
-  return useMutation({
-    mutationFn: async (input: CreateCardInput) => {
-      if (!currentWorkspace?.id || !user?.id) throw new Error('Not authenticated');
-
       // Evita depender de RETURNING/SELECT (pode falhar por políticas de leitura)
       // gerando o ID no cliente.
-      const cardId = generateUuid();
+      const cardId = generateId();
 
       const status = input.status || 'backlog';
       const urgency = input.urgency || 'medium';
