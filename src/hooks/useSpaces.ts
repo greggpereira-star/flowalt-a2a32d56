@@ -29,7 +29,8 @@ export interface Space {
 }
 
 export const useSpaces = () => {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useQuery({
     queryKey: ['spaces', currentWorkspace?.id],
@@ -71,7 +72,8 @@ export const useSpace = (spaceId: string | undefined) => {
 
 export const useCreateSpace = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
   const { user } = useAuth();
 
   return useMutation({
@@ -325,7 +327,8 @@ interface ReorderItem {
  */
 export const useReorderSpaces = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useMutation({
     mutationFn: async (params: { items: ReorderItem[]; reason?: string }) => {
@@ -382,7 +385,8 @@ export const useReorderSpaces = () => {
  */
 export const useArchiveSpace = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useMutation({
     mutationFn: async (spaceId: string) => {
@@ -445,7 +449,8 @@ export const useArchiveSpace = () => {
  */
 export const useFixSpaceOrder = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useMutation({
     mutationFn: async () => {
