@@ -73,6 +73,8 @@ export const useCards = (spaceId: string | undefined) => {
       console.log(`[useCards] Fetching cards for space: ${spaceId}`);
 
       // Query cards using a join with card_spaces for maximum reliability
+      // Note: We use the join to find which cards belong to this space.
+      // But the card itself also has a 'space_id' field which usually points to its "primary" space.
       const { data, error } = await supabase
         .from('cards')
         .select(`
@@ -88,8 +90,15 @@ export const useCards = (spaceId: string | undefined) => {
         throw error;
       }
 
-      console.log(`[useCards] Found ${data?.length || 0} cards for space ${spaceId}`);
-      return data as Card[];
+      // Ensure each card returned has the spaceId we're looking for, 
+      // even if its internal space_id differs (due to sharing/mirroring)
+      const mappedData = data?.map(card => ({
+        ...card,
+        display_space_id: spaceId // Virtual field for UI logic
+      })) || [];
+
+      console.log(`[useCards] Found ${mappedData.length} cards for space ${spaceId}`);
+      return mappedData as Card[];
     },
     enabled: !!spaceId && !!currentWorkspace?.id,
   });
