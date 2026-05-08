@@ -20,7 +20,8 @@ export interface Folder {
 }
 
 export const useFolders = (spaceId: string | undefined) => {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   return useQuery({
     queryKey: ['folders', spaceId],
@@ -43,7 +44,8 @@ export const useFolders = (spaceId: string | undefined) => {
 
 export const useCreateFolder = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
   const { user } = useAuth();
 
   return useMutation({
