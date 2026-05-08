@@ -165,7 +165,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const createWorkspace = async (name: string, metadata?: WorkspaceMetadata): Promise<{ error: Error | null; workspace?: Workspace }> => {
     if (!user) return { error: new Error('User not authenticated') };
 
-    const workspaceId = generateUuid();
+    const workspaceId = generateId();
     let memberCreated = false;
     let roleCreated = false;
 
