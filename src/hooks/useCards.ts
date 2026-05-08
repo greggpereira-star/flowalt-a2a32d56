@@ -299,8 +299,15 @@ export const useCreateCard = (currentSpaceId?: string) => {
 
         if (folderError) {
           console.error('useCreateCard: insert into card_folders failed', folderError);
+          logError('cards-hook', 'Falha ao vincular card à pasta primária', { 
+            cardId, 
+            folderId: input.folder_id, 
+            error: folderError 
+          });
           throw new Error(getErrorMessage(folderError, 'Falha ao vincular pasta.'));
         }
+
+        await info('cards-hook', 'Vínculo card_folders criado para pasta primária', { cardId, folderId: input.folder_id });
       }
 
       // Add creator as card member with is_owner = false initially or just skip is_owner true
