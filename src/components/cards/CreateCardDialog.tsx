@@ -89,8 +89,8 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
     }
 
     try {
-      // Step 1: Create the card in the current space
-      const result = await createCard.mutateAsync({
+      // Step 1: Create the card (optionally with atomic duplication)
+      await createCard.mutateAsync({
         title: title.trim(),
         description: description.trim() || undefined,
         space_id: spaceId,
@@ -99,36 +99,14 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
         urgency,
         due_date: dueDate || undefined,
         client_id: clientId || undefined,
+        duplicate_to_space_id: isDuplicateEnabled && duplicateToSpace ? duplicateToSpace : undefined,
       });
-
-      // Step 2: If duplication is enabled, link the SAME card to the target space
-      if (isDuplicateEnabled && duplicateToSpace && result?.id) {
-        console.log(`[CreateCardDialog] Duplication enabled. Triggering share for card ${result.id} to space ${duplicateToSpace}`);
-        try {
-          await shareCard.mutateAsync({
-            cardId: result.id,
-            spaceId: duplicateToSpace,
-          });
-        } catch (dupError: any) {
-          console.error('[CreateCardDialog] Critical failure during card duplication:', {
-            cardId: result?.id,
-            targetSpaceId: duplicateToSpace,
-            mutation: 'shareCard',
-            error: dupError.message,
-            stack: dupError.stack
-          });
-          // We don't throw here to not interrupt the main flow if duplication fails
-          toast({
-            title: 'Aviso',
-            description: 'O card foi criado, mas não pôde ser duplicado para o outro setor.',
-            variant: 'destructive',
-          });
-        }
-      }
 
       toast({
         title: 'Card criado!',
-        description: 'O card foi criado com sucesso.',
+        description: isDuplicateEnabled && duplicateToSpace 
+          ? 'O card foi criado e espelhado com sucesso.' 
+          : 'O card foi criado com sucesso.',
       });
 
       // Reset form
@@ -343,7 +321,10 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createCard.isPending}>
+            <Button 
+              type="submit" 
+              disabled={createCard.isPending || (isDuplicateEnabled && !duplicateToSpace)}
+            >
               {createCard.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
