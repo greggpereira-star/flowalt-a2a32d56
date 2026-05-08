@@ -38,7 +38,10 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currentWorkspace, workspaces, loading } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
+  const workspaces = workspaceContext?.workspaces || [];
+  const loading = workspaceContext?.loading ?? true;
   const { data: spaces, isLoading: spacesLoading } = useSpaces();
   const createSpace = useCreateSpace();
   const [showCreateSpace, setShowCreateSpace] = useState(false);
