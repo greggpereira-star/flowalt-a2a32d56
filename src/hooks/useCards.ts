@@ -58,6 +58,7 @@ export interface CreateCardInput {
   current_stage?: string;
   card_type?: CardType; // 'quick' or 'full' - defaults to 'full'
   owner_id?: string;
+  duplicate_to_space_id?: string; // Add this to handle duplication atomically
 }
 
 export const useCards = (spaceId: string | undefined) => {
@@ -69,25 +70,25 @@ export const useCards = (spaceId: string | undefined) => {
     queryFn: async () => {
       if (!spaceId || !currentWorkspace?.id) return [];
 
-      // Use the junction table to find cards associated with this space
-      const { data: junctionData, error: junctionError } = await supabase
-        .from('card_spaces')
-        .select('card_id')
-        .eq('space_id', spaceId);
+      console.log(`[useCards] Fetching cards for space: ${spaceId}`);
 
-      if (junctionError) throw junctionError;
-      if (!junctionData.length) return [];
-
-      const cardIds = junctionData.map(j => j.card_id);
-
+      // Query cards using a join with card_spaces for maximum reliability
       const { data, error } = await supabase
         .from('cards')
-        .select('*')
-        .in('id', cardIds)
+        .select(`
+          *,
+          card_spaces!inner(space_id)
+        `)
+        .eq('card_spaces.space_id', spaceId)
         .neq('status', 'archived')
         .order('sort_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useCards] Error fetching cards:', error);
+        throw error;
+      }
+
+      console.log(`[useCards] Found ${data?.length || 0} cards for space ${spaceId}`);
       return data as Card[];
     },
     enabled: !!spaceId && !!currentWorkspace?.id,
@@ -300,6 +301,24 @@ export const useCreateCard = (currentSpaceId?: string) => {
         created_by: user.id,
       });
 
+      // Handle atomic duplication if requested
+      if (input.duplicate_to_space_id) {
+        console.log(`[useCreateCard] Atomic duplication requested to space: ${input.duplicate_to_space_id}`);
+        const { error: dupError } = await supabase
+          .from('card_spaces')
+          .insert({
+            card_id: cardId,
+            space_id: input.duplicate_to_space_id,
+          });
+        
+        if (dupError) {
+          console.error('[useCreateCard] Atomic duplication failed:', dupError);
+          // We don't fail the whole creation, but we log it
+        } else {
+          console.log('[useCreateCard] Atomic duplication successful');
+        }
+      }
+
       // Retorna um objeto mínimo para invalidar cache e permitir UX.
       return {
         id: cardId,
@@ -319,19 +338,21 @@ export const useCreateCard = (currentSpaceId?: string) => {
       // Step 1: Invalidate and refetch all active card lists
       queryClient.invalidateQueries({ queryKey: ['cards'] });
       
-      // Step 2: Specifically target the space where the card was created
+      // Step 2: Specifically target the spaces involved
       if (variables.space_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.space_id] });
-        queryClient.refetchQueries({ queryKey: ['cards', 'space', variables.space_id] });
+      }
+
+      if (variables.duplicate_to_space_id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.duplicate_to_space_id] });
       }
 
       // Step 3: If we have the current space from the hook parameter, refresh it too
-      if (currentSpaceId && currentSpaceId !== variables.space_id) {
+      if (currentSpaceId && currentSpaceId !== variables.space_id && currentSpaceId !== variables.duplicate_to_space_id) {
         queryClient.invalidateQueries({ queryKey: ['cards', 'space', currentSpaceId] });
-        queryClient.refetchQueries({ queryKey: ['cards', 'space', currentSpaceId] });
       }
 
-      // Step 4: Refetch active space queries to ensure the UI updates everywhere
+      // Step 4: Force refetch of all active space boards to ensure the UI updates everywhere
       queryClient.refetchQueries({ 
         queryKey: ['cards', 'space'],
         type: 'active'
