@@ -190,7 +190,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               >
                 <Calendar className="h-3 w-3" />
                 <span>
-                  {format(dueDate, 'dd MMM', { locale: ptBR })}
+                  {format(dueDate, 'dd/MM HH:mm', { locale: ptBR })}
                 </span>
               </div>
             )}
