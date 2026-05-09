@@ -496,6 +496,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         isCompleted={card?.briefing_completed || false}
         onMarkComplete={handleMarkBriefingComplete}
         cardTitle={card?.title || ''}
+        cardId={card?.id}
       />
 
       {card && (

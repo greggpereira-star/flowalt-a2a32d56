@@ -73,7 +73,7 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
                   {dueDate ? (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" />
-                      <span>{format(dueDate, 'dd/MM/yy', { locale: ptBR })}</span>
+                      <span>{format(dueDate, 'dd/MM/yy HH:mm', { locale: ptBR })}</span>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>

@@ -54,6 +54,7 @@ interface BriefingDialogProps {
   onMarkComplete: () => void;
   disabled?: boolean;
   cardTitle?: string;
+  cardId?: string;
 }
 
 // Define steps for the wizard
@@ -131,6 +132,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   onMarkComplete,
   disabled,
   cardTitle,
+  cardId,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
@@ -176,7 +178,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   const { clearPersistence } = useFormPersistence(
     formForPersistence,
-    `briefing-draft-${cardTitle || 'general'}`,
+    `briefing-draft-${cardId || 'general'}`,
     open,
     (loadedData) => {
       setLocalData(prev => ({ ...prev, ...loadedData }));

@@ -251,14 +251,36 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                   "px-1.5 py-0.5 rounded text-xs hover:bg-muted/50 transition-colors",
                   startDate ? "text-foreground" : "text-muted-foreground/50 border border-dashed border-muted-foreground/20"
                 )}>
-                  {startDate ? format(startDate, 'dd MMM', { locale: ptBR }) : 'Início'}
+                  {startDate ? format(startDate, 'dd/MM HH:mm', { locale: ptBR }) : 'Início'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 border-b bg-muted/20">
+                   <div className="flex items-center gap-2">
+                     <Clock className="h-3 w-3 text-muted-foreground" />
+                     <Input 
+                       type="time" 
+                       className="h-7 py-0 px-2 text-xs w-24"
+                       value={startDate ? format(startDate, 'HH:mm') : ''}
+                       onChange={(e) => {
+                         if (!startDate) return;
+                         const [hours, minutes] = e.target.value.split(':');
+                         const newDate = new Date(startDate);
+                         newDate.setHours(parseInt(hours), parseInt(minutes));
+                         onStartDateChange(newDate);
+                       }}
+                     />
+                   </div>
+                </div>
                 <Calendar
                   mode="single"
                   selected={startDate}
-                  onSelect={onStartDateChange}
+                  onSelect={(date) => {
+                    if (date && startDate) {
+                      date.setHours(startDate.getHours(), startDate.getMinutes());
+                    }
+                    onStartDateChange(date);
+                  }}
                   locale={ptBR}
                   className="pointer-events-auto"
                 />
@@ -269,16 +291,38 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
               <PopoverTrigger asChild>
                 <button className={cn(
                   "px-1.5 py-0.5 rounded text-xs hover:bg-muted/50 transition-colors",
-                  dueDate ? "text-foreground" : "text-muted-foreground/50 border border-dashed border-muted-foreground/20"
+                  dueDate ? "text-foreground font-medium" : "text-muted-foreground/50 border border-dashed border-muted-foreground/20"
                 )}>
-                  {dueDate ? format(dueDate, 'dd MMM', { locale: ptBR }) : 'Término'}
+                  {dueDate ? format(dueDate, 'dd/MM HH:mm', { locale: ptBR }) : 'Término'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 border-b bg-muted/20">
+                   <div className="flex items-center gap-2">
+                     <Clock className="h-3 w-3 text-muted-foreground" />
+                     <Input 
+                       type="time" 
+                       className="h-7 py-0 px-2 text-xs w-24"
+                       value={dueDate ? format(dueDate, 'HH:mm') : ''}
+                       onChange={(e) => {
+                         if (!dueDate) return;
+                         const [hours, minutes] = e.target.value.split(':');
+                         const newDate = new Date(dueDate);
+                         newDate.setHours(parseInt(hours), parseInt(minutes));
+                         onDueDateChange(newDate);
+                       }}
+                     />
+                   </div>
+                </div>
                 <Calendar
                   mode="single"
                   selected={dueDate}
-                  onSelect={onDueDateChange}
+                  onSelect={(date) => {
+                    if (date && dueDate) {
+                      date.setHours(dueDate.getHours(), dueDate.getMinutes());
+                    }
+                    onDueDateChange(date);
+                  }}
                   locale={ptBR}
                   className="pointer-events-auto"
                 />
