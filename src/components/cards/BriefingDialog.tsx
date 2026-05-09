@@ -54,6 +54,7 @@ interface BriefingDialogProps {
   onMarkComplete: () => void;
   disabled?: boolean;
   cardTitle?: string;
+  cardId?: string;
 }
 
 // Define steps for the wizard
