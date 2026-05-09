@@ -787,6 +787,8 @@ export const useShareCardAcrossSpaces = () => {
                   });
               }
             }
+          }
+        }
 
         return { cardId, spaceId };
       } catch (err: any) {
