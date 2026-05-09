@@ -178,7 +178,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   const { clearPersistence } = useFormPersistence(
     formForPersistence,
-    `briefing-draft-${cardTitle || 'general'}`,
+    `briefing-draft-${cardId || 'general'}`,
     open,
     (loadedData) => {
       setLocalData(prev => ({ ...prev, ...loadedData }));
