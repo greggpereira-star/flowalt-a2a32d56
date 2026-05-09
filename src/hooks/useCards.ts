@@ -767,9 +767,26 @@ export const useShareCardAcrossSpaces = () => {
                   card_id: cardId,
                   folder_id: targetFolder.id
                 });
+
+              // ENHANCEMENT: Also link to the primary folder of the target space for visibility
+              const { data: primaryFolders } = await supabase
+                .from('folders')
+                .select('id, name')
+                .eq('space_id', spaceId)
+                .eq('is_archived', false)
+                .neq('id', targetFolder.id)
+                .order('sort_order', { ascending: true })
+                .limit(1);
+
+              if (primaryFolders && primaryFolders.length > 0) {
+                await supabase
+                  .from('card_folders')
+                  .insert({
+                    card_id: cardId,
+                    folder_id: primaryFolders[0].id
+                  });
+              }
             }
-          }
-        }
 
         return { cardId, spaceId };
       } catch (err: any) {
