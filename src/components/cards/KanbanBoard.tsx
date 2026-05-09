@@ -248,10 +248,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     })
   );
 
-  const groupedCards = visibleStatuses.reduce((acc, status) => {
-    acc[status] = cards.filter(card => card.status === status);
-    return acc;
-  }, {} as Record<CardStatus, Card[]>);
+  const groupedCards = useMemo(() => {
+    return visibleStatuses.reduce((acc, status) => {
+      const statusCards = cards.filter(card => card.status === status);
+      
+      // Sort by due_date (earliest first), then by sort_order
+      acc[status] = [...statusCards].sort((a, b) => {
+        const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+        const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+        
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      
+      return acc;
+    }, {} as Record<CardStatus, Card[]>);
+  }, [cards, visibleStatuses]);
 
   // Get active card for drag overlay
   const activeCard = useMemo(() => {
