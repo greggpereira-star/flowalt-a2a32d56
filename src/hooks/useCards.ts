@@ -631,6 +631,56 @@ export const useShareCardAcrossSpaces = () => {
         }
 
         console.log(`[useShareCardAcrossSpaces] Success and Verified: Card ${cardId} linked to space ${spaceId}`);
+
+        // Step 2: Mirro folder mapping if applicable
+        const { data: currentMappings } = await supabase
+          .from('card_folders')
+          .select('folder_id, folders(name, icon, color, description, workspace_id)')
+          .eq('card_id', cardId);
+
+        if (currentMappings && currentMappings.length > 0) {
+          for (const mapping of currentMappings) {
+            const sourceFolder = mapping.folders as any;
+            if (!sourceFolder) continue;
+
+            // Try to find a folder with same name in the target space
+            let { data: targetFolder } = await supabase
+              .from('folders')
+              .select('id')
+              .eq('space_id', spaceId)
+              .eq('name', sourceFolder.name)
+              .eq('is_archived', false)
+              .maybeSingle();
+
+            // If not exists, create it
+            if (!targetFolder) {
+              const { data: newFolder, error: createError } = await supabase
+                .from('folders')
+                .insert({
+                  workspace_id: sourceFolder.workspace_id,
+                  space_id: spaceId,
+                  name: sourceFolder.name,
+                  icon: sourceFolder.icon,
+                  color: sourceFolder.color,
+                  description: sourceFolder.description
+                })
+                .select('id')
+                .single();
+              
+              if (!createError) targetFolder = newFolder;
+            }
+
+            if (targetFolder) {
+              await supabase
+                .from('card_folders')
+                .insert({
+                  card_id: cardId,
+                  folder_id: targetFolder.id
+                });
+            }
+          }
+        }
+
         return { cardId, spaceId };
       } catch (err: any) {
         console.error(`[useShareCardAcrossSpaces] Mutation failed:`, err);
