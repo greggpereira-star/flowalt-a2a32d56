@@ -394,10 +394,41 @@ export const useCreateCard = (currentSpaceId?: string) => {
                   .select('id')
                   .single();
                 
-                if (createFolderError) {
-                  console.error('[useCreateCard] Failed to create destination folder:', createFolderError);
-                } else {
+                if (!createFolderError) {
                   targetFolder = newFolder;
+                }
+              }
+
+              if (targetFolder) {
+                // Link to the matched folder
+                await supabase
+                  .from('card_folders')
+                  .insert({
+                    card_id: cardId,
+                    folder_id: targetFolder.id,
+                  });
+                
+                console.log(`[useCreateCard] Atomic duplication mapped to folder "${sourceFolder.name}"`);
+
+                // ENHANCEMENT: Also link to the primary/first folder of the target space to ensure visibility in default views
+                const { data: primaryFolders } = await supabase
+                  .from('folders')
+                  .select('id, name')
+                  .eq('space_id', targetSpaceId)
+                  .eq('is_archived', false)
+                  .neq('id', targetFolder.id) // Don't link twice to the same folder
+                  .order('sort_order', { ascending: true })
+                  .limit(1);
+
+                if (primaryFolders && primaryFolders.length > 0) {
+                  const primaryFolder = primaryFolders[0];
+                  console.log(`[useCreateCard] Also linking to primary folder "${primaryFolder.name}" for visibility`);
+                  await supabase
+                    .from('card_folders')
+                    .insert({
+                      card_id: cardId,
+                      folder_id: primaryFolder.id,
+                    });
                 }
               }
 
