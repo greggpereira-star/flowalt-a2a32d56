@@ -401,9 +401,14 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                           <SelectContent>
                             {spaces?.filter(s => s.id !== spaceId).map(space => (
                               <SelectItem key={space.id} value={space.id}>
-                                <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-muted-foreground" />
-                                  <span>{space.name}</span>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{space.name}</span>
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 uppercase bg-primary/5">
+                                      {space.type || 'SETOR'}
+                                    </Badge>
+                                    <span className="text-[9px] text-muted-foreground">ID: {space.id.substring(0, 8)}</span>
+                                  </div>
                                 </div>
                               </SelectItem>
                             ))}

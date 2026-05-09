@@ -289,7 +289,12 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
                                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                                 <div className="flex flex-col">
                                   <span className="text-xs font-medium">{space.name}</span>
-                                  <span className="text-[9px] text-muted-foreground leading-none">ID: {space.id.substring(0, 8)}</span>
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 uppercase bg-primary/5">
+                                      {space.type || 'SETOR'}
+                                    </Badge>
+                                    <span className="text-[8px] text-muted-foreground leading-none">ID: {space.id.substring(0, 8)}</span>
+                                  </div>
                                 </div>
                               </div>
                             </SelectItem>
