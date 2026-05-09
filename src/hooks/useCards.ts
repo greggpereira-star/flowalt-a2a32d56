@@ -355,7 +355,9 @@ export const useCreateCard = (currentSpaceId?: string) => {
           console.log('[useCreateCard] Atomic duplication successful in card_spaces');
           await info('cards-hook', 'Espelhamento card_spaces concluído', { cardId, targetSpaceId });
           
-          // Step 2: If the original card was in a folder, mirror it in the target space
+          // Step 2: Ensure the card is linked to a folder in the target space for visibility
+          // If the original card was in a folder, try to find/create a matching folder.
+          // If not, find a default folder (like "Backlog" or the first one) in the target space.
           if (input.folder_id) {
             const { data: sourceFolder } = await supabase
               .from('folders')
@@ -422,9 +424,63 @@ export const useCreateCard = (currentSpaceId?: string) => {
                     folderName: sourceFolder.name, 
                     targetFolderId: targetFolder.id 
                   });
-                }
               }
             }
+          } else {
+            // No source folder provided, find a default folder in the target space for visibility
+            console.log(`[useCreateCard] No source folder, finding default folder in target space: ${targetSpaceId}`);
+            const { data: defaultFolders } = await supabase
+              .from('folders')
+              .select('id, name')
+              .eq('space_id', targetSpaceId)
+              .eq('is_archived', false)
+              .order('sort_order', { ascending: true })
+              .limit(1);
+
+            if (defaultFolders && defaultFolders.length > 0) {
+              const targetFolder = defaultFolders[0];
+              const { error: folderDupError } = await supabase
+                .from('card_folders')
+                .insert({
+                  card_id: cardId,
+                  folder_id: targetFolder.id,
+                });
+              
+              if (!folderDupError) {
+                console.log(`[useCreateCard] Atomic duplication mapped to default folder "${targetFolder.name}"`);
+                await info('cards-hook', 'Mapeamento de pasta padrão concluído', { 
+                  cardId, 
+                  targetSpaceId, 
+                  targetFolderId: targetFolder.id,
+                  folderName: targetFolder.name 
+                });
+              }
+            } else {
+              // No folders exist at all in target space - create a "Backlog" folder
+              console.log(`[useCreateCard] No folders in target space, creating "Backlog" folder`);
+              const { data: newFolder, error: createFolderError } = await supabase
+                .from('folders')
+                .insert({
+                  workspace_id: currentWorkspace.id,
+                  space_id: targetSpaceId,
+                  name: 'Backlog',
+                  icon: 'list',
+                  color: '#6366f1'
+                })
+                .select('id')
+                .single();
+              
+              if (!createFolderError && newFolder) {
+                await supabase
+                  .from('card_folders')
+                  .insert({
+                    card_id: cardId,
+                    folder_id: newFolder.id,
+                  });
+                await info('cards-hook', 'Pasta "Backlog" criada e vinculada no destino', { cardId, targetSpaceId });
+              }
+            }
+          }
           }
         }
       }
