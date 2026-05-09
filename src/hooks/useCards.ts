@@ -365,13 +365,16 @@ export const useCreateCard = (currentSpaceId?: string) => {
 
             if (sourceFolder) {
               // Try to find an existing folder with the same name in the target space
-              let { data: targetFolder } = await supabase
+              // Using a standard query instead of maybeSingle() to handle potential name duplicates
+              let { data: matchingFolders } = await supabase
                 .from('folders')
                 .select('id')
                 .eq('space_id', targetSpaceId)
                 .eq('name', sourceFolder.name)
                 .eq('is_archived', false)
-                .maybeSingle();
+                .order('created_at', { ascending: false });
+
+              let targetFolder = matchingFolders && matchingFolders.length > 0 ? matchingFolders[0] : null;
 
               // If it doesn't exist, create it automatically
               if (!targetFolder) {
