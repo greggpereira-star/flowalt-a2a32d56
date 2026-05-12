@@ -18,7 +18,7 @@ import { CardContextMenu } from './CardContextMenu';
 import { TransitionBlockedModal } from './TransitionBlockedModal';
 import { DestructiveActionGuard } from '@/components/governance/DestructiveActionGuard';
 import { statusConfig } from './CardBadges';
-import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2 } from 'lucide-react';
+import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
