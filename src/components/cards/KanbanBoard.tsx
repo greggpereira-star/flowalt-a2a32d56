@@ -255,6 +255,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     review: 'asc',
     approved: 'asc',
     delivered: 'asc',
+    archived: 'asc',
+    briefing: 'asc'
   });
 
   const toggleSortDirection = (status: CardStatus) => {
