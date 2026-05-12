@@ -300,6 +300,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     await handleSave({ status: newStatus });
   };
 
+  const handleTrafficBriefingDataChange = (newData: TrafficBriefingData) => {
+    setTrafficBriefingData(newData);
+    handleSave({ traffic_briefing_data: newData as any });
+  };
+
   const handleMarkBriefingComplete = async () => {
     if (!card) return;
     await handleSave({ briefing_completed: true });
