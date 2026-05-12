@@ -84,6 +84,38 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     setBriefingDialogOpen(false);
     setDeleteDialogOpen(false);
     didMountRef.current = false; // skip the next auto-scroll for the new card
+    
+    // Reset local states to avoid showing previous card's data while loading
+    setTitle('');
+    setDescription('');
+    setDueDate(undefined);
+    setStartDate(undefined);
+    setBriefingData({
+      context: '',
+      target_audience: '',
+      deliverables: '',
+      references: '',
+      deadline_notes: '',
+      special_instructions: '',
+    });
+    setTrafficBriefingData({
+      objective: '',
+      platform: '',
+      campaign_type: '',
+      budget: '',
+      audience_description: '',
+      audience_age_min: '',
+      audience_age_max: '',
+      audience_gender: '',
+      audience_interests: '',
+      audience_locations: '',
+      start_date: '',
+      end_date: '',
+      kpis: '',
+      landing_page: '',
+      pixel_events: '',
+      additional_notes: '',
+    });
   }, [cardId, open]);
 
   /**
