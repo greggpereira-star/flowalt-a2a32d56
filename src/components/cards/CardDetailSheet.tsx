@@ -438,7 +438,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         </div>
                         <TrafficBriefingForm
                           data={trafficBriefingData}
-                          onChange={setTrafficBriefingData}
+                          onChange={handleTrafficBriefingDataChange}
                         />
                       </div>
                     )}
