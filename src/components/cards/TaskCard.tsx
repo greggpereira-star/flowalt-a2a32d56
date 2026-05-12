@@ -8,7 +8,7 @@ import { RiskRadar } from './RiskRadar';
 import { CardQuickActions } from './CardQuickActions';
 import { CardAssignees, type Assignee } from './CardAssignees';
 import { VisibilityIcon } from '@/components/governance';
-import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers } from 'lucide-react';
+import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
