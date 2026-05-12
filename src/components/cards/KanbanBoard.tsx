@@ -21,7 +21,7 @@ import { statusConfig } from './CardBadges';
 import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
