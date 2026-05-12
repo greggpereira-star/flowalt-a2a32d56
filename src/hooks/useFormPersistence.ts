@@ -18,7 +18,10 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
 
   // Load initial data from localStorage
   useEffect(() => {
-    if (!enabled || isLoadedRef.current) return;
+    if (!enabled) return;
+
+    // Reset loaded state when storage key changes
+    isLoadedRef.current = false;
 
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
@@ -50,7 +53,7 @@ export function useFormPersistence<TFieldValues extends Record<string, any>>(
         console.error("Failed to load persisted form data:", error);
       }
     }
-  }, [enabled, storageKey, form, onLoad]);
+  }, [enabled, storageKey, form]); // Removed onLoad from deps to avoid re-runs if callback is not memoized
 
   // Save data to localStorage on change
   useEffect(() => {

@@ -18,10 +18,10 @@ import { CardContextMenu } from './CardContextMenu';
 import { TransitionBlockedModal } from './TransitionBlockedModal';
 import { DestructiveActionGuard } from '@/components/governance/DestructiveActionGuard';
 import { statusConfig } from './CardBadges';
-import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2 } from 'lucide-react';
+import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
@@ -248,25 +248,47 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     })
   );
 
+  const [sortDirections, setSortDirections] = useState<Record<CardStatus, 'asc' | 'desc'>>({
+    backlog: 'asc',
+    todo: 'asc',
+    in_progress: 'asc',
+    review: 'asc',
+    approved: 'asc',
+    delivered: 'asc',
+    archived: 'asc',
+    briefing: 'asc'
+  });
+
+  const toggleSortDirection = (status: CardStatus) => {
+    setSortDirections(prev => ({
+      ...prev,
+      [status]: prev[status] === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const groupedCards = useMemo(() => {
     return visibleStatuses.reduce((acc, status) => {
       const statusCards = cards.filter(card => card.status === status);
+      const direction = sortDirections[status] || 'asc';
       
       // Sort by due_date (earliest first), then by sort_order
       acc[status] = [...statusCards].sort((a, b) => {
-        const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-        const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+        const dateA = a.due_date ? new Date(a.due_date).getTime() : (direction === 'asc' ? Infinity : -1);
+        const dateB = b.due_date ? new Date(b.due_date).getTime() : (direction === 'asc' ? Infinity : -1);
         
+        let comparison = 0;
         if (dateA !== dateB) {
-          return dateA - dateB;
+          comparison = dateA - dateB;
+        } else {
+          comparison = (a.sort_order || 0) - (b.sort_order || 0);
         }
-        
-        return (a.sort_order || 0) - (b.sort_order || 0);
+
+        return direction === 'asc' ? comparison : -comparison;
       });
       
       return acc;
     }, {} as Record<CardStatus, Card[]>);
-  }, [cards, visibleStatuses]);
+  }, [cards, visibleStatuses, sortDirections]);
 
   // Get active card for drag overlay
   const activeCard = useMemo(() => {
@@ -584,14 +606,38 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {columnCards.length}
                     </Badge>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onAddCard(status)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => toggleSortDirection(status)}
+                          >
+                            {sortDirections[status] === 'asc' ? (
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            ) : (
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Ordenar por prazo ({sortDirections[status] === 'asc' ? 'Crescente' : 'Decrescente'})</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onAddCard(status)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Column Cards - Droppable Area */}
