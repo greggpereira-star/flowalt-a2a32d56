@@ -180,23 +180,31 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Meta info */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {dueDate && (
               <div
                 className={cn(
-                  'flex items-center gap-1',
-                  isOverdue && 'text-destructive'
+                  'flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border transition-colors bg-background/50',
+                  isOverdue 
+                    ? 'text-destructive border-destructive/30 bg-destructive/5 font-semibold' 
+                    : isToday(dueDate)
+                      ? 'text-orange-600 border-orange-200 bg-orange-50'
+                      : 'border-border/50'
                 )}
               >
-                <Calendar className="h-3 w-3" />
+                <Calendar className="h-3.5 w-3.5" />
                 <span>
-                  {format(dueDate, 'dd/MM HH:mm', { locale: ptBR })}
+                  {format(dueDate, 'dd/MM')}
+                </span>
+                <span className="flex items-center gap-1 border-l pl-1.5 border-border/30">
+                  <Clock className="h-3 w-3" />
+                  {format(dueDate, 'HH:mm')}
                 </span>
               </div>
             )}
             {card.actual_hours > 0 && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50">
+                <Timer className="h-3 w-3" />
                 <span>{card.actual_hours.toFixed(1)}h</span>
               </div>
             )}
