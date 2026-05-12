@@ -263,6 +263,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     estimated_hours: number | null;
     briefing_completed: boolean;
     briefing_data: BriefingData;
+    traffic_briefing_data: any;
   }>) => {
     if (!card) return;
 
