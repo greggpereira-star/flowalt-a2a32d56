@@ -318,8 +318,14 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                   mode="single"
                   selected={dueDate}
                   onSelect={(date) => {
-                    if (date && dueDate) {
-                      date.setHours(dueDate.getHours(), dueDate.getMinutes());
+                    if (date) {
+                      // If there was no previous dueDate, default to current time or 18:00
+                      if (!dueDate) {
+                        const now = new Date();
+                        date.setHours(now.getHours(), now.getMinutes());
+                      } else {
+                        date.setHours(dueDate.getHours(), dueDate.getMinutes());
+                      }
                     }
                     onDueDateChange(date);
                   }}
