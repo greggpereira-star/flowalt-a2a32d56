@@ -248,25 +248,45 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     })
   );
 
+  const [sortDirections, setSortDirections] = useState<Record<CardStatus, 'asc' | 'desc'>>({
+    backlog: 'asc',
+    todo: 'asc',
+    in_progress: 'asc',
+    review: 'asc',
+    approved: 'asc',
+    delivered: 'asc',
+  });
+
+  const toggleSortDirection = (status: CardStatus) => {
+    setSortDirections(prev => ({
+      ...prev,
+      [status]: prev[status] === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const groupedCards = useMemo(() => {
     return visibleStatuses.reduce((acc, status) => {
       const statusCards = cards.filter(card => card.status === status);
+      const direction = sortDirections[status] || 'asc';
       
       // Sort by due_date (earliest first), then by sort_order
       acc[status] = [...statusCards].sort((a, b) => {
-        const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-        const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+        const dateA = a.due_date ? new Date(a.due_date).getTime() : (direction === 'asc' ? Infinity : -1);
+        const dateB = b.due_date ? new Date(b.due_date).getTime() : (direction === 'asc' ? Infinity : -1);
         
+        let comparison = 0;
         if (dateA !== dateB) {
-          return dateA - dateB;
+          comparison = dateA - dateB;
+        } else {
+          comparison = (a.sort_order || 0) - (b.sort_order || 0);
         }
-        
-        return (a.sort_order || 0) - (b.sort_order || 0);
+
+        return direction === 'asc' ? comparison : -comparison;
       });
       
       return acc;
     }, {} as Record<CardStatus, Card[]>);
-  }, [cards, visibleStatuses]);
+  }, [cards, visibleStatuses, sortDirections]);
 
   // Get active card for drag overlay
   const activeCard = useMemo(() => {
