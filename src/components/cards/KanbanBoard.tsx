@@ -155,13 +155,14 @@ const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
       {indicators}
     </div>
   );
-};
-
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   cards,
   onCardClick,
   onAddCard,
   visibleStatuses = defaultStatuses,
+  columnLabels,
+  globalSortDirection = null,
+}) => {
   columnLabels,
 }) => {
   const { toast } = useToast();
