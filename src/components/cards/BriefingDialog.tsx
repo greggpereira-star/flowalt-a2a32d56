@@ -319,12 +319,11 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     // Save briefing_data + briefing_completed atomically in a single
     // mutation to prevent a race where the second UPDATE arrives before
     // the first and the persisted briefing_data ends up empty.
-    onMarkComplete(cardId, localData);
+    onMarkComplete(cardId, normalizeBriefingData(localDataRef.current));
     hasUnsavedChanges.current = false;
-    clearPersistence();
     toast.success('Briefing completo!');
     onOpenChange(false);
-  }, [requiredStepsComplete, localData, onMarkComplete, onOpenChange, cardId, clearPersistence]);
+  }, [requiredStepsComplete, onMarkComplete, onOpenChange, cardId]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
