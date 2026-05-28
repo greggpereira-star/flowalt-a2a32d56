@@ -250,6 +250,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       setEstimatedHours(card.estimated_hours?.toString() || '');
       setClientId(card.client_id);
 
+      // Always reset briefing state per card to prevent cross-card data leakage
       if (card.briefing_data && typeof card.briefing_data === 'object') {
         setBriefingData({
           context: (card.briefing_data as Record<string, string>).context || '',
@@ -258,6 +259,15 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
           references: (card.briefing_data as Record<string, string>).references || '',
           deadline_notes: (card.briefing_data as Record<string, string>).deadline_notes || '',
           special_instructions: (card.briefing_data as Record<string, string>).special_instructions || '',
+        });
+      } else {
+        setBriefingData({
+          context: '',
+          target_audience: '',
+          deliverables: '',
+          references: '',
+          deadline_notes: '',
+          special_instructions: '',
         });
       }
 
@@ -281,9 +291,17 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
           pixel_events: tbd.pixel_events || '',
           additional_notes: tbd.additional_notes || '',
         });
+      } else {
+        setTrafficBriefingData({
+          objective: '', platform: '', campaign_type: '', budget: '',
+          audience_description: '', audience_age_min: '', audience_age_max: '',
+          audience_gender: '', audience_interests: '', audience_locations: '',
+          start_date: '', end_date: '', kpis: '', landing_page: '',
+          pixel_events: '', additional_notes: '',
+        });
       }
     }
-  }, [card]);
+  }, [card?.id, card?.briefing_data, card?.traffic_briefing_data]);
 
   const handleSave = async (updates: Partial<{
     title: string;
