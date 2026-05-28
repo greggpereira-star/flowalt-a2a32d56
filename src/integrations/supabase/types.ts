@@ -8330,7 +8330,7 @@ export type Database = {
             foreignKeyName: "transactions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "client_cards"
             referencedColumns: ["id"]
           },
           {

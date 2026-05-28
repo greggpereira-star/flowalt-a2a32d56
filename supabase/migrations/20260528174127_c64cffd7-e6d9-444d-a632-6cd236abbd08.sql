@@ -1,0 +1,2 @@
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_client_id_fkey;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.client_cards(id) ON DELETE SET NULL;
