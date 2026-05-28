@@ -219,4 +219,3 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
     </div>
   );
 };
-};
