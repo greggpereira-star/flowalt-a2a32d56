@@ -215,6 +215,17 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     return () => clearTimeout(t);
   }, [localData, open, cardId]);
 
+  // Also flush when the dialog is closed by the parent card sheet (controlled
+  // `open` prop changing to false), not only when Radix calls onOpenChange.
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open && hasUnsavedChanges.current && cardIdRef.current) {
+      onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
+      hasUnsavedChanges.current = false;
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
   // Flush any pending edits on unmount (e.g., card sheet closed abruptly).
   useEffect(() => {
     return () => {
