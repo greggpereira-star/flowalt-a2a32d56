@@ -195,7 +195,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   // Sync local data when dialog opens or external data changes significantly
   useEffect(() => {
-    if (open) {
+    if (open && !hasUnsavedChanges.current) {
       setLocalData(data);
       hasUnsavedChanges.current = false;
     }
