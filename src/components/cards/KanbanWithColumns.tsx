@@ -3,7 +3,8 @@ import { KanbanBoard } from './KanbanBoard';
 import { KanbanColumnsEditor } from './KanbanColumnsEditor';
 import { useKanbanColumns } from '@/hooks/useKanbanColumns';
 import { Button } from '@/components/ui/button';
-import { Settings2 } from 'lucide-react';
+import { Settings2, ArrowUpNarrowWide, ArrowDownWideNarrow, ListOrdered } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 
@@ -14,6 +15,8 @@ interface KanbanWithColumnsProps {
   viewId: string | null;
 }
 
+type GlobalSort = 'manual' | 'asc' | 'desc';
+
 export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
   cards,
   onCardClick,
@@ -21,7 +24,8 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
   viewId,
 }) => {
   const [editorOpen, setEditorOpen] = useState(false);
-  
+  const [globalSort, setGlobalSort] = useState<GlobalSort>('manual');
+
   const {
     columns,
     visibleStatuses,
@@ -32,10 +36,45 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
     resetToDefaults,
   } = useKanbanColumns(viewId);
 
+  const cycleSort = () => {
+    setGlobalSort(prev => prev === 'manual' ? 'asc' : prev === 'asc' ? 'desc' : 'manual');
+  };
+
+  const sortIcon = globalSort === 'asc'
+    ? <ArrowUpNarrowWide className="h-4 w-4" />
+    : globalSort === 'desc'
+      ? <ArrowDownWideNarrow className="h-4 w-4" />
+      : <ListOrdered className="h-4 w-4" />;
+
+  const sortLabel = globalSort === 'asc'
+    ? 'Prazo: mais próximo primeiro'
+    : globalSort === 'desc'
+      ? 'Prazo: mais distante primeiro'
+      : 'Ordenação manual (por coluna)';
+
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar with Edit Columns button */}
-      <div className="flex items-center justify-end px-4 py-2 border-b bg-muted/30">
+      {/* Toolbar */}
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/30">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={globalSort === 'manual' ? 'outline' : 'default'}
+                size="sm"
+                onClick={cycleSort}
+                className="gap-2"
+              >
+                {sortIcon}
+                {globalSort === 'manual' ? 'Ordenar por prazo' : sortLabel}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Clique para alternar: Manual → Crescente → Decrescente</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         <Button
           variant="outline"
           size="sm"
@@ -55,10 +94,10 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
           onAddCard={onAddCard}
           visibleStatuses={visibleStatuses}
           columnLabels={columnLabels}
+          globalSortDirection={globalSort === 'manual' ? null : globalSort}
         />
       </div>
 
-      {/* Column Editor Sheet */}
       <KanbanColumnsEditor
         open={editorOpen}
         onOpenChange={setEditorOpen}
