@@ -97,7 +97,7 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
         folder_id: folderId,
         status,
         urgency,
-        due_date: dueDate || undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         client_id: clientId || undefined,
         duplicate_to_space_id: isDuplicateEnabled && duplicateToSpace ? duplicateToSpace : undefined,
       });

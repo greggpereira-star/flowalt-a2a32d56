@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { TaskCard } from './TaskCard';
 import {
@@ -22,6 +22,19 @@ interface ListViewProps {
 }
 
 export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
+  const [dueDateDirection, setDueDateDirection] = useState<'asc' | 'desc'>('asc');
+  const sortedCards = useMemo(() => {
+    return [...cards].sort((a, b) => {
+      if (!a.due_date && !b.due_date) return (a.sort_order || 0) - (b.sort_order || 0);
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+      const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+      const comparison = dateA === dateB ? (a.sort_order || 0) - (b.sort_order || 0) : dateA - dateB;
+      return dueDateDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [cards, dueDateDirection]);
+
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -38,13 +51,22 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
             <TableHead className="w-[40%]">Título</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Urgência</TableHead>
-            <TableHead>Prazo</TableHead>
+            <TableHead>
+              <button
+                type="button"
+                onClick={() => setDueDateDirection((current) => current === 'asc' ? 'desc' : 'asc')}
+                className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-muted transition-colors"
+                title="Ordenar por data e horário"
+              >
+                Prazo {dueDateDirection === 'asc' ? '↑' : '↓'}
+              </button>
+            </TableHead>
             <TableHead>Tempo</TableHead>
             <TableHead className="text-right">Responsável</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {cards.map((card) => {
+          {sortedCards.map((card) => {
             const dueDate = card.due_date ? new Date(card.due_date) : null;
 
             return (

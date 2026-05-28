@@ -575,10 +575,13 @@ export const useUpdateCard = () => {
       description?: string;
       status?: CardStatus;
       urgency?: CardUrgency;
+      start_date?: string | null;
       due_date?: string | null;
       client_id?: string | null;
       owner_id?: string | null;
       briefing_completed?: boolean;
+      briefing_data?: any;
+      traffic_briefing_data?: any;
       estimated_hours?: number | null;
     }) => {
       const { data, error } = await supabase
