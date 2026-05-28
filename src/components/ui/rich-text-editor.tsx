@@ -522,12 +522,12 @@ export function RichTextEditor({
       const parsed = linkifyJSON(JSON.parse(value));
       const currentContent = editor.getJSON();
       if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
-        editor.commands.setContent(parsed, false);
+        editor.commands.setContent(parsed, { emitUpdate: false });
       }
     } catch {
       // If not valid JSON, treat as plain text
       if (value !== editor.getText()) {
-        editor.commands.setContent(value, false);
+        editor.commands.setContent(value, { emitUpdate: false });
       }
     }
   }, [value, editor]);
