@@ -37,6 +37,7 @@ import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { BriefingSummarySheet } from './BriefingSummarySheet';
 import { useFormPersistence } from '@/hooks/useFormPersistence';
 import { useForm } from 'react-hook-form';
+import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
 
 interface ValidationResult {
   isValid: boolean;
