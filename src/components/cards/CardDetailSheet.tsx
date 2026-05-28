@@ -301,7 +301,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         });
       }
     }
-  }, [card?.id, card?.briefing_data, card?.traffic_briefing_data]);
+  }, [card]);
 
   const handleSave = async (updates: Partial<{
     title: string;
