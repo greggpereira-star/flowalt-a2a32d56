@@ -116,7 +116,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       pixel_events: '',
       additional_notes: '',
     });
-  }, [cardId, open]);
+  }, [cardId]);
 
   /**
    * Scroll the tools section into view reliably, including on small screens
