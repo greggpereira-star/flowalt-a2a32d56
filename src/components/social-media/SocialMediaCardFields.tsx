@@ -194,14 +194,29 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
         <Sparkles className="h-4 w-4 text-primary" />
         <h4 className="text-sm font-medium">Campos Social Media</h4>
       </div>
+      <p className="text-[11px] text-muted-foreground -mt-2">
+        ⓘ <span className="font-medium text-foreground">Data de Postagem</span> é diferente do <span className="font-medium text-foreground">Prazo da Tarefa</span>: a primeira indica quando o conteúdo será publicado; o prazo é a entrega da execução interna.
+      </p>
       <div className="grid grid-cols-2 gap-3">
-        {definitions.map((def) => (
-          <div key={def.field_key} className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">{def.field_label}</Label>
-            {renderField(def)}
-          </div>
-        ))}
+        {definitions.map((def) => {
+          const isPostDate = def.field_key === 'post_date';
+          return (
+            <div
+              key={def.field_key}
+              className={cn(
+                'space-y-1.5',
+                isPostDate && 'col-span-2 rounded-md border border-primary/20 bg-primary/5 p-2'
+              )}
+            >
+              <Label className={cn('text-xs', isPostDate ? 'text-primary font-medium' : 'text-muted-foreground')}>
+                {isPostDate ? '📅 Data de Postagem (quando vai ao ar)' : def.field_label}
+              </Label>
+              {renderField(def)}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
+};
 };
