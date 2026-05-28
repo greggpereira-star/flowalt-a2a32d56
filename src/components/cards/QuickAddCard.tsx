@@ -147,6 +147,22 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     setDuplicateToSpace('');
   };
 
+  const setDueDatePreservingTime = (date: Date | undefined) => {
+    if (date) {
+      if (dueDate) date.setHours(dueDate.getHours(), dueDate.getMinutes(), 0, 0);
+      else date.setHours(18, 0, 0, 0);
+    }
+    setDueDate(date);
+  };
+
+  const setDueTime = (value: string) => {
+    const [hours, minutes] = value.split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+    const next = dueDate ? new Date(dueDate) : new Date();
+    next.setHours(hours, minutes, 0, 0);
+    setDueDate(next);
+  };
+
   // Add checklist item
   const addChecklistItem = () => {
     if (!newChecklistItem.trim()) return;
@@ -277,11 +293,14 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, 'dd/MM', { locale: ptBR }) : 'Definir'}
+                    {dueDate ? format(dueDate, 'dd/MM HH:mm', { locale: ptBR }) : 'Definir'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} />
+                  <div className="p-3 border-b">
+                    <Input type="time" value={dueDate ? format(dueDate, 'HH:mm') : ''} onChange={(e) => setDueTime(e.target.value)} className="h-8" />
+                  </div>
+                  <Calendar mode="single" selected={dueDate} onSelect={setDueDatePreservingTime} locale={ptBR} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -381,11 +400,14 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDate ? format(dueDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Definir'}
+                      {dueDate ? format(dueDate, 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'Definir'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} />
+                    <div className="p-3 border-b">
+                      <Input type="time" value={dueDate ? format(dueDate, 'HH:mm') : ''} onChange={(e) => setDueTime(e.target.value)} className="h-8" />
+                    </div>
+                    <Calendar mode="single" selected={dueDate} onSelect={setDueDatePreservingTime} locale={ptBR} />
                   </PopoverContent>
                 </Popover>
               </div>

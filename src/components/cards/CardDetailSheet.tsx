@@ -327,7 +327,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     }
   };
 
-  const handleBriefingDataChange = (newData: BriefingData) => {
+  const handleBriefingDataChange = (newData: BriefingData, targetCardId?: string) => {
+    if (!card || targetCardId !== card.id) return;
     setBriefingData(newData);
     handleSave({ briefing_data: newData });
   };
@@ -356,8 +357,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     handleSave({ traffic_briefing_data: newData as any });
   };
 
-  const handleMarkBriefingComplete = async () => {
-    if (!card) return;
+  const handleMarkBriefingComplete = async (targetCardId?: string) => {
+    if (!card || targetCardId !== card.id) return;
     await handleSave({ briefing_completed: true });
     toast.success('Briefing marcado como completo');
   };

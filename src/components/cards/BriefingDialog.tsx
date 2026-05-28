@@ -49,9 +49,9 @@ interface BriefingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: BriefingData;
-  onChange: (data: BriefingData) => void;
+  onChange: (data: BriefingData, cardId?: string) => void;
   isCompleted: boolean;
-  onMarkComplete: () => void;
+  onMarkComplete: (cardId?: string) => void;
   disabled?: boolean;
   cardTitle?: string;
   cardId?: string;
@@ -178,8 +178,8 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   const { clearPersistence } = useFormPersistence(
     formForPersistence,
-    `briefing-draft-${cardId || 'general'}`,
-    open,
+    cardId ? `briefing-draft-${cardId}` : 'briefing-draft-disabled',
+    open && !!cardId,
     (loadedData) => {
       setLocalData(prev => ({ ...prev, ...loadedData }));
       hasUnsavedChanges.current = true;
@@ -199,15 +199,15 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       setLocalData(data);
       hasUnsavedChanges.current = false;
     }
-  }, [open, data]);
+  }, [open, data, cardId]);
 
   // Save changes when dialog closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
-    if (!newOpen && hasUnsavedChanges.current) {
-      onChange(localData);
+    if (!newOpen && hasUnsavedChanges.current && cardId) {
+      onChange(localData, cardId);
     }
     onOpenChange(newOpen);
-  }, [localData, onChange, onOpenChange]);
+  }, [cardId, localData, onChange, onOpenChange]);
 
   const currentStepData = STEPS[currentStep];
   const isLastStep = currentStep === STEPS.length - 1;
@@ -257,6 +257,11 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   };
 
   const handleComplete = useCallback(() => {
+    if (!cardId) {
+      toast.error('Card ainda não carregado. Abra o briefing novamente.');
+      return;
+    }
+
     if (!requiredStepsComplete) {
       setValidationError({
         isValid: false,
@@ -268,12 +273,12 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
     
     // Save all changes before completing
-    onChange(localData);
-    onMarkComplete();
+    onChange(localData, cardId);
+    onMarkComplete(cardId);
     clearPersistence();
     toast.success('Briefing completo!');
     onOpenChange(false);
-  }, [requiredStepsComplete, localData, onChange, onMarkComplete, onOpenChange]);
+  }, [requiredStepsComplete, localData, onChange, onMarkComplete, onOpenChange, cardId, clearPersistence]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -388,6 +393,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
             {/* Input Area - Increased height */}
             <div className="space-y-2">
               <RichTextEditor
+                key={`${cardId || 'no-card'}-${currentStepData.field}`}
                 value={getFieldValue(currentStepData.field)}
                 onChange={(v) => updateField(currentStepData.field, v)}
                 placeholder={currentStepData.placeholder}

@@ -147,6 +147,16 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
     removeMember.mutate({ cardId, memberId });
   };
 
+  const applyTimeToDate = (baseDate: Date | undefined, value: string, fallbackHour = 18) => {
+    const nextDate = baseDate ? new Date(baseDate) : new Date();
+    if (!baseDate) nextDate.setHours(fallbackHour, 0, 0, 0);
+    const [hours, minutes] = value.split(':').map(Number);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+      nextDate.setHours(hours, minutes, 0, 0);
+    }
+    return nextDate;
+  };
+
   return (
     <div className="space-y-0">
       {/* Two-column grid for fields */}
@@ -262,13 +272,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                        type="time" 
                        className="h-7 py-0 px-2 text-xs w-24"
                        value={startDate ? format(startDate, 'HH:mm') : ''}
-                       onChange={(e) => {
-                         if (!startDate) return;
-                         const [hours, minutes] = e.target.value.split(':');
-                         const newDate = new Date(startDate);
-                         newDate.setHours(parseInt(hours), parseInt(minutes));
-                         onStartDateChange(newDate);
-                       }}
+                       onChange={(e) => onStartDateChange(applyTimeToDate(startDate, e.target.value, 9))}
                      />
                    </div>
                 </div>
@@ -276,8 +280,12 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                   mode="single"
                   selected={startDate}
                   onSelect={(date) => {
-                    if (date && startDate) {
-                      date.setHours(startDate.getHours(), startDate.getMinutes());
+                    if (date) {
+                      if (startDate) {
+                        date.setHours(startDate.getHours(), startDate.getMinutes(), 0, 0);
+                      } else {
+                        date.setHours(9, 0, 0, 0);
+                      }
                     }
                     onStartDateChange(date);
                   }}
@@ -304,13 +312,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                        type="time" 
                        className="h-7 py-0 px-2 text-xs w-24"
                        value={dueDate ? format(dueDate, 'HH:mm') : ''}
-                       onChange={(e) => {
-                         if (!dueDate) return;
-                         const [hours, minutes] = e.target.value.split(':');
-                         const newDate = new Date(dueDate);
-                         newDate.setHours(parseInt(hours), parseInt(minutes));
-                         onDueDateChange(newDate);
-                       }}
+                        onChange={(e) => onDueDateChange(applyTimeToDate(dueDate, e.target.value, 18))}
                      />
                    </div>
                 </div>
@@ -319,12 +321,10 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                   selected={dueDate}
                   onSelect={(date) => {
                     if (date) {
-                      // If there was no previous dueDate, default to current time or 18:00
                       if (!dueDate) {
-                        const now = new Date();
-                        date.setHours(now.getHours(), now.getMinutes());
+                        date.setHours(18, 0, 0, 0);
                       } else {
-                        date.setHours(dueDate.getHours(), dueDate.getMinutes());
+                        date.setHours(dueDate.getHours(), dueDate.getMinutes(), 0, 0);
                       }
                     }
                     onDueDateChange(date);
