@@ -119,6 +119,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     });
   }, [cardId]);
 
+  useEffect(() => {
+    if (!open) {
+      setBriefingDialogOpen(false);
+      setDeleteDialogOpen(false);
+    }
+  }, [open]);
+
   /**
    * Scroll the tools section into view reliably, including on small screens
    * where the Radix ScrollArea owns the overflow. We resolve the scroll
