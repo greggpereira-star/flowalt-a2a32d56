@@ -289,7 +289,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return acc;
     }, {} as Record<CardStatus, Card[]>);
   }, [cards, visibleStatuses, sortDirections, globalSortDirection]);
-  }, [cards, visibleStatuses, sortDirections]);
 
   // Get active card for drag overlay
   const activeCard = useMemo(() => {
