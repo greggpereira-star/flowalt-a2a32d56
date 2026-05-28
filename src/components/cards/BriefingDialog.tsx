@@ -208,7 +208,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     if (!hasUnsavedChanges.current) return;
     const t = setTimeout(() => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
-        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
         hasUnsavedChanges.current = false;
       }
     }, 600);
@@ -230,7 +230,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   useEffect(() => {
     return () => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
-        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
         hasUnsavedChanges.current = false;
       }
     };
@@ -241,7 +241,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   // captured by this callback's closure.
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && cardIdRef.current && hasUnsavedChanges.current) {
-      onChangeRef.current(localDataRef.current, cardIdRef.current);
+      onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
       hasUnsavedChanges.current = false;
     }
     onOpenChange(newOpen);
