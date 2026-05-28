@@ -51,7 +51,7 @@ interface BriefingDialogProps {
   data: BriefingData;
   onChange: (data: BriefingData, cardId?: string) => void;
   isCompleted: boolean;
-  onMarkComplete: (cardId?: string) => void;
+  onMarkComplete: (cardId?: string, briefingDataOverride?: BriefingData) => void;
   disabled?: boolean;
   cardTitle?: string;
   cardId?: string;
