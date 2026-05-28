@@ -193,11 +193,19 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   }, [localData, formForPersistence]);
 
-  // Sync local data when dialog opens or external data changes significantly
+  // Reset local state immediately when switching to a different card, to
+  // avoid one card's draft leaking into another (root cause of "context
+  // disappearing" after closing a card that had stale localData).
+  const lastCardIdRef = useRef(cardId);
   useEffect(() => {
+    if (cardId !== lastCardIdRef.current) {
+      lastCardIdRef.current = cardId;
+      hasUnsavedChanges.current = false;
+      setLocalData(data);
+      return;
+    }
     if (open && !hasUnsavedChanges.current) {
       setLocalData(data);
-      hasUnsavedChanges.current = false;
     }
   }, [open, data, cardId]);
 
@@ -205,6 +213,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && hasUnsavedChanges.current && cardId) {
       onChange(localData, cardId);
+      hasUnsavedChanges.current = false;
     }
     onOpenChange(newOpen);
   }, [cardId, localData, onChange, onOpenChange]);
