@@ -253,7 +253,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         </FieldRow>
 
         {/* Dates */}
-        <FieldRow icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Datas">
+        <FieldRow icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Prazo da Tarefa">
           <div className="flex items-center gap-2 text-sm">
             <Popover>
               <PopoverTrigger asChild>
