@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,6 @@ import type { BriefingData } from './BriefingForm';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { BriefingSummarySheet } from './BriefingSummarySheet';
-import { useFormPersistence } from '@/hooks/useFormPersistence';
-import { useForm } from 'react-hook-form';
 import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
 
 interface ValidationResult {
@@ -178,30 +176,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   useEffect(() => { cardIdRef.current = cardId; }, [cardId]);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
-  // Persistence setup
-  const formForPersistence = useForm<BriefingData>({
-    values: localData
-  });
-
-  const { clearPersistence } = useFormPersistence(
-    formForPersistence,
-    cardId ? `briefing-draft-${cardId}` : 'briefing-draft-disabled',
-    open && !!cardId,
-    (loadedData) => {
-      // Merge loaded draft with current data, preserving any already-filled
-      // fields (prevents stale empty drafts from wiping context/etc).
-      setLocalData(prev => mergeBriefingDataPreservingFilled(prev, loadedData));
-      hasUnsavedChanges.current = true;
-    }
-  );
-
-  // Keep persistence form in sync with local data
-  useEffect(() => {
-    if (hasUnsavedChanges.current) {
-      formForPersistence.reset(localData);
-    }
-  }, [localData, formForPersistence]);
-
   // Reset local state immediately when switching to a different card, to
   // avoid one card's draft leaking into another (root cause of "context
   // disappearing" after closing a card that had stale localData).
@@ -210,13 +184,19 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     if (cardId !== lastCardIdRef.current) {
       lastCardIdRef.current = cardId;
       hasUnsavedChanges.current = false;
-      setLocalData(normalizeBriefingData(data));
+      const nextData = normalizeBriefingData(data);
+      localDataRef.current = nextData;
+      setLocalData(nextData);
       return;
     }
     if (open && !hasUnsavedChanges.current) {
       // Merge instead of overwrite — preserves any in-flight edits that may
       // not have round-tripped through props yet.
-      setLocalData(prev => mergeBriefingDataPreservingFilled(prev, data));
+      setLocalData(prev => {
+        const nextData = mergeBriefingDataPreservingFilled(prev, data);
+        localDataRef.current = nextData;
+        return nextData;
+      });
     }
   }, [open, data, cardId]);
 
@@ -228,18 +208,29 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     if (!hasUnsavedChanges.current) return;
     const t = setTimeout(() => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
-        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
         hasUnsavedChanges.current = false;
       }
     }, 600);
     return () => clearTimeout(t);
   }, [localData, open, cardId]);
 
+  // Also flush when the dialog is closed by the parent card sheet (controlled
+  // `open` prop changing to false), not only when Radix calls onOpenChange.
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open && hasUnsavedChanges.current && cardIdRef.current) {
+      onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
+      hasUnsavedChanges.current = false;
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
   // Flush any pending edits on unmount (e.g., card sheet closed abruptly).
   useEffect(() => {
     return () => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
-        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
         hasUnsavedChanges.current = false;
       }
     };
@@ -250,7 +241,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   // captured by this callback's closure.
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && cardIdRef.current && hasUnsavedChanges.current) {
-      onChangeRef.current(localDataRef.current, cardIdRef.current);
+      onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
       hasUnsavedChanges.current = false;
     }
     onOpenChange(newOpen);
@@ -262,14 +253,21 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const isFirstStep = currentStep === 0;
 
   const persistLocalData = useCallback(() => {
-    if (hasUnsavedChanges.current && cardId) {
-      onChange(localData, cardId);
+    if (hasUnsavedChanges.current && cardIdRef.current) {
+      onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
       hasUnsavedChanges.current = false;
     }
-  }, [cardId, localData, onChange]);
+  }, []);
 
   const updateField = useCallback((field: keyof BriefingData, value: string) => {
-    setLocalData(prev => ({ ...prev, [field]: value }));
+    setLocalData(prev => {
+      const nextData = { ...prev, [field]: value };
+      // Keep the ref updated synchronously. Closing the modal or clicking
+      // "Próximo" can happen before React commits the state update, and that
+      // was causing the latest Contexto text to be saved as an empty value.
+      localDataRef.current = nextData;
+      return nextData;
+    });
     hasUnsavedChanges.current = true;
     if (validationError) {
       setValidationError(null);
@@ -332,12 +330,11 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     // Save briefing_data + briefing_completed atomically in a single
     // mutation to prevent a race where the second UPDATE arrives before
     // the first and the persisted briefing_data ends up empty.
-    onMarkComplete(cardId, localData);
+    onMarkComplete(cardId, normalizeBriefingData(localDataRef.current));
     hasUnsavedChanges.current = false;
-    clearPersistence();
     toast.success('Briefing completo!');
     onOpenChange(false);
-  }, [requiredStepsComplete, localData, onMarkComplete, onOpenChange, cardId, clearPersistence]);
+  }, [requiredStepsComplete, onMarkComplete, onOpenChange, cardId]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
