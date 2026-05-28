@@ -212,7 +212,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       setLocalData(prev => mergeBriefingDataPreservingFilled(prev, data));
     }
   }, [open, data, cardId]);
-  }, [open, data, cardId]);
 
   // Save changes when dialog closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
