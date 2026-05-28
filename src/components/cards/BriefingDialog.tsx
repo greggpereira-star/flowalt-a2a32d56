@@ -170,6 +170,13 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   // Use local state for editing to prevent re-renders from parent
   const [localData, setLocalData] = useState<BriefingData>(() => normalizeBriefingData(data));
   const hasUnsavedChanges = useRef(false);
+  const localDataRef = useRef(localData);
+  const cardIdRef = useRef(cardId);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => { localDataRef.current = localData; }, [localData]);
+  useEffect(() => { cardIdRef.current = cardId; }, [cardId]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   // Persistence setup
   const formForPersistence = useForm<BriefingData>({
@@ -213,14 +220,42 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   }, [open, data, cardId]);
 
-  // Save changes when dialog closes
+  // Debounced auto-save on every change — guarantees content is persisted
+  // even if the user closes the modal via outside click, escape, or by
+  // closing the whole card sheet, without ever clicking "Próximo".
+  useEffect(() => {
+    if (!open || !cardId) return;
+    if (!hasUnsavedChanges.current) return;
+    const t = setTimeout(() => {
+      if (hasUnsavedChanges.current && cardIdRef.current) {
+        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        hasUnsavedChanges.current = false;
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [localData, open, cardId]);
+
+  // Flush any pending edits on unmount (e.g., card sheet closed abruptly).
+  useEffect(() => {
+    return () => {
+      if (hasUnsavedChanges.current && cardIdRef.current) {
+        onChangeRef.current(localDataRef.current, cardIdRef.current);
+        hasUnsavedChanges.current = false;
+      }
+    };
+  }, []);
+
+  // Save changes when dialog closes. Always flush latest localData via ref
+  // to avoid stale-closure issues if the latest keystroke hasn't yet been
+  // captured by this callback's closure.
   const handleOpenChange = useCallback((newOpen: boolean) => {
-    if (!newOpen && hasUnsavedChanges.current && cardId) {
-      onChange(localData, cardId);
+    if (!newOpen && cardIdRef.current && hasUnsavedChanges.current) {
+      onChangeRef.current(localDataRef.current, cardIdRef.current);
       hasUnsavedChanges.current = false;
     }
     onOpenChange(newOpen);
-  }, [cardId, localData, onChange, onOpenChange]);
+  }, [onOpenChange]);
+
 
   const currentStepData = STEPS[currentStep];
   const isLastStep = currentStep === STEPS.length - 1;
