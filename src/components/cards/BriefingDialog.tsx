@@ -222,6 +222,13 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const isLastStep = currentStep === STEPS.length - 1;
   const isFirstStep = currentStep === 0;
 
+  const persistLocalData = useCallback(() => {
+    if (hasUnsavedChanges.current && cardId) {
+      onChange(localData, cardId);
+      hasUnsavedChanges.current = false;
+    }
+  }, [cardId, localData, onChange]);
+
   const updateField = useCallback((field: keyof BriefingData, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }));
     hasUnsavedChanges.current = true;
@@ -255,12 +262,14 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   const handleNext = () => {
     if (!isLastStep) {
+      persistLocalData();
       setCurrentStep(prev => prev + 1);
     }
   };
 
   const handlePrev = () => {
     if (!isFirstStep) {
+      persistLocalData();
       setCurrentStep(prev => prev - 1);
     }
   };
@@ -345,7 +354,10 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
               return (
                 <button
                   key={step.id}
-                  onClick={() => setCurrentStep(idx)}
+                  onClick={() => {
+                    persistLocalData();
+                    setCurrentStep(idx);
+                  }}
                   aria-current={isActive ? 'step' : undefined}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors max-w-full',
@@ -453,7 +465,10 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    onClick={() => setShowSummary(true)}
+                    onClick={() => {
+                      persistLocalData();
+                      setShowSummary(true);
+                    }}
                     size="sm"
                     className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3 border-primary/30 text-primary hover:bg-primary/10"
                   >
