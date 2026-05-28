@@ -72,6 +72,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
   const didMountRef = useRef(false);
+  const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   /**
    * Reset session-bound UI state whenever the modal switches to a different
@@ -318,10 +319,18 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     if (!card) return;
 
     try {
-      await updateCard.mutateAsync({
-        id: card.id,
+      const targetCardId = card.id;
+      const runSave = async () => updateCard.mutateAsync({
+        id: targetCardId,
         ...updates,
       });
+
+      // Keep saves for the same card in order. Briefing edits can fire from
+      // step navigation, auto-save and modal close in quick succession; without
+      // serialization, an older update can arrive last and overwrite the newer
+      // Contexto content with an empty TipTap paragraph.
+      saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(runSave);
+      await saveQueueRef.current;
     } catch (error) {
       toast.error('Erro ao salvar alterações');
     }
