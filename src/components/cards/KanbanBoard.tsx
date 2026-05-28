@@ -163,8 +163,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   columnLabels,
   globalSortDirection = null,
 }) => {
-  columnLabels,
-}) => {
   const { toast } = useToast();
   const { currentRole, currentWorkspace } = useWorkspace();
   const updateCard = useUpdateCard();
