@@ -298,32 +298,33 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                           </div>
                         )}
 
-                        {/* Date Info */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {post.scheduled_at && post.status === 'scheduled' && (
-                            <span className="flex items-center gap-1 font-medium text-blue-600">
-                              <Clock className="h-3 w-3" />
-                              Agendado para {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        {/* Post Date (scheduled or published) - prominent */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                          {post.published_at ? (
+                            <span className="flex items-center gap-1.5 font-medium text-green-600">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Postado em {format(new Date(post.published_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </span>
-                          )}
-                          {post.scheduled_at && post.status !== 'scheduled' && post.status !== 'published' && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Previsto para {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          ) : post.scheduled_at ? (
+                            <span className={cn(
+                              "flex items-center gap-1.5 font-medium",
+                              post.status === 'scheduled' ? "text-blue-600" : "text-foreground"
+                            )}>
+                              <Clock className="h-3.5 w-3.5" />
+                              Postagem: {format(new Date(post.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </span>
-                          )}
-                          {post.published_at && (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Publicado em {format(new Date(post.published_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-amber-600 italic">
+                              <Clock className="h-3.5 w-3.5" />
+                              Sem data de postagem definida
                             </span>
                           )}
                         </div>
 
-                        {/* Audit Info */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                        {/* Audit Info - secondary */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground/70 mt-1">
                           {post.creator && (
-                            <span className="flex items-center gap-1" title={`Criado por ${post.creator.full_name || post.creator.email}`}>
+                            <span className="flex items-center gap-1" title={`Adicionado por ${post.creator.full_name || post.creator.email}`}>
                               <User className="h-3 w-3" />
                               <span className="truncate max-w-[150px]">
                                 {post.creator.full_name || post.creator.email?.split('@')[0]}
@@ -331,13 +332,13 @@ export function PostList({ posts, onEdit, showActions = true, emptyMessage }: Po
                             </span>
                           )}
                           {post.created_at && (
-                            <span className="flex items-center gap-1" title="Data de criação do agendamento">
+                            <span className="flex items-center gap-1" title="Quando o agendamento foi criado no sistema">
                               <CalendarIcon className="h-3 w-3" />
-                              Criado em {format(new Date(post.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                              Adicionado {format(new Date(post.created_at), "dd/MM", { locale: ptBR })}
                             </span>
                           )}
                           {post.retry_count > 0 && (
-                            <span className="flex items-center gap-1 text-amber-600" title="Tentativas de publicação">
+                            <span className="flex items-center gap-1 text-amber-600">
                               <RefreshCw className="h-3 w-3" />
                               {post.retry_count} tentativa{post.retry_count > 1 ? 's' : ''}
                             </span>
