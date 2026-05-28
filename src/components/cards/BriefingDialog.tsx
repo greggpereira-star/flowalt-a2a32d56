@@ -37,6 +37,7 @@ import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { BriefingSummarySheet } from './BriefingSummarySheet';
 import { useFormPersistence } from '@/hooks/useFormPersistence';
 import { useForm } from 'react-hook-form';
+import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
 
 interface ValidationResult {
   isValid: boolean;
@@ -166,9 +167,8 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     setCurrentStep(stepIndex);
     setShowSummary(false);
   }, []);
-  
   // Use local state for editing to prevent re-renders from parent
-  const [localData, setLocalData] = useState<BriefingData>(data);
+  const [localData, setLocalData] = useState<BriefingData>(() => normalizeBriefingData(data));
   const hasUnsavedChanges = useRef(false);
 
   // Persistence setup
@@ -181,7 +181,9 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     cardId ? `briefing-draft-${cardId}` : 'briefing-draft-disabled',
     open && !!cardId,
     (loadedData) => {
-      setLocalData(prev => ({ ...prev, ...loadedData }));
+      // Merge loaded draft with current data, preserving any already-filled
+      // fields (prevents stale empty drafts from wiping context/etc).
+      setLocalData(prev => mergeBriefingDataPreservingFilled(prev, loadedData));
       hasUnsavedChanges.current = true;
     }
   );
@@ -201,11 +203,13 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     if (cardId !== lastCardIdRef.current) {
       lastCardIdRef.current = cardId;
       hasUnsavedChanges.current = false;
-      setLocalData(data);
+      setLocalData(normalizeBriefingData(data));
       return;
     }
     if (open && !hasUnsavedChanges.current) {
-      setLocalData(data);
+      // Merge instead of overwrite — preserves any in-flight edits that may
+      // not have round-tripped through props yet.
+      setLocalData(prev => mergeBriefingDataPreservingFilled(prev, data));
     }
   }, [open, data, cardId]);
 
