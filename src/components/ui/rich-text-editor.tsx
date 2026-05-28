@@ -503,7 +503,9 @@ export function RichTextEditor({
     },
   });
 
-  // Sync external value changes (including clearing)
+    // Sync external value changes (including clearing) without emitting
+    // onUpdate. Programmatic sync must not be treated as user input; otherwise
+    // changing steps/cards can write an empty editor back into the briefing.
   useEffect(() => {
     if (!editor) return;
     
@@ -511,7 +513,7 @@ export function RichTextEditor({
     if (!value || value === '' || value === '""') {
       const currentText = editor.getText().trim();
       if (currentText !== '') {
-        editor.commands.clearContent();
+          editor.commands.clearContent(false);
       }
       return;
     }
@@ -520,12 +522,12 @@ export function RichTextEditor({
       const parsed = linkifyJSON(JSON.parse(value));
       const currentContent = editor.getJSON();
       if (JSON.stringify(parsed) !== JSON.stringify(currentContent)) {
-        editor.commands.setContent(parsed);
+        editor.commands.setContent(parsed, false);
       }
     } catch {
       // If not valid JSON, treat as plain text
       if (value !== editor.getText()) {
-        editor.commands.setContent(value);
+        editor.commands.setContent(value, false);
       }
     }
   }, [value, editor]);
