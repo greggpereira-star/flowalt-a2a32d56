@@ -51,6 +51,8 @@ interface KanbanBoardProps {
   onAddCard: (status: CardStatus) => void;
   visibleStatuses?: CardStatus[];
   columnLabels?: Record<CardStatus, string>;
+  /** When set, overrides the per-column sort and applies to every column */
+  globalSortDirection?: 'asc' | 'desc' | null;
 }
 
 // Droppable column component
