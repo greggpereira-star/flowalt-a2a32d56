@@ -357,9 +357,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     handleSave({ traffic_briefing_data: newData as any });
   };
 
-  const handleMarkBriefingComplete = async (targetCardId?: string) => {
+  const handleMarkBriefingComplete = async (targetCardId?: string, briefingDataOverride?: BriefingData) => {
     if (!card || targetCardId !== card.id) return;
-    await handleSave({ briefing_completed: true });
+    const updates: { briefing_completed: boolean; briefing_data?: BriefingData } = { briefing_completed: true };
+    if (briefingDataOverride) {
+      updates.briefing_data = briefingDataOverride;
+      setBriefingData(briefingDataOverride);
+    }
+    await handleSave(updates);
     toast.success('Briefing marcado como completo');
   };
 

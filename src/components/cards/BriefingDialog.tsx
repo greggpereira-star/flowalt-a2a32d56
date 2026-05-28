@@ -51,7 +51,7 @@ interface BriefingDialogProps {
   data: BriefingData;
   onChange: (data: BriefingData, cardId?: string) => void;
   isCompleted: boolean;
-  onMarkComplete: (cardId?: string) => void;
+  onMarkComplete: (cardId?: string, briefingDataOverride?: BriefingData) => void;
   disabled?: boolean;
   cardTitle?: string;
   cardId?: string;
@@ -193,11 +193,19 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   }, [localData, formForPersistence]);
 
-  // Sync local data when dialog opens or external data changes significantly
+  // Reset local state immediately when switching to a different card, to
+  // avoid one card's draft leaking into another (root cause of "context
+  // disappearing" after closing a card that had stale localData).
+  const lastCardIdRef = useRef(cardId);
   useEffect(() => {
+    if (cardId !== lastCardIdRef.current) {
+      lastCardIdRef.current = cardId;
+      hasUnsavedChanges.current = false;
+      setLocalData(data);
+      return;
+    }
     if (open && !hasUnsavedChanges.current) {
       setLocalData(data);
-      hasUnsavedChanges.current = false;
     }
   }, [open, data, cardId]);
 
@@ -205,6 +213,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && hasUnsavedChanges.current && cardId) {
       onChange(localData, cardId);
+      hasUnsavedChanges.current = false;
     }
     onOpenChange(newOpen);
   }, [cardId, localData, onChange, onOpenChange]);
@@ -272,13 +281,15 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       return;
     }
     
-    // Save all changes before completing
-    onChange(localData, cardId);
-    onMarkComplete(cardId);
+    // Save briefing_data + briefing_completed atomically in a single
+    // mutation to prevent a race where the second UPDATE arrives before
+    // the first and the persisted briefing_data ends up empty.
+    onMarkComplete(cardId, localData);
+    hasUnsavedChanges.current = false;
     clearPersistence();
     toast.success('Briefing completo!');
     onOpenChange(false);
-  }, [requiredStepsComplete, localData, onChange, onMarkComplete, onOpenChange, cardId, clearPersistence]);
+  }, [requiredStepsComplete, localData, onMarkComplete, onOpenChange, cardId, clearPersistence]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
