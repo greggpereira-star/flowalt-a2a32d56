@@ -25,6 +25,9 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
   const [dueDateDirection, setDueDateDirection] = useState<'asc' | 'desc'>('asc');
   const sortedCards = useMemo(() => {
     return [...cards].sort((a, b) => {
+      if (!a.due_date && !b.due_date) return (a.sort_order || 0) - (b.sort_order || 0);
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
       const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
       const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
       const comparison = dateA === dateB ? (a.sort_order || 0) - (b.sort_order || 0) : dateA - dateB;
