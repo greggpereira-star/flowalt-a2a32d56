@@ -80,7 +80,7 @@ import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSpaces } from '@/hooks/useSpaces';
-import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
+import { useShareCardAcrossSpaces } from '@/hooks/useCards';
 import { useCardCustomFields, useUpdateCardCustomFields } from '@/hooks/useSocialMediaTemplates';
 
 interface MediaFile {
@@ -155,7 +155,6 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 }) => {
   const createPost = useCreateSocialPost();
   const updatePost = useUpdateSocialPost();
-  const createCard = useCreateCard();
   const shareCard = useShareCardAcrossSpaces();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
