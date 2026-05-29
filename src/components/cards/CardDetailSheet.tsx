@@ -71,6 +71,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const briefingDialogOpenRef = useRef(false);
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
   const didMountRef = useRef(false);
@@ -257,6 +258,10 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     briefingDataRef.current = briefingData;
   }, [briefingData]);
 
+  useEffect(() => {
+    briefingDialogOpenRef.current = briefingDialogOpen;
+  }, [briefingDialogOpen]);
+
   // Sync state with card data
   useEffect(() => {
     if (card) {
@@ -271,7 +276,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
       const nextBriefingData = normalizeBriefingData(card.briefing_data);
       setBriefingData(prev => {
-        const safeBriefingData = briefingDialogOpen
+        const safeBriefingData = briefingDialogOpenRef.current
           ? mergeBriefingDataPreservingFilled(prev, nextBriefingData)
           : nextBriefingData;
         briefingDataRef.current = safeBriefingData;
@@ -308,7 +313,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         });
       }
     }
-  }, [card, briefingDialogOpen]);
+  }, [card]);
 
   const handleSave = async (updates: Partial<{
     title: string;
