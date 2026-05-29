@@ -318,7 +318,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => { setSelectedDate(null); setCreateDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Postagem
           </Button>
@@ -398,8 +398,12 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
       {/* Dialogs */}
       <CreateSocialPostDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) setSelectedDate(null);
+        }}
         clientId={clientId}
+        defaultScheduledDate={selectedDate}
       />
 
       {/* Edit Dialog */}
