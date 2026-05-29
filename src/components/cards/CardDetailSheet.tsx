@@ -269,26 +269,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       setEstimatedHours(card.estimated_hours?.toString() || '');
       setClientId(card.client_id);
 
-      // Always reset briefing state per card to prevent cross-card data leakage
-      if (card.briefing_data && typeof card.briefing_data === 'object') {
-        setBriefingData({
-          context: (card.briefing_data as Record<string, string>).context || '',
-          target_audience: (card.briefing_data as Record<string, string>).target_audience || '',
-          deliverables: (card.briefing_data as Record<string, string>).deliverables || '',
-          references: (card.briefing_data as Record<string, string>).references || '',
-          deadline_notes: (card.briefing_data as Record<string, string>).deadline_notes || '',
-          special_instructions: (card.briefing_data as Record<string, string>).special_instructions || '',
-        });
-      } else {
-        setBriefingData({
-          context: '',
-          target_audience: '',
-          deliverables: '',
-          references: '',
-          deadline_notes: '',
-          special_instructions: '',
-        });
-      }
+      const nextBriefingData = normalizeBriefingData(card.briefing_data);
+      setBriefingData(prev => {
+        const safeBriefingData = briefingDialogOpen
+          ? mergeBriefingDataPreservingFilled(prev, nextBriefingData)
+          : nextBriefingData;
+        briefingDataRef.current = safeBriefingData;
+        return safeBriefingData;
+      });
 
       if (card.traffic_briefing_data && typeof card.traffic_briefing_data === 'object' && !Array.isArray(card.traffic_briefing_data)) {
         const tbd = card.traffic_briefing_data as Record<string, string>;
@@ -320,7 +308,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         });
       }
     }
-  }, [card]);
+  }, [card, briefingDialogOpen]);
 
   const handleSave = async (updates: Partial<{
     title: string;
