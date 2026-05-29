@@ -81,7 +81,8 @@ export const useCards = (spaceId: string | undefined) => {
         .from('cards')
         .select(`
           *,
-          card_spaces!inner(space_id)
+          card_spaces!inner(space_id),
+          card_custom_fields(field_key, field_value)
         `)
         .eq('card_spaces.space_id', spaceId)
         .neq('status', 'archived')
@@ -94,10 +95,23 @@ export const useCards = (spaceId: string | undefined) => {
 
       // Ensure each card returned has the spaceId we're looking for, 
       // even if its internal space_id differs (due to sharing/mirroring)
-      const mappedData = data?.map(card => ({
-        ...card,
-        display_space_id: spaceId // Virtual field for UI logic
-      })) || [];
+      const mappedData = data?.map(card => {
+        const customFields = ((card as any).card_custom_fields || []).reduce(
+          (acc: Record<string, string | null>, field: { field_key: string; field_value: string | null }) => {
+            acc[field.field_key] = field.field_value;
+            return acc;
+          },
+          {}
+        );
+
+        const { card_custom_fields, ...cardData } = card as any;
+
+        return {
+          ...cardData,
+          custom_fields: customFields,
+          display_space_id: spaceId // Virtual field for UI logic
+        };
+      }) || [];
 
       console.log(`[useCards] Found ${mappedData.length} cards for space ${spaceId}`);
       return mappedData as Card[];
