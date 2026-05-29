@@ -322,10 +322,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     briefing_data: BriefingData;
     traffic_briefing_data: any;
   }>) => {
-    if (!card) return;
+    const currentCard = cardRef.current;
+    if (!currentCard) return;
 
     try {
-      const targetCardId = card.id;
+      const targetCardId = currentCard.id;
       const runSave = async () => updateCard.mutateAsync({
         id: targetCardId,
         ...updates,
@@ -343,9 +344,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   };
 
   const handleBriefingDataChange = (newData: BriefingData, targetCardId?: string) => {
-    if (!card || targetCardId !== card.id) return;
-    setBriefingData(newData);
-    handleSave({ briefing_data: newData });
+    const currentCard = cardRef.current;
+    if (!currentCard || targetCardId !== currentCard.id) return;
+
+    const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, newData);
+    briefingDataRef.current = safeData;
+    setBriefingData(safeData);
+    handleSave({ briefing_data: safeData });
   };
 
   const handleStatusChange = async (newStatus: CardStatus) => {
@@ -373,11 +378,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   };
 
   const handleMarkBriefingComplete = async (targetCardId?: string, briefingDataOverride?: BriefingData) => {
-    if (!card || targetCardId !== card.id) return;
+    const currentCard = cardRef.current;
+    if (!currentCard || targetCardId !== currentCard.id) return;
     const updates: { briefing_completed: boolean; briefing_data?: BriefingData } = { briefing_completed: true };
     if (briefingDataOverride) {
-      updates.briefing_data = briefingDataOverride;
-      setBriefingData(briefingDataOverride);
+      const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, briefingDataOverride);
+      updates.briefing_data = safeData;
+      briefingDataRef.current = safeData;
+      setBriefingData(safeData);
     }
     await handleSave(updates);
     toast.success('Briefing marcado como completo');
