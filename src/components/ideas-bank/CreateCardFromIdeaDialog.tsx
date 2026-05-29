@@ -33,13 +33,8 @@ export const CreateCardFromIdeaDialog: React.FC<Props> = ({ reference, open, onO
   const [cardType, setCardType] = useState<'quick' | 'briefing'>('quick');
   const [submitting, setSubmitting] = useState(false);
 
-  // Sync title/description when reference changes / dialog opens
-  useState(() => {
-    if (reference && open) {
-      setTitle(reference.title);
-      setDescription(reference.description || '');
-    }
-  });
+  // (title/description are synced when the dialog opens, via onOpenChange below)
+
 
   const submit = async () => {
     if (!reference || !currentWorkspace || !spaceId || !title.trim()) return;
