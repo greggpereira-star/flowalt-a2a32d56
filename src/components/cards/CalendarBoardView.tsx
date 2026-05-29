@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,15 +14,23 @@ import {
   addMonths,
   subMonths,
   isToday,
+  parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 
+type CalendarDateMode = 'task_due_date' | 'post_date';
+
+type CardWithCustomFields = Card & {
+  custom_fields?: Record<string, string | null | undefined>;
+};
+
 interface CalendarBoardViewProps {
-  cards: Card[];
-  onCardClick: (card: Card) => void;
+  cards: CardWithCustomFields[];
+  onCardClick: (card: CardWithCustomFields) => void;
+  dateMode?: CalendarDateMode;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,11 +51,19 @@ const URGENCY_DOTS: Record<string, string> = {
   low: 'bg-green-500',
 };
 
+const parseCalendarDate = (value: string) => {
+  // Date-only values from custom fields must be parsed as local dates to avoid
+  // timezone shifts that can move editorial posts to the previous day.
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? parseISO(value) : new Date(value);
+};
+
 export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
   cards,
   onCardClick,
+  dateMode = 'task_due_date',
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const isPostCalendar = dateMode === 'post_date';
 
   // Get calendar days for the current month view
   const calendarDays = useMemo(() => {
@@ -59,13 +75,24 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentMonth]);
 
-  // Group cards by due_date
+  const getCardCalendarDate = useCallback((card: CardWithCustomFields) => {
+    if (isPostCalendar) {
+      return card.custom_fields?.post_date || null;
+    }
+
+    return card.due_date;
+  }, [isPostCalendar]);
+
+  // Group cards by the selected calendar date. Social editorial calendars use post_date;
+  // operational calendars keep using the internal task due_date.
   const cardsByDate = useMemo(() => {
-    const grouped: Record<string, Card[]> = {};
+    const grouped: Record<string, CardWithCustomFields[]> = {};
     
     cards.forEach(card => {
-      if (card.due_date) {
-        const dateKey = format(new Date(card.due_date), 'yyyy-MM-dd');
+      const calendarDate = getCardCalendarDate(card);
+
+      if (calendarDate) {
+        const dateKey = format(parseCalendarDate(calendarDate), 'yyyy-MM-dd');
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }
@@ -74,12 +101,12 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     });
 
     return grouped;
-  }, [cards]);
+  }, [cards, getCardCalendarDate]);
 
-  // Cards without due date
+  // Cards without the selected calendar date
   const unscheduledCards = useMemo(() => {
-    return cards.filter(card => !card.due_date);
-  }, [cards]);
+    return cards.filter(card => !getCardCalendarDate(card));
+  }, [cards, getCardCalendarDate]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
@@ -103,6 +130,10 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
           <h2 className="text-lg font-semibold">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
+          <Badge variant={isPostCalendar ? 'default' : 'secondary'} className="gap-1">
+            {isPostCalendar ? <Megaphone className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+            {isPostCalendar ? 'Calendário por Data de Postagem' : 'Calendário por Prazo da Tarefa'}
+          </Badge>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
@@ -120,10 +151,16 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
         {unscheduledCards.length > 0 && (
           <Badge variant="secondary" className="gap-1">
             <CalendarDays className="h-3 w-3" />
-            {unscheduledCards.length} sem prazo
+            {unscheduledCards.length} {isPostCalendar ? 'sem data de postagem' : 'sem prazo da tarefa'}
           </Badge>
         )}
       </div>
+
+      {isPostCalendar && (
+        <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+          Este calendário editorial usa exclusivamente a <span className="font-medium text-foreground">Data de Postagem</span>. O <span className="font-medium text-foreground">Prazo da Tarefa</span> continua sendo a data interna de entrega do card.
+        </div>
+      )}
 
       {/* Calendar Grid */}
       <div className="flex-1 flex flex-col min-h-0 border rounded-lg overflow-hidden">
@@ -210,7 +247,7 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
         <div className="mt-4 border rounded-lg p-3">
           <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            Cards sem prazo definido
+            {isPostCalendar ? 'Cards sem data de postagem' : 'Cards sem prazo da tarefa'}
           </h3>
           <div className="flex flex-wrap gap-2">
             {unscheduledCards.slice(0, 10).map(card => (

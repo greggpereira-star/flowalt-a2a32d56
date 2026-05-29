@@ -87,19 +87,29 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
     }
   }, [cardFields]);
 
+  const saveFields = async (values: Record<string, string>) => {
+    try {
+      await updateFields.mutateAsync({ cardId, fields: values });
+      setIsDirty(false);
+    } catch (error) {
+      console.error('Failed to update custom fields:', error);
+    }
+  };
+
   const handleFieldChange = (key: string, value: string) => {
     setLocalValues((prev) => ({ ...prev, [key]: value }));
     setIsDirty(true);
   };
 
+  const handleFieldCommit = (key: string, value: string) => {
+    const nextValues = { ...localValues, [key]: value };
+    setLocalValues(nextValues);
+    void saveFields(nextValues);
+  };
+
   const handleBlur = async () => {
     if (!isDirty) return;
-    try {
-      await updateFields.mutateAsync({ cardId, fields: localValues });
-      setIsDirty(false);
-    } catch (error) {
-      console.error('Failed to update custom fields:', error);
-    }
+    await saveFields(localValues);
   };
 
   if (defsLoading || fieldsLoading) {
@@ -120,7 +130,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
 
     if (fieldKey === 'platform') {
       return (
-        <Select value={value} onValueChange={(v) => { handleFieldChange(fieldKey, v); setTimeout(handleBlur, 0); }} disabled={readOnly}>
+        <Select value={value} onValueChange={(v) => handleFieldCommit(fieldKey, v)} disabled={readOnly}>
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
             {PLATFORM_OPTIONS.map((opt) => (
@@ -135,7 +145,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
 
     if (fieldKey === 'piece_type') {
       return (
-        <Select value={value} onValueChange={(v) => { handleFieldChange(fieldKey, v); setTimeout(handleBlur, 0); }} disabled={readOnly}>
+        <Select value={value} onValueChange={(v) => handleFieldCommit(fieldKey, v)} disabled={readOnly}>
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
             {PIECE_TYPE_OPTIONS.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
@@ -146,7 +156,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
 
     if (fieldKey === 'editorial_status') {
       return (
-        <Select value={value} onValueChange={(v) => { handleFieldChange(fieldKey, v); setTimeout(handleBlur, 0); }} disabled={readOnly}>
+        <Select value={value} onValueChange={(v) => handleFieldCommit(fieldKey, v)} disabled={readOnly}>
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
             {EDITORIAL_STATUS_OPTIONS.map((opt) => (
@@ -172,7 +182,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
       return (
         <div className="relative">
           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input type="date" value={value} onChange={(e) => handleFieldChange(field_key, e.target.value)} onBlur={handleBlur} disabled={readOnly} className="pl-10" />
+          <Input type="date" value={value} onChange={(e) => handleFieldCommit(field_key, e.target.value)} disabled={readOnly} className="pl-10" />
         </div>
       );
     }

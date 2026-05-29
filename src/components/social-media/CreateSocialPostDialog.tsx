@@ -80,7 +80,8 @@ import { LocationAutocomplete } from './LocationAutocomplete';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSpaces } from '@/hooks/useSpaces';
-import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
+import { useShareCardAcrossSpaces } from '@/hooks/useCards';
+import { useCardCustomFields, useUpdateCardCustomFields } from '@/hooks/useSocialMediaTemplates';
 
 interface MediaFile {
   id: string;
@@ -99,6 +100,7 @@ interface CreateSocialPostDialogProps {
   clientId?: string;
   editPostId?: string; // If provided, opens in edit mode
   defaultPlatform?: SocialPlatform;
+  defaultScheduledDate?: Date | null;
   onSuccess?: () => void;
 }
 
@@ -136,6 +138,11 @@ const funnelOptions: { value: FunnelStage; label: string; description: string }[
   { value: 'bofu', label: 'BoFu', description: 'Fundo do funil - Decisão' },
 ];
 
+const parseDateOnlyAsLocal = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   open,
   onOpenChange,
@@ -143,15 +150,17 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   clientId,
   editPostId,
   defaultPlatform,
+  defaultScheduledDate,
   onSuccess,
 }) => {
   const createPost = useCreateSocialPost();
   const updatePost = useUpdateSocialPost();
-  const createCard = useCreateCard();
   const shareCard = useShareCardAcrossSpaces();
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
   const { data: spaces } = useSpaces();
+  const { data: cardCustomFields } = useCardCustomFields(cardId);
+  const updateCardCustomFields = useUpdateCardCustomFields();
   
   // Fetch existing post if in edit mode
   const { data: existingPost, isLoading: isLoadingPost } = useSocialPost(editPostId || null);
@@ -187,6 +196,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   
   const isEditMode = !!editPostId;
   const isSubmitting = createPost.isPending || updatePost.isPending;
+  const cardPostDate = cardCustomFields?.find(field => field.field_key === 'post_date')?.field_value;
 
   // Get postable assets filtered by platform
   const { data: availableAssets, isLoading: isLoadingAssets } = usePostableAssets(platform as SocialPlatform || null);
@@ -263,7 +273,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setTitle('');
       setCaption('');
       setHashtagsInput('');
-      setScheduledDate(undefined);
+      setScheduledDate(defaultScheduledDate || undefined);
       setScheduledTime('12:00');
       setContentPillar('');
       setFunnelStage('');
@@ -280,7 +290,13 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUserTagsInput('');
       setAltText('');
     }
-  }, [open, defaultPlatform, isEditMode]);
+  }, [open, defaultPlatform, defaultScheduledDate, isEditMode]);
+
+  useEffect(() => {
+    if (open && !isEditMode && !scheduledDate && cardPostDate) {
+      setScheduledDate(parseDateOnlyAsLocal(cardPostDate));
+    }
+  }, [open, isEditMode, scheduledDate, cardPostDate]);
 
   // Auto-select asset when platform changes and only one asset exists
   useEffect(() => {
@@ -441,6 +457,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       scheduled.setHours(hours, minutes, 0, 0);
       scheduledAt = scheduled.toISOString();
     }
+    const linkedCardId = cardId || existingPost?.card_id || null;
+    const postDateValue = scheduledDate ? format(scheduledDate, 'yyyy-MM-dd') : null;
 
     const utmParams = hasUtmBuilder && (utmSource || utmMedium || utmCampaign)
       ? {
@@ -492,6 +510,12 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         await updatePost.mutateAsync({ postId: editPostId, input: updateInput });
+        if (linkedCardId) {
+          await updateCardCustomFields.mutateAsync({
+            cardId: linkedCardId,
+            fields: { post_date: postDateValue || '' },
+          });
+        }
         toast.success('Postagem atualizada e reagendada');
       } else {
         // Create new post
@@ -519,6 +543,12 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         const postResult = await createPost.mutateAsync(input);
+        if (linkedCardId) {
+          await updateCardCustomFields.mutateAsync({
+            cardId: linkedCardId,
+            fields: { post_date: postDateValue || '' },
+          });
+        }
         
         // Handle cross-sector visibility using junction table card_spaces
         if (isDuplicateEnabled && duplicateToSpace && postResult.card_id) {
