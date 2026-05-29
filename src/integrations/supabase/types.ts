@@ -11279,6 +11279,18 @@ export type Database = {
           response_status: number
         }[]
       }
+      get_invite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          revoked_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
       get_item_movement_timeline: {
         Args: { p_item_id: string; p_limit?: number }
         Returns: {
