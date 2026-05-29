@@ -81,6 +81,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useCreateCard, useShareCardAcrossSpaces } from '@/hooks/useCards';
+import { useCardCustomFields, useUpdateCardCustomFields } from '@/hooks/useSocialMediaTemplates';
 
 interface MediaFile {
   id: string;
@@ -99,6 +100,7 @@ interface CreateSocialPostDialogProps {
   clientId?: string;
   editPostId?: string; // If provided, opens in edit mode
   defaultPlatform?: SocialPlatform;
+  defaultScheduledDate?: Date | null;
   onSuccess?: () => void;
 }
 
@@ -143,6 +145,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   clientId,
   editPostId,
   defaultPlatform,
+  defaultScheduledDate,
   onSuccess,
 }) => {
   const createPost = useCreateSocialPost();
@@ -152,6 +155,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   const { has } = useEntitlementRegistry();
   const { currentWorkspace } = useWorkspace();
   const { data: spaces } = useSpaces();
+  const { data: cardCustomFields } = useCardCustomFields(cardId);
+  const updateCardCustomFields = useUpdateCardCustomFields();
   
   // Fetch existing post if in edit mode
   const { data: existingPost, isLoading: isLoadingPost } = useSocialPost(editPostId || null);
@@ -187,6 +192,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   
   const isEditMode = !!editPostId;
   const isSubmitting = createPost.isPending || updatePost.isPending;
+  const cardPostDate = cardCustomFields?.find(field => field.field_key === 'post_date')?.field_value;
 
   // Get postable assets filtered by platform
   const { data: availableAssets, isLoading: isLoadingAssets } = usePostableAssets(platform as SocialPlatform || null);
