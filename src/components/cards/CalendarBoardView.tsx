@@ -123,6 +123,10 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
           <h2 className="text-lg font-semibold">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
+          <Badge variant={isPostCalendar ? 'default' : 'secondary'} className="gap-1">
+            {isPostCalendar ? <Megaphone className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+            {isPostCalendar ? 'Calendário por Data de Postagem' : 'Calendário por Prazo da Tarefa'}
+          </Badge>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
@@ -140,10 +144,16 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
         {unscheduledCards.length > 0 && (
           <Badge variant="secondary" className="gap-1">
             <CalendarDays className="h-3 w-3" />
-            {unscheduledCards.length} sem prazo
+            {unscheduledCards.length} {isPostCalendar ? 'sem data de postagem' : 'sem prazo da tarefa'}
           </Badge>
         )}
       </div>
+
+      {isPostCalendar && (
+        <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+          Este calendário editorial usa exclusivamente a <span className="font-medium text-foreground">Data de Postagem</span>. O <span className="font-medium text-foreground">Prazo da Tarefa</span> continua sendo a data interna de entrega do card.
+        </div>
+      )}
 
       {/* Calendar Grid */}
       <div className="flex-1 flex flex-col min-h-0 border rounded-lg overflow-hidden">
@@ -230,7 +240,7 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
         <div className="mt-4 border rounded-lg p-3">
           <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            Cards sem prazo definido
+            {isPostCalendar ? 'Cards sem data de postagem' : 'Cards sem prazo da tarefa'}
           </h3>
           <div className="flex flex-wrap gap-2">
             {unscheduledCards.slice(0, 10).map(card => (
