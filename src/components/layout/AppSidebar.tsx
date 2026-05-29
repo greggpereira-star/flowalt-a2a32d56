@@ -50,12 +50,14 @@ import {
   Plug,
   Calculator,
 } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/' },
   { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
   { icon: Building2, label: 'Clientes', path: '/clients' },
+  { icon: Lightbulb, label: 'Banco de Ideias', path: '/ideas' },
   { icon: Clock, label: 'Tempo', path: '/time' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
 ];

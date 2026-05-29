@@ -5070,6 +5070,331 @@ export type Database = {
           },
         ]
       }
+      idea_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      idea_boards: {
+        Row: {
+          archived_at: string | null
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          folder_id: string | null
+          id: string
+          name: string
+          space_id: string | null
+          tags: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          name: string
+          space_id?: string | null
+          tags?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          name?: string
+          space_id?: string | null
+          tags?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_boards_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_boards_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_boards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "idea_boards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_card_links: {
+        Row: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          reference_id: string
+          workspace_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reference_id: string
+          workspace_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reference_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_card_links_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_card_links_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "idea_references"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_card_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "idea_card_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          reference_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          reference_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          reference_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_comments_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "idea_references"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "idea_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_references: {
+        Row: {
+          ai_category: string | null
+          ai_confidence: number | null
+          ai_suggestions: Json | null
+          ai_summary: string | null
+          ai_tags: string[] | null
+          archived_at: string | null
+          board_id: string
+          category: string | null
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          is_favorite: boolean
+          media_url: string | null
+          source_url: string | null
+          tags: string[]
+          thumbnail_url: string | null
+          title: string
+          type: Database["public"]["Enums"]["idea_reference_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_suggestions?: Json | null
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          archived_at?: string | null
+          board_id: string
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_favorite?: boolean
+          media_url?: string | null
+          source_url?: string | null
+          tags?: string[]
+          thumbnail_url?: string | null
+          title: string
+          type?: Database["public"]["Enums"]["idea_reference_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_suggestions?: Json | null
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          archived_at?: string | null
+          board_id?: string
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_favorite?: boolean
+          media_url?: string | null
+          source_url?: string | null
+          tags?: string[]
+          thumbnail_url?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["idea_reference_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_references_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "idea_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_references_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "idea_references_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "system_health_view"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "idea_references_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ideas_bank: {
         Row: {
           client_name: string | null
@@ -11305,6 +11630,20 @@ export type Database = {
         | "units_of_production"
       event_type: "meeting" | "recording" | "milestone" | "deadline" | "other"
       funnel_stage_type: "tofu" | "mofu" | "bofu"
+      idea_reference_type:
+        | "image"
+        | "video"
+        | "link"
+        | "file"
+        | "document"
+        | "text"
+        | "copy"
+        | "ad"
+        | "layout"
+        | "moodboard"
+        | "competitor"
+        | "inspiration"
+        | "campaign"
       inventory_category: "consumable" | "equipment" | "asset"
       item_condition: "good" | "fair" | "defective" | "maintenance"
       movement_type: "IN" | "OUT" | "RETURN" | "TRANSFER" | "ADJUST"
@@ -11525,6 +11864,21 @@ export const Constants = {
       ],
       event_type: ["meeting", "recording", "milestone", "deadline", "other"],
       funnel_stage_type: ["tofu", "mofu", "bofu"],
+      idea_reference_type: [
+        "image",
+        "video",
+        "link",
+        "file",
+        "document",
+        "text",
+        "copy",
+        "ad",
+        "layout",
+        "moodboard",
+        "competitor",
+        "inspiration",
+        "campaign",
+      ],
       inventory_category: ["consumable", "equipment", "asset"],
       item_condition: ["good", "fair", "defective", "maintenance"],
       movement_type: ["IN", "OUT", "RETURN", "TRANSFER", "ADJUST"],
