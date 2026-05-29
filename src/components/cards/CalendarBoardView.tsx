@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -75,13 +75,13 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentMonth]);
 
-  const getCardCalendarDate = (card: CardWithCustomFields) => {
+  const getCardCalendarDate = useCallback((card: CardWithCustomFields) => {
     if (isPostCalendar) {
       return card.custom_fields?.post_date || null;
     }
 
     return card.due_date;
-  };
+  }, [isPostCalendar]);
 
   // Group cards by the selected calendar date. Social editorial calendars use post_date;
   // operational calendars keep using the internal task due_date.
@@ -101,12 +101,12 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     });
 
     return grouped;
-  }, [cards, isPostCalendar]);
+  }, [cards, getCardCalendarDate]);
 
   // Cards without the selected calendar date
   const unscheduledCards = useMemo(() => {
     return cards.filter(card => !getCardCalendarDate(card));
-  }, [cards, isPostCalendar]);
+  }, [cards, getCardCalendarDate]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
