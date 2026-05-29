@@ -123,7 +123,35 @@ export function useIdeaBoards(opts?: { folderId?: string | null }) {
     onError: (e: any) => toast({ title: 'Erro ao excluir', description: e.message, variant: 'destructive' }),
   });
 
-  return { ...list, boards: list.data || [], create, update, archive, remove };
+  const enableShare = useMutation({
+    mutationFn: async ({ boardId, expiresAt }: { boardId: string; expiresAt?: string | null }) => {
+      const { data, error } = await (supabase as any).rpc('enable_idea_board_share', {
+        _board_id: boardId,
+        _expires_at: expiresAt ?? null,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['idea-board'] });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao gerar link', description: e.message, variant: 'destructive' }),
+  });
+
+  const disableShare = useMutation({
+    mutationFn: async (boardId: string) => {
+      const { error } = await (supabase as any).rpc('disable_idea_board_share', { _board_id: boardId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['idea-board'] });
+      toast({ title: 'Link público desativado' });
+    },
+  });
+
+  return { ...list, boards: list.data || [], create, update, archive, remove, enableShare, disableShare };
 }
 
 export function useIdeaBoard(boardId?: string) {
