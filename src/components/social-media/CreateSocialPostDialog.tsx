@@ -138,6 +138,11 @@ const funnelOptions: { value: FunnelStage; label: string; description: string }[
   { value: 'bofu', label: 'BoFu', description: 'Fundo do funil - Decisão' },
 ];
 
+const parseDateOnlyAsLocal = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   open,
   onOpenChange,
@@ -269,7 +274,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setTitle('');
       setCaption('');
       setHashtagsInput('');
-      setScheduledDate(undefined);
+      setScheduledDate(defaultScheduledDate || undefined);
       setScheduledTime('12:00');
       setContentPillar('');
       setFunnelStage('');
@@ -286,7 +291,13 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUserTagsInput('');
       setAltText('');
     }
-  }, [open, defaultPlatform, isEditMode]);
+  }, [open, defaultPlatform, defaultScheduledDate, isEditMode]);
+
+  useEffect(() => {
+    if (open && !isEditMode && !scheduledDate && cardPostDate) {
+      setScheduledDate(parseDateOnlyAsLocal(cardPostDate));
+    }
+  }, [open, isEditMode, scheduledDate, cardPostDate]);
 
   // Auto-select asset when platform changes and only one asset exists
   useEffect(() => {
