@@ -510,10 +510,10 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         await updatePost.mutateAsync({ postId: editPostId, input: updateInput });
-        if (linkedCardId && postDateValue) {
+        if (linkedCardId) {
           await updateCardCustomFields.mutateAsync({
             cardId: linkedCardId,
-            fields: { post_date: postDateValue },
+            fields: { post_date: postDateValue || '' },
           });
         }
         toast.success('Postagem atualizada e reagendada');
@@ -543,10 +543,10 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         const postResult = await createPost.mutateAsync(input);
-        if (linkedCardId && postDateValue) {
+        if (linkedCardId) {
           await updateCardCustomFields.mutateAsync({
             cardId: linkedCardId,
-            fields: { post_date: postDateValue },
+            fields: { post_date: postDateValue || '' },
           });
         }
         
