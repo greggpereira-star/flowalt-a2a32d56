@@ -5113,7 +5113,10 @@ export type Database = {
           description: string | null
           folder_id: string | null
           id: string
+          is_public: boolean
           name: string
+          share_expires_at: string | null
+          share_token: string | null
           space_id: string | null
           tags: string[]
           updated_at: string
@@ -5128,7 +5131,10 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          is_public?: boolean
           name: string
+          share_expires_at?: string | null
+          share_token?: string | null
           space_id?: string | null
           tags?: string[]
           updated_at?: string
@@ -5143,7 +5149,10 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          is_public?: boolean
           name?: string
+          share_expires_at?: string | null
+          share_token?: string | null
           space_id?: string | null
           tags?: string[]
           updated_at?: string
@@ -11208,6 +11217,10 @@ export type Database = {
         }
         Returns: Json
       }
+      disable_idea_board_share: {
+        Args: { _board_id: string }
+        Returns: undefined
+      }
       emit_domain_event: {
         Args: {
           p_aggregate_id: string
@@ -11219,6 +11232,10 @@ export type Database = {
           p_payload: Json
           p_workspace_id: string
         }
+        Returns: string
+      }
+      enable_idea_board_share: {
+        Args: { _board_id: string; _expires_at?: string }
         Returns: string
       }
       enforce_entitlement: {
@@ -11310,6 +11327,7 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      get_public_idea_board: { Args: { _token: string }; Returns: Json }
       get_unprocessed_events: {
         Args: { p_limit?: number; p_workspace_id: string }
         Returns: {

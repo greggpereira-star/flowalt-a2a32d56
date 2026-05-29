@@ -44,6 +44,7 @@ import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 import IdeasBankPage from "./pages/IdeasBankPage";
+import PublicBoardPage from "./pages/PublicBoardPage";
 import { AltControlPage } from "./pages/altcontrol/AltControlPage";
 import { NewProposalPage } from "./pages/altcontrol/NewProposalPage";
 import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
@@ -93,6 +94,8 @@ const App = () => (
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/invite/:token" element={<AcceptInvitePage />} />
                 <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
+                <Route path="/share/board/:token" element={<PublicBoardPage />} />
+                
                 
                 {/* Protected Routes with shared AppLayout */}
                 <Route element={<ProtectedLayout />}>

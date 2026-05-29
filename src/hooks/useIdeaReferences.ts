@@ -117,6 +117,49 @@ export function useIdeaReferences(boardId?: string) {
     },
   });
 
+  const bulkMove = useMutation({
+    mutationFn: async ({ ids, targetBoardId }: { ids: string[]; targetBoardId: string }) => {
+      if (!ids.length) return;
+      const { error } = await (supabase as any)
+        .from('idea_references')
+        .update({ board_id: targetBoardId })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
+      qc.invalidateQueries({ queryKey: ['idea-references', vars.targetBoardId] });
+      qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      toast({ title: 'Referências movidas' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' }),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      const { error } = await (supabase as any).from('idea_references').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
+      qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      toast({ title: 'Referências excluídas' });
+    },
+  });
+
+  const bulkFavorite = useMutation({
+    mutationFn: async ({ ids, value }: { ids: string[]; value: boolean }) => {
+      if (!ids.length) return;
+      const { error } = await (supabase as any)
+        .from('idea_references')
+        .update({ is_favorite: value })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+  });
+
   async function uploadFile(file: File, boardIdArg: string): Promise<{ path: string; signedUrl: string }> {
     if (!workspaceId) throw new Error('Workspace ausente');
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -132,5 +175,5 @@ export function useIdeaReferences(boardId?: string) {
     return { path, signedUrl: signed?.signedUrl || '' };
   }
 
-  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile };
+  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile, bulkMove, bulkDelete, bulkFavorite };
 }
