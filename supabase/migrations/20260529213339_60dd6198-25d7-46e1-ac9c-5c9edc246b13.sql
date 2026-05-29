@@ -1,0 +1,20 @@
+
+DROP POLICY IF EXISTS "Service role can insert badges" ON public.user_badges;
+DROP POLICY IF EXISTS "System can insert progress" ON public.user_goal_progress;
+DROP POLICY IF EXISTS "System can insert ranking history" ON public.ranking_history;
+DROP POLICY IF EXISTS "System can insert email notifications" ON public.email_notifications;
+DROP POLICY IF EXISTS "System can update email notifications" ON public.email_notifications;
+DROP POLICY IF EXISTS "System can manage analytics" ON public.analytics_snapshots;
+DROP POLICY IF EXISTS "System can insert API logs" ON public.api_logs;
+DROP POLICY IF EXISTS "System can insert usage metrics" ON public.usage_metrics;
+DROP POLICY IF EXISTS "System can manage snapshots" ON public.dashboard_snapshots;
+DROP POLICY IF EXISTS "Service role manages idempotency keys" ON public.api_idempotency_keys;
+DROP POLICY IF EXISTS "Service role manages rate limits" ON public.api_rate_limits;
+DROP POLICY IF EXISTS "System can insert access logs" ON public.access_logs;
+DROP POLICY IF EXISTS "Service can insert logs" ON public.structured_logs;
+DROP POLICY IF EXISTS "automation_logs_insert_policy" ON public.automation_logs;
+DROP POLICY IF EXISTS "webhook_deliveries_insert_policy" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "webhook_deliveries_update_policy" ON public.webhook_deliveries;
+DROP POLICY IF EXISTS "System can insert logs" ON public.application_logs;
+DROP POLICY IF EXISTS "System can insert audit logs" ON public.entitlement_audit;
+DROP POLICY IF EXISTS "email_log_insert_service" ON public.email_notifications_log;
