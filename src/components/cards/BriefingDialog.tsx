@@ -136,6 +136,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // Handle keyboard shortcuts
   useEffect(() => {
