@@ -207,10 +207,12 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   useEffect(() => {
     if (!open || !cardId) return;
     if (!hasUnsavedChanges.current) return;
+    setSaveStatus('saving');
     const t = setTimeout(() => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
         onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
         hasUnsavedChanges.current = false;
+        setSaveStatus('saved');
       }
     }, 600);
     return () => clearTimeout(t);
