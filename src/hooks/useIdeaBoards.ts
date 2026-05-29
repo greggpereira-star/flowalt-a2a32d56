@@ -17,6 +17,9 @@ export interface IdeaBoard {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  is_public?: boolean;
+  share_token?: string | null;
+  share_expires_at?: string | null;
   reference_count?: number;
   preview_thumbs?: string[];
 }
