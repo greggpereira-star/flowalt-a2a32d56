@@ -19,6 +19,7 @@ import {
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
+import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
@@ -66,9 +67,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { user } = useAuth();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
+  const cardRef = useRef(card);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const briefingDialogOpenRef = useRef(false);
   const [activeResourceTab, setActiveResourceTab] = useState<string>('checklist');
   const resourceTabsRef = useRef<HTMLDivElement>(null);
   const didMountRef = useRef(false);
@@ -214,6 +217,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     deadline_notes: '',
     special_instructions: '',
   });
+  const briefingDataRef = useRef<BriefingData>(briefingData);
   const [trafficBriefingData, setTrafficBriefingData] = useState<TrafficBriefingData>({
     objective: '',
     platform: '',
@@ -246,6 +250,18 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const isSocialMediaSpace = space?.type === 'social_media';
   const isQuickCard = (card as any)?.card_type === 'quick';
 
+  useEffect(() => {
+    cardRef.current = card;
+  }, [card]);
+
+  useEffect(() => {
+    briefingDataRef.current = briefingData;
+  }, [briefingData]);
+
+  useEffect(() => {
+    briefingDialogOpenRef.current = briefingDialogOpen;
+  }, [briefingDialogOpen]);
+
   // Sync state with card data
   useEffect(() => {
     if (card) {
@@ -258,26 +274,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
       setEstimatedHours(card.estimated_hours?.toString() || '');
       setClientId(card.client_id);
 
-      // Always reset briefing state per card to prevent cross-card data leakage
-      if (card.briefing_data && typeof card.briefing_data === 'object') {
-        setBriefingData({
-          context: (card.briefing_data as Record<string, string>).context || '',
-          target_audience: (card.briefing_data as Record<string, string>).target_audience || '',
-          deliverables: (card.briefing_data as Record<string, string>).deliverables || '',
-          references: (card.briefing_data as Record<string, string>).references || '',
-          deadline_notes: (card.briefing_data as Record<string, string>).deadline_notes || '',
-          special_instructions: (card.briefing_data as Record<string, string>).special_instructions || '',
-        });
-      } else {
-        setBriefingData({
-          context: '',
-          target_audience: '',
-          deliverables: '',
-          references: '',
-          deadline_notes: '',
-          special_instructions: '',
-        });
-      }
+      const nextBriefingData = normalizeBriefingData(card.briefing_data);
+      setBriefingData(prev => {
+        const safeBriefingData = briefingDialogOpenRef.current
+          ? mergeBriefingDataPreservingFilled(prev, nextBriefingData)
+          : nextBriefingData;
+        briefingDataRef.current = safeBriefingData;
+        return safeBriefingData;
+      });
 
       if (card.traffic_briefing_data && typeof card.traffic_briefing_data === 'object' && !Array.isArray(card.traffic_briefing_data)) {
         const tbd = card.traffic_briefing_data as Record<string, string>;
@@ -323,10 +327,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     briefing_data: BriefingData;
     traffic_briefing_data: any;
   }>) => {
-    if (!card) return;
+    const currentCard = cardRef.current;
+    if (!currentCard) return;
 
     try {
-      const targetCardId = card.id;
+      const targetCardId = currentCard.id;
       const runSave = async () => updateCard.mutateAsync({
         id: targetCardId,
         ...updates,
@@ -344,9 +349,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   };
 
   const handleBriefingDataChange = (newData: BriefingData, targetCardId?: string) => {
-    if (!card || targetCardId !== card.id) return;
-    setBriefingData(newData);
-    handleSave({ briefing_data: newData });
+    const currentCard = cardRef.current;
+    if (!currentCard || targetCardId !== currentCard.id) return;
+
+    const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, newData);
+    briefingDataRef.current = safeData;
+    setBriefingData(safeData);
+    handleSave({ briefing_data: safeData });
   };
 
   const handleStatusChange = async (newStatus: CardStatus) => {
@@ -374,11 +383,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   };
 
   const handleMarkBriefingComplete = async (targetCardId?: string, briefingDataOverride?: BriefingData) => {
-    if (!card || targetCardId !== card.id) return;
+    const currentCard = cardRef.current;
+    if (!currentCard || targetCardId !== currentCard.id) return;
     const updates: { briefing_completed: boolean; briefing_data?: BriefingData } = { briefing_completed: true };
     if (briefingDataOverride) {
-      updates.briefing_data = briefingDataOverride;
-      setBriefingData(briefingDataOverride);
+      const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, briefingDataOverride);
+      updates.briefing_data = safeData;
+      briefingDataRef.current = safeData;
+      setBriefingData(safeData);
     }
     await handleSave(updates);
     toast.success('Briefing marcado como completo');
