@@ -175,5 +175,5 @@ export function useIdeaReferences(boardId?: string) {
     return { path, signedUrl: signed?.signedUrl || '' };
   }
 
-  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile };
+  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile, bulkMove, bulkDelete, bulkFavorite };
 }
