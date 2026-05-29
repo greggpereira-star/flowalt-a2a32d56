@@ -164,13 +164,24 @@ export const useCardsByFolder = (folderId: string | undefined) => {
 
       const { data, error } = await supabase
         .from('cards')
-        .select('*')
+        .select('*, card_custom_fields(field_key, field_value)')
         .in('id', cardIds)
         .neq('status', 'archived')
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      return data as Card[];
+      return (data || []).map(card => {
+        const customFields = ((card as any).card_custom_fields || []).reduce(
+          (acc: Record<string, string | null>, field: { field_key: string; field_value: string | null }) => {
+            acc[field.field_key] = field.field_value;
+            return acc;
+          },
+          {}
+        );
+
+        const { card_custom_fields, ...cardData } = card as any;
+        return { ...cardData, custom_fields: customFields };
+      }) as Card[];
     },
     enabled: !!folderId && !!currentWorkspace?.id,
   });
