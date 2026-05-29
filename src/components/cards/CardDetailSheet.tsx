@@ -19,6 +19,7 @@ import {
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
+import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
@@ -66,6 +67,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { user } = useAuth();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
+  const cardRef = useRef(card);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
@@ -214,6 +216,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     deadline_notes: '',
     special_instructions: '',
   });
+  const briefingDataRef = useRef<BriefingData>(briefingData);
   const [trafficBriefingData, setTrafficBriefingData] = useState<TrafficBriefingData>({
     objective: '',
     platform: '',
@@ -245,6 +248,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const isTrafficSpace = space?.type === 'traffic';
   const isSocialMediaSpace = space?.type === 'social_media';
   const isQuickCard = (card as any)?.card_type === 'quick';
+
+  useEffect(() => {
+    cardRef.current = card;
+  }, [card]);
+
+  useEffect(() => {
+    briefingDataRef.current = briefingData;
+  }, [briefingData]);
 
   // Sync state with card data
   useEffect(() => {
