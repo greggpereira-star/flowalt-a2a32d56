@@ -545,9 +545,35 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Save status indicator */}
+            <span
+              className={cn(
+                'hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full transition-colors',
+                saveStatus === 'saving' && 'text-amber-600 bg-amber-500/10',
+                saveStatus === 'saved' && 'text-success bg-success/10',
+                saveStatus === 'idle' && 'text-muted-foreground bg-muted'
+              )}
+              aria-live="polite"
+            >
+              {saveStatus === 'saving' && <>● Salvando…</>}
+              {saveStatus === 'saved' && <><CheckCircle2 className="h-3 w-3" /> Salvo</>}
+              {saveStatus === 'idle' && <>Salvamento automático</>}
+            </span>
+
+            {/* Explicit save button — always available */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={persistLocalData}
+              disabled={saveStatus !== 'saving'}
+              className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+            >
+              <span>Salvar</span>
+            </Button>
+
             {!isLastStep ? (
-              <Button 
-                onClick={handleNext} 
+              <Button
+                onClick={handleNext}
                 size="sm"
                 className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
               >
@@ -555,25 +581,43 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
                 <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             ) : (
-              <Button
-                onClick={handleComplete}
-                disabled={!requiredStepsComplete || disabled || isCompleted}
-                size="sm"
-                className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-              >
-                {isCompleted ? (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>Completo</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Concluir Briefing</span>
-                    <span className="sm:hidden">Concluir</span>
-                  </>
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0}>
+                      <Button
+                        onClick={handleComplete}
+                        disabled={!requiredStepsComplete || disabled || isCompleted}
+                        size="sm"
+                        className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
+                      >
+                        {isCompleted ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span>Completo</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Concluir Briefing</span>
+                            <span className="sm:hidden">Concluir</span>
+                          </>
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!requiredStepsComplete && !isCompleted && (
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs font-medium mb-1">Faltam campos obrigatórios:</p>
+                      <ul className="text-xs list-disc pl-4">
+                        {missingRequiredSteps.map(s => (
+                          <li key={s.id}>{s.title}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>
