@@ -43,6 +43,7 @@ import BirthdaysPage from "./pages/BirthdaysPage";
 import CompleteProfilePage from "./pages/CompleteProfilePage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import IdeasBankPage from "./pages/IdeasBankPage";
 import { AltControlPage } from "./pages/altcontrol/AltControlPage";
 import { NewProposalPage } from "./pages/altcontrol/NewProposalPage";
 import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
@@ -119,6 +120,7 @@ const App = () => (
                   <Route path="/space/:spaceId" element={<SpacePage />} />
                   <Route path="/marketing" element={<MarketingPage />} />
                   <Route path="/birthdays" element={<BirthdaysPage />} />
+                  <Route path="/ideas" element={<IdeasBankPage />} />
                   <Route path="/altcontrol/*" element={<AltControlPage />} />
                   <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
                   <Route path="/altcontrol/proposals/:proposalId" element={<ProposalDetailPage />} />
