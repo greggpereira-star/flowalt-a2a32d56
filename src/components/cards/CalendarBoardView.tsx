@@ -14,6 +14,7 @@ import {
   addMonths,
   subMonths,
   isToday,
+  parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, Megaphone } from 'lucide-react';
@@ -48,6 +49,12 @@ const URGENCY_DOTS: Record<string, string> = {
   high: 'bg-orange-500',
   medium: 'bg-yellow-500',
   low: 'bg-green-500',
+};
+
+const parseCalendarDate = (value: string) => {
+  // Date-only values from custom fields must be parsed as local dates to avoid
+  // timezone shifts that can move editorial posts to the previous day.
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? parseISO(value) : new Date(value);
 };
 
 export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
@@ -85,7 +92,7 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
       const calendarDate = getCardCalendarDate(card);
 
       if (calendarDate) {
-        const dateKey = format(new Date(calendarDate), 'yyyy-MM-dd');
+        const dateKey = format(parseCalendarDate(calendarDate), 'yyyy-MM-dd');
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }
