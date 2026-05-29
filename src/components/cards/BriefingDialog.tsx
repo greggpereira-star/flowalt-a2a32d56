@@ -259,19 +259,18 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     if (hasUnsavedChanges.current && cardIdRef.current) {
       onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
       hasUnsavedChanges.current = false;
+      setSaveStatus('saved');
     }
   }, []);
 
   const updateField = useCallback((field: keyof BriefingData, value: string) => {
     setLocalData(prev => {
       const nextData = { ...prev, [field]: value };
-      // Keep the ref updated synchronously. Closing the modal or clicking
-      // "Próximo" can happen before React commits the state update, and that
-      // was causing the latest Contexto text to be saved as an empty value.
       localDataRef.current = nextData;
       return nextData;
     });
     hasUnsavedChanges.current = true;
+    setSaveStatus('saving');
     if (validationError) {
       setValidationError(null);
     }
