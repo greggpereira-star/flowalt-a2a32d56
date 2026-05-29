@@ -16,13 +16,20 @@ import {
   isToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 
+type CalendarDateMode = 'task_due_date' | 'post_date';
+
+type CardWithCustomFields = Card & {
+  custom_fields?: Record<string, string | null | undefined>;
+};
+
 interface CalendarBoardViewProps {
-  cards: Card[];
-  onCardClick: (card: Card) => void;
+  cards: CardWithCustomFields[];
+  onCardClick: (card: CardWithCustomFields) => void;
+  dateMode?: CalendarDateMode;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -46,8 +53,10 @@ const URGENCY_DOTS: Record<string, string> = {
 export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
   cards,
   onCardClick,
+  dateMode = 'task_due_date',
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const isPostCalendar = dateMode === 'post_date';
 
   // Get calendar days for the current month view
   const calendarDays = useMemo(() => {
@@ -59,13 +68,24 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentMonth]);
 
-  // Group cards by due_date
+  const getCardCalendarDate = (card: CardWithCustomFields) => {
+    if (isPostCalendar) {
+      return card.custom_fields?.post_date || null;
+    }
+
+    return card.due_date;
+  };
+
+  // Group cards by the selected calendar date. Social editorial calendars use post_date;
+  // operational calendars keep using the internal task due_date.
   const cardsByDate = useMemo(() => {
-    const grouped: Record<string, Card[]> = {};
+    const grouped: Record<string, CardWithCustomFields[]> = {};
     
     cards.forEach(card => {
-      if (card.due_date) {
-        const dateKey = format(new Date(card.due_date), 'yyyy-MM-dd');
+      const calendarDate = getCardCalendarDate(card);
+
+      if (calendarDate) {
+        const dateKey = format(new Date(calendarDate), 'yyyy-MM-dd');
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }
@@ -74,12 +94,12 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
     });
 
     return grouped;
-  }, [cards]);
+  }, [cards, isPostCalendar]);
 
-  // Cards without due date
+  // Cards without the selected calendar date
   const unscheduledCards = useMemo(() => {
-    return cards.filter(card => !card.due_date);
-  }, [cards]);
+    return cards.filter(card => !getCardCalendarDate(card));
+  }, [cards, isPostCalendar]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
