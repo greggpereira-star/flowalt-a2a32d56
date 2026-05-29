@@ -406,6 +406,7 @@ export function RichTextEditor({
   const onMentionsChangeRef = useRef(onMentionsChange);
   const onChangeRef = useRef(onChange);
   const onSubmitRef = useRef(onSubmit);
+  const placeholderRef = useRef(placeholder);
   
   // Keep refs in sync with props
   useEffect(() => {
@@ -423,6 +424,10 @@ export function RichTextEditor({
   useEffect(() => {
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
+
+  useEffect(() => {
+    placeholderRef.current = placeholder;
+  }, [placeholder]);
   
   // Helper to safely parse content - handles both JSON and plain text.
   // Also runs autolink on legacy content where URLs were saved as plain text
@@ -453,7 +458,7 @@ export function RichTextEditor({
       }),
       Underline,
       Placeholder.configure({
-        placeholder,
+        placeholder: () => placeholderRef.current,
         emptyEditorClass: 'is-editor-empty',
       }),
       Link.configure({

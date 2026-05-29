@@ -338,7 +338,10 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden">
+      <DialogContent
+        forceMount
+        className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0"
+      >
         {/* Header - Fixed */}
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-background">
           <div className="flex items-start justify-between gap-3">
@@ -452,7 +455,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
             {/* Input Area - Increased height */}
             <div className="space-y-2">
               <RichTextEditor
-                key={`${cardId || 'no-card'}-${currentStepData.field}`}
                 value={getFieldValue(currentStepData.field)}
                 onChange={(v) => updateField(currentStepData.field, v)}
                 placeholder={currentStepData.placeholder}
