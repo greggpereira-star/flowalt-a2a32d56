@@ -264,6 +264,10 @@ const SpacePage: React.FC = () => {
 
   // Apply view config filters
   const viewConfig = activeView?.view_config as Record<string, any> | undefined;
+  const calendarDateMode =
+    viewConfig?.date_field === 'post_date' || (space?.type === 'social_media' && viewConfig?.date_field !== 'due_date')
+      ? 'post_date'
+      : 'task_due_date';
 
   // Filter cards by search, view config, and advanced filters
   const filteredCards = useMemo(() => {
@@ -565,6 +569,7 @@ const SpacePage: React.FC = () => {
               <CalendarBoardView 
                 cards={filteredCards} 
                 onCardClick={handleCardClick}
+                dateMode={calendarDateMode}
               />
             ) : view === 'gantt' ? (
               <div className="h-full overflow-auto">
