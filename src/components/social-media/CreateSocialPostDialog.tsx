@@ -458,6 +458,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       scheduled.setHours(hours, minutes, 0, 0);
       scheduledAt = scheduled.toISOString();
     }
+    const linkedCardId = cardId || existingPost?.card_id || null;
+    const postDateValue = scheduledDate ? format(scheduledDate, 'yyyy-MM-dd') : null;
 
     const utmParams = hasUtmBuilder && (utmSource || utmMedium || utmCampaign)
       ? {
@@ -509,6 +511,12 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         await updatePost.mutateAsync({ postId: editPostId, input: updateInput });
+        if (linkedCardId && postDateValue) {
+          await updateCardCustomFields.mutateAsync({
+            cardId: linkedCardId,
+            fields: { post_date: postDateValue },
+          });
+        }
         toast.success('Postagem atualizada e reagendada');
       } else {
         // Create new post
@@ -536,6 +544,12 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
         };
 
         const postResult = await createPost.mutateAsync(input);
+        if (linkedCardId && postDateValue) {
+          await updateCardCustomFields.mutateAsync({
+            cardId: linkedCardId,
+            fields: { post_date: postDateValue },
+          });
+        }
         
         // Handle cross-sector visibility using junction table card_spaces
         if (isDuplicateEnabled && duplicateToSpace && postResult.card_id) {
