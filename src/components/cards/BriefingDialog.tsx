@@ -339,8 +339,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        forceMount
-        className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0"
+        className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden"
       >
         {/* Header - Fixed */}
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-background">
