@@ -44,40 +44,31 @@ export default function AcceptInvitePage() {
         return;
       }
 
-      // Fetch invite info
-      const { data: invite, error } = await supabase
-        .from('workspace_invites')
-        .select(`
-          *,
-          workspaces:workspace_id (name)
-        `)
-        .eq('token', token)
-        .maybeSingle();
+      // Fetch invite info via SECURITY DEFINER RPC (does not expose the table)
+      const { data: rows, error } = await (supabase as any).rpc('get_invite_by_token', { _token: token });
 
       if (error) {
         console.error('Error fetching invite:', error);
         setStatus('not_found');
         return;
       }
-      
+
+      const invite = Array.isArray(rows) ? rows[0] : rows;
       if (!invite) {
         setStatus('not_found');
         return;
       }
 
-      // Check if already accepted
       if (invite.status === 'accepted') {
         setStatus('already_accepted');
         return;
       }
 
-      // Check if expired
       if (new Date(invite.expires_at) < new Date() || invite.status === 'expired') {
         setStatus('expired');
         return;
       }
 
-      // Check if revoked
       if (invite.status === 'revoked' || invite.revoked_at) {
         setStatus('not_found');
         return;
@@ -85,7 +76,7 @@ export default function AcceptInvitePage() {
 
       setInviteInfo({
         email: invite.email,
-        workspaceName: (invite.workspaces as { name: string })?.name || 'Workspace',
+        workspaceName: invite.workspace_name || 'Workspace',
         role: invite.role,
         expiresAt: invite.expires_at,
       });
