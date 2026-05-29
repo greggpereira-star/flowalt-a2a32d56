@@ -290,11 +290,13 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     return plainText.length > 0;
   }, [getFieldValue]);
 
-  const requiredStepsComplete = STEPS.filter(s => s.required).every((step) => {
+  const missingRequiredSteps = STEPS.filter((step) => {
+    if (!step.required) return false;
     const value = getFieldValue(step.field);
     const plainText = extractPlainText(value);
-    return plainText.length >= (step.minLength || 1);
+    return plainText.length < (step.minLength || 1);
   });
+  const requiredStepsComplete = missingRequiredSteps.length === 0;
 
   const filledSteps = STEPS.filter((_, idx) => isStepComplete(idx)).length;
   const progressPercent = (filledSteps / STEPS.length) * 100;
