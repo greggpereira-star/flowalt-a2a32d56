@@ -150,8 +150,9 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
       <div className="grid gap-4">
         {agendaData && agendaData.length > 0 ? (
           agendaData.slice(0, limit).map((event) => {
-            const clientName = (event.card as any)?.client_name || event.location;
+            const clientName = (event.card as any)?.client_name || event.location || 'Sem cliente';
             const startTime = parseISO(event.start_time);
+
             
             return (
               <Card 
