@@ -38,15 +38,7 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
       const today = startOfDay(new Date());
       const endOfToday = endOfDay(new Date());
 
-      // 1. Get user's participations
-      const { data: participations } = await supabase
-        .from('event_participants')
-        .select('event_id')
-        .eq('user_id', user.id);
-
-      const eventIds = participations?.map(p => p.event_id) || [];
-
-      // 2. Query events (user created OR user participates)
+      // Query events for the current workspace and day
       let query = supabase
         .from('events')
         .select(`
@@ -58,13 +50,9 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
         .lte('start_time', endOfToday.toISOString())
         .order('start_time', { ascending: true });
 
-      if (eventIds.length > 0) {
-        query = query.or(`created_by.eq.${user.id},id.in.(${eventIds.join(',')})`);
-      } else {
-        query = query.eq('created_by', user.id);
-      }
-
       const { data: events, error } = await query;
+      if (error) throw error;
+
       if (error) throw error;
 
       // 3. For each event, get other participants
@@ -162,8 +150,9 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
       <div className="grid gap-4">
         {agendaData && agendaData.length > 0 ? (
           agendaData.slice(0, limit).map((event) => {
-            const clientName = (event.card as any)?.client_name || event.location;
+            const clientName = (event.card as any)?.client_name || event.location || 'Sem cliente';
             const startTime = parseISO(event.start_time);
+
             
             return (
               <Card 
