@@ -3,27 +3,110 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { 
   Calendar, 
-  Clock, 
-  User, 
   ChevronRight, 
-  MapPin, 
   ExternalLink,
-  Briefcase
+  Briefcase,
+  Users,
+  Video,
+  Flag,
+  AlertTriangle,
 } from 'lucide-react';
-import { format, isToday, isTomorrow, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { differenceInMinutes, format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import type { EventType } from '@/hooks/useEvents';
 
 interface DashboardAgendaProps {
   limit?: number;
 }
+
+type ParticipantProfile = {
+  id: string;
+  full_name: string | null;
+  email?: string | null;
+  avatar_url: string | null;
+  status?: string | null;
+};
+
+type DashboardEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: EventType;
+  start_time: string;
+  end_time: string;
+  all_day: boolean;
+  location: string | null;
+  card_id: string | null;
+  created_by: string | null;
+  card?: { id: string; title: string | null; clientName: string | null } | null;
+  participants: ParticipantProfile[];
+};
+
+const EVENT_TYPE_STYLES: Record<EventType, {
+  label: string;
+  Icon: React.ElementType;
+  accent: string;
+  badge: string;
+  timeBox: string;
+}> = {
+  meeting: {
+    label: 'Reunião',
+    Icon: Users,
+    accent: 'bg-blue-500',
+    badge: 'border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/60 dark:text-blue-300',
+    timeBox: 'border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/60 dark:text-blue-300',
+  },
+  recording: {
+    label: 'Gravação',
+    Icon: Video,
+    accent: 'bg-red-500',
+    badge: 'border-red-200 bg-red-500/10 text-red-700 dark:border-red-900/60 dark:text-red-300',
+    timeBox: 'border-red-200 bg-red-500/10 text-red-700 dark:border-red-900/60 dark:text-red-300',
+  },
+  milestone: {
+    label: 'Marco',
+    Icon: Flag,
+    accent: 'bg-emerald-500',
+    badge: 'border-emerald-200 bg-emerald-500/10 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300',
+    timeBox: 'border-emerald-200 bg-emerald-500/10 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300',
+  },
+  deadline: {
+    label: 'Prazo',
+    Icon: AlertTriangle,
+    accent: 'bg-orange-500',
+    badge: 'border-orange-200 bg-orange-500/10 text-orange-700 dark:border-orange-900/60 dark:text-orange-300',
+    timeBox: 'border-orange-200 bg-orange-500/10 text-orange-700 dark:border-orange-900/60 dark:text-orange-300',
+  },
+  other: {
+    label: 'Outro',
+    Icon: Calendar,
+    accent: 'bg-slate-500',
+    badge: 'border-slate-200 bg-slate-500/10 text-slate-700 dark:border-slate-800 dark:text-slate-300',
+    timeBox: 'border-slate-200 bg-slate-500/10 text-slate-700 dark:border-slate-800 dark:text-slate-300',
+  },
+};
+
+const getInitials = (name?: string | null, email?: string | null) => {
+  const label = name || email || 'Usuário';
+  return label
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'U';
+};
+
+const getFirstName = (name?: string | null, email?: string | null) => {
+  return (name || email || 'Usuário').split(' ')[0];
+};
 
 export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) => {
   const { currentWorkspace } = useWorkspace();
@@ -31,80 +114,107 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
   const navigate = useNavigate();
 
   const { data: agendaData, isLoading } = useQuery({
-    queryKey: ['dashboard-agenda', currentWorkspace?.id, user?.id],
+    queryKey: ['dashboard-agenda-participants-v2', currentWorkspace?.id, user?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
       const today = startOfDay(new Date());
       const endOfToday = endOfDay(new Date());
 
-      // Query events for the current workspace and day
-      let query = supabase
+      const { data: myParticipations, error: participationError } = await supabase
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', user.id)
+        .neq('status', 'declined');
+
+      if (participationError) throw participationError;
+
+      const myEventIds = new Set((myParticipations || []).map(participation => participation.event_id));
+
+      const { data: events, error } = await supabase
         .from('events')
-        .select(`
-          *,
-          card:cards(id, title, client_name)
-        `)
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .gte('start_time', today.toISOString())
-        .lte('start_time', endOfToday.toISOString())
+        .lt('start_time', endOfToday.toISOString())
+        .gt('end_time', today.toISOString())
         .order('start_time', { ascending: true });
 
-      const { data: events, error } = await query;
       if (error) throw error;
 
-      if (error) throw error;
+      const visibleEvents = (events || []).filter(event => (
+        myEventIds.has(event.id) || event.created_by === user.id
+      ));
 
-      // 3. For each event, get other participants
-      const eventsWithDetails = await Promise.all((events || []).map(async (event) => {
-        const { data: participants } = await supabase
+      if (visibleEvents.length === 0) return [];
+
+      const eventIds = visibleEvents.map(event => event.id);
+      const cardIds = visibleEvents.map(event => event.card_id).filter(Boolean) as string[];
+
+      const [{ data: participants }, { data: cards }] = await Promise.all([
+        supabase
           .from('event_participants')
-          .select('user_id, status')
-          .eq('event_id', event.id);
-        
-        const otherParticipantIds = participants
-          ?.filter(p => p.user_id !== user.id)
-          .map(p => p.user_id) || [];
-        
-        let participantProfiles = [];
-        if (otherParticipantIds.length > 0) {
-          const { data: profiles } = await supabase
+          .select('event_id, user_id, status')
+          .in('event_id', eventIds),
+        cardIds.length > 0
+          ? supabase
+            .from('cards')
+            .select('id, title, client_id')
+            .in('id', cardIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const participantUserIds = [...new Set((participants || []).map(participant => participant.user_id))];
+      const clientIds = [...new Set((cards || []).map((card: any) => card.client_id).filter(Boolean))];
+
+      const [{ data: profiles }, { data: clients }] = await Promise.all([
+        participantUserIds.length > 0
+          ? supabase
             .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', otherParticipantIds);
-          participantProfiles = profiles || [];
-        }
+            .select('id, full_name, email, avatar_url')
+            .in('id', participantUserIds)
+          : Promise.resolve({ data: [] as any[] }),
+        clientIds.length > 0
+          ? supabase
+            .from('clients')
+            .select('id, name')
+            .in('id', clientIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const profilesById = new Map((profiles || []).map(profile => [profile.id, profile]));
+      const clientsById = new Map((clients || []).map((client: any) => [client.id, client]));
+      const cardsById = new Map((cards || []).map((card: any) => [
+        card.id,
+        {
+          id: card.id,
+          title: card.title,
+          clientName: card.client_id ? clientsById.get(card.client_id)?.name || null : null,
+        },
+      ]));
+
+      return visibleEvents.map(event => {
+        const eventParticipants = (participants || [])
+          .filter(participant => participant.event_id === event.id)
+          .map(participant => {
+            const profile = profilesById.get(participant.user_id);
+            return {
+              id: participant.user_id,
+              full_name: profile?.full_name || null,
+              email: profile?.email || null,
+              avatar_url: profile?.avatar_url || null,
+              status: participant.status,
+            };
+          });
 
         return {
           ...event,
-          participants: participantProfiles
+          card: event.card_id ? cardsById.get(event.card_id) || null : null,
+          participants: eventParticipants,
         };
-      }));
-
-      return eventsWithDetails;
+      }) as DashboardEvent[];
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
   });
-
-  const getEventBadgeColor = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-200';
-      case 'recording': return 'bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border-purple-200';
-      case 'milestone': return 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-200';
-      case 'deadline': return 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-200';
-      default: return 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 border-slate-200';
-    }
-  };
-
-  const getEventTypeName = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'Reunião';
-      case 'recording': return 'Gravação';
-      case 'milestone': return 'Marco';
-      case 'deadline': return 'Prazo';
-      default: return 'Evento';
-    }
-  };
 
   if (isLoading) {
     return (
@@ -150,68 +260,72 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
       <div className="grid gap-4">
         {agendaData && agendaData.length > 0 ? (
           agendaData.slice(0, limit).map((event) => {
-            const clientName = (event.card as any)?.client_name || event.location || 'Sem cliente';
+            const style = EVENT_TYPE_STYLES[event.event_type] || EVENT_TYPE_STYLES.other;
+            const TypeIcon = style.Icon;
             const startTime = parseISO(event.start_time);
+            const endTime = parseISO(event.end_time);
+            const duration = Math.max(differenceInMinutes(endTime, startTime), 0);
+            const clientName = event.card?.clientName || event.card?.title || event.location || 'Sem cliente vinculado';
+            const participantNames = event.participants.map(participant => getFirstName(participant.full_name, participant.email));
 
-            
             return (
               <Card 
                 key={event.id} 
-                className="group relative overflow-hidden border-none bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm transition-all hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 ring-1 ring-slate-200 dark:ring-slate-800"
+                className="group relative overflow-hidden border-none bg-card/80 backdrop-blur-sm ring-1 ring-border transition-all hover:-translate-y-0.5 hover:ring-primary/30"
               >
-                {/* Visual time indicator line */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary/40 group-hover:bg-primary transition-colors" />
+                <div className={cn('absolute left-0 top-0 bottom-0 w-1.5 transition-colors', style.accent)} />
                 
                 <CardContent className="p-5">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                  <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-4">
-                      {/* Time Slot */}
-                      <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl bg-primary/5 text-primary border border-primary/10">
-                        <span className="text-lg font-bold leading-none">
-                          {format(startTime, 'HH:mm')}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70">
-                          {format(startTime, 'aaa')}
+                      <div className={cn('flex min-w-[78px] flex-col items-center justify-center rounded-xl border px-3 py-2', style.timeBox)}>
+                        <span className="text-lg font-bold leading-none">{event.all_day ? 'Dia' : format(startTime, 'HH:mm')}</span>
+                        <span className="mt-1 text-[10px] font-semibold uppercase leading-none text-current/70">
+                          {event.all_day ? 'inteiro' : format(endTime, 'HH:mm')}
                         </span>
                       </div>
 
-                      <div className="space-y-1.5 min-w-0">
+                      <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge 
                             variant="outline" 
-                            className={`text-[10px] px-2 py-0 h-5 font-bold uppercase tracking-tight ${getEventBadgeColor(event.event_type)}`}
+                            className={cn('h-6 gap-1.5 px-2 text-[10px] font-bold uppercase tracking-normal', style.badge)}
                           >
-                            {getEventTypeName(event.event_type)}
+                            <TypeIcon className="h-3 w-3" />
+                            {style.label}
                           </Badge>
-                          {clientName && (
-                            <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
-                              <Briefcase className="h-3 w-3" />
-                              <span className="truncate max-w-[150px]">{clientName}</span>
-                            </div>
-                          )}
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {duration > 0 ? `${Math.floor(duration / 60)}h${duration % 60 ? ` ${duration % 60}min` : ''}` : 'Hoje'}
+                          </span>
                         </div>
                         
-                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors truncate">
+                        <h3 className="truncate text-base font-bold text-foreground transition-colors group-hover:text-primary">
                           {event.title}
                         </h3>
 
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1 max-w-xl">
-                            {event.description}
-                          </p>
-                        )}
+                        <div className="grid gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 rounded-md bg-muted/45 px-2.5 py-1.5">
+                            <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate font-medium text-foreground/80">{clientName}</span>
+                          </div>
+                          {participantNames.length > 0 && (
+                            <div className="flex items-center gap-2 rounded-md bg-muted/45 px-2.5 py-1.5">
+                              <Users className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{participantNames.join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 pl-[86px] md:pl-0">
-                      {/* Participants */}
+                    <div className="flex items-center justify-between gap-3 pl-[94px]">
                       {event.participants && event.participants.length > 0 && (
-                        <div className="flex -space-x-2">
+                        <div className="flex items-center -space-x-2 overflow-hidden">
                           {event.participants.map((participant: any) => (
-                            <Avatar key={participant.id} className="h-8 w-8 border-2 border-background ring-1 ring-slate-200 dark:ring-slate-800">
-                              <AvatarImage src={participant.avatar_url} />
-                              <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
-                                {participant.full_name?.[0] || 'U'}
+                            <Avatar key={participant.id} className="h-8 w-8 border-2 border-background ring-1 ring-border">
+                              <AvatarImage src={participant.avatar_url || undefined} />
+                              <AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">
+                                {getInitials(participant.full_name, participant.email)}
                               </AvatarFallback>
                             </Avatar>
                           ))}
@@ -221,10 +335,10 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-10 w-10 rounded-full opacity-0 group-hover:opacity-100 group-hover:bg-primary/10 group-hover:text-primary transition-all"
+                        className="h-9 w-9 shrink-0 rounded-full text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary md:opacity-0 md:group-hover:opacity-100"
                         onClick={() => navigate('/calendar')}
                       >
-                        <ExternalLink className="h-5 w-5" />
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
