@@ -223,6 +223,7 @@ export const useCreateEvent = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
     },
   });
 };
@@ -260,6 +261,7 @@ export const useUpdateEvent = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
       queryClient.invalidateQueries({ queryKey: ['event', data.id] });
     },
   });
@@ -281,6 +283,7 @@ export const useDeleteEvent = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
     },
   });
 };
@@ -315,6 +318,7 @@ export const useUpdateParticipantStatus = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['event_participants', data.event_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
     },
   });
 };
@@ -341,6 +345,7 @@ export const useAddParticipant = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['event_participants', data.event_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
     },
   });
 };
