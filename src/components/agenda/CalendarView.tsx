@@ -534,8 +534,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           })}
         </div>
       </div>
-    </div>
-  );
 
       {/* Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => {
