@@ -9,6 +9,7 @@ import { TodayBirthdaysReminder } from '@/components/notices/TodayBirthdaysRemin
 import { HolidayBanner } from '@/components/notices/HolidayBanner';
 import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationDemo';
 import { AltControlPendingWidget } from '@/components/altcontrol/AltControlPendingWidget';
+import { DashboardAgenda } from '@/components/dashboard/DashboardAgenda';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -202,77 +203,73 @@ const Index: React.FC = () => {
           <BirthdayBanner />
         </div>
 
-        {/* Work Radar - Main focus area */}
-        <div className="mb-8">
-          <WorkRadar />
+        {/* Main Dashboard Section - Grid Layout */}
+        <div className="grid gap-8 lg:grid-cols-12 mb-8">
+          {/* Left Column: Work Radar & Important Stats */}
+          <div className="lg:col-span-8 space-y-8">
+            <WorkRadar />
+            
+            {/* Quick Stats Grid inside left column */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card className="group cursor-pointer transition-all hover:shadow-md border-none bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm ring-1 ring-slate-200 dark:ring-slate-800" onClick={() => navigate('/tasks')}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Tarefas Pendentes</CardTitle>
+                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{myTasks?.count || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {myTasks?.count === 0 ? 'Nenhuma tarefa atribuída' : `${myTasks?.todayCount || 0} para hoje`}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`group cursor-pointer transition-all hover:shadow-md border-none bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm ring-1 ring-slate-200 dark:ring-slate-800 ${myTimer ? 'ring-2 ring-green-500/50 bg-green-500/5' : ''}`}
+                onClick={() => navigate('/time')}
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Timer Ativo</CardTitle>
+                  <Clock className={`h-4 w-4 ${myTimer ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${myTimer ? 'text-green-600' : ''}`}>
+                    {myTimer ? formatTimer((myTimer as any).started_at) : '00:00:00'}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {myTimer ? ((myTimer as any).card as { title: string } | null)?.title || 'Rodando' : 'Nenhum timer rodando'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`group cursor-pointer transition-all hover:shadow-md border-none bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm ring-1 ring-slate-200 dark:ring-slate-800 ${(myTasks?.todayCount || 0) > 0 ? 'ring-2 ring-yellow-500/50' : ''}`}
+                onClick={() => navigate('/tasks')}
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Entregas Hoje</CardTitle>
+                  <AlertCircle
+                    className={`h-4 w-4 ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-600' : ''}`}>
+                    {myTasks?.todayCount || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {(myTasks?.todayCount || 0) === 0 ? 'Nenhuma entrega programada' : 'Precisam de atenção'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Right Column: Dynamic Agenda - HIGH HIGHLIGHT */}
+          <div className="lg:col-span-4 h-full">
+            <DashboardAgenda limit={5} />
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="group cursor-pointer transition-all hover:shadow-md" onClick={() => navigate('/tasks')}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Tarefas Pendentes</CardTitle>
-              <FolderKanban className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{myTasks?.count || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {myTasks?.count === 0 ? 'Nenhuma tarefa atribuída' : `${myTasks?.todayCount || 0} para hoje`}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`group cursor-pointer transition-all hover:shadow-md ${myTimer ? 'border-green-500/50 bg-green-500/5' : ''}`}
-            onClick={() => navigate('/time')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Timer Ativo</CardTitle>
-              <Clock className={`h-4 w-4 ${myTimer ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${myTimer ? 'text-green-600' : ''}`}>
-                {myTimer ? formatTimer((myTimer as any).started_at) : '00:00:00'}
-              </div>
-              <p className="text-xs text-muted-foreground truncate">
-                {myTimer ? ((myTimer as any).card as { title: string } | null)?.title || 'Rodando' : 'Nenhum timer rodando'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`group cursor-pointer transition-all hover:shadow-md ${(myTasks?.todayCount || 0) > 0 ? 'border-yellow-500/50' : ''}`}
-            onClick={() => navigate('/tasks')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Entregas Hoje</CardTitle>
-              <AlertCircle
-                className={`h-4 w-4 ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'}`}
-              />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${(myTasks?.todayCount || 0) > 0 ? 'text-yellow-600' : ''}`}>
-                {myTasks?.todayCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {(myTasks?.todayCount || 0) === 0 ? 'Nenhuma entrega programada' : 'Precisam de atenção'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="group cursor-pointer transition-all hover:shadow-md" onClick={() => navigate('/calendar')}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Eventos Hoje</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{todayEvents || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {(todayEvents || 0) === 0 ? 'Agenda livre' : 'Na agenda de hoje'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Quick Actions */}
         <div className="grid gap-6 lg:grid-cols-3">
