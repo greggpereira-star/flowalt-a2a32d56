@@ -802,12 +802,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
+                              <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">
                                 {member.profile?.full_name || member.profile?.email}
                               </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {member.role}
-                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-wider bg-muted/30">
+                                  {member.role}
+                                </Badge>
+                              </div>
                             </div>
                             <div className={cn(
                               'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0',
