@@ -8,22 +8,108 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { 
   Calendar, 
   Clock, 
-  User, 
   ChevronRight, 
   MapPin, 
   ExternalLink,
-  Briefcase
+  Briefcase,
+  Users,
+  Video,
+  Flag,
+  AlertTriangle,
 } from 'lucide-react';
-import { format, isToday, isTomorrow, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { differenceInMinutes, format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import type { EventType } from '@/hooks/useEvents';
 
 interface DashboardAgendaProps {
   limit?: number;
 }
+
+type ParticipantProfile = {
+  id: string;
+  full_name: string | null;
+  email?: string | null;
+  avatar_url: string | null;
+  status?: string | null;
+};
+
+type DashboardEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: EventType;
+  start_time: string;
+  end_time: string;
+  all_day: boolean;
+  location: string | null;
+  card_id: string | null;
+  created_by: string | null;
+  card?: { id: string; title: string | null; clientName: string | null } | null;
+  participants: ParticipantProfile[];
+};
+
+const EVENT_TYPE_STYLES: Record<EventType, {
+  label: string;
+  Icon: React.ElementType;
+  accent: string;
+  badge: string;
+  timeBox: string;
+}> = {
+  meeting: {
+    label: 'Reunião',
+    Icon: Users,
+    accent: 'bg-blue-500',
+    badge: 'border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/60 dark:text-blue-300',
+    timeBox: 'border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/60 dark:text-blue-300',
+  },
+  recording: {
+    label: 'Gravação',
+    Icon: Video,
+    accent: 'bg-red-500',
+    badge: 'border-red-200 bg-red-500/10 text-red-700 dark:border-red-900/60 dark:text-red-300',
+    timeBox: 'border-red-200 bg-red-500/10 text-red-700 dark:border-red-900/60 dark:text-red-300',
+  },
+  milestone: {
+    label: 'Marco',
+    Icon: Flag,
+    accent: 'bg-emerald-500',
+    badge: 'border-emerald-200 bg-emerald-500/10 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300',
+    timeBox: 'border-emerald-200 bg-emerald-500/10 text-emerald-700 dark:border-emerald-900/60 dark:text-emerald-300',
+  },
+  deadline: {
+    label: 'Prazo',
+    Icon: AlertTriangle,
+    accent: 'bg-orange-500',
+    badge: 'border-orange-200 bg-orange-500/10 text-orange-700 dark:border-orange-900/60 dark:text-orange-300',
+    timeBox: 'border-orange-200 bg-orange-500/10 text-orange-700 dark:border-orange-900/60 dark:text-orange-300',
+  },
+  other: {
+    label: 'Outro',
+    Icon: Calendar,
+    accent: 'bg-slate-500',
+    badge: 'border-slate-200 bg-slate-500/10 text-slate-700 dark:border-slate-800 dark:text-slate-300',
+    timeBox: 'border-slate-200 bg-slate-500/10 text-slate-700 dark:border-slate-800 dark:text-slate-300',
+  },
+};
+
+const getInitials = (name?: string | null, email?: string | null) => {
+  const label = name || email || 'Usuário';
+  return label
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'U';
+};
+
+const getFirstName = (name?: string | null, email?: string | null) => {
+  return (name || email || 'Usuário').split(' ')[0];
+};
 
 export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) => {
   const { currentWorkspace } = useWorkspace();
@@ -38,73 +124,100 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
       const today = startOfDay(new Date());
       const endOfToday = endOfDay(new Date());
 
-      // Query events for the current workspace and day
-      let query = supabase
+      const { data: myParticipations, error: participationError } = await supabase
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', user.id)
+        .neq('status', 'declined');
+
+      if (participationError) throw participationError;
+
+      const myEventIds = new Set((myParticipations || []).map(participation => participation.event_id));
+
+      const { data: events, error } = await supabase
         .from('events')
-        .select(`
-          *,
-          card:cards(id, title, client_name)
-        `)
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .gte('start_time', today.toISOString())
-        .lte('start_time', endOfToday.toISOString())
+        .lt('start_time', endOfToday.toISOString())
+        .gt('end_time', today.toISOString())
         .order('start_time', { ascending: true });
 
-      const { data: events, error } = await query;
       if (error) throw error;
 
-      if (error) throw error;
+      const visibleEvents = (events || []).filter(event => (
+        myEventIds.has(event.id) || event.created_by === user.id
+      ));
 
-      // 3. For each event, get other participants
-      const eventsWithDetails = await Promise.all((events || []).map(async (event) => {
-        const { data: participants } = await supabase
+      if (visibleEvents.length === 0) return [];
+
+      const eventIds = visibleEvents.map(event => event.id);
+      const cardIds = visibleEvents.map(event => event.card_id).filter(Boolean) as string[];
+
+      const [{ data: participants }, { data: cards }] = await Promise.all([
+        supabase
           .from('event_participants')
-          .select('user_id, status')
-          .eq('event_id', event.id);
-        
-        const otherParticipantIds = participants
-          ?.filter(p => p.user_id !== user.id)
-          .map(p => p.user_id) || [];
-        
-        let participantProfiles = [];
-        if (otherParticipantIds.length > 0) {
-          const { data: profiles } = await supabase
+          .select('event_id, user_id, status')
+          .in('event_id', eventIds),
+        cardIds.length > 0
+          ? supabase
+            .from('cards')
+            .select('id, title, client_id')
+            .in('id', cardIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const participantUserIds = [...new Set((participants || []).map(participant => participant.user_id))];
+      const clientIds = [...new Set((cards || []).map((card: any) => card.client_id).filter(Boolean))];
+
+      const [{ data: profiles }, { data: clients }] = await Promise.all([
+        participantUserIds.length > 0
+          ? supabase
             .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', otherParticipantIds);
-          participantProfiles = profiles || [];
-        }
+            .select('id, full_name, email, avatar_url')
+            .in('id', participantUserIds)
+          : Promise.resolve({ data: [] as any[] }),
+        clientIds.length > 0
+          ? supabase
+            .from('clients')
+            .select('id, name')
+            .in('id', clientIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const profilesById = new Map((profiles || []).map(profile => [profile.id, profile]));
+      const clientsById = new Map((clients || []).map((client: any) => [client.id, client]));
+      const cardsById = new Map((cards || []).map((card: any) => [
+        card.id,
+        {
+          id: card.id,
+          title: card.title,
+          clientName: card.client_id ? clientsById.get(card.client_id)?.name || null : null,
+        },
+      ]));
+
+      return visibleEvents.map(event => {
+        const eventParticipants = (participants || [])
+          .filter(participant => participant.event_id === event.id)
+          .map(participant => {
+            const profile = profilesById.get(participant.user_id);
+            return {
+              id: participant.user_id,
+              full_name: profile?.full_name || null,
+              email: profile?.email || null,
+              avatar_url: profile?.avatar_url || null,
+              status: participant.status,
+            };
+          });
 
         return {
           ...event,
-          participants: participantProfiles
+          card: event.card_id ? cardsById.get(event.card_id) || null : null,
+          participants: eventParticipants,
         };
-      }));
-
-      return eventsWithDetails;
+      }) as DashboardEvent[];
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
   });
-
-  const getEventBadgeColor = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-200';
-      case 'recording': return 'bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border-purple-200';
-      case 'milestone': return 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-200';
-      case 'deadline': return 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-200';
-      default: return 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 border-slate-200';
-    }
-  };
-
-  const getEventTypeName = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'Reunião';
-      case 'recording': return 'Gravação';
-      case 'milestone': return 'Marco';
-      case 'deadline': return 'Prazo';
-      default: return 'Evento';
-    }
-  };
 
   if (isLoading) {
     return (
