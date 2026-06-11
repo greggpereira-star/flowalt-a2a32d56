@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,9 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { 
   Calendar, 
-  Clock, 
   ChevronRight, 
-  MapPin, 
   ExternalLink,
   Briefcase,
   Users,
@@ -22,7 +20,6 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { differenceInMinutes, format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import type { EventType } from '@/hooks/useEvents';
 
@@ -117,7 +114,7 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
   const navigate = useNavigate();
 
   const { data: agendaData, isLoading } = useQuery({
-    queryKey: ['dashboard-agenda', currentWorkspace?.id, user?.id],
+    queryKey: ['dashboard-agenda-participants-v2', currentWorkspace?.id, user?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
