@@ -372,6 +372,7 @@ export const useRemoveParticipant = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['event_participants', data.event_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-participants-v2'] });
     },
   });
 };
