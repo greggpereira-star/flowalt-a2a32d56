@@ -385,126 +385,155 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col h-full gap-4">
+      {/* Header / Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
+            className="h-8 w-8 hover:bg-background"
             onClick={() => setCurrentDate(subMonths(currentDate, 1))}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-lg font-semibold min-w-[200px] text-center">
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-          </h2>
+          <div className="px-3 py-1 bg-background rounded-md border shadow-sm flex items-center justify-center min-w-[140px]">
+            <h2 className="text-sm font-semibold capitalize tracking-tight">
+              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            </h2>
+          </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
+            className="h-8 w-8 hover:bg-background"
             onClick={() => setCurrentDate(addMonths(currentDate, 1))}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <div className="w-[1px] h-4 bg-border mx-1" />
           <Button
             variant="ghost"
             size="sm"
+            className="h-8 px-3 text-xs font-medium hover:bg-background"
             onClick={() => setCurrentDate(new Date())}
           >
             Hoje
           </Button>
         </div>
-        <Button onClick={() => {
-          resetForm();
-          setDialogOpen(true);
-        }}>
+
+        <Button 
+          size="sm" 
+          onClick={() => {
+            resetForm();
+            setDialogOpen(true);
+          }}
+          className="shadow-lg shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Novo Evento
         </Button>
       </div>
 
-      {/* Calendar Grid */}
-      <Card>
-        <CardContent className="p-0">
-          {/* Week Days Header */}
-          <div className="grid grid-cols-7 border-b">
-            {weekDays.map(day => (
+      {/* Calendar Grid Container */}
+      <div className="flex-1 bg-background border rounded-xl overflow-hidden flex flex-col shadow-sm">
+        {/* Week Days Header */}
+        <div className="grid grid-cols-7 border-b bg-muted/20 backdrop-blur-sm shrink-0">
+          {weekDays.map(day => (
+            <div
+              key={day}
+              className="py-3 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 border-r last:border-r-0"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Days - Scrollable */}
+        <div className="grid grid-cols-7 flex-1 overflow-auto divide-x divide-y border-b">
+          {calendarDays.map((day, index) => {
+            const dateKey = format(day, 'yyyy-MM-dd');
+            const dayEvents = eventsByDay.get(dateKey) || [];
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            const isCurrentDay = isToday(day);
+
+            return (
               <div
-                key={day}
-                className="p-2 text-center text-sm font-medium text-muted-foreground border-r last:border-r-0"
+                key={index}
+                className={cn(
+                  'min-h-[120px] p-2 flex flex-col gap-1 transition-all group',
+                  !isCurrentMonth ? 'bg-muted/[0.15] opacity-40' : 'bg-background hover:bg-muted/5',
+                  'cursor-pointer border-t-0 border-l-0'
+                )}
+                onClick={() => handleDateClick(day)}
               >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7">
-            {calendarDays.map((day, index) => {
-              const dateKey = format(day, 'yyyy-MM-dd');
-              const dayEvents = eventsByDay.get(dateKey) || [];
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isCurrentDay = isToday(day);
-
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    'min-h-[100px] p-1 border-r border-b last:border-r-0 cursor-pointer transition-colors hover:bg-muted/50',
-                    !isCurrentMonth && 'bg-muted/30 text-muted-foreground'
-                  )}
-                  onClick={() => handleDateClick(day)}
-                >
+                <div className="flex items-center justify-between mb-1 shrink-0">
                   <div
                     className={cn(
-                      'text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full mb-1',
-                      isCurrentDay && 'bg-primary text-primary-foreground'
+                      'text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg transition-all',
+                      isCurrentDay 
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-110' 
+                        : 'text-muted-foreground/70 group-hover:text-foreground'
                     )}
                   >
                     {format(day, 'd')}
                   </div>
-                  <div className="space-y-1">
-                    {dayEvents.slice(0, 3).map(event => {
-                      // Check if it's a birthday notice
-                      if ('isBirthday' in event && event.isBirthday) {
-                        return (
-                          <div
-                            key={event.id}
-                            className="text-xs px-1.5 py-0.5 rounded truncate text-white cursor-default bg-pink-500 flex items-center gap-1"
-                          >
-                            <Cake className="h-3 w-3" />
-                            {event.title.replace('🎉 ', '').replace('!', '')}
-                          </div>
-                        );
-                      }
-                      
-                      const config = EVENT_TYPE_CONFIG[(event as Event).event_type];
+                  {dayEvents.length > 0 && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/20" />
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col gap-1 overflow-hidden">
+                  {dayEvents.slice(0, 3).map(event => {
+                    if ('isBirthday' in event && event.isBirthday) {
                       return (
                         <div
                           key={event.id}
-                          className={cn(
-                            'text-xs px-1.5 py-0.5 rounded truncate text-white cursor-pointer hover:opacity-80',
-                            (event as Event).color ? '' : config.color
-                          )}
-                          style={(event as Event).color ? { backgroundColor: (event as Event).color } : undefined}
-                          onClick={(e) => handleEventClick(event as Event, e)}
+                          className="text-[10px] px-1.5 py-1 rounded-md font-medium truncate bg-pink-500/10 text-pink-600 border border-pink-200 dark:border-pink-900/50 flex items-center gap-1.5 group/event hover:bg-pink-500/20 transition-colors"
                         >
-                          {event.title}
+                          <Cake className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{event.title.replace('🎉 ', '').replace('!', '')}</span>
                         </div>
                       );
-                    })}
-                    {dayEvents.length > 3 && (
-                      <div className="text-xs text-muted-foreground px-1">
-                        +{dayEvents.length - 3} mais
+                    }
+                    
+                    const config = EVENT_TYPE_CONFIG[(event as Event).event_type];
+                    const startTime = format(parseISO((event as Event).start_time), 'HH:mm');
+                    
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-all hover:scale-[1.02]',
+                          'bg-card shadow-sm hover:shadow-md border-border/60 hover:border-primary/30'
+                        )}
+                        onClick={(e) => handleEventClick(event as Event, e)}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div 
+                            className="w-1.5 h-1.5 rounded-full shrink-0" 
+                            style={{ backgroundColor: (event as Event).color || config.color.replace('bg-', '') }} 
+                          />
+                          <span className="truncate text-foreground/90">{event.title}</span>
+                        </div>
+                        {!(event as Event).all_day && (
+                          <span className="text-[9px] text-muted-foreground ml-3 leading-none">
+                            {startTime}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })}
+                  {dayEvents.length > 3 && (
+                    <div className="text-[9px] text-muted-foreground/60 font-semibold px-1 mt-auto">
+                      +{dayEvents.length - 3} mais
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -773,12 +802,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
+                              <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">
                                 {member.profile?.full_name || member.profile?.email}
                               </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {member.role}
-                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-wider bg-muted/30">
+                                  {member.role}
+                                </Badge>
+                              </div>
                             </div>
                             <div className={cn(
                               'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0',

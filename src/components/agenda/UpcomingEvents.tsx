@@ -100,37 +100,42 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({
                         return (
                           <div
                             key={event.id}
-                            className="flex items-center gap-3 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer group"
+                            className="flex items-center gap-4 p-3 rounded-xl border bg-card/50 hover:bg-accent/40 transition-all cursor-pointer group shadow-sm hover:shadow-md hover:translate-x-1"
                             onClick={() => onEventClick?.(event)}
                           >
                             <div
                               className={cn(
-                                'w-1 h-10 rounded-full',
+                                'w-1.5 h-12 rounded-full shrink-0 shadow-sm',
                                 event.color ? '' : config.color
                               )}
                               style={event.color ? { backgroundColor: event.color } : undefined}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{event.title}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Icon className="h-3 w-3" />
-                                <span>{config.label}</span>
+                              <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                                {event.title}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                                  <Icon className="h-3 w-3 text-primary/70" />
+                                  <span>{config.label}</span>
+                                </div>
                                 {!event.all_day && (
-                                  <>
-                                    <span>•</span>
+                                  <div className="flex items-center gap-1 text-[11px] font-semibold text-primary/80">
+                                    <Clock className="h-3 w-3" />
                                     <span>{format(startTime, 'HH:mm')}</span>
-                                  </>
+                                  </div>
                                 )}
                                 {event.location && (
-                                  <>
-                                    <span>•</span>
-                                    <MapPin className="h-3 w-3" />
-                                    <span className="truncate max-w-[100px]">{event.location}</span>
-                                  </>
+                                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground italic truncate max-w-[150px]">
+                                    <MapPin className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{event.location}</span>
+                                  </div>
                                 )}
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="h-8 w-8 rounded-full bg-muted/30 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </div>
                           </div>
                         );
                       })}
