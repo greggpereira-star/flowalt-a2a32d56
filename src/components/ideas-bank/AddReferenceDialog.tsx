@@ -152,7 +152,7 @@ export const AddReferenceDialog: React.FC<Props> = ({ open, onOpenChange, boardI
         return;
       }
 
-      // BULK LINK
+      // BULK LINK — fetch OG metadata for each so titles/thumbnails are auto-filled
       if (tab === 'link' && urls.length > 0) {
         setProgress({ done: 0, total: urls.length, current: '' });
         let ok = 0;
@@ -160,13 +160,24 @@ export const AddReferenceDialog: React.FC<Props> = ({ open, onOpenChange, boardI
           const u = urls[i];
           setProgress({ done: i, total: urls.length, current: u });
           try {
+            // Reuse single-link preview if already fetched; else fetch fresh
+            let p: { title?: string; description?: string; image?: string; domain?: string } | null = null;
+            if (urls.length === 1 && preview) {
+              p = preview;
+            } else {
+              p = await fetchPreview(u).catch(() => null);
+            }
             await create.mutateAsync({
               board_id: boardId,
               type: 'link',
-              title: urls.length === 1 && title.trim() ? title.trim() : u,
-              description: urls.length === 1 ? (description.trim() || null) : null,
+              title: urls.length === 1 && title.trim()
+                ? title.trim()
+                : (p?.title || p?.domain || u),
+              description: urls.length === 1
+                ? (description.trim() || p?.description || null)
+                : (p?.description || null),
               source_url: u,
-              thumbnail_url: urls.length === 1 ? (preview?.image || null) : null,
+              thumbnail_url: p?.image || null,
               tags: tags.split(',').map(s => s.trim()).filter(Boolean),
             });
             ok++;
