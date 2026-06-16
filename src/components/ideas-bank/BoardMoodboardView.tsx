@@ -469,6 +469,12 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
             bulkMove.mutate({ ids: moveDialog.ids, targetBoardId }, { onSuccess: () => exitSelectMode() });
           }}
         />
+        <HowItWorksDialog
+          open={howOpen}
+          onOpenChange={setHowOpen}
+          onAddReference={() => setAdding(true)}
+          canAddReference
+        />
       </div>
     </DndContext>
     </TooltipProvider>
