@@ -137,7 +137,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const [localData, setLocalData] = useState<BriefingData>(() => normalizeBriefingData(data));
   const hasUnsavedChanges = useRef(false);
