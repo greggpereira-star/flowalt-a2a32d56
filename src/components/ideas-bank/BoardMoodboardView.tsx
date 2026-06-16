@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useIdeaBoard, useIdeaBoards } from '@/hooks/useIdeaBoards';
 import { useIdeaReferences, IdeaReference, IdeaReferenceType } from '@/hooks/useIdeaReferences';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,7 @@ import { AddReferenceDialog } from './AddReferenceDialog';
 import { CreateCardFromIdeaDialog } from './CreateCardFromIdeaDialog';
 import { ShareBoardDialog } from './ShareBoardDialog';
 import { MoveToBoardDialog } from './MoveToBoardDialog';
+import { HowItWorksDialog } from './HowItWorksDialog';
 import { REFERENCE_TYPES } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft, Plus, Search, Star, ImagePlus, Share2, CheckSquare, X,
-  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard,
+  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -41,6 +42,9 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const [detail, setDetail] = useState<IdeaReference | null>(null);
   const [creatingCardFor, setCreatingCardFor] = useState<IdeaReference | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -157,6 +161,26 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     return () => window.removeEventListener('paste', onPaste);
   }, [quickAddFile, quickAddLink]);
 
+  // Keyboard shortcuts: "/" focus search, "N" new reference, "?" help, "Esc" exit select mode
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      if (typing) {
+        if (e.key === 'Escape' && t === searchRef.current) (t as HTMLInputElement).blur();
+        return;
+      }
+      if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
+      else if (e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true); }
+      else if (e.key === '?') { e.preventDefault(); setHowOpen(true); }
+      else if (e.key === 'Escape' && selectMode) { e.preventDefault(); exitSelectMode(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectMode]);
+
+
   const [fileDragOver, setFileDragOver] = useState(false);
   const onFileDrop = (e: React.DragEvent) => {
     e.preventDefault(); setFileDragOver(false);
@@ -170,13 +194,17 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
 
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="border-b bg-background sticky top-0 z-10">
+        <header className="border-b bg-background sticky top-0 z-10">
           <div className="p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-2 min-w-0 flex-1">
                 {onBack && (
-                  <Button variant="ghost" size="icon" onClick={onBack} className="-ml-2 mt-0.5">
-                    <ArrowLeft className="h-4 w-4" />
+                  <Button
+                    variant="ghost" size="icon" onClick={onBack}
+                    aria-label="Voltar para as pastas"
+                    className="-ml-2 mt-0.5"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
                 <div className="min-w-0 flex-1">
@@ -184,7 +212,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                     <h1 className="font-semibold text-lg truncate">{board?.name || 'Moodboard'}</h1>
                     {board?.is_public && (
                       <Badge variant="secondary" className="text-[10px]">
-                        <Share2 className="h-3 w-3 mr-1" />Público
+                        <Share2 className="h-3 w-3 mr-1" aria-hidden="true" />Público
                       </Badge>
                     )}
                   </div>
@@ -199,45 +227,69 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost" size="icon"
+                      onClick={() => setHowOpen(true)}
+                      aria-label="Como funciona o Banco de Ideias"
+                    >
+                      <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Como funciona · atalho <kbd>?</kbd></TooltipContent>
+                </Tooltip>
                 <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
-                  <Share2 className="h-4 w-4 mr-2" />Compartilhar
+                  <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />Compartilhar
                 </Button>
                 {!selectMode ? (
-                  <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
-                    <CheckSquare className="h-4 w-4 mr-2" />Selecionar
+                  <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}
+                    aria-label="Entrar no modo de seleção múltipla">
+                    <CheckSquare className="h-4 w-4 mr-2" aria-hidden="true" />Selecionar
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={exitSelectMode}>
-                    <X className="h-4 w-4 mr-2" />Sair
+                  <Button variant="ghost" size="sm" onClick={exitSelectMode}
+                    aria-label="Sair do modo de seleção">
+                    <X className="h-4 w-4 mr-2" aria-hidden="true" />Sair
                   </Button>
                 )}
-                <Button onClick={() => setAdding(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />Referência
+                <Button onClick={() => setAdding(true)} size="sm" aria-keyshortcuts="N">
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />Referência
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div role="toolbar" aria-label="Filtros do quadro" className="flex items-center gap-2 overflow-x-auto pb-1">
               <div className="relative flex-shrink-0 w-64">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 h-8 text-sm" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <label htmlFor="ib-board-search" className="sr-only">Buscar referência</label>
+                <Input
+                  id="ib-board-search"
+                  ref={searchRef}
+                  value={q} onChange={e => setQ(e.target.value)}
+                  placeholder="Buscar..." className="pl-8 h-8 text-sm"
+                />
               </div>
-              <Button variant={typeFilter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('all')}>Todas</Button>
-              <Button variant={typeFilter === 'favorites' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('favorites')}>
-                <Star className="h-3 w-3 mr-1" />Favoritas
+              <Button variant={typeFilter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('all')}
+                aria-pressed={typeFilter === 'all'}>Todas</Button>
+              <Button variant={typeFilter === 'favorites' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('favorites')}
+                aria-pressed={typeFilter === 'favorites'}>
+                <Star className="h-3 w-3 mr-1" aria-hidden="true" />Favoritas
               </Button>
               {REFERENCE_TYPES.map(t => {
                 const I = t.icon;
                 return (
                   <Button key={t.value} size="sm" variant={typeFilter === t.value ? 'secondary' : 'ghost'}
+                    aria-pressed={typeFilter === t.value}
                     onClick={() => setTypeFilter(t.value)} className="flex-shrink-0">
-                    <I className="h-3 w-3 mr-1" />{t.label}
+                    <I className="h-3 w-3 mr-1" aria-hidden="true" />{t.label}
                   </Button>
                 );
               })}
             </div>
           </div>
-        </div>
+        </header>
+
 
         {/* Grid */}
         <div
@@ -309,6 +361,8 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                   onClick={() => setDetail(r)}
                   onCreateCard={() => setCreatingCardFor(r)}
                   onFavorite={() => toggleFavorite.mutate(r)}
+                  onMove={otherBoards.length > 0 ? () => setMoveDialog({ open: true, ids: [r.id] }) : undefined}
+                  pendingFavorite={toggleFavorite.isPending && toggleFavorite.variables?.id === r.id}
                   selectMode={selectMode}
                   selected={selected.has(r.id)}
                   onToggleSelect={() => toggleSelect(r.id)}
@@ -320,6 +374,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         </div>
 
 
+
         {/* Bulk action bar */}
         {selectMode && (
           <div className="border-t bg-background sticky bottom-0 p-3 flex items-center justify-between gap-3 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
@@ -329,27 +384,37 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
               {selected.size > 0 && <Button size="sm" variant="ghost" onClick={clearSelection}>Limpar</Button>}
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" disabled={!selected.size}
-                onClick={() => bulkFavorite.mutate({ ids: Array.from(selected), value: true })}>
-                <Star className="h-4 w-4 mr-2" />Favoritar
+              <Button size="sm" variant="outline" disabled={!selected.size || bulkFavorite.isPending}
+                onClick={() => bulkFavorite.mutate({ ids: Array.from(selected), value: true })}
+                aria-label="Favoritar referências selecionadas">
+                {bulkFavorite.isPending
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                  : <Star className="h-4 w-4 mr-2" aria-hidden="true" />}
+                Favoritar
               </Button>
               <Button size="sm" variant="outline" disabled={!selected.size}
-                onClick={() => setMoveDialog({ open: true, ids: Array.from(selected) })}>
-                <FolderInput className="h-4 w-4 mr-2" />Mover
+                onClick={() => setMoveDialog({ open: true, ids: Array.from(selected) })}
+                aria-label="Mover referências selecionadas para outra pasta">
+                <FolderInput className="h-4 w-4 mr-2" aria-hidden="true" />Mover
               </Button>
-              <Button size="sm" variant="destructive" disabled={!selected.size}
+              <Button size="sm" variant="destructive" disabled={!selected.size || bulkDelete.isPending}
                 onClick={() => {
                   if (confirm(`Excluir ${selected.size} referência(s)?`)) {
                     bulkDelete.mutate(Array.from(selected), {
                       onSuccess: () => exitSelectMode(),
                     });
                   }
-                }}>
-                <Trash2 className="h-4 w-4 mr-2" />Excluir
+                }}
+                aria-label="Excluir referências selecionadas">
+                {bulkDelete.isPending
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                  : <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />}
+                Excluir
               </Button>
             </div>
           </div>
         )}
+
 
         {/* DnD drop targets panel */}
         {showDropTargets && otherBoards.length > 0 && (
@@ -403,6 +468,12 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
           onConfirm={(targetBoardId) => {
             bulkMove.mutate({ ids: moveDialog.ids, targetBoardId }, { onSuccess: () => exitSelectMode() });
           }}
+        />
+        <HowItWorksDialog
+          open={howOpen}
+          onOpenChange={setHowOpen}
+          onAddReference={() => setAdding(true)}
+          canAddReference
         />
       </div>
     </DndContext>

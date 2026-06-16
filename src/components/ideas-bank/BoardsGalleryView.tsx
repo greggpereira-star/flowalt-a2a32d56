@@ -1,36 +1,54 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useIdeaBoards } from '@/hooks/useIdeaBoards';
+import { useIdeaCardLinksCount } from '@/hooks/useIdeaCardLinksCount';
 import { BoardCard } from './BoardCard';
 import { CreateBoardDialog } from './CreateBoardDialog';
+import { HowItWorksDialog } from './HowItWorksDialog';
+import { OnboardingChecklist } from './OnboardingChecklist';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Plus, Search, Lightbulb, Sparkles, FolderPlus, ImagePlus,
-  MessageSquarePlus, X, HelpCircle,
-} from 'lucide-react';
+import { Plus, Search, Lightbulb, Sparkles, FolderPlus, HelpCircle } from 'lucide-react';
 
 interface Props {
   folderId?: string | null;
   onOpenBoard: (boardId: string) => void;
 }
 
-const HOWTO_KEY = 'ideas-bank:howto-dismissed';
+const CHECKLIST_KEY = 'ideas-bank:checklist-dismissed';
 
 export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) => {
   const { boards, isLoading } = useIdeaBoards({ folderId });
+  const { data: cardLinksCount = 0 } = useIdeaCardLinksCount();
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState(false);
-  const [showHowTo, setShowHowTo] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(true);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setShowHowTo(localStorage.getItem(HOWTO_KEY) !== '1');
+    setChecklistDismissed(localStorage.getItem(CHECKLIST_KEY) === '1');
   }, []);
 
-  const dismissHowTo = () => {
-    localStorage.setItem(HOWTO_KEY, '1');
-    setShowHowTo(false);
+  const dismissChecklist = () => {
+    localStorage.setItem(CHECKLIST_KEY, '1');
+    setChecklistDismissed(true);
   };
+
+  // Keyboard shortcuts: "/" focuses search, "N" creates folder, "?" opens help
+  const onKey = useCallback((e: KeyboardEvent) => {
+    const t = e.target as HTMLElement | null;
+    const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (typing) return;
+    if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
+    else if (e.key.toLowerCase() === 'n') { e.preventDefault(); setCreating(true); }
+    else if (e.key === '?') { e.preventDefault(); setHowOpen(true); }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onKey]);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return boards;
@@ -43,81 +61,55 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
     );
   }, [boards, q]);
 
-  const steps = [
-    { icon: FolderPlus, title: '1. Crie uma pasta', desc: 'Organize por cliente, campanha ou tema.' },
-    { icon: ImagePlus, title: '2. Adicione referências', desc: 'Imagens, vídeos, links, PDFs ou notas.' },
-    { icon: MessageSquarePlus, title: '3. Vire demanda', desc: 'Transforme uma ideia em card com 1 clique.' },
-  ];
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b bg-background sticky top-0 z-10">
+      <header className="border-b bg-background sticky top-0 z-10">
         <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
             <h1 className="font-semibold text-lg">Banco de Ideias</h1>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              · Central criativa
-            </span>
-            {!showHowTo && (
-              <Button
-                variant="ghost" size="sm"
-                className="h-7 text-xs text-muted-foreground"
-                onClick={() => setShowHowTo(true)}
-              >
-                <HelpCircle className="h-3.5 w-3.5 mr-1" />Como funciona
-              </Button>
-            )}
+            <span className="text-xs text-muted-foreground hidden sm:inline">· Central criativa</span>
+            <Button
+              variant="ghost" size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => setHowOpen(true)}
+              aria-label="Abrir guia: como funciona o Banco de Ideias"
+            >
+              <HelpCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              <span>Como funciona</span>
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative flex-1 sm:flex-initial sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <label htmlFor="ib-search" className="sr-only">Buscar pasta</label>
               <Input
+                id="ib-search"
+                ref={searchRef}
                 value={q} onChange={e => setQ(e.target.value)}
                 placeholder="Buscar pasta..."
                 className="pl-8 h-9"
               />
             </div>
-            <Button onClick={() => setCreating(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />Nova pasta
+            <Button onClick={() => setCreating(true)} size="sm" aria-keyshortcuts="N">
+              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />Nova pasta
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* How it works banner */}
-        {showHowTo && (
-          <div className="relative rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-5">
-            <button
-              onClick={dismissHowTo}
-              className="absolute top-2 right-2 h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
-              aria-label="Fechar"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">Como usar o Banco de Ideias</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {steps.map(s => {
-                const I = s.icon;
-                return (
-                  <div key={s.title} className="flex items-start gap-3 rounded-xl bg-background/60 border p-3">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <I className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{s.title}</p>
-                      <p className="text-xs text-muted-foreground leading-snug">{s.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* Onboarding checklist */}
+        {!checklistDismissed && !isLoading && (
+          <OnboardingChecklist
+            boards={boards}
+            hasCreatedCard={cardLinksCount > 0}
+            onCreateFolder={() => setCreating(true)}
+            onOpenFirstBoard={() => boards[0] && onOpenBoard(boards[0].id)}
+            onHowItWorks={() => setHowOpen(true)}
+            onDismiss={dismissChecklist}
+          />
         )}
 
         {isLoading ? (
@@ -129,7 +121,7 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-16">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Lightbulb className="h-8 w-8 text-primary" />
+              <Lightbulb className="h-8 w-8 text-primary" aria-hidden="true" />
             </div>
             <h2 className="text-lg font-semibold mb-1">
               {q ? 'Nenhuma pasta encontrada' : 'Crie sua primeira pasta de ideias'}
@@ -141,26 +133,34 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
             </p>
             {!q && (
               <Button onClick={() => setCreating(true)} size="lg">
-                <FolderPlus className="h-4 w-4 mr-2" />Criar primeira pasta
+                <FolderPlus className="h-4 w-4 mr-2" aria-hidden="true" />Criar primeira pasta
               </Button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {/* "New folder" tile as first action */}
-            <button
-              onClick={() => setCreating(true)}
-              className="group aspect-[4/3] rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
-            >
-              <div className="h-12 w-12 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                <Plus className="h-6 w-6" />
-              </div>
-              <span className="text-sm font-medium">Nova pasta</span>
-            </button>
+          <ul
+            role="list"
+            aria-label="Pastas do Banco de Ideias"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 list-none p-0"
+          >
+            <li>
+              <button
+                onClick={() => setCreating(true)}
+                aria-label="Criar nova pasta"
+                className="group w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+              >
+                <div className="h-12 w-12 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                  <Plus className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <span className="text-sm font-medium">Nova pasta</span>
+              </button>
+            </li>
             {filtered.map(b => (
-              <BoardCard key={b.id} board={b} onOpen={() => onOpenBoard(b.id)} />
+              <li key={b.id}>
+                <BoardCard board={b} onOpen={() => onOpenBoard(b.id)} />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
 
@@ -169,6 +169,11 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
         onOpenChange={setCreating}
         folderId={folderId}
         onCreated={(id) => onOpenBoard(id)}
+      />
+      <HowItWorksDialog
+        open={howOpen}
+        onOpenChange={setHowOpen}
+        onCreateFolder={() => setCreating(true)}
       />
     </div>
   );
