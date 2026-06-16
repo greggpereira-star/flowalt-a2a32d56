@@ -42,6 +42,9 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const [detail, setDetail] = useState<IdeaReference | null>(null);
   const [creatingCardFor, setCreatingCardFor] = useState<IdeaReference | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
