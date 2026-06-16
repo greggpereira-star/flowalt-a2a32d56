@@ -32,7 +32,8 @@ interface Props {
 export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const { data: board } = useIdeaBoard(boardId);
   const { boards } = useIdeaBoards();
-  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite } = useIdeaReferences(boardId);
+  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite, create, uploadFile } = useIdeaReferences(boardId);
+  const { toast } = useToast();
 
   const [q, setQ] = useState('');
   const [typeFilter, setTypeFilter] = useState<IdeaReferenceType | 'all' | 'favorites'>('all');
