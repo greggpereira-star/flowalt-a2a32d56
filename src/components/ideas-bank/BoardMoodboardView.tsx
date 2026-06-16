@@ -361,6 +361,8 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                   onClick={() => setDetail(r)}
                   onCreateCard={() => setCreatingCardFor(r)}
                   onFavorite={() => toggleFavorite.mutate(r)}
+                  onMove={otherBoards.length > 0 ? () => setMoveDialog({ open: true, ids: [r.id] }) : undefined}
+                  pendingFavorite={toggleFavorite.isPending && toggleFavorite.variables?.id === r.id}
                   selectMode={selectMode}
                   selected={selected.has(r.id)}
                   onToggleSelect={() => toggleSelect(r.id)}
@@ -370,6 +372,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
             </div>
           )}
         </div>
+
 
 
         {/* Bulk action bar */}
