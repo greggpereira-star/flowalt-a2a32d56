@@ -278,7 +278,6 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
             </div>
 
             {(() => {
-              // Counts per type for premium badges in the popover
               const counts = references.reduce<Record<string, number>>((acc, r) => {
                 acc[r.type] = (acc[r.type] || 0) + 1;
                 return acc;
@@ -288,122 +287,159 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
               const activeType = typeFilter !== 'all' && typeFilter !== 'favorites' ? typeFilter : null;
               const activeMeta = activeType ? getTypeMeta(activeType) : null;
               const ActiveIcon = activeMeta?.icon;
+              const isFav = typeFilter === 'favorites';
+              const activeCount = (activeType ? 1 : 0) + (isFav ? 1 : 0) + (q.trim() ? 1 : 0);
 
               return (
                 <div role="toolbar" aria-label="Filtros do quadro" className="flex items-center gap-2 flex-wrap">
                   {/* Search */}
-                  <div className="relative flex-1 min-w-[200px] max-w-xs">
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                     <label htmlFor="ib-board-search" className="sr-only">Buscar referência</label>
                     <Input
                       id="ib-board-search"
                       ref={searchRef}
                       value={q} onChange={e => setQ(e.target.value)}
-                      placeholder="Buscar..."
+                      placeholder="Buscar referência..."
                       className="pl-9 h-9 text-sm rounded-full bg-muted/40 border-transparent focus-visible:bg-background focus-visible:border-input"
                     />
                   </div>
 
-                  {/* Quick segmented filters */}
-                  <div className="inline-flex items-center rounded-full bg-muted/50 p-0.5 h-9">
-                    <button
-                      type="button"
-                      onClick={() => setTypeFilter('all')}
-                      aria-pressed={typeFilter === 'all'}
-                      className={cn(
-                        'h-8 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5',
-                        typeFilter === 'all'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      Todas
-                      <span className="text-[10px] opacity-60 tabular-nums">{totalCount}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTypeFilter('favorites')}
-                      aria-pressed={typeFilter === 'favorites'}
-                      className={cn(
-                        'h-8 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5',
-                        typeFilter === 'favorites'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      <Star className={cn('h-3 w-3', typeFilter === 'favorites' && 'fill-amber-400 text-amber-400')} aria-hidden="true" />
-                      Favoritas
-                      <span className="text-[10px] opacity-60 tabular-nums">{favCount}</span>
-                    </button>
-                  </div>
-
-                  {/* Type popover */}
+                  {/* Single Filtros popover */}
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
                         className={cn(
                           'h-9 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 border',
-                          activeType
+                          activeCount > 0
                             ? 'bg-primary/10 text-primary border-primary/30'
                             : 'bg-background hover:bg-muted/60 border-input text-foreground'
                         )}
-                        aria-label="Filtrar por tipo"
+                        aria-label="Abrir filtros"
                       >
-                        {ActiveIcon ? <ActiveIcon className="h-3.5 w-3.5" aria-hidden="true" /> : <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
-                        {activeMeta ? activeMeta.label : 'Tipo'}
+                        <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                        Filtros
+                        {activeCount > 0 && (
+                          <span className="ml-0.5 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] inline-flex items-center justify-center tabular-nums">
+                            {activeCount}
+                          </span>
+                        )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent align="start" className="w-72 p-2">
-                      <div className="px-2 pt-1 pb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Filtrar por tipo</span>
-                        {activeType && (
+                    <PopoverContent align="start" className="w-80 p-3 space-y-3">
+                      {/* Quick segmented filters (stacked vertical) */}
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Visualizar</p>
+                        <div className="flex gap-1.5">
                           <button
                             type="button"
                             onClick={() => setTypeFilter('all')}
-                            className="text-[11px] text-primary hover:underline"
+                            aria-pressed={typeFilter === 'all'}
+                            className={cn(
+                              'flex-1 h-8 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center justify-center gap-1.5 border',
+                              typeFilter === 'all'
+                                ? 'bg-primary/10 text-primary border-primary/30'
+                                : 'bg-background hover:bg-muted/60 border-input text-foreground'
+                            )}
                           >
-                            Limpar
+                            Todas
+                            <span className="text-[10px] opacity-60 tabular-nums">{totalCount}</span>
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => setTypeFilter('favorites')}
+                            aria-pressed={isFav}
+                            className={cn(
+                              'flex-1 h-8 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center justify-center gap-1.5 border',
+                              isFav
+                                ? 'bg-primary/10 text-primary border-primary/30'
+                                : 'bg-background hover:bg-muted/60 border-input text-foreground'
+                            )}
+                          >
+                            <Star className={cn('h-3 w-3', isFav && 'fill-amber-400 text-amber-400')} aria-hidden="true" />
+                            Favoritas
+                            <span className="text-[10px] opacity-60 tabular-nums">{favCount}</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-1">
-                        {REFERENCE_TYPES.map(t => {
-                          const I = t.icon;
-                          const c = counts[t.value] || 0;
-                          const isActive = typeFilter === t.value;
-                          const disabled = c === 0 && !isActive;
-                          return (
+
+                      {/* Types as vertical list */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5 px-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</span>
+                          {activeType && (
                             <button
-                              key={t.value}
                               type="button"
-                              disabled={disabled}
-                              onClick={() => setTypeFilter(t.value)}
-                              aria-pressed={isActive}
-                              className={cn(
-                                'group flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left',
-                                isActive
-                                  ? 'bg-primary/10 text-primary'
-                                  : disabled
-                                    ? 'text-muted-foreground/50 cursor-not-allowed'
-                                    : 'hover:bg-muted text-foreground'
-                              )}
+                              onClick={() => setTypeFilter('all')}
+                              className="text-[11px] text-primary hover:underline"
                             >
-                              <I className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-                              <span className="flex-1 truncate">{t.label}</span>
-                              {isActive ? (
-                                <Check className="h-3 w-3" aria-hidden="true" />
-                              ) : (
-                                <span className="text-[10px] opacity-50 tabular-nums">{c}</span>
-                              )}
+                              Limpar
                             </button>
-                          );
-                        })}
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {REFERENCE_TYPES.map(t => {
+                            const I = t.icon;
+                            const c = counts[t.value] || 0;
+                            const isActive = typeFilter === t.value;
+                            const disabled = c === 0 && !isActive;
+                            return (
+                              <button
+                                key={t.value}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => setTypeFilter(t.value)}
+                                aria-pressed={isActive}
+                                className={cn(
+                                  'group flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left',
+                                  isActive
+                                    ? 'bg-primary/10 text-primary'
+                                    : disabled
+                                      ? 'text-muted-foreground/50 cursor-not-allowed'
+                                      : 'hover:bg-muted text-foreground'
+                                )}
+                              >
+                                <I className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                                <span className="flex-1 truncate">{t.label}</span>
+                                {isActive ? (
+                                  <Check className="h-3 w-3" aria-hidden="true" />
+                                ) : (
+                                  <span className="text-[10px] opacity-50 tabular-nums">{c}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {activeCount > 0 && (
+                        <div className="pt-1 border-t">
+                          <button
+                            type="button"
+                            onClick={() => { setTypeFilter('all'); setQ(''); }}
+                            className="w-full h-8 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                          >
+                            Limpar todos os filtros
+                          </button>
+                        </div>
+                      )}
                     </PopoverContent>
                   </Popover>
 
-                  {/* Active type chip (removable) */}
+                  {/* Active chips inline */}
+                  {isFav && (
+                    <button
+                      type="button"
+                      onClick={() => setTypeFilter('all')}
+                      className="h-9 px-2.5 rounded-full inline-flex items-center gap-1.5 text-xs bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                      aria-label="Remover filtro Favoritas"
+                    >
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden="true" />
+                      Favoritas
+                      <X className="h-3 w-3 opacity-70" aria-hidden="true" />
+                    </button>
+                  )}
                   {activeType && ActiveIcon && (
                     <button
                       type="button"
@@ -416,18 +452,21 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                       <X className="h-3 w-3 opacity-70" aria-hidden="true" />
                     </button>
                   )}
-
-                  {/* Clear search chip */}
                   {q && (
                     <button
                       type="button"
                       onClick={() => setQ('')}
                       className="h-9 px-2.5 rounded-full inline-flex items-center gap-1.5 text-xs bg-muted hover:bg-muted/70 text-muted-foreground transition-colors"
+                      aria-label="Limpar busca"
                     >
                       "{q.slice(0, 16)}{q.length > 16 ? '…' : ''}"
                       <X className="h-3 w-3" aria-hidden="true" />
                     </button>
                   )}
+
+                  <span className="text-[11px] text-muted-foreground ml-auto tabular-nums">
+                    {filtered.length} {filtered.length === 1 ? 'referência' : 'referências'}
+                  </span>
                 </div>
               );
             })()}
