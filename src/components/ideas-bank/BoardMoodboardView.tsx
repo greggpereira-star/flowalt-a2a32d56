@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useIdeaBoard, useIdeaBoards } from '@/hooks/useIdeaBoards';
 import { useIdeaReferences, IdeaReference, IdeaReferenceType } from '@/hooks/useIdeaReferences';
 import { useToast } from '@/hooks/use-toast';
