@@ -384,27 +384,37 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
               {selected.size > 0 && <Button size="sm" variant="ghost" onClick={clearSelection}>Limpar</Button>}
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" disabled={!selected.size}
-                onClick={() => bulkFavorite.mutate({ ids: Array.from(selected), value: true })}>
-                <Star className="h-4 w-4 mr-2" />Favoritar
+              <Button size="sm" variant="outline" disabled={!selected.size || bulkFavorite.isPending}
+                onClick={() => bulkFavorite.mutate({ ids: Array.from(selected), value: true })}
+                aria-label="Favoritar referências selecionadas">
+                {bulkFavorite.isPending
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                  : <Star className="h-4 w-4 mr-2" aria-hidden="true" />}
+                Favoritar
               </Button>
               <Button size="sm" variant="outline" disabled={!selected.size}
-                onClick={() => setMoveDialog({ open: true, ids: Array.from(selected) })}>
-                <FolderInput className="h-4 w-4 mr-2" />Mover
+                onClick={() => setMoveDialog({ open: true, ids: Array.from(selected) })}
+                aria-label="Mover referências selecionadas para outra pasta">
+                <FolderInput className="h-4 w-4 mr-2" aria-hidden="true" />Mover
               </Button>
-              <Button size="sm" variant="destructive" disabled={!selected.size}
+              <Button size="sm" variant="destructive" disabled={!selected.size || bulkDelete.isPending}
                 onClick={() => {
                   if (confirm(`Excluir ${selected.size} referência(s)?`)) {
                     bulkDelete.mutate(Array.from(selected), {
                       onSuccess: () => exitSelectMode(),
                     });
                   }
-                }}>
-                <Trash2 className="h-4 w-4 mr-2" />Excluir
+                }}
+                aria-label="Excluir referências selecionadas">
+                {bulkDelete.isPending
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                  : <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />}
+                Excluir
               </Button>
             </div>
           </div>
         )}
+
 
         {/* DnD drop targets panel */}
         {showDropTargets && otherBoards.length > 0 && (
