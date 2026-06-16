@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -10,34 +11,64 @@ import { useSpaces } from '@/hooks/useSpaces';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { IdeaReference } from '@/hooks/useIdeaReferences';
-import { Loader2, MessageSquarePlus } from 'lucide-react';
+import { Loader2, MessageSquarePlus, Layers } from 'lucide-react';
 
 interface Props {
-  reference: IdeaReference | null;
+  /** Single-reference mode */
+  reference?: IdeaReference | null;
+  /** Board mode: pass the full reference list of the folder to convert all of them at once */
+  boardReferences?: IdeaReference[];
+  boardId?: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   boardName?: string;
 }
 
-export const CreateCardFromIdeaDialog: React.FC<Props> = ({ reference, open, onOpenChange, boardName }) => {
+export const CreateCardFromIdeaDialog: React.FC<Props> = ({
+  reference, boardReferences, boardId, open, onOpenChange, boardName,
+}) => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const { data: spaces } = useSpaces();
+
+  const isBoardMode = !!boardReferences && boardReferences.length > 0 && !reference;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [spaceId, setSpaceId] = useState('');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [dueDate, setDueDate] = useState('');
-  const [cardType, setCardType] = useState<'quick' | 'briefing'>('quick');
+  const [cardType, setCardType] = useState<'quick' | 'briefing'>(isBoardMode ? 'briefing' : 'quick');
   const [submitting, setSubmitting] = useState(false);
 
-  // (title/description are synced when the dialog opens, via onOpenChange below)
+  // Thumbnails for the board-mode preview strip
+  const thumbs = useMemo(
+    () => (boardReferences || [])
+      .map(r => r.thumbnail_url || r.media_url)
+      .filter((u): u is string => !!u)
+      .slice(0, 8),
+    [boardReferences]
+  );
 
+  useEffect(() => {
+    if (!open) return;
+    if (isBoardMode) {
+      setTitle(boardName ? `Campanha · ${boardName}` : 'Nova demanda do moodboard');
+      setDescription(
+        `Demanda criada a partir do moodboard "${boardName ?? ''}" com ${boardReferences!.length} referências anexadas.`
+      );
+      setCardType('briefing');
+    } else if (reference) {
+      setTitle(reference.title);
+      setDescription(reference.description || '');
+      setCardType('quick');
+    }
+  }, [open, isBoardMode, boardName, boardReferences, reference]);
 
   const submit = async () => {
-    if (!reference || !currentWorkspace || !spaceId || !title.trim()) return;
+    if (!currentWorkspace || !spaceId || !title.trim()) return;
+    if (!isBoardMode && !reference) return;
     setSubmitting(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -59,27 +90,43 @@ export const CreateCardFromIdeaDialog: React.FC<Props> = ({ reference, open, onO
         .single();
       if (error) throw error;
 
-      // Link reference ↔ card
-      await (supabase as any).from('idea_card_links').insert({
-        reference_id: reference.id,
+      // Link references → card (one row per reference)
+      const refIds = isBoardMode
+        ? boardReferences!.map(r => r.id)
+        : [reference!.id];
+
+      const links = refIds.map(rid => ({
+        reference_id: rid,
         card_id: card.id,
         workspace_id: currentWorkspace.id,
         created_by: user?.id,
-      });
+      }));
+      if (links.length > 0) {
+        await (supabase as any).from('idea_card_links').insert(links);
+      }
 
       // Audit
       await (supabase as any).from('idea_audit_log').insert({
         workspace_id: currentWorkspace.id,
         entity_type: 'card_link',
         entity_id: card.id,
-        action: 'card_from_idea',
+        action: isBoardMode ? 'card_from_board' : 'card_from_idea',
         user_id: user?.id,
-        metadata: { reference_id: reference.id, board_name: boardName },
+        metadata: {
+          board_id: boardId,
+          board_name: boardName,
+          reference_count: refIds.length,
+        },
       });
 
-      toast({ title: 'Card criado', description: `"${title}" foi criado a partir da ideia.` });
+      toast({
+        title: 'Card criado',
+        description: isBoardMode
+          ? `"${title}" criado com ${refIds.length} referências anexadas.`
+          : `"${title}" foi criado a partir da ideia.`,
+      });
       qc.invalidateQueries({ queryKey: ['cards'] });
-      qc.invalidateQueries({ queryKey: ['idea-card-links', reference.id] });
+      refIds.forEach(rid => qc.invalidateQueries({ queryKey: ['idea-card-links', rid] }));
       onOpenChange(false);
       setTitle(''); setDescription(''); setDueDate('');
     } catch (e: any) {
@@ -90,16 +137,38 @@ export const CreateCardFromIdeaDialog: React.FC<Props> = ({ reference, open, onO
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => {
-      if (o && reference) { setTitle(reference.title); setDescription(reference.description || ''); }
-      onOpenChange(o);
-    }}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageSquarePlus className="h-5 w-5" />Criar card a partir da ideia
+            {isBoardMode ? <Layers className="h-5 w-5" /> : <MessageSquarePlus className="h-5 w-5" />}
+            {isBoardMode ? 'Transformar pasta em demanda' : 'Criar card a partir da ideia'}
           </DialogTitle>
         </DialogHeader>
+
+        {isBoardMode && thumbs.length > 0 && (
+          <div className="rounded-lg border bg-muted/20 p-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Moodboard anexado
+              </span>
+              <Badge variant="secondary" className="text-[10px]">
+                {boardReferences!.length} referência{boardReferences!.length === 1 ? '' : 's'}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {thumbs.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square w-full object-cover rounded-md"
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3 py-2">
           <div>
@@ -160,7 +229,7 @@ export const CreateCardFromIdeaDialog: React.FC<Props> = ({ reference, open, onO
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={!spaceId || !title.trim() || submitting}>
             {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Criar card
+            {isBoardMode ? 'Criar card com moodboard' : 'Criar card'}
           </Button>
         </div>
       </DialogContent>
