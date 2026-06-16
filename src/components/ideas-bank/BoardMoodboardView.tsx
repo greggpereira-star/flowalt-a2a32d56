@@ -474,6 +474,14 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
           reference={creatingCardFor} open={!!creatingCardFor}
           onOpenChange={(o) => !o && setCreatingCardFor(null)}
           boardName={board?.name}
+          boardId={boardId}
+        />
+        <CreateCardFromIdeaDialog
+          boardReferences={convertingBoard ? references : undefined}
+          boardId={boardId}
+          open={convertingBoard}
+          onOpenChange={setConvertingBoard}
+          boardName={board?.name}
         />
         <ShareBoardDialog board={board ?? null} open={sharing} onOpenChange={setSharing} />
         <MoveToBoardDialog
