@@ -14,7 +14,7 @@ interface DragOverlayCardProps {
 
 export const DragOverlayCard: React.FC<DragOverlayCardProps> = ({ card }) => {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
-  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
+  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved';
 
   return (
     <div 

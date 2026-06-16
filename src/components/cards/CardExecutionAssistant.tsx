@@ -76,7 +76,7 @@ export const CardExecutionAssistant: React.FC<CardExecutionAssistantProps> = ({
       const dueDate = new Date(card.due_date);
       const daysUntilDue = differenceInDays(dueDate, today);
 
-      if (isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered') {
+      if (isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved') {
         newAlerts.push({
           type: 'overdue',
           severity: 'critical',

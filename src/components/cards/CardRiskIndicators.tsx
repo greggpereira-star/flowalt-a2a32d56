@@ -28,7 +28,7 @@ export const CardRiskIndicators: React.FC<CardRiskIndicatorsProps> = ({
   const now = new Date();
 
   // Overdue check
-  if (dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered') {
+  if (dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved') {
     const daysOverdue = differenceInDays(now, dueDate);
     indicators.push({
       type: 'overdue',

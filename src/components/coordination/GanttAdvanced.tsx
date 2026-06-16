@@ -171,7 +171,7 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
         const startOffset = differenceInDays(startDate, viewStartDate);
         const duration = Math.max(differenceInDays(endDate, startDate), 1);
         const today = startOfDay(new Date());
-        const isOverdue = card.due_date && new Date(card.due_date) < today && card.status !== 'delivered';
+        const isOverdue = card.due_date && new Date(card.due_date) < today && card.status !== 'delivered' && card.status !== 'approved';
 
         // Calculate progress from checklist
         const progress = card.status === 'delivered' ? 100 : 

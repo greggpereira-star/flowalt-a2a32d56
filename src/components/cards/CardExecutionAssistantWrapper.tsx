@@ -80,7 +80,7 @@ export const CardExecutionAssistantWrapper: React.FC<CardExecutionAssistantWrapp
     const dueDate = new Date(card.due_date);
     const now = new Date();
     
-    if (isPast(dueDate) && card.status !== 'delivered') {
+    if (isPast(dueDate) && card.status !== 'delivered' && card.status !== 'approved') {
       const daysOverdue = differenceInDays(now, dueDate);
       alerts.push({
         type: 'overdue',

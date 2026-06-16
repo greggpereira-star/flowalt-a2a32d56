@@ -50,7 +50,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 }) => {
   const { data: allSpaces } = useSpaces();
   const dueDate = card.due_date ? new Date(card.due_date) : null;
-  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered';
+  const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved';
   const isBillable = !!card.client_id;
 
   // Shared spaces logic

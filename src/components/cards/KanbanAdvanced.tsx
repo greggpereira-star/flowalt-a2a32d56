@@ -277,7 +277,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       }
       if (filters.isOverdue === true) {
         const dueDate = card.due_date ? new Date(card.due_date) : null;
-        if (!dueDate || !isPast(dueDate) || isToday(dueDate) || card.status === 'delivered') {
+        if (!dueDate || !isPast(dueDate) || isToday(dueDate) || card.status === 'delivered' || card.status === 'approved') {
           return false;
         }
       }
