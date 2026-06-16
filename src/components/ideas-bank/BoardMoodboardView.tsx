@@ -369,6 +369,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         />
       </div>
     </DndContext>
+    </TooltipProvider>
   );
 };
 
