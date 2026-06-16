@@ -60,6 +60,7 @@ export const WorkRadar: React.FC = () => {
         .eq('owner_id', user.id)
         .neq('status', 'archived')
         .neq('status', 'delivered')
+        .neq('status', 'approved')
         .not('due_date', 'is', null)
         .lte('due_date', tomorrow.toISOString())
         .order('due_date', { ascending: true })
