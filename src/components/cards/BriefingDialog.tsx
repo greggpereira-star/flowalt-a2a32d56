@@ -12,8 +12,6 @@ import { Badge } from '@/components/ui/badge';
 
 import {
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   Users,
   Package,
@@ -22,6 +20,7 @@ import {
   Lightbulb,
   AlertCircle,
   Eye,
+  Circle,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -56,8 +55,7 @@ interface BriefingDialogProps {
   cardId?: string;
 }
 
-// Define steps for the wizard
-const STEPS = [
+const SECTIONS = [
   {
     id: 'context',
     title: 'Contexto',
@@ -67,7 +65,7 @@ const STEPS = [
     placeholder: 'Descreva o contexto do projeto, objetivo principal e informações relevantes para quem vai executar...',
     required: true,
     minLength: 10,
-    tip: 'Inclua: objetivo, problema a resolver, histórico relevante.',
+    tip: 'Inclua objetivo, problema a resolver e histórico relevante.',
   },
   {
     id: 'audience',
@@ -88,7 +86,7 @@ const STEPS = [
     placeholder: 'Liste o que precisa ser entregue: formatos, dimensões, quantidade, especificações técnicas...',
     required: true,
     minLength: 10,
-    tip: 'Ex: "3 posts carrossel 1080x1350, 1 story animado".',
+    tip: 'Ex.: "3 posts carrossel 1080x1350, 1 story animado".',
   },
   {
     id: 'references',
@@ -133,40 +131,14 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   cardTitle,
   cardId,
 }) => {
-  const [currentStep, setCurrentStep] = useState(0);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-      
-      // Cmd/Ctrl + Shift + V to open summary
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
-        e.preventDefault();
-        setShowSummary(true);
-      }
-      // Cmd/Ctrl + Enter to go next or complete
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !showSummary) {
-        e.preventDefault();
-        if (currentStep < STEPS.length - 1) {
-          setCurrentStep(prev => prev + 1);
-        }
-      }
-    };
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, currentStep, showSummary]);
-
-  // Function to handle edit from summary
-  const handleEditFromSummary = useCallback((stepIndex: number) => {
-    setCurrentStep(stepIndex);
-    setShowSummary(false);
-  }, []);
-  // Use local state for editing to prevent re-renders from parent
   const [localData, setLocalData] = useState<BriefingData>(() => normalizeBriefingData(data));
   const hasUnsavedChanges = useRef(false);
   const localDataRef = useRef(localData);
@@ -177,9 +149,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   useEffect(() => { cardIdRef.current = cardId; }, [cardId]);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
-  // Reset local state immediately when switching to a different card, to
-  // avoid one card's draft leaking into another (root cause of "context
-  // disappearing" after closing a card that had stale localData).
   const lastCardIdRef = useRef(cardId);
   useEffect(() => {
     if (cardId !== lastCardIdRef.current) {
@@ -191,8 +160,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       return;
     }
     if (open && !hasUnsavedChanges.current) {
-      // Merge instead of overwrite — preserves any in-flight edits that may
-      // not have round-tripped through props yet.
       setLocalData(prev => {
         const nextData = mergeBriefingDataPreservingFilled(prev, data);
         localDataRef.current = nextData;
@@ -201,9 +168,7 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
   }, [open, data, cardId]);
 
-  // Debounced auto-save on every change — guarantees content is persisted
-  // even if the user closes the modal via outside click, escape, or by
-  // closing the whole card sheet, without ever clicking "Próximo".
+  // Debounced auto-save
   useEffect(() => {
     if (!open || !cardId) return;
     if (!hasUnsavedChanges.current) return;
@@ -218,8 +183,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     return () => clearTimeout(t);
   }, [localData, open, cardId]);
 
-  // Also flush when the dialog is closed by the parent card sheet (controlled
-  // `open` prop changing to false), not only when Radix calls onOpenChange.
   const wasOpenRef = useRef(open);
   useEffect(() => {
     if (wasOpenRef.current && !open && hasUnsavedChanges.current && cardIdRef.current) {
@@ -229,7 +192,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     wasOpenRef.current = open;
   }, [open]);
 
-  // Flush any pending edits on unmount (e.g., card sheet closed abruptly).
   useEffect(() => {
     return () => {
       if (hasUnsavedChanges.current && cardIdRef.current) {
@@ -239,9 +201,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     };
   }, []);
 
-  // Save changes when dialog closes. Always flush latest localData via ref
-  // to avoid stale-closure issues if the latest keystroke hasn't yet been
-  // captured by this callback's closure.
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && cardIdRef.current && hasUnsavedChanges.current) {
       onChangeRef.current(normalizeBriefingData(localDataRef.current), cardIdRef.current);
@@ -249,11 +208,6 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     }
     onOpenChange(newOpen);
   }, [onOpenChange]);
-
-
-  const currentStepData = STEPS[currentStep];
-  const isLastStep = currentStep === STEPS.length - 1;
-  const isFirstStep = currentStep === 0;
 
   const persistLocalData = useCallback(() => {
     if (hasUnsavedChanges.current && cardIdRef.current) {
@@ -271,47 +225,52 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
     });
     hasUnsavedChanges.current = true;
     setSaveStatus('saving');
-    if (validationError) {
-      setValidationError(null);
-    }
+    if (validationError) setValidationError(null);
   }, [validationError]);
 
   const getFieldValue = useCallback((field: keyof BriefingData): string => {
     return localData[field] || '';
   }, [localData]);
 
-  const isStepComplete = useCallback((stepIndex: number): boolean => {
-    const step = STEPS[stepIndex];
-    const value = getFieldValue(step.field);
-    const plainText = extractPlainText(value);
-    if (step.required) {
-      return plainText.length >= (step.minLength || 1);
-    }
-    return plainText.length > 0;
+  const isSectionComplete = useCallback((idx: number): boolean => {
+    const s = SECTIONS[idx];
+    const v = extractPlainText(getFieldValue(s.field));
+    if (s.required) return v.length >= (s.minLength || 1);
+    return v.length > 0;
   }, [getFieldValue]);
 
-  const missingRequiredSteps = STEPS.filter((step) => {
-    if (!step.required) return false;
-    const value = getFieldValue(step.field);
-    const plainText = extractPlainText(value);
-    return plainText.length < (step.minLength || 1);
+  const missingRequiredSections = SECTIONS.filter((s) => {
+    if (!s.required) return false;
+    const v = extractPlainText(getFieldValue(s.field));
+    return v.length < (s.minLength || 1);
   });
-  const requiredStepsComplete = missingRequiredSteps.length === 0;
+  const requiredComplete = missingRequiredSections.length === 0;
 
-  const filledSteps = STEPS.filter((_, idx) => isStepComplete(idx)).length;
-  const progressPercent = (filledSteps / STEPS.length) * 100;
+  const filledCount = SECTIONS.filter((_, idx) => isSectionComplete(idx)).length;
+  const progressPercent = (filledCount / SECTIONS.length) * 100;
 
-  const handleNext = () => {
-    if (!isLastStep) {
-      persistLocalData();
-      setCurrentStep(prev => prev + 1);
-    }
-  };
+  // Scrollspy
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !open) return;
+    const handler = () => {
+      const top = root.scrollTop + 120;
+      let current = SECTIONS[0].id;
+      for (const s of SECTIONS) {
+        const el = sectionRefs.current[s.id];
+        if (el && el.offsetTop <= top) current = s.id;
+      }
+      setActiveSection(current);
+    };
+    root.addEventListener('scroll', handler, { passive: true });
+    return () => root.removeEventListener('scroll', handler);
+  }, [open]);
 
-  const handlePrev = () => {
-    if (!isFirstStep) {
-      persistLocalData();
-      setCurrentStep(prev => prev - 1);
+  const scrollToSection = (id: string) => {
+    const el = sectionRefs.current[id];
+    const root = scrollRef.current;
+    if (el && root) {
+      root.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' });
     }
   };
 
@@ -320,316 +279,309 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
       toast.error('Card ainda não carregado. Abra o briefing novamente.');
       return;
     }
-
-    if (!requiredStepsComplete) {
+    if (!requiredComplete) {
       setValidationError({
         isValid: false,
         message: 'Preencha os campos obrigatórios',
-        issues: ['Contexto e Entregáveis são obrigatórios']
+        issues: ['Contexto e Entregáveis são obrigatórios'],
       });
       toast.error('Preencha os campos obrigatórios');
+      const firstMissing = missingRequiredSections[0];
+      if (firstMissing) scrollToSection(firstMissing.id);
       return;
     }
-    
-    // Save briefing_data + briefing_completed atomically in a single
-    // mutation to prevent a race where the second UPDATE arrives before
-    // the first and the persisted briefing_data ends up empty.
     onMarkComplete(cardId, normalizeBriefingData(localDataRef.current));
     hasUnsavedChanges.current = false;
     toast.success('Briefing completo!');
     onOpenChange(false);
-  }, [requiredStepsComplete, onMarkComplete, onOpenChange, cardId]);
+  }, [requiredComplete, onMarkComplete, onOpenChange, cardId, missingRequiredSections]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="w-[95vw] max-w-2xl h-[90vh] max-h-[800px] p-0 gap-0 flex flex-col overflow-hidden"
-      >
-        {/* Header - Fixed */}
-        <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-background">
+      <DialogContent className="w-[96vw] max-w-5xl h-[92vh] max-h-[900px] p-0 gap-0 flex flex-col overflow-hidden">
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b bg-background">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-base sm:text-xl font-semibold flex items-center gap-2">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                 <span>Briefing</span>
               </DialogTitle>
-
               {cardTitle && (
-                <DialogDescription className="mt-1 text-xs sm:text-sm text-muted-foreground leading-snug break-words">
+                <DialogDescription className="mt-0.5 text-xs sm:text-sm text-muted-foreground leading-snug break-words">
                   {cardTitle}
                 </DialogDescription>
               )}
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Passo atual:</span>
-                <span className="text-foreground">{currentStepData.title}</span>
-                <span className="hidden sm:inline">— {currentStepData.subtitle}</span>
-              </div>
             </div>
 
-            {isCompleted && (
-              <Badge className="bg-success/20 text-success border-success/30 gap-1 flex-shrink-0 text-[10px] sm:text-xs">
-                <CheckCircle2 className="h-3 w-3" />
-                <span className="hidden sm:inline">Completo</span>
-              </Badge>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span
+                className={cn(
+                  'hidden md:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full transition-colors',
+                  saveStatus === 'saving' && 'text-amber-600 bg-amber-500/10',
+                  saveStatus === 'saved' && 'text-success bg-success/10',
+                  saveStatus === 'idle' && 'text-muted-foreground bg-muted'
+                )}
+                aria-live="polite"
+              >
+                {saveStatus === 'saving' && <>● Salvando…</>}
+                {saveStatus === 'saved' && <><CheckCircle2 className="h-3 w-3" /> Salvo</>}
+                {saveStatus === 'idle' && <>Salvamento automático</>}
+              </span>
+
+              {isCompleted && (
+                <Badge className="bg-success/20 text-success border-success/30 gap-1 text-[10px] sm:text-xs">
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span className="hidden sm:inline">Completo</span>
+                </Badge>
+              )}
+            </div>
           </div>
 
-          {/* Progress */}
           <div className="mt-3 space-y-1.5">
             <div className="flex justify-between text-[10px] sm:text-xs">
-              <span className="text-muted-foreground">Progresso</span>
-              <span className="font-medium text-primary">{filledSteps} de {STEPS.length}</span>
+              <span className="text-muted-foreground">Progresso do briefing</span>
+              <span className="font-medium text-primary">{filledCount} de {SECTIONS.length} seções</span>
             </div>
             <Progress value={progressPercent} className="h-1 sm:h-1.5" />
           </div>
         </DialogHeader>
 
-        {/* Step Navigation - wrap (no truncation) */}
-        <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-b bg-background">
-          <div className="flex flex-wrap gap-2">
-            {STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              const isActive = idx === currentStep;
-              const isComplete = isStepComplete(idx);
-
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => {
-                    persistLocalData();
-                    setCurrentStep(idx);
-                  }}
-                  aria-current={isActive ? 'step' : undefined}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors max-w-full',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : isComplete
-                        ? 'bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  )}
-                >
-                  {isComplete && !isActive ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
-                  ) : (
-                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                  )}
-                  <span className="break-words">{step.title}</span>
-                  {step.required && !isComplete && (
-                    <span className="text-destructive ml-0.5">*</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Validation Error - Fixed when visible */}
+        {/* Validation */}
         {validationError && !validationError.isValid && (
-          <div className="flex-shrink-0 mx-4 sm:mx-6 mt-3 flex gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border border-destructive/50 bg-destructive/5">
+          <div className="flex-shrink-0 mx-4 sm:mx-6 mt-3 flex gap-2 p-2 sm:p-3 rounded-lg border border-destructive/50 bg-destructive/5">
             <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5 text-xs sm:text-sm min-w-0">
-              <p className="font-medium text-destructive">Campos obrigatórios</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                {validationError.issues?.slice(0, 2).join(" • ")}
+            <div className="text-xs sm:text-sm min-w-0">
+              <p className="font-medium text-destructive">Campos obrigatórios pendentes</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {missingRequiredSections.map(s => s.title).join(' • ')}
               </p>
             </div>
           </div>
         )}
 
-        {/* Content - Scrollable, takes remaining space */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-            {/* Current Step Header */}
-            <div className="space-y-0.5 sm:space-y-1">
-              <div className="flex items-center gap-2">
-                {React.createElement(currentStepData.icon, { 
-                  className: 'h-4 w-4 sm:h-5 sm:w-5 text-primary' 
+        {/* Body: sidebar + scrollable single-page */}
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {/* Sidebar nav (desktop) */}
+          <aside className="hidden md:flex flex-col w-56 border-r bg-muted/20 p-3 gap-1 overflow-y-auto">
+            <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Seções
+            </p>
+            {SECTIONS.map((s, idx) => {
+              const Icon = s.icon;
+              const complete = isSectionComplete(idx);
+              const active = activeSection === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSection(s.id)}
+                  className={cn(
+                    'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-all',
+                    active
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                  )}
+                >
+                  <span className={cn(
+                    'flex items-center justify-center h-6 w-6 rounded-md flex-shrink-0 transition-colors',
+                    complete
+                      ? 'bg-success/15 text-success'
+                      : active
+                        ? 'bg-primary/15 text-primary'
+                        : 'bg-muted text-muted-foreground'
+                  )}>
+                    {complete ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                  </span>
+                  <span className="flex-1 truncate">{s.title}</span>
+                  {s.required && !complete && (
+                    <span className="text-destructive text-xs">*</span>
+                  )}
+                </button>
+              );
+            })}
+          </aside>
+
+          {/* Mobile section chips */}
+          <div className="md:hidden flex-shrink-0 absolute left-0 right-0 z-10" />
+
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Mobile chips */}
+            <div className="md:hidden flex-shrink-0 px-4 py-2 border-b bg-background overflow-x-auto">
+              <div className="flex gap-1.5 min-w-max">
+                {SECTIONS.map((s, idx) => {
+                  const Icon = s.icon;
+                  const complete = isSectionComplete(idx);
+                  const active = activeSection === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => scrollToSection(s.id)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap transition-colors',
+                        active
+                          ? 'bg-primary text-primary-foreground'
+                          : complete
+                            ? 'bg-success/10 text-success'
+                            : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {complete ? <CheckCircle2 className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                      {s.title}
+                      {s.required && !complete && <span className="text-destructive">*</span>}
+                    </button>
+                  );
                 })}
-                <h3 className="text-base sm:text-lg font-semibold">{currentStepData.title}</h3>
-                {currentStepData.required && (
-                  <span className="text-[10px] sm:text-xs text-destructive font-medium">*obrigatório</span>
-                )}
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground">{currentStepData.subtitle}</p>
             </div>
 
-            {/* Input Area - Increased height */}
-            <div className="space-y-2">
-              <RichTextEditor
-                value={getFieldValue(currentStepData.field)}
-                onChange={(v) => updateField(currentStepData.field, v)}
-                placeholder={currentStepData.placeholder}
-                disabled={disabled}
-                minHeight="180px"
-                maxHeight="400px"
-              />
-              
-              {/* Tip & Counter */}
-              <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
-                <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
-                  <Lightbulb className="h-3 w-3 flex-shrink-0" />
-                  <span>{currentStepData.tip}</span>
-                </p>
-                {currentStepData.minLength && (
-                  <p className={cn(
-                    'text-[10px] sm:text-xs flex-shrink-0',
-                    extractPlainText(getFieldValue(currentStepData.field)).length >= currentStepData.minLength
-                      ? 'text-success'
-                      : 'text-muted-foreground'
-                  )}>
-                    {extractPlainText(getFieldValue(currentStepData.field)).length} caracteres
-                  </p>
-                )}
+            {/* Scrollable single-page content */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
+              <div className="mx-auto max-w-3xl px-4 sm:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+                {SECTIONS.map((s, idx) => {
+                  const Icon = s.icon;
+                  const complete = isSectionComplete(idx);
+                  const value = getFieldValue(s.field);
+                  const charCount = extractPlainText(value).length;
+                  return (
+                    <section
+                      key={s.id}
+                      ref={(el) => { sectionRefs.current[s.id] = el; }}
+                      className="scroll-mt-4"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={cn(
+                          'flex items-center justify-center h-9 w-9 rounded-lg flex-shrink-0 transition-colors',
+                          complete ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary'
+                        )}>
+                          {complete ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-semibold">{s.title}</h3>
+                            {s.required ? (
+                              <span className="text-[10px] font-medium text-destructive uppercase tracking-wider">
+                                Obrigatório
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                Opcional
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground">{s.subtitle}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <RichTextEditor
+                          value={value}
+                          onChange={(v) => updateField(s.field, v)}
+                          placeholder={s.placeholder}
+                          disabled={disabled}
+                          minHeight="140px"
+                          maxHeight="340px"
+                        />
+                        <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                            <Lightbulb className="h-3 w-3 flex-shrink-0" />
+                            <span>{s.tip}</span>
+                          </p>
+                          {s.minLength && (
+                            <p className={cn(
+                              'text-[10px] sm:text-xs flex-shrink-0',
+                              charCount >= s.minLength ? 'text-success' : 'text-muted-foreground'
+                            )}>
+                              {charCount} / mín. {s.minLength}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {idx < SECTIONS.length - 1 && (
+                        <div className="mt-6 sm:mt-8 border-b border-border/50" />
+                      )}
+                    </section>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 flex items-center justify-between gap-2 sm:gap-3">
+        {/* Footer */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-t bg-muted/30 flex items-center justify-between gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => { persistLocalData(); setShowSummary(true); }}
+                  size="sm"
+                  className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Ver Resumo</span>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium ml-1">
+                    {filledCount}/{SECTIONS.length}
+                  </Badge>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top"><p className="text-xs">Ver briefing completo</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              onClick={handlePrev}
-              disabled={isFirstStep}
-              size="sm"
-              className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Anterior</span>
-            </Button>
-            
-            {/* View Summary Button - Enhanced */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      persistLocalData();
-                      setShowSummary(true);
-                    }}
-                    size="sm"
-                    className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3 border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Ver Resumo</span>
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium ml-1">
-                      {filledSteps}/{STEPS.length}
-                    </Badge>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">Ver briefing completo (Ctrl+Shift+V)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          {/* Step indicator for mobile */}
-          <div className="flex items-center gap-1 sm:hidden">
-            {STEPS.map((_, idx) => (
-              <div 
-                key={idx}
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full transition-colors',
-                  idx === currentStep 
-                    ? 'bg-primary' 
-                    : isStepComplete(idx)
-                      ? 'bg-success'
-                      : 'bg-muted-foreground/30'
-                )}
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Save status indicator */}
-            <span
-              className={cn(
-                'hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full transition-colors',
-                saveStatus === 'saving' && 'text-amber-600 bg-amber-500/10',
-                saveStatus === 'saved' && 'text-success bg-success/10',
-                saveStatus === 'idle' && 'text-muted-foreground bg-muted'
-              )}
-              aria-live="polite"
-            >
-              {saveStatus === 'saving' && <>● Salvando…</>}
-              {saveStatus === 'saved' && <><CheckCircle2 className="h-3 w-3" /> Salvo</>}
-              {saveStatus === 'idle' && <>Salvamento automático</>}
-            </span>
-
-            {/* Explicit save button — always available */}
-            <Button
-              variant="outline"
               size="sm"
               onClick={persistLocalData}
               disabled={saveStatus !== 'saving'}
-              className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+              className="text-xs sm:text-sm h-8 sm:h-9"
             >
-              <span>Salvar</span>
+              Salvar
             </Button>
-
-            {!isLastStep ? (
-              <Button
-                onClick={handleNext}
-                size="sm"
-                className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-              >
-                <span>Próximo</span>
-                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0}>
-                      <Button
-                        onClick={handleComplete}
-                        disabled={!requiredStepsComplete || disabled || isCompleted}
-                        size="sm"
-                        className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-                      >
-                        {isCompleted ? (
-                          <>
-                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span>Completo</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Concluir Briefing</span>
-                            <span className="sm:hidden">Concluir</span>
-                          </>
-                        )}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!requiredStepsComplete && !isCompleted && (
-                    <TooltipContent side="top" className="max-w-xs">
-                      <p className="text-xs font-medium mb-1">Faltam campos obrigatórios:</p>
-                      <ul className="text-xs list-disc pl-4">
-                        {missingRequiredSteps.map(s => (
-                          <li key={s.id}>{s.title}</li>
-                        ))}
-                      </ul>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      onClick={handleComplete}
+                      disabled={!requiredComplete || disabled || isCompleted}
+                      size="sm"
+                      className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">
+                        {isCompleted ? 'Completo' : 'Concluir Briefing'}
+                      </span>
+                      <span className="sm:hidden">{isCompleted ? 'Completo' : 'Concluir'}</span>
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!requiredComplete && !isCompleted && (
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs font-medium mb-1">Faltam campos obrigatórios:</p>
+                    <ul className="text-xs list-disc pl-4">
+                      {missingRequiredSections.map(s => <li key={s.id}>{s.title}</li>)}
+                    </ul>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
-        {/* Briefing Summary Sheet */}
         <BriefingSummarySheet
           open={showSummary}
           onOpenChange={setShowSummary}
           data={localData}
           isCompleted={isCompleted}
           cardTitle={cardTitle}
-          onEditStep={handleEditFromSummary}
+          onEditStep={(idx) => {
+            setShowSummary(false);
+            const s = SECTIONS[idx];
+            if (s) setTimeout(() => scrollToSection(s.id), 100);
+          }}
         />
       </DialogContent>
     </Dialog>
