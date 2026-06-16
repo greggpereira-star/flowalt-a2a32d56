@@ -100,8 +100,74 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     bulkMove.mutate({ ids: [ref.id], targetBoardId });
   };
 
+  // Quick add: paste image / link with Ctrl+V
+  const quickAddFile = useCallback(async (f: File) => {
+    try {
+      const { signedUrl } = await uploadFile(f, boardId);
+      const isImg = f.type.startsWith('image/');
+      const isVid = f.type.startsWith('video/');
+      await create.mutateAsync({
+        board_id: boardId,
+        type: isImg ? 'image' : isVid ? 'video' : 'file',
+        title: f.name.replace(/\.[^/.]+$/, ''),
+        media_url: isImg || isVid ? signedUrl : null,
+        thumbnail_url: isImg ? signedUrl : null,
+        file_url: isImg || isVid ? null : signedUrl,
+        file_name: f.name,
+        tags: [],
+      });
+    } catch (e: any) {
+      toast({ title: 'Falha ao adicionar', description: e.message, variant: 'destructive' });
+    }
+  }, [boardId, uploadFile, create, toast]);
+
+  const quickAddLink = useCallback(async (url: string) => {
+    try {
+      await create.mutateAsync({
+        board_id: boardId,
+        type: 'link',
+        title: url,
+        source_url: url,
+        tags: [],
+      });
+    } catch (e: any) {
+      toast({ title: 'Falha ao adicionar link', description: e.message, variant: 'destructive' });
+    }
+  }, [boardId, create, toast]);
+
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of Array.from(items)) {
+        if (it.kind === 'file') {
+          const f = it.getAsFile();
+          if (f) { e.preventDefault(); quickAddFile(f); return; }
+        }
+      }
+      const text = e.clipboardData?.getData('text');
+      if (text && /^https?:\/\//i.test(text.trim())) {
+        e.preventDefault();
+        quickAddLink(text.trim());
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [quickAddFile, quickAddLink]);
+
+  const [fileDragOver, setFileDragOver] = useState(false);
+  const onFileDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setFileDragOver(false);
+    const files = Array.from(e.dataTransfer.files || []);
+    files.forEach(quickAddFile);
+  };
+
   return (
+    <TooltipProvider delayDuration={200}>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="border-b bg-background sticky top-0 z-10">
