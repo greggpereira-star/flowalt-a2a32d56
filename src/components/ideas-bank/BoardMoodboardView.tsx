@@ -161,6 +161,26 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     return () => window.removeEventListener('paste', onPaste);
   }, [quickAddFile, quickAddLink]);
 
+  // Keyboard shortcuts: "/" focus search, "N" new reference, "?" help, "Esc" exit select mode
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      if (typing) {
+        if (e.key === 'Escape' && t === searchRef.current) (t as HTMLInputElement).blur();
+        return;
+      }
+      if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
+      else if (e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true); }
+      else if (e.key === '?') { e.preventDefault(); setHowOpen(true); }
+      else if (e.key === 'Escape' && selectMode) { e.preventDefault(); exitSelectMode(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectMode]);
+
+
   const [fileDragOver, setFileDragOver] = useState(false);
   const onFileDrop = (e: React.DragEvent) => {
     e.preventDefault(); setFileDragOver(false);
