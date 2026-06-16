@@ -114,14 +114,18 @@ export const AddReferenceDialog: React.FC<Props> = ({ open, onOpenChange, boardI
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar referência</DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            Escolha de onde vem a referência. Dica: você também pode colar (Ctrl+V) ou arrastar arquivos direto no quadro.
+          </p>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={v => setTab(v as any)} className="w-full">
           <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="upload"><Upload className="h-4 w-4 mr-2" />Upload</TabsTrigger>
-            <TabsTrigger value="link"><LinkIcon className="h-4 w-4 mr-2" />Link</TabsTrigger>
-            <TabsTrigger value="text"><TypeIcon className="h-4 w-4 mr-2" />Texto</TabsTrigger>
+            <TabsTrigger value="upload"><Upload className="h-4 w-4 mr-2" />Arquivo</TabsTrigger>
+            <TabsTrigger value="link"><LinkIcon className="h-4 w-4 mr-2" />Link / URL</TabsTrigger>
+            <TabsTrigger value="text"><TypeIcon className="h-4 w-4 mr-2" />Nota</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="upload" className="space-y-3 pt-4">
             <div
