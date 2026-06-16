@@ -173,7 +173,7 @@ export const useClientFinancialReport = (clientCardId: string | undefined) => {
       const completedTasks = allCards.filter(c => c.status === 'delivered').length;
       const inProgressTasks = allCards.filter(c => c.status === 'todo' || c.status === 'review').length;
       const overduesTasks = allCards.filter(c => 
-        c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'archived'
+        c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved' && c.status !== 'archived'
       ).length;
       const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 

@@ -158,7 +158,7 @@ export const QAChecklist: React.FC = () => {
     // 3. Cards & Data
     const cardsWithBriefing = cards.filter(c => c.briefing_completed);
     const cardsWithDueDate = cards.filter(c => c.due_date);
-    const overdueCards = cards.filter(c => c.due_date && new Date(c.due_date) < new Date() && c.status !== 'delivered');
+    const overdueCards = cards.filter(c => c.due_date && new Date(c.due_date) < new Date() && c.status !== 'delivered' && c.status !== 'approved');
 
     categories.push({
       id: 'cards',

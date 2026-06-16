@@ -32,7 +32,7 @@ const calculateRiskLevel = (
   const factors: RiskFactor[] = [];
   
   // 1. Delay Risk
-  if (card.due_date && card.status !== 'delivered') {
+  if (card.due_date && card.status !== 'delivered' && card.status !== 'approved') {
     const dueDate = new Date(card.due_date);
     const now = new Date();
     const daysUntilDue = differenceInDays(dueDate, now);

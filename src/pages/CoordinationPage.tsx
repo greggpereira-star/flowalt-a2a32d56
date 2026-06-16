@@ -118,7 +118,7 @@ const CoordinationPage: React.FC = () => {
 
     // Overdue cards
     const overdue: BottleneckItem[] = cards
-      .filter(c => c.due_date && new Date(c.due_date) < now && c.status !== 'delivered')
+      .filter(c => c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved')
       .map(c => {
         const daysOverdue = differenceInDays(now, new Date(c.due_date!));
         const severity = (daysOverdue > 7 ? 'critical' : daysOverdue > 3 ? 'high' : 'medium') as 'critical' | 'high' | 'medium';
@@ -177,7 +177,7 @@ const CoordinationPage: React.FC = () => {
     const total = cards.length;
     const inProgress = cards.filter(c => c.status === 'in_progress').length;
     const overdue = cards.filter(c => 
-      c.due_date && new Date(c.due_date) < now && c.status !== 'delivered'
+      c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved'
     ).length;
     const onTrack = total - overdue;
 

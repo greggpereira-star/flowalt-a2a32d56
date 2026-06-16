@@ -51,7 +51,7 @@ export const ExportReportsButton: React.FC = () => {
             { label: 'Total de Cards', value: cards.length },
             { label: 'Em Progresso', value: cards.filter(c => c.status === 'in_progress').length },
             { label: 'Entregues', value: cards.filter(c => c.status === 'delivered').length },
-            { label: 'Atrasados', value: cards.filter(c => c.due_date && new Date(c.due_date) < new Date() && c.status !== 'delivered').length },
+            { label: 'Atrasados', value: cards.filter(c => c.due_date && new Date(c.due_date) < new Date() && c.status !== 'delivered' && c.status !== 'approved').length },
           ],
         },
         {

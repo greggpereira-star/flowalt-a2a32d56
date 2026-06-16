@@ -89,7 +89,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
         const startOffset = differenceInDays(startDate, minDate);
         const duration = Math.max(differenceInDays(endDate, startDate), 1);
-        const isOverdue = card.due_date && new Date(card.due_date) < today && card.status !== 'delivered';
+        const isOverdue = card.due_date && new Date(card.due_date) < today && card.status !== 'delivered' && card.status !== 'approved';
 
         // Find dependencies
         const blockedBy = dependencies

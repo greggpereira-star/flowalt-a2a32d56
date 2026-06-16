@@ -101,10 +101,10 @@ const Dashboard: React.FC = () => {
 
   // Calculate metrics
   const totalCards = cards?.length || 0;
-  const completedCards = cards?.filter((c) => c.status === 'delivered').length || 0;
+  const completedCards = cards?.filter((c) => c.status === 'delivered' || c.status === 'approved').length || 0;
   const inProgressCards = cards?.filter((c) => c.status === 'in_progress').length || 0;
   const overdueCards = cards?.filter((c) => {
-    if (!c.due_date || c.status === 'delivered') return false;
+    if (!c.due_date || c.status === 'delivered' || c.status === 'approved') return false;
     return new Date(c.due_date) < new Date();
   }).length || 0;
 
@@ -364,7 +364,7 @@ const Dashboard: React.FC = () => {
                 <div className="space-y-2">
                   {cards
                     .filter((c) => {
-                      if (!c.due_date || c.status === 'delivered') return false;
+                      if (!c.due_date || c.status === 'delivered' || c.status === 'approved') return false;
                       return new Date(c.due_date) < new Date();
                     })
                     .slice(0, 5)

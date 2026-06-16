@@ -122,7 +122,7 @@ export const useClientWorkflowMetrics = () => {
         const inProgressCards = clientCards.filter(c => c.status === 'in_progress').length;
         const deliveredCards = clientCards.filter(c => c.status === 'delivered').length;
         const overdueCards = clientCards.filter(c => 
-          c.due_date && new Date(c.due_date) < now && c.status !== 'delivered'
+          c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved'
         ).length;
 
         // Calculate hours

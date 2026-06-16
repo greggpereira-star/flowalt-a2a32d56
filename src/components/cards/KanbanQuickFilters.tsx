@@ -42,7 +42,7 @@ export const KanbanQuickFilters: React.FC<KanbanQuickFiltersProps> = ({
   const criticalCount = cards.filter(c => c.urgency === 'critical' && c.status !== 'delivered').length;
   const overdueCount = cards.filter(c => {
     const dueDate = c.due_date ? new Date(c.due_date) : null;
-    return dueDate && isPast(dueDate) && !isToday(dueDate) && c.status !== 'delivered';
+    return dueDate && isPast(dueDate) && !isToday(dueDate) && c.status !== 'delivered' && c.status !== 'approved';
   }).length;
   const todayCount = cards.filter(c => {
     const dueDate = c.due_date ? new Date(c.due_date) : null;
@@ -174,7 +174,7 @@ export const applyQuickFilter = (
     case 'overdue':
       return cards.filter(c => {
         const dueDate = c.due_date ? new Date(c.due_date) : null;
-        return dueDate && isPast(dueDate) && !isToday(dueDate) && c.status !== 'delivered';
+        return dueDate && isPast(dueDate) && !isToday(dueDate) && c.status !== 'delivered' && c.status !== 'approved';
       });
     case 'today':
       return cards.filter(c => {
