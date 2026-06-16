@@ -9,6 +9,7 @@ import { AddReferenceDialog } from './AddReferenceDialog';
 import { CreateCardFromIdeaDialog } from './CreateCardFromIdeaDialog';
 import { ShareBoardDialog } from './ShareBoardDialog';
 import { MoveToBoardDialog } from './MoveToBoardDialog';
+import { HowItWorksDialog } from './HowItWorksDialog';
 import { REFERENCE_TYPES } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
