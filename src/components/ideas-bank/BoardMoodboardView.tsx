@@ -41,6 +41,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const [adding, setAdding] = useState(false);
   const [detail, setDetail] = useState<IdeaReference | null>(null);
   const [creatingCardFor, setCreatingCardFor] = useState<IdeaReference | null>(null);
+  const [convertingBoard, setConvertingBoard] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
