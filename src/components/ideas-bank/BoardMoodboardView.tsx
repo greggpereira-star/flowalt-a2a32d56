@@ -194,13 +194,17 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
 
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="border-b bg-background sticky top-0 z-10">
+        <header className="border-b bg-background sticky top-0 z-10">
           <div className="p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-2 min-w-0 flex-1">
                 {onBack && (
-                  <Button variant="ghost" size="icon" onClick={onBack} className="-ml-2 mt-0.5">
-                    <ArrowLeft className="h-4 w-4" />
+                  <Button
+                    variant="ghost" size="icon" onClick={onBack}
+                    aria-label="Voltar para as pastas"
+                    className="-ml-2 mt-0.5"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
                 <div className="min-w-0 flex-1">
@@ -208,7 +212,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                     <h1 className="font-semibold text-lg truncate">{board?.name || 'Moodboard'}</h1>
                     {board?.is_public && (
                       <Badge variant="secondary" className="text-[10px]">
-                        <Share2 className="h-3 w-3 mr-1" />Público
+                        <Share2 className="h-3 w-3 mr-1" aria-hidden="true" />Público
                       </Badge>
                     )}
                   </div>
@@ -223,45 +227,69 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost" size="icon"
+                      onClick={() => setHowOpen(true)}
+                      aria-label="Como funciona o Banco de Ideias"
+                    >
+                      <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Como funciona · atalho <kbd>?</kbd></TooltipContent>
+                </Tooltip>
                 <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
-                  <Share2 className="h-4 w-4 mr-2" />Compartilhar
+                  <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />Compartilhar
                 </Button>
                 {!selectMode ? (
-                  <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
-                    <CheckSquare className="h-4 w-4 mr-2" />Selecionar
+                  <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}
+                    aria-label="Entrar no modo de seleção múltipla">
+                    <CheckSquare className="h-4 w-4 mr-2" aria-hidden="true" />Selecionar
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={exitSelectMode}>
-                    <X className="h-4 w-4 mr-2" />Sair
+                  <Button variant="ghost" size="sm" onClick={exitSelectMode}
+                    aria-label="Sair do modo de seleção">
+                    <X className="h-4 w-4 mr-2" aria-hidden="true" />Sair
                   </Button>
                 )}
-                <Button onClick={() => setAdding(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />Referência
+                <Button onClick={() => setAdding(true)} size="sm" aria-keyshortcuts="N">
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />Referência
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div role="toolbar" aria-label="Filtros do quadro" className="flex items-center gap-2 overflow-x-auto pb-1">
               <div className="relative flex-shrink-0 w-64">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar..." className="pl-8 h-8 text-sm" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <label htmlFor="ib-board-search" className="sr-only">Buscar referência</label>
+                <Input
+                  id="ib-board-search"
+                  ref={searchRef}
+                  value={q} onChange={e => setQ(e.target.value)}
+                  placeholder="Buscar..." className="pl-8 h-8 text-sm"
+                />
               </div>
-              <Button variant={typeFilter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('all')}>Todas</Button>
-              <Button variant={typeFilter === 'favorites' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('favorites')}>
-                <Star className="h-3 w-3 mr-1" />Favoritas
+              <Button variant={typeFilter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('all')}
+                aria-pressed={typeFilter === 'all'}>Todas</Button>
+              <Button variant={typeFilter === 'favorites' ? 'secondary' : 'ghost'} size="sm" onClick={() => setTypeFilter('favorites')}
+                aria-pressed={typeFilter === 'favorites'}>
+                <Star className="h-3 w-3 mr-1" aria-hidden="true" />Favoritas
               </Button>
               {REFERENCE_TYPES.map(t => {
                 const I = t.icon;
                 return (
                   <Button key={t.value} size="sm" variant={typeFilter === t.value ? 'secondary' : 'ghost'}
+                    aria-pressed={typeFilter === t.value}
                     onClick={() => setTypeFilter(t.value)} className="flex-shrink-0">
-                    <I className="h-3 w-3 mr-1" />{t.label}
+                    <I className="h-3 w-3 mr-1" aria-hidden="true" />{t.label}
                   </Button>
                 );
               })}
             </div>
           </div>
-        </div>
+        </header>
+
 
         {/* Grid */}
         <div
