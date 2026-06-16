@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import {
   FolderPlus, ImagePlus, MessageSquarePlus, Sparkles, Keyboard,
-  ClipboardPaste, MousePointerClick, Star, FolderInput,
+  ClipboardPaste, MousePointerClick, Star, FolderInput, Link as LinkIcon, Layers,
 } from 'lucide-react';
 
 interface Props {
@@ -17,17 +17,17 @@ const STEPS = [
   {
     icon: FolderPlus,
     title: '1. Crie uma pasta',
-    desc: 'Pastas agrupam referências por cliente, campanha ou tema. Cada pasta vira um quadro visual.',
+    desc: 'Cada pasta é um moodboard — agrupe por cliente, campanha ou tema. A capa é gerada automaticamente com as primeiras referências.',
   },
   {
-    icon: ImagePlus,
-    title: '2. Adicione referências',
-    desc: 'Imagens, vídeos, links, PDFs ou notas. Você pode colar (Ctrl+V) ou arrastar arquivos diretamente no quadro.',
+    icon: Layers,
+    title: '2. Encha de referências',
+    desc: 'Solte vários arquivos de uma vez, cole vários links (um por linha) ou use Ctrl+V. Links viram cards com título e thumbnail automáticos.',
   },
   {
     icon: MessageSquarePlus,
     title: '3. Vire demanda',
-    desc: 'Ao passar o mouse numa referência, clique em "Criar card" para transformá-la em uma tarefa no kanban.',
+    desc: 'Transforme uma referência única em card rápido — ou clique em "Virar demanda" no topo do moodboard para criar um briefing com TODAS as referências anexadas.',
   },
 ];
 
@@ -39,10 +39,13 @@ const SHORTCUTS = [
 ];
 
 const TIPS = [
-  { icon: ClipboardPaste, label: 'Cole conteúdo (Ctrl+V) — links viram cards de link, imagens são enviadas automaticamente.' },
+  { icon: Layers, label: 'Solte vários arquivos juntos ou cole vários links de uma vez — todos vão para a mesma pasta.' },
+  { icon: LinkIcon, label: 'Cole uma URL e o sistema busca título, descrição e imagem automaticamente (preview estilo Pinterest).' },
+  { icon: Sparkles, label: 'Use "Virar demanda" para criar um card já com o moodboard inteiro anexado como referência visual.' },
+  { icon: ClipboardPaste, label: 'Ctrl+V direto no quadro: imagens são enviadas, links viram cards de link.' },
   { icon: MousePointerClick, label: 'Passe o mouse sobre uma referência para ver as ações rápidas.' },
   { icon: Star, label: 'Favorite referências para encontrá-las depois no filtro "Favoritas".' },
-  { icon: FolderInput, label: 'Arraste uma referência para outra pasta sem precisar abrir um menu.' },
+  { icon: FolderInput, label: 'Arraste uma referência para outra pasta sem precisar abrir menu.' },
 ];
 
 export const HowItWorksDialog: React.FC<Props> = ({
