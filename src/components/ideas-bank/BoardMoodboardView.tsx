@@ -243,6 +243,21 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                 <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
                   <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />Compartilhar
                 </Button>
+                {references.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline" size="sm"
+                        onClick={() => setConvertingBoard(true)}
+                        aria-label="Transformar pasta inteira em card com moodboard"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
+                        Virar demanda
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Cria um card com todas as referências anexadas como moodboard</TooltipContent>
+                  </Tooltip>
+                )}
                 {!selectMode ? (
                   <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}
                     aria-label="Entrar no modo de seleção múltipla">
