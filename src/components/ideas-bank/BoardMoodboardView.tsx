@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useIdeaBoard, useIdeaBoards } from '@/hooks/useIdeaBoards';
 import { useIdeaReferences, IdeaReference, IdeaReferenceType } from '@/hooks/useIdeaReferences';
+import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ReferenceCard } from './ReferenceCard';
 import { ReferenceDetailSheet } from './ReferenceDetailSheet';
 import { AddReferenceDialog } from './AddReferenceDialog';
@@ -14,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft, Plus, Search, Star, ImagePlus, Share2, CheckSquare, X,
-  FolderInput, Trash2, FolderOpen,
+  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -30,7 +32,8 @@ interface Props {
 export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const { data: board } = useIdeaBoard(boardId);
   const { boards } = useIdeaBoards();
-  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite } = useIdeaReferences(boardId);
+  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite, create, uploadFile } = useIdeaReferences(boardId);
+  const { toast } = useToast();
 
   const [q, setQ] = useState('');
   const [typeFilter, setTypeFilter] = useState<IdeaReferenceType | 'all' | 'favorites'>('all');
@@ -97,8 +100,74 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     bulkMove.mutate({ ids: [ref.id], targetBoardId });
   };
 
+  // Quick add: paste image / link with Ctrl+V
+  const quickAddFile = useCallback(async (f: File) => {
+    try {
+      const { signedUrl } = await uploadFile(f, boardId);
+      const isImg = f.type.startsWith('image/');
+      const isVid = f.type.startsWith('video/');
+      await create.mutateAsync({
+        board_id: boardId,
+        type: isImg ? 'image' : isVid ? 'video' : 'file',
+        title: f.name.replace(/\.[^/.]+$/, ''),
+        media_url: isImg || isVid ? signedUrl : null,
+        thumbnail_url: isImg ? signedUrl : null,
+        file_url: isImg || isVid ? null : signedUrl,
+        file_name: f.name,
+        tags: [],
+      });
+    } catch (e: any) {
+      toast({ title: 'Falha ao adicionar', description: e.message, variant: 'destructive' });
+    }
+  }, [boardId, uploadFile, create, toast]);
+
+  const quickAddLink = useCallback(async (url: string) => {
+    try {
+      await create.mutateAsync({
+        board_id: boardId,
+        type: 'link',
+        title: url,
+        source_url: url,
+        tags: [],
+      });
+    } catch (e: any) {
+      toast({ title: 'Falha ao adicionar link', description: e.message, variant: 'destructive' });
+    }
+  }, [boardId, create, toast]);
+
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of Array.from(items)) {
+        if (it.kind === 'file') {
+          const f = it.getAsFile();
+          if (f) { e.preventDefault(); quickAddFile(f); return; }
+        }
+      }
+      const text = e.clipboardData?.getData('text');
+      if (text && /^https?:\/\//i.test(text.trim())) {
+        e.preventDefault();
+        quickAddLink(text.trim());
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [quickAddFile, quickAddLink]);
+
+  const [fileDragOver, setFileDragOver] = useState(false);
+  const onFileDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setFileDragOver(false);
+    const files = Array.from(e.dataTransfer.files || []);
+    files.forEach(quickAddFile);
+  };
+
   return (
+    <TooltipProvider delayDuration={200}>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="border-b bg-background sticky top-0 z-10">
@@ -171,7 +240,41 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 overflow-auto p-4">
+        <div
+          className={cn(
+            'flex-1 overflow-auto p-4 relative',
+            fileDragOver && 'bg-primary/5'
+          )}
+          onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}
+          onDragLeave={() => setFileDragOver(false)}
+          onDrop={onFileDrop}
+        >
+          {fileDragOver && (
+            <div className="pointer-events-none absolute inset-4 z-30 rounded-2xl border-2 border-dashed border-primary bg-primary/5 flex items-center justify-center">
+              <div className="text-center">
+                <ImagePlus className="h-10 w-10 text-primary mx-auto mb-2" />
+                <p className="text-sm font-medium text-primary">Solte os arquivos para adicionar</p>
+              </div>
+            </div>
+          )}
+
+          {/* Quick tip */}
+          {!isLoading && (
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+              <span className="flex items-center gap-1.5 font-medium text-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />Atalhos rápidos:
+              </span>
+              <span className="flex items-center gap-1">
+                <Keyboard className="h-3 w-3" /> Cole link/imagem com
+                <kbd className="px-1.5 py-0.5 rounded border bg-background font-mono text-[10px]">Ctrl+V</kbd>
+              </span>
+              <span className="hidden sm:inline">·</span>
+              <span>Arraste arquivos para dentro do quadro</span>
+              <span className="hidden sm:inline">·</span>
+              <span>Passe o mouse num card → <strong className="text-foreground">Criar card</strong> vira demanda</span>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -179,21 +282,23 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center py-20">
+            <div className="flex flex-col items-center justify-center text-center py-16">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <ImagePlus className="h-8 w-8 text-primary" />
               </div>
               <h2 className="text-lg font-semibold mb-1">
-                {q || typeFilter !== 'all' ? 'Nenhuma referência encontrada' : 'Este moodboard ainda está vazio'}
+                {q || typeFilter !== 'all' ? 'Nenhuma referência encontrada' : 'Este quadro ainda está vazio'}
               </h2>
               <p className="text-sm text-muted-foreground max-w-md mb-5">
                 {q || typeFilter !== 'all'
                   ? 'Ajuste os filtros ou adicione novas referências.'
-                  : 'Comece adicionando imagens, links, vídeos ou textos que inspiram o trabalho.'}
+                  : 'Adicione imagens, vídeos, links, PDFs ou notas. Você também pode colar (Ctrl+V) ou arrastar arquivos diretamente aqui.'}
               </p>
-              <Button onClick={() => setAdding(true)}>
-                <Plus className="h-4 w-4 mr-2" />Adicionar primeira referência
-              </Button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button onClick={() => setAdding(true)} size="lg">
+                  <Plus className="h-4 w-4 mr-2" />Adicionar referência
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
@@ -213,6 +318,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
             </div>
           )}
         </div>
+
 
         {/* Bulk action bar */}
         {selectMode && (
@@ -300,6 +406,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         />
       </div>
     </DndContext>
+    </TooltipProvider>
   );
 };
 
