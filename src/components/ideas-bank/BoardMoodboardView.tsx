@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft, Plus, Search, Star, ImagePlus, Share2, CheckSquare, X,
-  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard,
+  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
