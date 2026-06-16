@@ -41,6 +41,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const [adding, setAdding] = useState(false);
   const [detail, setDetail] = useState<IdeaReference | null>(null);
   const [creatingCardFor, setCreatingCardFor] = useState<IdeaReference | null>(null);
+  const [convertingBoard, setConvertingBoard] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -242,6 +243,21 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                 <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
                   <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />Compartilhar
                 </Button>
+                {references.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline" size="sm"
+                        onClick={() => setConvertingBoard(true)}
+                        aria-label="Transformar pasta inteira em card com moodboard"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
+                        Virar demanda
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Cria um card com todas as referências anexadas como moodboard</TooltipContent>
+                  </Tooltip>
+                )}
                 {!selectMode ? (
                   <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}
                     aria-label="Entrar no modo de seleção múltipla">
@@ -457,6 +473,14 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         <CreateCardFromIdeaDialog
           reference={creatingCardFor} open={!!creatingCardFor}
           onOpenChange={(o) => !o && setCreatingCardFor(null)}
+          boardName={board?.name}
+          boardId={boardId}
+        />
+        <CreateCardFromIdeaDialog
+          boardReferences={convertingBoard ? references : undefined}
+          boardId={boardId}
+          open={convertingBoard}
+          onOpenChange={setConvertingBoard}
           boardName={board?.name}
         />
         <ShareBoardDialog board={board ?? null} open={sharing} onOpenChange={setSharing} />
