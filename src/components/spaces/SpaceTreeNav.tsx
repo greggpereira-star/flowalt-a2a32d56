@@ -137,12 +137,13 @@ const FolderItem: React.FC<FolderItemProps> = ({
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
-      <div className="flex items-center group rounded-md hover:bg-muted/30 transition-colors duration-150 cursor-pointer">
+      <div className="flex items-center group rounded-md hover:bg-muted/30 transition-colors duration-150 cursor-pointer min-w-0 w-full">
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="flex-1 justify-start gap-1 px-2 h-8 font-normal hover:bg-transparent"
+            title={folder.name}
+            className="flex-1 min-w-0 justify-start gap-1 px-2 h-8 font-normal hover:bg-transparent overflow-hidden"
           >
             <ChevronDown 
               className={cn(
@@ -229,19 +230,20 @@ const FolderItem: React.FC<FolderItemProps> = ({
               const isActive = selectedViewId === view.id;
 
               return (
-                <div key={view.id} className="flex items-center group/view">
+                <div key={view.id} className="flex items-center group/view min-w-0 w-full">
                   <Button
                     variant={isActive ? 'secondary' : 'ghost'}
                     size="sm"
                     asChild
+                    title={view.name}
                     className={cn(
-                      'flex-1 justify-start gap-2 px-2 h-7 font-normal text-sm',
+                      'flex-1 min-w-0 justify-start gap-2 px-2 h-7 font-normal text-sm overflow-hidden',
                       isActive && 'bg-primary/10 text-primary'
                     )}
                   >
                     <Link to={`/space/${spaceId}?view=${view.id}`}>
                       <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate">{view.name}</span>
+                      <span className="truncate min-w-0">{view.name}</span>
                     </Link>
                   </Button>
                   
