@@ -137,12 +137,13 @@ const FolderItem: React.FC<FolderItemProps> = ({
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
-      <div className="flex items-center group rounded-md hover:bg-muted/30 transition-colors duration-150 cursor-pointer">
+      <div className="flex items-center group rounded-md hover:bg-muted/30 transition-colors duration-150 cursor-pointer min-w-0 w-full">
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="flex-1 justify-start gap-1 px-2 h-8 font-normal hover:bg-transparent"
+            title={folder.name}
+            className="flex-1 min-w-0 justify-start gap-1 px-2 h-8 font-normal hover:bg-transparent overflow-hidden"
           >
             <ChevronDown 
               className={cn(
