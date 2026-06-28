@@ -681,7 +681,8 @@ Deno.serve(async (req) => {
       recipientEmail,
       finalSubject,
       emailContent.html,
-      logger
+      logger,
+      typeof data?.reply_to === "string" ? data.reply_to : undefined
     );
 
     // Log the notification
