@@ -112,29 +112,46 @@ export function useCreateWorkspaceInvite() {
         const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
         const inviteData = data as { token?: string } | null;
         
-        await sendWorkspaceInviteEmail({
+        const result = await sendWorkspaceInviteEmail({
           email: variables.email,
           workspace_id: currentWorkspace!.id,
           workspace_name: currentWorkspace!.name,
-          inviter_name: inviterProfile?.name || 'Administrador',
+          inviter_name: inviterProfile?.name || user?.email || 'Administrador',
+          inviter_email: user?.email || undefined,
           role: variables.role,
           token: inviteData?.token || '',
           expires_in: '7 dias',
         });
         
-        toast.success('Convite enviado por email!');
+        if (result.success) {
+          toast.success(`Convite enviado para ${variables.email}`, {
+            description: 'O email foi entregue. Peça para a pessoa verificar a caixa de entrada (e a pasta de spam).',
+          });
+        } else {
+          toast.warning('Convite criado, mas o email falhou', {
+            description: result.error || 'Compartilhe o link manualmente com a pessoa.',
+          });
+        }
       } catch (emailError: any) {
         console.error('Erro ao enviar email:', emailError);
-        const isDomainError = emailError.message?.includes('not verified');
-        toast.error(
-          isDomainError 
-            ? 'Convite criado, mas o domínio de email não está verificado no Resend. Verifique as configurações.' 
-            : 'Convite criado! (email não pôde ser enviado)'
-        );
+        toast.warning('Convite criado, mas o email não pôde ser enviado', {
+          description: emailError?.message || 'Compartilhe o link de convite manualmente.',
+        });
       }
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao enviar convite');
+      const msg = error.message || '';
+      if (msg.includes('pending invite')) {
+        toast.error('Este email já tem um convite pendente', {
+          description: 'Revogue o convite atual antes de enviar um novo, ou reenvie o link existente.',
+        });
+      } else if (msg.includes('already a member')) {
+        toast.error('Este usuário já faz parte do workspace');
+      } else if (msg.includes('Permission denied')) {
+        toast.error('Você não tem permissão para convidar usuários');
+      } else {
+        toast.error(msg || 'Erro ao enviar convite');
+      }
     },
   });
 }
