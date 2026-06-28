@@ -1,5 +1,8 @@
-// Temporary diagnostic endpoint to check Resend domains and last sent emails
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,33 +12,37 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const headers = { Authorization: `Bearer ${RESEND_API_KEY}` };
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const headers = { Authorization: `Bearer ${RESEND_API_KEY}` };
 
-    const [domainsRes, apiKeysRes] = await Promise.all([
-      fetch("https://api.resend.com/domains", { headers }),
-      fetch("https://api.resend.com/api-keys", { headers }),
-    ]);
+  // Get last 5 sent emails
+  const { data: logs } = await supabase
+    .from("email_notifications_log")
+    .select("email, notification_type, resend_id, status, created_at")
+    .eq("status", "sent")
+    .not("resend_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(5);
 
-    const domains = await domainsRes.json();
-    const apiKeyStatus = apiKeysRes.status;
-
-    return new Response(
-      JSON.stringify({
-        resend_api_key_present: !!RESEND_API_KEY,
-        api_keys_endpoint_status: apiKeyStatus,
-        domains,
-        from_env: {
-          RESEND_FROM_EMAIL_FLOW: Deno.env.get("RESEND_FROM_EMAIL_FLOW"),
-          RESEND_FROM_EMAIL: Deno.env.get("RESEND_FROM_EMAIL"),
-        },
-      }, null, 2),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  const results = [];
+  for (const log of logs || []) {
+    try {
+      const r = await fetch(`https://api.resend.com/emails/${log.resend_id}`, { headers });
+      const data = await r.json();
+      results.push({
+        recipient: log.email,
+        type: log.notification_type,
+        sent_at: log.created_at,
+        resend_status: data.last_event || data.status || data,
+        from: data.from,
+        to: data.to,
+      });
+    } catch (e: any) {
+      results.push({ recipient: log.email, error: e.message });
+    }
   }
+
+  return new Response(JSON.stringify({ results }, null, 2), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
