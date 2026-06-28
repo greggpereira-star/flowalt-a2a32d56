@@ -122,6 +122,7 @@ export async function sendWorkspaceInviteEmail(params: {
   workspace_id: string;
   workspace_name: string;
   inviter_name?: string;
+  inviter_email?: string;
   role: string;
   token: string;
   expires_in?: string;
@@ -139,6 +140,7 @@ export async function sendWorkspaceInviteEmail(params: {
       role_label: ROLE_LABELS[params.role] || params.role,
       invite_url: inviteUrl,
       expires_in: params.expires_in || '7 dias',
+      ...(params.inviter_email ? { reply_to: params.inviter_email } : {}),
     },
   });
 }
