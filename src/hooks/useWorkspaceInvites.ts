@@ -157,6 +157,122 @@ export function useCreateWorkspaceInvite() {
 }
 
 /**
+ * Hook to resend a pending workspace invite with client-side rate limiting.
+ * Limits: min 60s between resends per email, max 5 resends per email per 24h.
+ */
+const RESEND_STORAGE_KEY = 'workspace_invite_resends_v1';
+const RESEND_COOLDOWN_MS = 60 * 1000;
+const RESEND_MAX_PER_DAY = 5;
+const RESEND_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+type ResendHistory = Record<string, number[]>;
+
+function readResendHistory(): ResendHistory {
+  try {
+    const raw = localStorage.getItem(RESEND_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as ResendHistory;
+  } catch {
+    return {};
+  }
+}
+
+function writeResendHistory(history: ResendHistory) {
+  try {
+    localStorage.setItem(RESEND_STORAGE_KEY, JSON.stringify(history));
+  } catch {
+    // ignore
+  }
+}
+
+export function checkResendLimit(email: string): { allowed: boolean; reason?: string; retryAfterSec?: number } {
+  const now = Date.now();
+  const history = readResendHistory();
+  const key = email.toLowerCase();
+  const recent = (history[key] || []).filter((t) => now - t < RESEND_WINDOW_MS);
+  if (recent.length > 0) {
+    const last = recent[recent.length - 1];
+    const elapsed = now - last;
+    if (elapsed < RESEND_COOLDOWN_MS) {
+      return {
+        allowed: false,
+        reason: 'cooldown',
+        retryAfterSec: Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000),
+      };
+    }
+  }
+  if (recent.length >= RESEND_MAX_PER_DAY) {
+    return { allowed: false, reason: 'daily_limit' };
+  }
+  return { allowed: true };
+}
+
+function recordResend(email: string) {
+  const now = Date.now();
+  const history = readResendHistory();
+  const key = email.toLowerCase();
+  const recent = (history[key] || []).filter((t) => now - t < RESEND_WINDOW_MS);
+  recent.push(now);
+  history[key] = recent;
+  writeResendHistory(history);
+}
+
+export function useResendWorkspaceInvite() {
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (invite: WorkspaceInvite) => {
+      if (!currentWorkspace?.id) throw new Error('No workspace selected');
+
+      const limit = checkResendLimit(invite.email);
+      if (!limit.allowed) {
+        if (limit.reason === 'cooldown') {
+          throw new Error(`Aguarde ${limit.retryAfterSec}s para reenviar para este email.`);
+        }
+        throw new Error(`Limite diário de reenvios atingido para ${invite.email} (máx. ${RESEND_MAX_PER_DAY}/dia).`);
+      }
+
+      // Check invite is still pending and not expired
+      if (invite.status !== 'pending') {
+        throw new Error('Este convite não está mais pendente.');
+      }
+      if (new Date(invite.expires_at).getTime() < Date.now()) {
+        throw new Error('Convite expirado. Crie um novo convite.');
+      }
+
+      const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
+
+      const result = await sendWorkspaceInviteEmail({
+        email: invite.email,
+        workspace_id: currentWorkspace.id,
+        workspace_name: currentWorkspace.name,
+        inviter_name: inviterProfile?.name || user?.email || 'Administrador',
+        inviter_email: user?.email || undefined,
+        role: invite.role,
+        token: invite.token,
+        expires_in: '7 dias',
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao reenviar o email.');
+      }
+
+      recordResend(invite.email);
+      return result;
+    },
+    onSuccess: (_, invite) => {
+      toast.success(`Convite reenviado para ${invite.email}`, {
+        description: 'Peça para verificar a caixa de entrada e a pasta de spam.',
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao reenviar convite');
+    },
+  });
+}
+
+/**
  * Hook to revoke a workspace invite
  */
 export function useRevokeWorkspaceInvite() {

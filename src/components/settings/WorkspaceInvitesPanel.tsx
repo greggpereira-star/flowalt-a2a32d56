@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
+import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite, useResendWorkspaceInvite, checkResendLimit } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +69,8 @@ import {
   Crown,
   Search,
   User,
+  Send,
+
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -106,6 +108,7 @@ export function WorkspaceInvitesPanel() {
   const { data: invites, isLoading } = useWorkspaceInvites();
   const createInvite = useCreateWorkspaceInvite();
   const revokeInvite = useRevokeWorkspaceInvite();
+  const resendInvite = useResendWorkspaceInvite();
   const { canManageWorkspace, canPromoteToOwner } = usePermissions();
   const { currentRole, currentWorkspace } = useWorkspace();
   
@@ -488,12 +491,43 @@ export function WorkspaceInvitesPanel() {
 
                       <Button
                         variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1"
+                        onClick={() => {
+                          const check = checkResendLimit(invite.email);
+                          if (!check.allowed) {
+                            if (check.reason === 'cooldown') {
+                              toast.warning(`Aguarde ${check.retryAfterSec}s antes de reenviar`, {
+                                description: 'Limite para evitar spam na caixa do destinatário.',
+                              });
+                            } else {
+                              toast.warning('Limite diário de reenvios atingido para este email', {
+                                description: 'Tente novamente em 24h ou compartilhe o link diretamente.',
+                              });
+                            }
+                            return;
+                          }
+                          resendInvite.mutate(invite);
+                        }}
+                        disabled={resendInvite.isPending && resendInvite.variables?.id === invite.id}
+                      >
+                        {resendInvite.isPending && resendInvite.variables?.id === invite.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        <span className="hidden sm:inline">Reenviar</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => copyInviteLink(invite.token)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
+
 
                       <Button
                         variant="ghost"
