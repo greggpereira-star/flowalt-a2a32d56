@@ -24,9 +24,6 @@ verify_jwt = true
 [functions.send-email-notification]
 verify_jwt = false
 
-[functions.check-resend-status]
-verify_jwt = false
-
 [functions.integration-manager]
 verify_jwt = false
 
