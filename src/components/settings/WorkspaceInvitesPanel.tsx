@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite } from '@/hooks/useWorkspaceInvites';
+import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite, useResendWorkspaceInvite, checkResendLimit } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
