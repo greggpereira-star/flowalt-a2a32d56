@@ -108,6 +108,7 @@ export function WorkspaceInvitesPanel() {
   const { data: invites, isLoading } = useWorkspaceInvites();
   const createInvite = useCreateWorkspaceInvite();
   const revokeInvite = useRevokeWorkspaceInvite();
+  const resendInvite = useResendWorkspaceInvite();
   const { canManageWorkspace, canPromoteToOwner } = usePermissions();
   const { currentRole, currentWorkspace } = useWorkspace();
   
