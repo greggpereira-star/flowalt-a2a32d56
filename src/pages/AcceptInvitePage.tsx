@@ -103,11 +103,14 @@ export default function AcceptInvitePage() {
   };
 
   const handleGoToLogin = () => {
-    // Store invite token in sessionStorage for after login
+    // Store invite token in sessionStorage for after login (fallback if state is lost)
     if (token) {
       sessionStorage.setItem('pending_invite_token', token);
     }
-    navigate('/auth', { state: { from: location } });
+    // Pass a plain, serializable object (window.Location cannot be structured-cloned by history.pushState)
+    navigate('/auth', {
+      state: { from: { pathname: `/invite/${token}`, search: '' } },
+    });
   };
 
   // Auto-accept after login if we have a pending invite or if the user is already logged in with the correct email
