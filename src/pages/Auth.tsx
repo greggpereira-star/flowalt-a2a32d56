@@ -48,7 +48,13 @@ const Auth: React.FC = () => {
   useEffect(() => {
     if (user) {
       const from = (location.state as any)?.from;
-      const redirectTo = from ? `${from.pathname}${from.search || ''}` : '/';
+      const pendingToken = sessionStorage.getItem('pending_invite_token');
+      let redirectTo = '/';
+      if (pendingToken) {
+        redirectTo = `/invite/${pendingToken}`;
+      } else if (from?.pathname) {
+        redirectTo = `${from.pathname}${from.search || ''}`;
+      }
       navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, location]);
