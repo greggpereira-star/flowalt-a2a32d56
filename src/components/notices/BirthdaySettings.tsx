@@ -16,6 +16,7 @@ interface BirthdayFormData {
 
 export const BirthdaySettings: React.FC = () => {
   const { birthday, isLoading, saveBirthday } = useUserBirthday();
+  const { currentWorkspace } = useWorkspace();
 
   const { register, handleSubmit, setValue, watch } = useForm<BirthdayFormData>({
     defaultValues: {
@@ -32,12 +33,17 @@ export const BirthdaySettings: React.FC = () => {
   }, [birthday, setValue]);
 
   const visibility = watch('visibility');
+  const birthDate = watch('birth_date');
 
   const onSubmit = async (data: BirthdayFormData) => {
+    if (!currentWorkspace?.id) {
+      toast.error('Workspace ainda carregando. Aguarde e tente novamente.');
+      return;
+    }
     try {
       await saveBirthday.mutateAsync(data);
-    } catch (error) {
-      toast.error('Erro ao salvar aniversário');
+    } catch {
+      // onError in the mutation already toasts
     }
   };
 
