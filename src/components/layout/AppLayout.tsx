@@ -105,5 +105,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
       </SidebarInset>
 
     </SidebarProvider>
+    </AppLayoutContext.Provider>
   );
 };
