@@ -1,9 +1,9 @@
 import React from 'react';
 import { useUserBirthday } from '@/hooks/useNoticesModule';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Cake, Eye, Users, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
