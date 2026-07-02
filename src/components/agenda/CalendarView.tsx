@@ -70,6 +70,8 @@ import {
   startOfWeek,
   endOfWeek,
   isToday,
+  isBefore,
+  startOfDay,
   parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -455,13 +457,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
             const dayEvents = eventsByDay.get(dateKey) || [];
             const isCurrentMonth = isSameMonth(day, currentDate);
             const isCurrentDay = isToday(day);
+            const hasEvents = dayEvents.length > 0;
+            const isPastDay = isBefore(startOfDay(day), startOfDay(new Date())) && !isCurrentDay;
 
             return (
               <div
                 key={index}
                 className={cn(
-                  'min-h-[120px] p-2 flex flex-col gap-1 transition-all group',
-                  !isCurrentMonth ? 'bg-muted/[0.15] opacity-40' : 'bg-background hover:bg-muted/5',
+                  'relative min-h-[120px] p-2 flex flex-col gap-1 overflow-hidden transition-colors group',
+                  !isCurrentMonth ? 'bg-muted/[0.15] opacity-40' : 'bg-background hover:bg-muted/10',
+                  // Highlight days with events (dark-mode friendly)
+                  hasEvents && !isPastDay && 'bg-primary/[0.06] dark:bg-primary/10 ring-1 ring-inset ring-primary/20 dark:ring-primary/30',
+                  hasEvents && isPastDay && 'bg-muted/30 dark:bg-muted/20 ring-1 ring-inset ring-border/60',
                   'cursor-pointer border-t-0 border-l-0'
                 )}
                 onClick={() => handleDateClick(day)}
@@ -470,15 +477,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   <div
                     className={cn(
                       'text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg transition-all',
-                      isCurrentDay 
-                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-110' 
-                        : 'text-muted-foreground/70 group-hover:text-foreground'
+                      isCurrentDay
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-110'
+                        : hasEvents && !isPastDay
+                          ? 'text-primary dark:text-primary'
+                          : hasEvents && isPastDay
+                            ? 'text-foreground/70'
+                            : 'text-muted-foreground/70 group-hover:text-foreground'
                     )}
                   >
                     {format(day, 'd')}
                   </div>
-                  {dayEvents.length > 0 && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/20" />
+                  {hasEvents && (
+                    <div
+                      className={cn(
+                        'h-1.5 rounded-full',
+                        isPastDay
+                          ? 'w-1.5 bg-muted-foreground/40'
+                          : 'w-2 bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.6)]'
+                      )}
+                    />
                   )}
                 </div>
 
@@ -503,8 +521,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       <div
                         key={event.id}
                         className={cn(
-                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-all hover:scale-[1.02]',
-                          'bg-card shadow-sm hover:shadow-md border-border/60 hover:border-primary/30'
+                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-colors',
+                          'bg-card shadow-sm hover:bg-muted/40 border-border/60 hover:border-primary/40'
                         )}
                         onClick={(e) => handleEventClick(event as Event, e)}
                       >
