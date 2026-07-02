@@ -132,7 +132,7 @@ export const BirthdaySettings: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" disabled={saveBirthday.isPending}>
+          <Button type="submit" disabled={saveBirthday.isPending || !currentWorkspace?.id || !birthDate}>
             {saveBirthday.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
         </form>
