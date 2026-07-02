@@ -143,25 +143,27 @@ const CompleteProfilePage: React.FC = () => {
         avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       }
 
-      // Update profile
-      const updates: Record<string, any> = {};
-      if (birthday && !profileStatus?.hasBirthday) {
-        updates.birthday = birthday;
-      }
-      if (avatarUrl && avatarUrl !== profileStatus?.profile?.avatar_url) {
-        updates.avatar_url = avatarUrl;
-      }
+      // Upsert profile (invited users may not yet have a profiles row)
+      const finalBirthday = birthday || profileStatus?.profile?.birthday || null;
+      const finalAvatar = avatarUrl || profileStatus?.profile?.avatar_url || null;
 
-      if (Object.keys(updates).length > 0) {
-        updates.updated_at = new Date().toISOString();
+      const payload: Record<string, any> = {
+        id: user.id,
+        full_name:
+          profileStatus?.profile?.full_name ||
+          user.user_metadata?.full_name ||
+          user.email?.split('@')[0] ||
+          null,
+        birthday: finalBirthday,
+        avatar_url: finalAvatar,
+        updated_at: new Date().toISOString(),
+      };
 
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id);
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(payload as any, { onConflict: 'id' });
 
-        if (updateError) throw updateError;
-      }
+      if (upsertError) throw upsertError;
 
       // Invalidate cache and redirect
       await queryClient.invalidateQueries({ queryKey: ['profile-complete'] });
