@@ -161,7 +161,7 @@ const CompleteProfilePage: React.FC = () => {
 
       const { error: upsertError } = await supabase
         .from('profiles')
-        .upsert(payload, { onConflict: 'id' });
+        .upsert(payload as any, { onConflict: 'id' });
 
       if (upsertError) throw upsertError;
 
