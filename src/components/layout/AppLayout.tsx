@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +16,10 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
 import { GlobalModals } from './GlobalModals';
 
+// Context to detect nested AppLayout (route already wraps in one via ProtectedLayout).
+// Prevents duplicated headers/breadcrumb/sidebar in pages that still import <AppLayout>.
+const AppLayoutContext = createContext(false);
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -28,6 +32,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   const location = useLocation();
   const params = useParams();
   const searchParams = new URLSearchParams(location.search);
+  const alreadyInsideLayout = useContext(AppLayoutContext);
 
   // Use params or searchParams if props not provided
   const effectiveSpaceId = spaceId || params.spaceId;
@@ -44,7 +49,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   // Enable realtime notifications
   useRealtimeNotifications();
 
+  // If a parent already rendered AppLayout (ProtectedLayout does), just render children.
+  // Avoids duplicated sidebar, header, breadcrumb and the extra top spacing.
+  if (alreadyInsideLayout) {
+    return <>{children}</>;
+  }
+
   return (
+    <AppLayoutContext.Provider value={true}>
     <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
       <AppSidebar />
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
@@ -93,5 +105,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
       </SidebarInset>
 
     </SidebarProvider>
+    </AppLayoutContext.Provider>
   );
 };
