@@ -70,6 +70,8 @@ import {
   startOfWeek,
   endOfWeek,
   isToday,
+  isBefore,
+  startOfDay,
   parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
