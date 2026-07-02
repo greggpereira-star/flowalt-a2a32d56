@@ -521,8 +521,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       <div
                         key={event.id}
                         className={cn(
-                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-all hover:scale-[1.02]',
-                          'bg-card shadow-sm hover:shadow-md border-border/60 hover:border-primary/30'
+                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-colors',
+                          'bg-card shadow-sm hover:bg-muted/40 border-border/60 hover:border-primary/40'
                         )}
                         onClick={(e) => handleEventClick(event as Event, e)}
                       >
