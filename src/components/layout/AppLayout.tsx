@@ -32,6 +32,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   const location = useLocation();
   const params = useParams();
   const searchParams = new URLSearchParams(location.search);
+  const alreadyInsideLayout = useContext(AppLayoutContext);
 
   // Use params or searchParams if props not provided
   const effectiveSpaceId = spaceId || params.spaceId;
@@ -48,7 +49,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   // Enable realtime notifications
   useRealtimeNotifications();
 
+  // If a parent already rendered AppLayout (ProtectedLayout does), just render children.
+  // Avoids duplicated sidebar, header, breadcrumb and the extra top spacing.
+  if (alreadyInsideLayout) {
+    return <>{children}</>;
+  }
+
   return (
+    <AppLayoutContext.Provider value={true}>
     <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
       <AppSidebar />
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
