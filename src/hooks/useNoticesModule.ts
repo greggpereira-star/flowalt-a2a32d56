@@ -245,15 +245,33 @@ export function useUserBirthday() {
 
   const saveBirthday = useMutation({
     mutationFn: async (data: { birth_date: string; visibility: 'public' | 'team' | 'private' }) => {
-      if (!user?.id || !currentWorkspace?.id) throw new Error('Not authenticated');
-      const { error } = await (supabase as any)
+      if (!user?.id) throw new Error('Usuário não autenticado');
+      if (!currentWorkspace?.id) throw new Error('Workspace não carregado. Recarregue a página.');
+      if (!data.birth_date) throw new Error('Informe a data de nascimento');
+
+      const { error: bdayError } = await (supabase as any)
         .from('user_birthdays')
-        .upsert({ user_id: user.id, workspace_id: currentWorkspace.id, ...data }, { onConflict: 'user_id' });
-      if (error) throw error;
+        .upsert(
+          { user_id: user.id, workspace_id: currentWorkspace.id, ...data },
+          { onConflict: 'user_id' }
+        );
+      if (bdayError) throw bdayError;
+
+      // Keep profiles.birthday in sync so onboarding / profile completion stays consistent
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ birthday: data.birth_date, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      if (profileError) throw profileError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-birthday'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-complete'] });
       toast.success('Aniversário salvo');
+    },
+    onError: (err: any) => {
+      console.error('[saveBirthday] error:', err);
+      toast.error(err?.message || 'Erro ao salvar aniversário');
     },
   });
 
