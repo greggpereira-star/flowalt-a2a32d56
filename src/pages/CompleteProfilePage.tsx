@@ -165,6 +165,34 @@ const CompleteProfilePage: React.FC = () => {
 
       if (upsertError) throw upsertError;
 
+      // Also seed user_birthdays for the current workspace(s) so the notices module
+      // and the profile-completion status stay in sync from day one.
+      if (finalBirthday) {
+        try {
+          const { data: memberships } = await supabase
+            .from('workspace_members')
+            .select('workspace_id')
+            .eq('user_id', user.id)
+            .eq('is_active', true);
+
+          for (const m of memberships || []) {
+            await (supabase as any)
+              .from('user_birthdays')
+              .upsert(
+                {
+                  user_id: user.id,
+                  workspace_id: (m as any).workspace_id,
+                  birth_date: finalBirthday,
+                  visibility: 'team',
+                },
+                { onConflict: 'user_id' }
+              );
+          }
+        } catch (bdayErr) {
+          console.warn('[CompleteProfile] user_birthdays sync failed (non-blocking):', bdayErr);
+        }
+      }
+
       // Invalidate cache and redirect
       await queryClient.invalidateQueries({ queryKey: ['profile-complete'] });
       

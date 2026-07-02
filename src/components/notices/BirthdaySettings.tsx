@@ -1,9 +1,9 @@
 import React from 'react';
 import { useUserBirthday } from '@/hooks/useNoticesModule';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Cake, Eye, Users, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ interface BirthdayFormData {
 
 export const BirthdaySettings: React.FC = () => {
   const { birthday, isLoading, saveBirthday } = useUserBirthday();
+  const { currentWorkspace } = useWorkspace();
 
   const { register, handleSubmit, setValue, watch } = useForm<BirthdayFormData>({
     defaultValues: {
@@ -32,12 +33,17 @@ export const BirthdaySettings: React.FC = () => {
   }, [birthday, setValue]);
 
   const visibility = watch('visibility');
+  const birthDate = watch('birth_date');
 
   const onSubmit = async (data: BirthdayFormData) => {
+    if (!currentWorkspace?.id) {
+      toast.error('Workspace ainda carregando. Aguarde e tente novamente.');
+      return;
+    }
     try {
       await saveBirthday.mutateAsync(data);
-    } catch (error) {
-      toast.error('Erro ao salvar aniversário');
+    } catch {
+      // onError in the mutation already toasts
     }
   };
 
@@ -126,7 +132,7 @@ export const BirthdaySettings: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" disabled={saveBirthday.isPending}>
+          <Button type="submit" disabled={saveBirthday.isPending || !currentWorkspace?.id || !birthDate}>
             {saveBirthday.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
         </form>
