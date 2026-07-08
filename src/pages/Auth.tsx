@@ -162,48 +162,69 @@ const Auth: React.FC = () => {
   return (
     <div className="relative flex min-h-screen w-full overflow-hidden bg-background">
       {/* ============ LEFT — Brand panel ============ */}
-      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-[#0a0a0b] p-12 text-white lg:flex">
-        <div className="flowalt-aurora" />
-        <div className="absolute inset-0 flowalt-grid opacity-40" />
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 text-white lg:flex">
+        {/* Layered premium background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,#0f1024_0%,#07070c_55%,#050509_100%)]" />
+        <div
+          className="absolute -left-24 top-16 h-[520px] w-[520px] rounded-full opacity-60 blur-[120px]"
+          style={{ background: 'radial-gradient(circle, hsl(var(--brand-blue) / 0.55), transparent 70%)' }}
+        />
+        <div
+          className="absolute -right-16 bottom-8 h-[420px] w-[420px] rounded-full opacity-50 blur-[120px]"
+          style={{ background: 'radial-gradient(circle, hsl(var(--brand-magenta) / 0.5), transparent 70%)' }}
+        />
+        <div className="absolute inset-0 flowalt-grid opacity-[0.18]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.35)_100%)]" />
 
-        <div className="relative z-10">
-          <FlowaltLogo size={40} wordmarkClassName="text-white text-xl" />
+        <div className="relative z-10 flex items-center justify-between">
+          <FlowaltLogo size={38} wordmarkClassName="text-white text-xl tracking-tight" />
+          <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/60 backdrop-blur-md xl:inline-flex">
+            <Sparkles className="h-3 w-3" />
+            Premium
+          </span>
         </div>
 
-        <div className="relative z-10 max-w-lg space-y-8">
-          <div className="space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium tracking-wide text-white/80 backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-gradient" />
+        <div className="relative z-10 max-w-lg space-y-10">
+          <div className="space-y-6">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-gradient shadow-[0_0_10px_hsl(var(--brand-blue))]" />
               Fluxo de trabalho inteligente
             </span>
-            <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+            <h1 className="text-[2.75rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3.25rem]">
               Clareza, ação e progresso{' '}
               <span className="text-brand-gradient">sem atrito.</span>
             </h1>
-            <p className="max-w-md text-base leading-relaxed text-white/70">
+            <p className="max-w-md text-[15px] leading-relaxed text-white/60">
               O Flowalt não é uma ferramenta que controla pessoas — é um sistema
               que organiza o trabalho. Três lâminas, um só fluxo.
             </p>
           </div>
 
-          <ul className="space-y-3 text-sm text-white/80">
+          <ul className="space-y-2.5">
             {[
               { icon: Workflow, label: 'Etapas, processo e continuidade' },
               { icon: CheckCircle2, label: 'Do briefing à entrega — sem retrabalho' },
               { icon: Zap, label: 'Tecnologia humana, execução premium' },
             ].map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/5 backdrop-blur-md">
-                  <Icon className="h-4 w-4 text-white" />
+              <li
+                key={label}
+                className="group flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 text-sm text-white/80 backdrop-blur-md transition-colors hover:border-white/15 hover:bg-white/[0.04]"
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.04] ring-1 ring-inset ring-white/10">
+                  <Icon className="h-3.5 w-3.5 text-white/90" />
                 </span>
-                {label}
+                <span className="tracking-tight">{label}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="relative z-10 text-xs text-white/50">
-          © {new Date().getFullYear()} Flowalt · Alt Agency Partners
+        <div className="relative z-10 flex items-center justify-between text-[11px] tracking-wide text-white/40">
+          <span>© {new Date().getFullYear()} Flowalt · Alt Agency Partners</span>
+          <span className="hidden items-center gap-1.5 xl:inline-flex">
+            <span className="h-1 w-1 rounded-full bg-emerald-400/80 shadow-[0_0_8px_theme(colors.emerald.400)]" />
+            Todos os sistemas operacionais
+          </span>
         </div>
       </aside>
 
