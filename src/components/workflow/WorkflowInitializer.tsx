@@ -18,18 +18,17 @@ export const WorkflowInitializer: React.FC<WorkflowInitializerProps> = ({ childr
   const [isInitializing, setIsInitializing] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+  const { isError: workflowQueryError } = useDefaultWorkflow();
+
   useEffect(() => {
     const initializeWorkflow = async () => {
-      // Só inicializa se:
-      // 1. Tem workspace
-      // 2. Não está carregando
-      // 3. Não existe workflow padrão
-      // 4. Não está já inicializando
-      // 5. Não foi inicializado nesta sessão
+      // Only create when: workspace exists, query finished successfully,
+      // truly returned no default workflow, and we haven't already tried.
       if (
-        currentWorkspace?.id && 
-        !isLoadingWorkflow && 
-        !defaultWorkflow && 
+        currentWorkspace?.id &&
+        !isLoadingWorkflow &&
+        !workflowQueryError &&
+        !defaultWorkflow &&
         !isInitializing &&
         !initialized
       ) {
@@ -52,7 +51,7 @@ export const WorkflowInitializer: React.FC<WorkflowInitializerProps> = ({ childr
     };
 
     initializeWorkflow();
-  }, [currentWorkspace?.id, isLoadingWorkflow, defaultWorkflow, isInitializing, initialized]);
+  }, [currentWorkspace?.id, isLoadingWorkflow, workflowQueryError, defaultWorkflow, isInitializing, initialized]);
 
   // Reset quando trocar de workspace
   useEffect(() => {

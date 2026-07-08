@@ -158,16 +158,20 @@ export const useDefaultWorkflow = () => {
     queryFn: async () => {
       if (!currentWorkspace?.id) return null;
 
+      // Defensive: use order+limit(1) instead of .single() so any legacy
+      // duplicates don't error the query and trigger the initializer loop.
       const { data, error } = await supabase
         .from('workflows')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('is_default', true)
         .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
-      return data as Workflow | null;
+      return (data as Workflow) ?? null;
     },
     enabled: !!currentWorkspace?.id,
   });
