@@ -11189,6 +11189,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
+      complete_user_profile: {
+        Args: { p_avatar_url: string; p_birthday: string; p_full_name?: string }
+        Returns: Json
+      }
       compute_daily_snapshot: {
         Args: { p_workspace_id: string }
         Returns: Json
