@@ -214,8 +214,7 @@ const Auth: React.FC = () => {
 
         <div className="relative w-full max-w-md animate-fade-in">
           <div className="mb-8 flex flex-col items-center gap-3 lg:hidden">
-            <FlowaltLogo size={44} showWordmark={false} />
-            <FlowaltLogo size={0} showWordmark wordmarkClassName="text-2xl" />
+            <FlowaltLogo size={48} />
           </div>
 
 
