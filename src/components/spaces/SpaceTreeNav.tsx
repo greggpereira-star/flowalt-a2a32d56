@@ -128,8 +128,8 @@ const FolderItem: React.FC<FolderItemProps> = ({
   onDeleteView,
   currentUserId,
 }) => {
-  const { data: views, isLoading } = useFolderViews(folder.id);
-  const folderPermissions = useFolderPermissions(folder.id, folder.owner_id);
+  const { data: views, isLoading } = useFolderViews(isExpanded ? folder.id : undefined);
+  const folderPermissions = useFolderPermissions(isExpanded ? folder.id : undefined, folder.owner_id);
   
   const isPersonalFolder = folder.is_personal && folder.owner_id;
   const isOwnFolder = folder.owner_id === currentUserId;
@@ -286,7 +286,11 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   
-  const { data: folders, isLoading: foldersLoading } = useFolders(spaceId);
+  const [isSpaceCollapsed, setIsSpaceCollapsed] = useState(() => {
+    const saved = localStorage.getItem(`space-collapsed-${spaceId}`);
+    return saved === null ? true : saved === 'true';
+  });
+  const { data: folders, isLoading: foldersLoading } = useFolders(!isSpaceCollapsed ? spaceId : undefined);
   const { value: expandedFolders, setValue: setExpandedFolders } = useExpandedFolders(spaceId);
   
   const deleteFolder = useDeleteFolder();
@@ -303,11 +307,6 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
 
   const searchParams = new URLSearchParams(location.search);
   const currentViewId = searchParams.get('view');
-
-  const [isSpaceCollapsed, setIsSpaceCollapsed] = useState(() => {
-    const saved = localStorage.getItem(`space-collapsed-${spaceId}`);
-    return saved === 'true';
-  });
 
   useEffect(() => {
     localStorage.setItem(`space-collapsed-${spaceId}`, String(isSpaceCollapsed));
