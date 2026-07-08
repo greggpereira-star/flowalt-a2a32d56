@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowRight, Sparkles, CheckCircle2, Zap, Workflow } from 'lucide-react';
 import { FlowaltLogo } from '@/components/brand/FlowaltLogo';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -34,6 +35,7 @@ const Auth: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [forgotOpen, setForgotOpen] = useState(false);
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -251,7 +253,16 @@ const Auth: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Senha</Label>
+                      <button
+                        type="button"
+                        onClick={() => setForgotOpen(true)}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </div>
                     <Input
                       id="login-password"
                       type="password"
@@ -342,6 +353,12 @@ const Auth: React.FC = () => {
         </p>
         </div>
       </main>
+
+      <ForgotPasswordDialog
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        defaultEmail={loginEmail}
+      />
     </div>
   );
 };
