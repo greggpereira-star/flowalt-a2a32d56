@@ -97,6 +97,15 @@
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 14% 98%));
     --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 14% 99%) 100%);
 
+    /* ===== FLOWALT BRAND — Cor como energia em movimento ===== */
+    --brand-blue: 222 89% 55%;       /* #2563EB */
+    --brand-pink: 330 82% 60%;       /* #EC4899 */
+    --brand-mint: 160 65% 65%;       /* #6EE7B7 */
+    --brand-magenta: 290 75% 55%;    /* #B846D9 */
+    --gradient-brand: linear-gradient(120deg, hsl(290 75% 55%) 0%, hsl(330 82% 60%) 35%, hsl(160 65% 65%) 70%, hsl(222 89% 55%) 100%);
+    --gradient-brand-soft: linear-gradient(120deg, hsl(290 75% 55% / 0.12) 0%, hsl(330 82% 60% / 0.12) 35%, hsl(160 65% 65% / 0.12) 70%, hsl(222 89% 55% / 0.12) 100%);
+    --shadow-brand: 0 20px 60px -20px hsl(222 89% 55% / 0.35), 0 8px 24px -12px hsl(330 82% 60% / 0.25);
+
     /* ===== SOMBRAS ===== */
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.03);
     --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.05), 0 2px 4px -2px hsl(220 20% 10% / 0.03);
