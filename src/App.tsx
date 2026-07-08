@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,9 +9,6 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
 
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { CommandPalette } from "@/components/command/CommandPalette";
-import { KeyboardShortcutsDialog } from "@/components/command/KeyboardShortcutsDialog";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -51,6 +49,10 @@ import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
 import { ApprovalDetailPage } from "./pages/altcontrol/ApprovalDetailPage";
 import { ContractDetailPage } from "./pages/altcontrol/ContractDetailPage";
 
+const OnboardingTour = lazy(() => import("@/components/onboarding/OnboardingTour").then(module => ({ default: module.OnboardingTour })));
+const CommandPalette = lazy(() => import("@/components/command/CommandPalette").then(module => ({ default: module.CommandPalette })));
+const KeyboardShortcutsDialog = lazy(() => import("@/components/command/KeyboardShortcutsDialog").then(module => ({ default: module.KeyboardShortcutsDialog })));
+
 const queryClient = new QueryClient();
 
 const ProtectedLayout = () => (
@@ -64,15 +66,26 @@ const ProtectedLayout = () => (
 // Helper component to ensure tools are only rendered when authenticated
 const ConditionalTools = () => {
   const { session, loading } = useAuth();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (loading || !session) {
+      setReady(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setReady(true), 1800);
+    return () => window.clearTimeout(timer);
+  }, [loading, session]);
   
-  if (loading || !session) return null;
+  if (loading || !session || !ready) return null;
 
   return (
-    <>
+    <Suspense fallback={null}>
       <OnboardingTour />
       <CommandPalette />
       <KeyboardShortcutsDialog />
-    </>
+    </Suspense>
   );
 };
 
