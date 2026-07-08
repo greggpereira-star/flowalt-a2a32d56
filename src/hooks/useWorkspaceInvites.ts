@@ -316,6 +316,7 @@ export function useAcceptWorkspaceInvite() {
       if (result?.success === false) {
         const friendlyErrors: Record<string, string> = {
           NOT_AUTHENTICATED: 'Faça login para aceitar o convite.',
+          EMAIL_NOT_AVAILABLE: 'Não foi possível validar o email da sessão. Faça login novamente.',
           INVITE_NOT_FOUND: 'Convite não encontrado.',
           INVITE_EXPIRED: 'Este convite expirou. Solicite um novo convite.',
           INVITE_REVOKED: 'Este convite foi revogado.',
