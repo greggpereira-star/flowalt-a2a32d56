@@ -36,12 +36,12 @@ export const FlowaltLogo: React.FC<FlowaltLogoProps> = ({
       {showWordmark && (
         <span
           className={cn(
-            'font-semibold tracking-tight text-foreground',
-            'text-[1.15rem] leading-none',
+            'font-bold tracking-tight text-foreground',
+            'text-[1.2rem] leading-none',
             wordmarkClassName,
           )}
         >
-          Flow<span className="text-brand-gradient font-bold">alt</span>
+          FlowAlt
         </span>
       )}
     </div>
