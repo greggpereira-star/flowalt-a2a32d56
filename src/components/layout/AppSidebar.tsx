@@ -118,11 +118,8 @@ export const AppSidebar: React.FC = () => {
   return (
     <Sidebar className="border-r border-sidebar-border" data-tour="sidebar">
       <SidebarHeader className="p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight">Flowalt</span>
+        <div className="mb-4 flex items-center">
+          <FlowaltLogo size={30} wordmarkClassName="text-[1.05rem]" />
         </div>
 
         <DropdownMenu>
