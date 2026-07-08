@@ -215,6 +215,15 @@
     --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.45), 0 8px 10px -6px hsl(0 0% 0% / 0.25);
     --shadow-glow: 0 0 24px hsl(235 85% 70% / 0.18);
     --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 1px 2px hsl(0 0% 0% / 0.2);
+
+    /* ===== FLOWALT BRAND (dark) ===== */
+    --brand-blue: 222 90% 62%;
+    --brand-pink: 330 85% 66%;
+    --brand-mint: 160 70% 68%;
+    --brand-magenta: 290 78% 62%;
+    --gradient-brand: linear-gradient(120deg, hsl(290 78% 62%) 0%, hsl(330 85% 66%) 35%, hsl(160 70% 68%) 70%, hsl(222 90% 62%) 100%);
+    --gradient-brand-soft: linear-gradient(120deg, hsl(290 78% 62% / 0.18) 0%, hsl(330 85% 66% / 0.18) 35%, hsl(160 70% 68% / 0.18) 70%, hsl(222 90% 62% / 0.18) 100%);
+    --shadow-brand: 0 24px 70px -20px hsl(222 90% 62% / 0.45), 0 10px 30px -12px hsl(290 78% 62% / 0.35);
   }
 
   /* Suaviza transição entre temas — evita "flash" agressivo nas superfícies */
