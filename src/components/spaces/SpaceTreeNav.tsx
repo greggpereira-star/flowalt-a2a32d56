@@ -477,23 +477,27 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
       )}
 
       {/* Create Folder Dialog */}
-      <CreateFolderWithTemplateDialog
-        open={createFolderOpen}
-        onOpenChange={setCreateFolderOpen}
-        spaceId={spaceId}
-        spaceType={spaceType}
-      />
+      {createFolderOpen && (
+        <CreateFolderWithTemplateDialog
+          open={createFolderOpen}
+          onOpenChange={setCreateFolderOpen}
+          spaceId={spaceId}
+          spaceType={spaceType}
+        />
+      )}
 
       {/* Create View Dialog */}
-      <CreateViewDialog
-        open={createViewOpen}
-        onOpenChange={setCreateViewOpen}
-        folderId={selectedFolderId}
-        spaceType={spaceType}
-        onSuccess={(viewId, viewType) => {
-          handleViewSelect(viewId, viewType);
-        }}
-      />
+      {createViewOpen && (
+        <CreateViewDialog
+          open={createViewOpen}
+          onOpenChange={setCreateViewOpen}
+          folderId={selectedFolderId}
+          spaceType={spaceType}
+          onSuccess={(viewId, viewType) => {
+            handleViewSelect(viewId, viewType);
+          }}
+        />
+      )}
 
       {/* Delete Folder Confirmation */}
       {deleteFolderDialog && (
@@ -522,11 +526,13 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
       )}
 
       {/* Edit Folder Dialog */}
-      <EditFolderDialog
-        open={!!editFolderDialog?.open}
-        onOpenChange={(open) => !open && setEditFolderDialog(null)}
-        folder={editFolderDialog?.folder || null}
-      />
+      {editFolderDialog?.open && (
+        <EditFolderDialog
+          open={!!editFolderDialog?.open}
+          onOpenChange={(open) => !open && setEditFolderDialog(null)}
+          folder={editFolderDialog?.folder || null}
+        />
+      )}
 
       {/* Delete View Confirmation */}
       {deleteViewDialog && (
@@ -555,14 +561,16 @@ export const SpaceTreeNav: React.FC<SpaceTreeNavProps> = ({
       )}
 
       {/* Save as Template Dialog */}
-      <SaveSpaceAsTemplateDialog
-        open={saveTemplateOpen}
-        onOpenChange={setSaveTemplateOpen}
-        spaceId={spaceId}
-        spaceName={spaceName}
-        spaceIcon={spaceIcon}
-        spaceColor={spaceColor || '#6366f1'}
-      />
+      {saveTemplateOpen && (
+        <SaveSpaceAsTemplateDialog
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+          spaceId={spaceId}
+          spaceName={spaceName}
+          spaceIcon={spaceIcon}
+          spaceColor={spaceColor || '#6366f1'}
+        />
+      )}
     </div>
   );
 };
