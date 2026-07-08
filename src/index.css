@@ -97,6 +97,15 @@
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 14% 98%));
     --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 14% 99%) 100%);
 
+    /* ===== FLOWALT BRAND — Cor como energia em movimento ===== */
+    --brand-blue: 222 89% 55%;       /* #2563EB */
+    --brand-pink: 330 82% 60%;       /* #EC4899 */
+    --brand-mint: 160 65% 65%;       /* #6EE7B7 */
+    --brand-magenta: 290 75% 55%;    /* #B846D9 */
+    --gradient-brand: linear-gradient(120deg, hsl(290 75% 55%) 0%, hsl(330 82% 60%) 35%, hsl(160 65% 65%) 70%, hsl(222 89% 55%) 100%);
+    --gradient-brand-soft: linear-gradient(120deg, hsl(290 75% 55% / 0.12) 0%, hsl(330 82% 60% / 0.12) 35%, hsl(160 65% 65% / 0.12) 70%, hsl(222 89% 55% / 0.12) 100%);
+    --shadow-brand: 0 20px 60px -20px hsl(222 89% 55% / 0.35), 0 8px 24px -12px hsl(330 82% 60% / 0.25);
+
     /* ===== SOMBRAS ===== */
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.03);
     --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.05), 0 2px 4px -2px hsl(220 20% 10% / 0.03);
@@ -206,6 +215,15 @@
     --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.45), 0 8px 10px -6px hsl(0 0% 0% / 0.25);
     --shadow-glow: 0 0 24px hsl(235 85% 70% / 0.18);
     --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 1px 2px hsl(0 0% 0% / 0.2);
+
+    /* ===== FLOWALT BRAND (dark) ===== */
+    --brand-blue: 222 90% 62%;
+    --brand-pink: 330 85% 66%;
+    --brand-mint: 160 70% 68%;
+    --brand-magenta: 290 78% 62%;
+    --gradient-brand: linear-gradient(120deg, hsl(290 78% 62%) 0%, hsl(330 85% 66%) 35%, hsl(160 70% 68%) 70%, hsl(222 90% 62%) 100%);
+    --gradient-brand-soft: linear-gradient(120deg, hsl(290 78% 62% / 0.18) 0%, hsl(330 85% 66% / 0.18) 35%, hsl(160 70% 68% / 0.18) 70%, hsl(222 90% 62% / 0.18) 100%);
+    --shadow-brand: 0 24px 70px -20px hsl(222 90% 62% / 0.45), 0 10px 30px -12px hsl(290 78% 62% / 0.35);
   }
 
   /* Suaviza transição entre temas — evita "flash" agressivo nas superfícies */
@@ -912,4 +930,53 @@
 }
 .card-section:first-of-type {
   padding-top: 0.5rem;
+}
+
+/* ============================================================
+ * FlowAlt Brand utilities
+ * ============================================================ */
+.bg-brand-gradient {
+  background-image: var(--gradient-brand);
+}
+.bg-brand-gradient-soft {
+  background-image: var(--gradient-brand-soft);
+}
+.text-brand-gradient {
+  background-image: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.shadow-brand {
+  box-shadow: var(--shadow-brand);
+}
+.ring-brand {
+  box-shadow: 0 0 0 1px hsl(var(--brand-blue) / 0.4), 0 0 0 4px hsl(var(--brand-blue) / 0.12);
+}
+
+/* Animated aurora backdrop for premium surfaces (login, splash) */
+@keyframes flowalt-aurora {
+  0%   { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1.05); }
+  50%  { transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.12); }
+  100% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1.05); }
+}
+.flowalt-aurora {
+  position: absolute;
+  inset: -20%;
+  background: var(--gradient-brand);
+  filter: blur(80px) saturate(140%);
+  opacity: 0.55;
+  animation: flowalt-aurora 18s ease-in-out infinite;
+  pointer-events: none;
+}
+.dark .flowalt-aurora { opacity: 0.35; }
+
+/* Subtle grid overlay */
+.flowalt-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
 }

@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, Sparkles, CheckCircle2, Zap, Workflow } from 'lucide-react';
+import { FlowaltLogo } from '@/components/brand/FlowaltLogo';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -157,24 +158,65 @@ const Auth: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* Background decoration */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-1/4 -right-1/4 h-1/2 w-1/2 rounded-full bg-primary/5 blur-3xl" />
-      </div>
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-background">
+      {/* ============ LEFT — Brand panel ============ */}
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-[#0a0a0b] p-12 text-white lg:flex">
+        <div className="flowalt-aurora" />
+        <div className="absolute inset-0 flowalt-grid opacity-40" />
 
-      <div className="relative w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="text-lg font-semibold text-primary">Flowalt</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Organize o trabalho, não controle pessoas.
-          </p>
+        <div className="relative z-10">
+          <FlowaltLogo size={40} wordmarkClassName="text-white text-xl" />
         </div>
+
+        <div className="relative z-10 max-w-lg space-y-8">
+          <div className="space-y-4">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium tracking-wide text-white/80 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-gradient" />
+              Fluxo de trabalho inteligente
+            </span>
+            <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+              Clareza, ação e progresso{' '}
+              <span className="text-brand-gradient">sem atrito.</span>
+            </h1>
+            <p className="max-w-md text-base leading-relaxed text-white/70">
+              O Flowalt não é uma ferramenta que controla pessoas — é um sistema
+              que organiza o trabalho. Três lâminas, um só fluxo.
+            </p>
+          </div>
+
+          <ul className="space-y-3 text-sm text-white/80">
+            {[
+              { icon: Workflow, label: 'Etapas, processo e continuidade' },
+              { icon: CheckCircle2, label: 'Do briefing à entrega — sem retrabalho' },
+              { icon: Zap, label: 'Tecnologia humana, execução premium' },
+            ].map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/5 backdrop-blur-md">
+                  <Icon className="h-4 w-4 text-white" />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="relative z-10 text-xs text-white/50">
+          © {new Date().getFullYear()} Flowalt · Alt Agency Partners
+        </div>
+      </aside>
+
+      {/* ============ RIGHT — Auth panel ============ */}
+      <main className="relative flex w-full flex-1 items-center justify-center p-6 sm:p-10">
+        {/* Ambient background for mobile */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden lg:hidden">
+          <div className="flowalt-aurora opacity-30" />
+        </div>
+
+        <div className="relative w-full max-w-md animate-fade-in">
+          <div className="mb-8 flex flex-col items-center gap-3 lg:hidden">
+            <FlowaltLogo size={48} />
+          </div>
+
 
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
@@ -298,7 +340,8 @@ const Auth: React.FC = () => {
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
         </p>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
