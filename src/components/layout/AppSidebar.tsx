@@ -100,6 +100,8 @@ export const AppSidebar: React.FC = () => {
   const hasIntegrationAccess = isAdmin || isCoordinator;
   const hasSocialPublish = has('social_publish');
   const managementItems = getManagementItems(hasIntegrationAccess, hasSocialPublish);
+  const visibleSpaces = spaces?.slice(0, 6) || [];
+  const hiddenSpacesCount = Math.max((spaces?.length || 0) - visibleSpaces.length, 0);
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')
@@ -193,18 +195,30 @@ export const AppSidebar: React.FC = () => {
                   <Skeleton className="h-8 w-full mb-1" />
                   <Skeleton className="h-8 w-full" />
                 </>
-              ) : spaces && spaces.length > 0 ? (
-                spaces.map((space) => (
-                  <SidebarMenuItem key={space.id}>
-                    <SpaceTreeNav
-                      spaceId={space.id}
-                      spaceName={space.name}
-                      spaceColor={space.color}
-                      spaceIcon={space.icon}
-                      spaceType={space.type}
-                    />
-                  </SidebarMenuItem>
-                ))
+              ) : visibleSpaces.length > 0 ? (
+                <>
+                  {visibleSpaces.map((space) => (
+                    <SidebarMenuItem key={space.id}>
+                      <SpaceTreeNav
+                        spaceId={space.id}
+                        spaceName={space.name}
+                        spaceColor={space.color}
+                        spaceIcon={space.icon}
+                        spaceType={space.type}
+                      />
+                    </SidebarMenuItem>
+                  ))}
+                  {hiddenSpacesCount > 0 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/settings?tab=spaces">
+                          <Plus className="h-4 w-4" />
+                          <span>Ver mais {hiddenSpacesCount}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </>
               ) : (
                 <p className="px-2 py-1 text-xs text-muted-foreground">
                   Nenhum espaço
