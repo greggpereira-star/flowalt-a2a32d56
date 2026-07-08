@@ -13,6 +13,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NewWorkspace = lazy(() => import("./pages/NewWorkspace"));
 const SpacePage = lazy(() => import("./pages/SpacePage"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -110,6 +111,7 @@ const App = () => (
                 {/* Public Routes */}
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/data-deletion" element={<DataDeletionPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
