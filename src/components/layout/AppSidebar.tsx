@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FlowaltLogo } from '@/components/brand/FlowaltLogo';
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/' },
