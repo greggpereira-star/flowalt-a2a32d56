@@ -311,11 +311,26 @@ export function useAcceptWorkspaceInvite() {
       });
 
       if (error) throw error;
+
+      const result = data as { success?: boolean; error?: string; message?: string } | null;
+      if (result?.success === false) {
+        const friendlyErrors: Record<string, string> = {
+          NOT_AUTHENTICATED: 'Faça login para aceitar o convite.',
+          INVITE_NOT_FOUND: 'Convite não encontrado.',
+          INVITE_EXPIRED: 'Este convite expirou. Solicite um novo convite.',
+          INVITE_REVOKED: 'Este convite foi revogado.',
+          INVITE_ALREADY_USED: 'Este convite já foi utilizado.',
+          EMAIL_MISMATCH: 'Este convite pertence a outro email. Entre com o email convidado.',
+        };
+        throw new Error(friendlyErrors[result.error || ''] || result.error || 'Erro ao aceitar convite');
+      }
+
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      refreshWorkspaces();
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      await refreshWorkspaces();
+      await queryClient.invalidateQueries({ queryKey: ['profile-complete'] });
       toast.success('Convite aceito! Você foi adicionado ao workspace.');
     },
     onError: (error: Error) => {

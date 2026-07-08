@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop, { Crop, PixelCrop, centerCrop, convertToPixelCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -123,15 +123,20 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, aspectRatio));
+    const initialCrop = centerAspectCrop(width, height, aspectRatio);
+    setCrop(initialCrop);
+    setCompletedCrop(convertToPixelCrop(initialCrop, width, height));
   }, [aspectRatio]);
 
   const handleConfirm = async () => {
-    if (!completedCrop || !imgRef.current) return;
+    if (!imgRef.current) return;
+
+    const cropToProcess = completedCrop || (crop ? convertToPixelCrop(crop, imgRef.current.width, imgRef.current.height) : undefined);
+    if (!cropToProcess) return;
 
     setIsProcessing(true);
     try {
-      const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
+      const croppedBlob = await getCroppedImg(imgRef.current, cropToProcess);
       onCropComplete(croppedBlob);
       onOpenChange(false);
     } catch (error) {
@@ -145,7 +150,9 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     setScale(1);
     if (imgRef.current) {
       const { width, height } = imgRef.current;
-      setCrop(centerAspectCrop(width, height, aspectRatio));
+      const resetCrop = centerAspectCrop(width, height, aspectRatio);
+      setCrop(resetCrop);
+      setCompletedCrop(convertToPixelCrop(resetCrop, width, height));
     }
   };
 
