@@ -81,11 +81,12 @@ export const OnboardingTour: React.FC = () => {
     completeStep,
     skipOnboarding,
   } = useOnboarding();
-  const { earnBadge, hasBadge } = useBadges();
+  const { earnBadge, hasBadge, isLoading: badgesLoading } = useBadges();
 
   const [showWelcome, setShowWelcome] = useState(false);
   const [tourStarted, setTourStarted] = useState(false);
   const [newBadge, setNewBadge] = useState<string | null>(null);
+  const firstLoginAttempted = useRef(false);
 
   // Check if we should show the welcome modal
   useEffect(() => {
@@ -94,16 +95,22 @@ export const OnboardingTour: React.FC = () => {
     }
   }, [isLoading, shouldShowOnboarding, currentWorkspace]);
 
-  // Award first login badge
+  // Award first login badge (once per session/workspace)
   useEffect(() => {
-    if (currentWorkspace && !hasBadge('first_login')) {
-      earnBadge.mutate('first_login', {
-        onSuccess: (data) => {
-          if (data) setNewBadge('first_login');
-        },
-      });
+    if (!currentWorkspace?.id || badgesLoading) return;
+    if (firstLoginAttempted.current) return;
+    if (hasBadge('first_login')) {
+      firstLoginAttempted.current = true;
+      return;
     }
-  }, [currentWorkspace, hasBadge]);
+    firstLoginAttempted.current = true;
+    earnBadge.mutate('first_login', {
+      onSuccess: (data) => {
+        if (data) setNewBadge('first_login');
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?.id, badgesLoading]);
 
   // Start the tour
   const startTour = async () => {
