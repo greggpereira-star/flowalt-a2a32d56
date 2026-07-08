@@ -341,7 +341,8 @@ const Auth: React.FC = () => {
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
         </p>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
