@@ -17,23 +17,29 @@ const FeedbackWidget = lazy(() => import('@/components/feedback/FeedbackWidget')
 const OverLimitBanner = lazy(() => import('@/components/billing/OverLimitBanner').then(module => ({ default: module.OverLimitBanner })));
 const GlobalModals = lazy(() => import('./GlobalModals').then(module => ({ default: module.GlobalModals })));
 
-const DeferredLayoutTools: React.FC = () => {
+const DeferredMount: React.FC<{ children: React.ReactNode; delay?: number }> = ({ children, delay = 1200 }) => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setReady(true), 1200);
+    const timer = window.setTimeout(() => setReady(true), delay);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [delay]);
 
   if (!ready) return null;
 
+  return <>{children}</>;
+};
+
+const DeferredLayoutTools: React.FC = () => {
   return (
-    <Suspense fallback={null}>
-      <FeedbackWidget />
-      <NotificationToast />
-      <MyBirthdayCelebration />
-      <GlobalModals />
-    </Suspense>
+    <DeferredMount delay={1800}>
+      <Suspense fallback={null}>
+        <FeedbackWidget />
+        <NotificationToast />
+        <MyBirthdayCelebration />
+        <GlobalModals />
+      </Suspense>
+    </DeferredMount>
   );
 };
 
@@ -82,9 +88,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
       <AppSidebar />
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
         {/* Over Limit Banner - Global */}
-        <Suspense fallback={null}>
-          <OverLimitBanner />
-        </Suspense>
+        <DeferredMount delay={2200}>
+          <Suspense fallback={null}>
+            <OverLimitBanner />
+          </Suspense>
+        </DeferredMount>
 
         {/* Header */}
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -101,15 +109,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
           </div>
           <div className="flex items-center gap-2 px-4 shrink-0">
             <div className="hidden md:flex items-center gap-2">
-              <Suspense fallback={null}>
-                <BadgeProgress compact />
-              </Suspense>
+              <DeferredMount delay={2200}>
+                <Suspense fallback={null}>
+                  <BadgeProgress compact />
+                </Suspense>
+              </DeferredMount>
               <Separator orientation="vertical" className="h-6" />
             </div>
             <ThemeToggle />
-            <Suspense fallback={null}>
-              <UnifiedAlertsCenter />
-            </Suspense>
+            <DeferredMount delay={2200}>
+              <Suspense fallback={null}>
+                <UnifiedAlertsCenter />
+              </Suspense>
+            </DeferredMount>
           </div>
         </header>
 
