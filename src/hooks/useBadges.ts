@@ -122,6 +122,9 @@ export const BADGE_DEFINITIONS: Record<string, Omit<Badge, 'id' | 'earnedAt'>> =
   },
 };
 
+// Module-level guard to prevent duplicate DB writes across renders/components
+const badgeAttempts = new Set<string>();
+
 export function useBadges() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -142,6 +145,10 @@ export function useBadges() {
       return data as UserBadge[];
     },
     enabled: !!user?.id && !!currentWorkspace?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const earnedBadges: Badge[] = userBadges.map(ub => ({
@@ -167,6 +174,10 @@ export function useBadges() {
       const existing = userBadges.find(b => b.badge_type === badgeType);
       if (existing) return null;
 
+      const attemptKey = `${user.id}:${currentWorkspace.id}:${badgeType}`;
+      if (badgeAttempts.has(attemptKey)) return null;
+      badgeAttempts.add(attemptKey);
+
       // Use upsert with ON CONFLICT to handle race conditions
       const { data, error } = await supabase
         .from('user_badges')
@@ -184,7 +195,10 @@ export function useBadges() {
         .select()
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        badgeAttempts.delete(attemptKey);
+        throw error;
+      }
 
       // Only create notification if we actually inserted a new badge
       if (data) {
@@ -200,9 +214,11 @@ export function useBadges() {
 
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-badges', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    onSuccess: (data) => {
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: ['user-badges', user?.id] });
+        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      }
     },
   });
 
