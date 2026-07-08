@@ -1,17 +1,24 @@
 {
-  "name": "Flowalt - Gestão Jurídica",
+  "name": "Flowalt — Fluxo de trabalho inteligente",
   "short_name": "Flowalt",
-  "description": "Sistema completo de gestão para escritórios de advocacia",
+  "description": "Organize o trabalho, não controle pessoas. Fluxo, execução e progresso sem atrito.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0b",
-  "theme_color": "#7c3aed",
+  "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/flowalt-symbol.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/flowalt-symbol.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-192.png",
@@ -34,14 +41,14 @@
       "short_name": "Dashboard",
       "description": "Ver painel principal",
       "url": "/dashboard",
-      "icons": [{ "src": "/favicon.ico", "sizes": "64x64" }]
+      "icons": [{ "src": "/flowalt-symbol.png", "sizes": "512x512" }]
     },
     {
       "name": "Agenda",
       "short_name": "Agenda",
       "description": "Ver compromissos",
       "url": "/calendar",
-      "icons": [{ "src": "/favicon.ico", "sizes": "64x64" }]
+      "icons": [{ "src": "/flowalt-symbol.png", "sizes": "512x512" }]
     }
   ],
   "related_applications": [],
