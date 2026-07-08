@@ -87,20 +87,35 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
+      const storedWorkspaceId = typeof window !== 'undefined'
+        ? window.localStorage.getItem(`current-workspace-${user.id}`)
+        : null;
       const workspaceIds = members.map((m) => m.workspace_id);
+      const preferredWorkspaceId = storedWorkspaceId && workspaceIds.includes(storedWorkspaceId)
+        ? storedWorkspaceId
+        : workspaceIds[0];
+      const orderedWorkspaceIds = [
+        preferredWorkspaceId,
+        ...workspaceIds.filter((id) => id !== preferredWorkspaceId),
+      ];
 
       const { data: workspacesData, error: workspacesError } = await supabase
         .from('workspaces')
         .select('*')
-        .in('id', workspaceIds)
+        .in('id', orderedWorkspaceIds)
         .eq('status', 'active');
 
       if (workspacesError) throw workspacesError;
 
-      setWorkspaces(workspacesData || []);
+      const workspaceById = new Map((workspacesData || []).map((workspace) => [workspace.id, workspace]));
+      const orderedWorkspaces = orderedWorkspaceIds
+        .map((id) => workspaceById.get(id))
+        .filter(Boolean) as Workspace[];
 
-      if (!currentWorkspace && workspacesData && workspacesData.length > 0) {
-        setCurrentWorkspace(workspacesData[0]);
+      setWorkspaces(orderedWorkspaces);
+
+      if (!currentWorkspace && orderedWorkspaces.length > 0) {
+        setCurrentWorkspace(orderedWorkspaces[0]);
       }
     } catch (error) {
       console.error('Error fetching workspaces:', error);
@@ -122,21 +137,23 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setRoleLoading(true);
 
       try {
-        const { data: memberData } = await supabase
-          .from('workspace_members')
-          .select('id, function_title, department, is_active')
-          .eq('user_id', user.id)
-          .eq('workspace_id', currentWorkspace.id)
-          .maybeSingle();
+        const [memberResult, roleResult] = await Promise.all([
+          supabase
+            .from('workspace_members')
+            .select('id, function_title, department, is_active')
+            .eq('user_id', user.id)
+            .eq('workspace_id', currentWorkspace.id)
+            .maybeSingle(),
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('workspace_id', currentWorkspace.id)
+            .maybeSingle(),
+        ]);
 
-        setCurrentMember(memberData);
-
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('workspace_id', currentWorkspace.id)
-          .maybeSingle();
+        setCurrentMember(memberResult.data);
+        const roleData = roleResult.data;
 
         setCurrentRole(roleData?.role as AppRole || null);
       } catch (error) {
@@ -158,6 +175,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     fetchWorkspaces();
   }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!user?.id || !currentWorkspace?.id || typeof window === 'undefined') return;
+    window.localStorage.setItem(`current-workspace-${user.id}`, currentWorkspace.id);
+  }, [user?.id, currentWorkspace?.id]);
 
   // Combined loading: both workspace and role must be loaded
   const isFullyLoaded = !loading && !roleLoading;

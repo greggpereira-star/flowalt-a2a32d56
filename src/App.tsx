@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,50 +9,58 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
 
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { CommandPalette } from "@/components/command/CommandPalette";
-import { KeyboardShortcutsDialog } from "@/components/command/KeyboardShortcutsDialog";
 import { AppLayout } from "@/components/layout/AppLayout";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NewWorkspace from "./pages/NewWorkspace";
-import SpacePage from "./pages/SpacePage";
-import Dashboard from "./pages/Dashboard";
-import TasksPage from "./pages/TasksPage";
-import TimePage from "./pages/TimePage";
-import CoordinationPage from "./pages/CoordinationPage";
-import AgendaPage from "./pages/AgendaPage";
-import FinancialPage from "./pages/FinancialPage";
-import PartnersPage from "./pages/PartnersPage";
-import SettingsPage from "./pages/SettingsPage";
-import IntegrationsPage from "./pages/IntegrationsPage";
-import GamificationPage from "./pages/GamificationPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import PeopleAnalyticsPage from "./pages/PeopleAnalyticsPage";
-import ClientsPage from "./pages/ClientsPage";
-import PluggyOAuthCallback from "./pages/PluggyOAuthCallback";
-import AcceptInvitePage from "./pages/AcceptInvitePage";
-import FirstAccessPage from "./pages/FirstAccessPage";
-import PlatformAdminPage from "./pages/PlatformAdminPage";
-import SecurityAuditPage from "./pages/SecurityAuditPage";
-import MarketingPage from "./pages/MarketingPage";
-import OAuthBridgePage from "./pages/OAuthBridgePage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import DataDeletionPage from "./pages/DataDeletionPage";
-import TermsOfServicePage from "./pages/TermsOfServicePage";
-import BirthdaysPage from "./pages/BirthdaysPage";
-import CompleteProfilePage from "./pages/CompleteProfilePage";
-import NotFound from "./pages/NotFound";
-import LandingPage from "./pages/LandingPage";
-import IdeasBankPage from "./pages/IdeasBankPage";
-import PublicBoardPage from "./pages/PublicBoardPage";
-import { AltControlPage } from "./pages/altcontrol/AltControlPage";
-import { NewProposalPage } from "./pages/altcontrol/NewProposalPage";
-import { ProposalDetailPage } from "./pages/altcontrol/ProposalDetailPage";
-import { ApprovalDetailPage } from "./pages/altcontrol/ApprovalDetailPage";
-import { ContractDetailPage } from "./pages/altcontrol/ContractDetailPage";
+
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NewWorkspace = lazy(() => import("./pages/NewWorkspace"));
+const SpacePage = lazy(() => import("./pages/SpacePage"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
+const TimePage = lazy(() => import("./pages/TimePage"));
+const CoordinationPage = lazy(() => import("./pages/CoordinationPage"));
+const AgendaPage = lazy(() => import("./pages/AgendaPage"));
+const FinancialPage = lazy(() => import("./pages/FinancialPage"));
+const PartnersPage = lazy(() => import("./pages/PartnersPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
+const GamificationPage = lazy(() => import("./pages/GamificationPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const PeopleAnalyticsPage = lazy(() => import("./pages/PeopleAnalyticsPage"));
+const ClientsPage = lazy(() => import("./pages/ClientsPage"));
+const PluggyOAuthCallback = lazy(() => import("./pages/PluggyOAuthCallback"));
+const AcceptInvitePage = lazy(() => import("./pages/AcceptInvitePage"));
+const FirstAccessPage = lazy(() => import("./pages/FirstAccessPage"));
+const PlatformAdminPage = lazy(() => import("./pages/PlatformAdminPage"));
+const SecurityAuditPage = lazy(() => import("./pages/SecurityAuditPage"));
+const MarketingPage = lazy(() => import("./pages/MarketingPage"));
+const OAuthBridgePage = lazy(() => import("./pages/OAuthBridgePage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const DataDeletionPage = lazy(() => import("./pages/DataDeletionPage"));
+const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage"));
+const BirthdaysPage = lazy(() => import("./pages/BirthdaysPage"));
+const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const IdeasBankPage = lazy(() => import("./pages/IdeasBankPage"));
+const PublicBoardPage = lazy(() => import("./pages/PublicBoardPage"));
+const AltControlPage = lazy(() => import("./pages/altcontrol/AltControlPage").then(module => ({ default: module.AltControlPage })));
+const NewProposalPage = lazy(() => import("./pages/altcontrol/NewProposalPage").then(module => ({ default: module.NewProposalPage })));
+const ProposalDetailPage = lazy(() => import("./pages/altcontrol/ProposalDetailPage").then(module => ({ default: module.ProposalDetailPage })));
+const ApprovalDetailPage = lazy(() => import("./pages/altcontrol/ApprovalDetailPage").then(module => ({ default: module.ApprovalDetailPage })));
+const ContractDetailPage = lazy(() => import("./pages/altcontrol/ContractDetailPage").then(module => ({ default: module.ContractDetailPage })));
+
+const OnboardingTour = lazy(() => import("@/components/onboarding/OnboardingTour").then(module => ({ default: module.OnboardingTour })));
+const CommandPalette = lazy(() => import("@/components/command/CommandPalette").then(module => ({ default: module.CommandPalette })));
+const KeyboardShortcutsDialog = lazy(() => import("@/components/command/KeyboardShortcutsDialog").then(module => ({ default: module.KeyboardShortcutsDialog })));
 
 const queryClient = new QueryClient();
+
+const PageFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 const ProtectedLayout = () => (
   <AuthGuard>
@@ -64,15 +73,26 @@ const ProtectedLayout = () => (
 // Helper component to ensure tools are only rendered when authenticated
 const ConditionalTools = () => {
   const { session, loading } = useAuth();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (loading || !session) {
+      setReady(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setReady(true), 1800);
+    return () => window.clearTimeout(timer);
+  }, [loading, session]);
   
-  if (loading || !session) return null;
+  if (loading || !session || !ready) return null;
 
   return (
-    <>
+    <Suspense fallback={null}>
       <OnboardingTour />
       <CommandPalette />
       <KeyboardShortcutsDialog />
-    </>
+    </Suspense>
   );
 };
 
@@ -85,6 +105,7 @@ const App = () => (
         <AuthProvider>
           <WorkspaceProvider>
             <GlobalModalProvider>
+              <Suspense fallback={<PageFallback />}>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/landing" element={<LandingPage />} />
@@ -133,6 +154,7 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
 
               <ConditionalTools />
             </GlobalModalProvider>
