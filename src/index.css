@@ -931,3 +931,52 @@
 .card-section:first-of-type {
   padding-top: 0.5rem;
 }
+
+/* ============================================================
+ * FlowAlt Brand utilities
+ * ============================================================ */
+.bg-brand-gradient {
+  background-image: var(--gradient-brand);
+}
+.bg-brand-gradient-soft {
+  background-image: var(--gradient-brand-soft);
+}
+.text-brand-gradient {
+  background-image: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.shadow-brand {
+  box-shadow: var(--shadow-brand);
+}
+.ring-brand {
+  box-shadow: 0 0 0 1px hsl(var(--brand-blue) / 0.4), 0 0 0 4px hsl(var(--brand-blue) / 0.12);
+}
+
+/* Animated aurora backdrop for premium surfaces (login, splash) */
+@keyframes flowalt-aurora {
+  0%   { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1.05); }
+  50%  { transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.12); }
+  100% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1.05); }
+}
+.flowalt-aurora {
+  position: absolute;
+  inset: -20%;
+  background: var(--gradient-brand);
+  filter: blur(80px) saturate(140%);
+  opacity: 0.55;
+  animation: flowalt-aurora 18s ease-in-out infinite;
+  pointer-events: none;
+}
+.dark .flowalt-aurora { opacity: 0.35; }
+
+/* Subtle grid overlay */
+.flowalt-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+}
