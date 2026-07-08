@@ -142,6 +142,10 @@ export function useBadges() {
       return data as UserBadge[];
     },
     enabled: !!user?.id && !!currentWorkspace?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const earnedBadges: Badge[] = userBadges.map(ub => ({
