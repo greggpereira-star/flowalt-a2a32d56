@@ -62,76 +62,52 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden border-white/10 bg-transparent p-0 text-white sm:max-w-md">
-        {/* Layered premium dark background — matches Auth left panel */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,#0f1024_0%,#07070c_55%,#050509_100%)]" />
-        <div
-          className="absolute -left-20 -top-16 h-64 w-64 rounded-full opacity-60 blur-[90px]"
-          style={{ background: 'radial-gradient(circle, hsl(var(--brand-blue) / 0.55), transparent 70%)' }}
-        />
-        <div
-          className="absolute -right-16 -bottom-20 h-64 w-64 rounded-full opacity-50 blur-[90px]"
-          style={{ background: 'radial-gradient(circle, hsl(var(--brand-magenta) / 0.5), transparent 70%)' }}
-        />
-        <div className="absolute inset-0 flowalt-grid opacity-[0.12]" />
-
-        <div className="relative">
-          <div className="px-6 pt-6 pb-5">
-            <div className="flex items-start gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-gradient shadow-brand ring-1 ring-inset ring-white/20">
-                <Mail className="h-5 w-5 text-white" />
-              </div>
-              <DialogHeader className="space-y-1 text-left">
-                <DialogTitle className="text-lg font-semibold tracking-tight text-white">
-                  Esqueceu sua senha?
-                </DialogTitle>
-                <DialogDescription className="text-sm text-white/60">
-                  Informe seu email e enviaremos um link seguro para redefinir sua senha.
-                </DialogDescription>
-              </DialogHeader>
+      <DialogContent className="overflow-hidden border border-border/60 bg-background p-0 sm:max-w-md">
+        <div className="px-7 pt-7 pb-6">
+          <div className="flex items-start gap-3.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border/60 bg-muted/40">
+              <Mail className="h-4 w-4 text-foreground/70" />
             </div>
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="text-base font-semibold tracking-tight">
+                Esqueceu sua senha?
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Informe seu email e enviaremos um link seguro para redefinir sua senha.
+              </DialogDescription>
+            </DialogHeader>
           </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5 border-t border-white/10 bg-white/[0.02] px-6 py-5 backdrop-blur-md"
-          >
-            <div className="space-y-2">
-              <Label
-                htmlFor="forgot-email"
-                className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/50"
-              >
-                Email
-              </Label>
-              <Input
-                id="forgot-email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                autoFocus
-                className="h-11 border-white/10 bg-white/[0.04] text-white placeholder:text-white/30 focus-visible:border-white/20 focus-visible:ring-0"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="h-11 w-full bg-brand-gradient text-white shadow-brand hover:opacity-95"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              Enviar link de recuperação
-            </Button>
-            <p className="text-center text-[11px] leading-relaxed text-white/40">
-              Por segurança, o link expira em 60 minutos.
-            </p>
-          </form>
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 px-7 py-6">
+          <div className="space-y-1.5">
+            <Label htmlFor="forgot-email" className="text-xs font-medium text-muted-foreground">
+              Email
+            </Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              autoFocus
+              className="h-10"
+            />
+          </div>
+          <Button type="submit" className="h-10 w-full" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Enviar link de recuperação
+          </Button>
+          <p className="text-center text-[11px] text-muted-foreground/70">
+            Por segurança, o link expira em 60 minutos.
+          </p>
+        </form>
       </DialogContent>
     </Dialog>
   );
