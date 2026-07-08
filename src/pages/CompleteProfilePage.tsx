@@ -153,55 +153,34 @@ const CompleteProfilePage: React.FC = () => {
         avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       }
 
-      // Upsert profile (invited users may not yet have a profiles row)
+      // Complete profile through a SECURITY DEFINER RPC. This avoids invited users getting
+      // stuck here when client-side profile/birthday RLS checks race with the new membership.
       const finalBirthday = birthday || profileStatus?.profile?.birthday || null;
       const finalAvatar = avatarUrl || profileStatus?.profile?.avatar_url || null;
 
-      const payload: Record<string, any> = {
-        id: user.id,
-        email: userEmail,
-        full_name:
-          profileStatus?.profile?.full_name ||
-          user.user_metadata?.full_name ||
-          user.email?.split('@')[0] ||
-          null,
-        birthday: finalBirthday,
-        avatar_url: finalAvatar,
-        updated_at: new Date().toISOString(),
-      };
+      const { data: completionResult, error: completionError } = await (supabase as any)
+        .rpc('complete_user_profile', {
+          p_birthday: finalBirthday,
+          p_avatar_url: finalAvatar,
+          p_full_name:
+            profileStatus?.profile?.full_name ||
+            user.user_metadata?.full_name ||
+            user.email?.split('@')[0] ||
+            null,
+        });
 
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(payload as any, { onConflict: 'id' });
+      if (completionError) throw completionError;
 
-      if (upsertError) throw upsertError;
-
-      // Also seed user_birthdays for the current workspace(s) so the notices module
-      // and the profile-completion status stay in sync from day one.
-      if (finalBirthday) {
-        try {
-          const { data: memberships } = await supabase
-            .from('workspace_members')
-            .select('workspace_id')
-            .eq('user_id', user.id)
-            .eq('is_active', true);
-
-          for (const m of memberships || []) {
-            await (supabase as any)
-              .from('user_birthdays')
-              .upsert(
-                {
-                  user_id: user.id,
-                  workspace_id: (m as any).workspace_id,
-                  birth_date: finalBirthday,
-                  visibility: 'team',
-                },
-                { onConflict: 'user_id' }
-              );
-          }
-        } catch (bdayErr) {
-          console.warn('[CompleteProfile] user_birthdays sync failed (non-blocking):', bdayErr);
-        }
+      const result = completionResult as { success?: boolean; error?: string } | null;
+      if (result?.success === false) {
+        const friendlyErrors: Record<string, string> = {
+          NOT_AUTHENTICATED: 'Sessão expirada. Faça login novamente.',
+          EMAIL_NOT_AVAILABLE: 'Não foi possível validar o email da sessão. Faça login novamente.',
+          BIRTHDAY_REQUIRED: 'Informe sua data de aniversário.',
+          BIRTHDAY_IN_FUTURE: 'A data de aniversário não pode ser futura.',
+          AVATAR_REQUIRED: 'Adicione uma foto de perfil.',
+        };
+        throw new Error(friendlyErrors[result.error || ''] || result.error || 'Erro ao completar perfil');
       }
 
       // Invalidate cache and redirect
