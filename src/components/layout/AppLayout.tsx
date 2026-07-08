@@ -1,20 +1,41 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
-import { UnifiedAlertsCenter } from '@/components/notifications/UnifiedAlertsCenter';
-import { NotificationToast } from '@/components/notifications/NotificationToast';
-import { MyBirthdayCelebration } from '@/components/notices/MyBirthdayCelebration';
 import { ThemeToggle } from './ThemeToggle';
-import { BadgeProgress } from '@/components/onboarding/BadgeProgress';
-import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
-import { OverLimitBanner } from '@/components/billing/OverLimitBanner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
-import { GlobalModals } from './GlobalModals';
+
+const UnifiedAlertsCenter = lazy(() => import('@/components/notifications/UnifiedAlertsCenter').then(module => ({ default: module.UnifiedAlertsCenter })));
+const NotificationToast = lazy(() => import('@/components/notifications/NotificationToast').then(module => ({ default: module.NotificationToast })));
+const MyBirthdayCelebration = lazy(() => import('@/components/notices/MyBirthdayCelebration').then(module => ({ default: module.MyBirthdayCelebration })));
+const BadgeProgress = lazy(() => import('@/components/onboarding/BadgeProgress').then(module => ({ default: module.BadgeProgress })));
+const FeedbackWidget = lazy(() => import('@/components/feedback/FeedbackWidget').then(module => ({ default: module.FeedbackWidget })));
+const OverLimitBanner = lazy(() => import('@/components/billing/OverLimitBanner').then(module => ({ default: module.OverLimitBanner })));
+const GlobalModals = lazy(() => import('./GlobalModals').then(module => ({ default: module.GlobalModals })));
+
+const DeferredLayoutTools: React.FC = () => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <FeedbackWidget />
+      <NotificationToast />
+      <MyBirthdayCelebration />
+      <GlobalModals />
+    </Suspense>
+  );
+};
 
 // Context to detect nested AppLayout (route already wraps in one via ProtectedLayout).
 // Prevents duplicated headers/breadcrumb/sidebar in pages that still import <AppLayout>.
@@ -61,7 +82,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
       <AppSidebar />
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
         {/* Over Limit Banner - Global */}
-        <OverLimitBanner />
+        <Suspense fallback={null}>
+          <OverLimitBanner />
+        </Suspense>
 
         {/* Header */}
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -78,11 +101,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
           </div>
           <div className="flex items-center gap-2 px-4 shrink-0">
             <div className="hidden md:flex items-center gap-2">
-              <BadgeProgress compact />
+              <Suspense fallback={null}>
+                <BadgeProgress compact />
+              </Suspense>
               <Separator orientation="vertical" className="h-6" />
             </div>
             <ThemeToggle />
-            <UnifiedAlertsCenter />
+            <Suspense fallback={null}>
+              <UnifiedAlertsCenter />
+            </Suspense>
           </div>
         </header>
 
@@ -91,17 +118,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
           <div className={cn(isSpaceRoute ? 'h-full min-h-0' : undefined)}>{children}</div>
         </main>
 
-        {/* Feedback Widget */}
-        <FeedbackWidget />
-        
-        {/* Realtime Toast Notifications */}
-        <NotificationToast />
-
-        {/* Birthday celebration (own birthday — opens once per day) */}
-        <MyBirthdayCelebration />
-
-        {/* Global Modals - Persist across routes */}
-        <GlobalModals />
+        <DeferredLayoutTools />
       </SidebarInset>
 
     </SidebarProvider>
