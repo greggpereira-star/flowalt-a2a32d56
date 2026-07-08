@@ -274,16 +274,7 @@ const Auth: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password">Senha</Label>
-                      <button
-                        type="button"
-                        onClick={() => setForgotOpen(true)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Esqueceu a senha?
-                      </button>
-                    </div>
+                    <Label htmlFor="login-password">Senha</Label>
                     <Input
                       id="login-password"
                       type="password"
@@ -293,6 +284,15 @@ const Auth: React.FC = () => {
                       required
                       autoComplete="current-password"
                     />
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setForgotOpen(true)}
+                        className="text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
