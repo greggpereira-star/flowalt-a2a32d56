@@ -95,6 +95,16 @@ const CompleteProfilePage: React.FC = () => {
     e.preventDefault();
     if (!user?.id) return;
 
+    const userEmail = user.email?.trim().toLowerCase();
+    if (!userEmail) {
+      toast({
+        title: 'Sessão inválida',
+        description: 'Não foi possível identificar o email do usuário. Faça login novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validation
     const needsBirthday = !profileStatus?.hasBirthday && !birthday;
     const needsAvatar = !profileStatus?.hasAvatar && !avatarBlob && !avatarPreview;
@@ -149,6 +159,7 @@ const CompleteProfilePage: React.FC = () => {
 
       const payload: Record<string, any> = {
         id: user.id,
+        email: userEmail,
         full_name:
           profileStatus?.profile?.full_name ||
           user.user_metadata?.full_name ||
