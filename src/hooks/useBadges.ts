@@ -122,6 +122,9 @@ export const BADGE_DEFINITIONS: Record<string, Omit<Badge, 'id' | 'earnedAt'>> =
   },
 };
 
+// Module-level guard to prevent duplicate DB writes across renders/components
+const badgeAttempts = new Set<string>();
+
 export function useBadges() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
