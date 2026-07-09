@@ -105,11 +105,7 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
               className="h-10"
             />
           </div>
-          <Button
-            type="submit"
-            className="h-10 w-full bg-brand-gradient text-white shadow-brand transition-opacity hover:opacity-95"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="h-10 w-full" disabled={isLoading}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
