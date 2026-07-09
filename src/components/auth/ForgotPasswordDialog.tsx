@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Email inválido');
@@ -63,10 +63,19 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="overflow-hidden border border-border/60 bg-background p-0 sm:max-w-md">
-        <div className="px-7 pt-7 pb-6">
-          <div className="flex items-start gap-3.5">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border/60 bg-muted/40">
-              <Mail className="h-4 w-4 text-foreground/70" />
+        {/* Top accent bar */}
+        <div className="relative h-1 w-full bg-brand-gradient" />
+
+        {/* Header */}
+        <div className="relative px-7 pt-7 pb-6">
+          {/* subtle brand glow behind icon */}
+          <div
+            className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full opacity-40 blur-3xl"
+            style={{ background: 'radial-gradient(circle, hsl(var(--brand-blue) / 0.35), transparent 70%)' }}
+          />
+          <div className="relative flex items-start gap-3.5">
+            <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-gradient shadow-brand">
+              <Mail className="h-4 w-4 text-white" />
             </div>
             <DialogHeader className="space-y-1 text-left">
               <DialogTitle className="text-base font-semibold tracking-tight">
@@ -79,7 +88,7 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 px-7 py-6">
+        <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 bg-muted/20 px-7 py-6">
           <div className="space-y-1.5">
             <Label htmlFor="forgot-email" className="text-xs font-medium text-muted-foreground">
               Email
@@ -96,7 +105,11 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
               className="h-10"
             />
           </div>
-          <Button type="submit" className="h-10 w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="h-10 w-full bg-brand-gradient text-white shadow-brand transition-opacity hover:opacity-95"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -104,8 +117,9 @@ export const ForgotPasswordDialog: React.FC<Props> = ({ open, onOpenChange, defa
             )}
             Enviar link de recuperação
           </Button>
-          <p className="text-center text-[11px] text-muted-foreground/70">
-            Por segurança, o link expira em 60 minutos.
+          <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/80">
+            <ShieldCheck className="h-3 w-3" />
+            Link seguro · expira em 60 minutos
           </p>
         </form>
       </DialogContent>
