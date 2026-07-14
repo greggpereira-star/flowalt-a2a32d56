@@ -61,6 +61,7 @@ export interface CreateCardInput {
   card_type?: CardType; // 'quick' or 'full' - defaults to 'full'
   owner_id?: string;
   duplicate_to_space_id?: string; // Add this to handle duplication atomically
+  duplication_mode?: 'mirror' | 'copy'; // mirror = share same card across spaces; copy = independent card in target space
 }
 
 export const useCards = (spaceId: string | undefined) => {
