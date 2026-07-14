@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
+import { BriefingImageUploader } from './BriefingImageUploader';
+
 
 export interface BriefingData {
   context: string;
