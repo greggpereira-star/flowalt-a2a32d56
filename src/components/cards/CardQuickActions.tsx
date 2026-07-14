@@ -17,7 +17,8 @@ import {
   Copy, 
   Trash2, 
   AlertTriangle,
-  Lock
+  Lock,
+  Layers
 } from 'lucide-react';
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
