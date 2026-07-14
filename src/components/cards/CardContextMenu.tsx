@@ -18,7 +18,8 @@ import {
   Calendar,
   User,
   Flag,
-  Lock
+  Lock,
+  Layers
 } from 'lucide-react';
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
