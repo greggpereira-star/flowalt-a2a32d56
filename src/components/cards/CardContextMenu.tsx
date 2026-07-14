@@ -32,7 +32,7 @@ interface CardContextMenuProps {
   card: Card;
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
-  onDuplicate: (targetSpaceId?: string) => void;
+  onDuplicate: (targetSpaceId?: string, mode?: 'mirror' | 'copy') => void;
   onDelete: () => void;
 }
 
