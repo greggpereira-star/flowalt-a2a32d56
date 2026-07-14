@@ -23,6 +23,7 @@ import {
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSpaces } from '@/hooks/useSpaces';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
@@ -31,7 +32,7 @@ interface CardContextMenuProps {
   card: Card;
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
-  onDuplicate: () => void;
+  onDuplicate: (targetSpaceId?: string) => void;
   onDelete: () => void;
 }
 
