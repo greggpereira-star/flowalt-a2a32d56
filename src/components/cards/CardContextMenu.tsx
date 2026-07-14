@@ -53,6 +53,8 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
+  const { data: spaces } = useSpaces();
+  const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   // User can delete if they're admin OR they created the card
   const isCardCreator = card.created_by === user?.id;
