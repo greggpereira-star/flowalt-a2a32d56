@@ -633,7 +633,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex-shrink-0 border-t border-border bg-muted/30">
           <DialogFooter className="px-6 py-4 flex-row justify-between sm:justify-between gap-3">
