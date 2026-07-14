@@ -132,7 +132,32 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
   };
 
   const goNext = () => {
-    if (currentStep === 'info' && isInfoValid) {
+    if (currentStep === 'info') {
+      if (!title.trim()) {
+        toastHook({
+          title: 'Título obrigatório',
+          description: 'Informe o título da demanda para continuar.',
+          variant: 'destructive',
+        });
+        document.getElementById('title')?.focus();
+        return;
+      }
+      if (!spaceId) {
+        toastHook({
+          title: 'Espaço obrigatório',
+          description: 'Selecione o espaço onde a demanda será criada.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (isDuplicateEnabled && !duplicateToSpace) {
+        toastHook({
+          title: 'Selecione o quadro de destino',
+          description: 'Você ativou "Duplicar para outro setor" mas não escolheu o quadro.',
+          variant: 'destructive',
+        });
+        return;
+      }
       setCurrentStep('briefing');
     } else if (currentStep === 'briefing') {
       setCurrentStep('review');
