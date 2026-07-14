@@ -265,7 +265,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] h-auto flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[700px] h-[85vh] max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -302,8 +302,9 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="px-6 pb-4 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-minimal">
+          <div className="px-6 pb-6 space-y-5">
+
             {/* Step 1: Basic Info */}
             {currentStep === 'info' && (
               <div className="space-y-4">
@@ -632,7 +633,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex-shrink-0 border-t border-border bg-muted/30">
           <DialogFooter className="px-6 py-4 flex-row justify-between sm:justify-between gap-3">
