@@ -18,7 +18,8 @@ import {
   Calendar,
   User,
   Flag,
-  Lock
+  Lock,
+  Layers
 } from 'lucide-react';
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,7 +33,7 @@ interface CardContextMenuProps {
   card: Card;
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
-  onDuplicate: (targetSpaceId?: string) => void;
+  onDuplicate: (targetSpaceId?: string, mode?: 'mirror' | 'copy') => void;
   onDelete: () => void;
 }
 
@@ -121,21 +122,51 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
             <Copy className="mr-2 h-4 w-4" />
             Duplicar card
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-56">
+          <ContextMenuSubContent className="w-64">
             <ContextMenuItem onClick={() => onDuplicate()}>
               <Copy className="mr-2 h-4 w-4" />
-              Nesta pasta
+              Copiar nesta pasta
             </ContextMenuItem>
-            {otherSpaces.length > 0 && <ContextMenuSeparator />}
-            {otherSpaces.map((space) => (
-              <ContextMenuItem
-                key={space.id}
-                onClick={() => onDuplicate(space.id)}
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
-                {space.name}
-              </ContextMenuItem>
-            ))}
+
+            {otherSpaces.length > 0 && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <Layers className="mr-2 h-4 w-4" />
+                    Espelhar em (sincronizado)
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-56">
+                    {otherSpaces.map((space) => (
+                      <ContextMenuItem
+                        key={space.id}
+                        onClick={() => onDuplicate(space.id, 'mirror')}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {space.name}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar para (independente)
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-56">
+                    {otherSpaces.map((space) => (
+                      <ContextMenuItem
+                        key={space.id}
+                        onClick={() => onDuplicate(space.id, 'copy')}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {space.name}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+              </>
+            )}
           </ContextMenuSubContent>
         </ContextMenuSub>
 

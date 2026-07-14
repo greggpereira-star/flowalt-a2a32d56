@@ -61,6 +61,7 @@ export interface CreateCardInput {
   card_type?: CardType; // 'quick' or 'full' - defaults to 'full'
   owner_id?: string;
   duplicate_to_space_id?: string; // Add this to handle duplication atomically
+  duplication_mode?: 'mirror' | 'copy'; // mirror = share same card across spaces; copy = independent card in target space
 }
 
 export const useCards = (spaceId: string | undefined) => {
@@ -216,6 +217,18 @@ export const useCreateCard = (currentSpaceId?: string) => {
   return useMutation({
     mutationFn: async (input: CreateCardInput) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('Not authenticated');
+
+      // "Copy" mode: create an independent card directly in the target space,
+      // skipping the mirror (card_spaces) linking that "mirror" mode uses.
+      if (input.duplicate_to_space_id && input.duplication_mode === 'copy') {
+        input = {
+          ...input,
+          space_id: input.duplicate_to_space_id,
+          folder_id: undefined, // folder belongs to source space; let user re-file if needed
+          duplicate_to_space_id: undefined,
+          duplication_mode: undefined,
+        };
+      }
 
       // Evita depender de RETURNING/SELECT (pode falhar por políticas de leitura)
       // gerando o ID no cliente.
