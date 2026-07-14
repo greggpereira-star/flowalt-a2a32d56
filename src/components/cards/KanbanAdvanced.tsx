@@ -657,7 +657,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
             card={card}
             onStatusChange={(status) => handleStatusChange(card, status)}
             onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-            onDuplicate={() => handleDuplicate(card)}
+            onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
             onDelete={() => handleDelete(card)}
           >
             <div className={cn(
@@ -674,7 +674,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                 assignees={assignees}
                 onStatusChange={(status) => handleStatusChange(card, status)}
                 onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                onDuplicate={() => handleDuplicate(card)}
+                onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
                 onDelete={() => handleDelete(card)}
               />
             </div>

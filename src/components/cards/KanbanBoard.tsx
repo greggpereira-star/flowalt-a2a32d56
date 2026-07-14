@@ -672,7 +672,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             card={card}
                             onStatusChange={(status) => handleStatusChange(card, status)}
                             onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                            onDuplicate={() => handleDuplicate(card)}
+                            onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
                             onDelete={() => handleDelete(card)}
                           >
                             <div className={cn(
@@ -689,7 +689,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 assignees={assignees}
                                 onStatusChange={(status) => handleStatusChange(card, status)}
                                 onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                                onDuplicate={() => handleDuplicate(card)}
+                                onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
                                 onDelete={() => handleDelete(card)}
                               />
                             </div>
