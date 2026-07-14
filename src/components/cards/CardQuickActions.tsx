@@ -22,6 +22,7 @@ import {
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSpaces } from '@/hooks/useSpaces';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
@@ -30,7 +31,7 @@ interface CardQuickActionsProps {
   card: Card;
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
-  onDuplicate: () => void;
+  onDuplicate: (targetSpaceId?: string) => void;
   onDelete: () => void;
   className?: string;
 }
@@ -52,6 +53,8 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
+  const { data: spaces } = useSpaces();
+  const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   const isCardCreator = card.created_by === user?.id;
   const canDelete = canDeleteCards || isCardCreator;
@@ -127,11 +130,29 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
 
         <DropdownMenuSeparator />
 
-        {/* Quick actions */}
-        <DropdownMenuItem onClick={onDuplicate}>
-          <Copy className="mr-2 h-4 w-4" />
-          Duplicar card
-        </DropdownMenuItem>
+        {/* Duplicate submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicar card
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-52">
+            <DropdownMenuItem onClick={() => onDuplicate()}>
+              <Copy className="mr-2 h-4 w-4" />
+              Nesta pasta
+            </DropdownMenuItem>
+            {otherSpaces.length > 0 && <DropdownMenuSeparator />}
+            {otherSpaces.map((space) => (
+              <DropdownMenuItem
+                key={space.id}
+                onClick={() => onDuplicate(space.id)}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                {space.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
 

@@ -428,7 +428,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     }
   };
 
-  const handleDuplicate = async (card: Card) => {
+  const handleDuplicate = async (card: Card, targetSpaceId?: string) => {
     try {
       await createCard.mutateAsync({
         title: `${card.title} (cópia)`,
@@ -438,8 +438,9 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         urgency: card.urgency,
         due_date: card.due_date || undefined,
         client_id: card.client_id || undefined,
+        duplicate_to_space_id: targetSpaceId,
       });
-      toast({ title: 'Card duplicado' });
+      toast({ title: targetSpaceId ? 'Card duplicado e espelhado' : 'Card duplicado' });
     } catch (error) {
       toast({ title: 'Erro ao duplicar', variant: 'destructive' });
     }
@@ -657,7 +658,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
             card={card}
             onStatusChange={(status) => handleStatusChange(card, status)}
             onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-            onDuplicate={() => handleDuplicate(card)}
+            onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
             onDelete={() => handleDelete(card)}
           >
             <div className={cn(
@@ -674,7 +675,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
                 assignees={assignees}
                 onStatusChange={(status) => handleStatusChange(card, status)}
                 onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
-                onDuplicate={() => handleDuplicate(card)}
+                onDuplicate={(targetSpaceId) => handleDuplicate(card, targetSpaceId)}
                 onDelete={() => handleDelete(card)}
               />
             </div>

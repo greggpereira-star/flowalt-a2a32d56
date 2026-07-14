@@ -23,6 +23,7 @@ import {
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSpaces } from '@/hooks/useSpaces';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
@@ -31,7 +32,7 @@ interface CardContextMenuProps {
   card: Card;
   onStatusChange: (status: CardStatus) => void;
   onUrgencyChange: (urgency: CardUrgency) => void;
-  onDuplicate: () => void;
+  onDuplicate: (targetSpaceId?: string) => void;
   onDelete: () => void;
 }
 
@@ -52,6 +53,8 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
+  const { data: spaces } = useSpaces();
+  const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   // User can delete if they're admin OR they created the card
   const isCardCreator = card.created_by === user?.id;
@@ -112,11 +115,29 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
 
         <ContextMenuSeparator />
 
-        {/* Quick actions */}
-        <ContextMenuItem onClick={onDuplicate}>
-          <Copy className="mr-2 h-4 w-4" />
-          Duplicar card
-        </ContextMenuItem>
+        {/* Duplicate submenu */}
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicar card
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-56">
+            <ContextMenuItem onClick={() => onDuplicate()}>
+              <Copy className="mr-2 h-4 w-4" />
+              Nesta pasta
+            </ContextMenuItem>
+            {otherSpaces.length > 0 && <ContextMenuSeparator />}
+            {otherSpaces.map((space) => (
+              <ContextMenuItem
+                key={space.id}
+                onClick={() => onDuplicate(space.id)}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                {space.name}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
 
         <ContextMenuSeparator />
 
