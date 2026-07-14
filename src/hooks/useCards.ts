@@ -218,6 +218,18 @@ export const useCreateCard = (currentSpaceId?: string) => {
     mutationFn: async (input: CreateCardInput) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('Not authenticated');
 
+      // "Copy" mode: create an independent card directly in the target space,
+      // skipping the mirror (card_spaces) linking that "mirror" mode uses.
+      if (input.duplicate_to_space_id && input.duplication_mode === 'copy') {
+        input = {
+          ...input,
+          space_id: input.duplicate_to_space_id,
+          folder_id: undefined, // folder belongs to source space; let user re-file if needed
+          duplicate_to_space_id: undefined,
+          duplication_mode: undefined,
+        };
+      }
+
       // Evita depender de RETURNING/SELECT (pode falhar por políticas de leitura)
       // gerando o ID no cliente.
       const cardId = generateId();
