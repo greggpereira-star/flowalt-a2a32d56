@@ -46,6 +46,7 @@ import {
   Copy,
 } from 'lucide-react';
 import type { BriefingData } from './BriefingForm';
+import { BriefingImageUploader } from './BriefingImageUploader';
 
 interface DemandFormDialogProps {
   open: boolean;
