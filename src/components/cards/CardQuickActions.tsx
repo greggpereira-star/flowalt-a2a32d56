@@ -53,6 +53,8 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
+  const { data: spaces } = useSpaces();
+  const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   const isCardCreator = card.created_by === user?.id;
   const canDelete = canDeleteCards || isCardCreator;
