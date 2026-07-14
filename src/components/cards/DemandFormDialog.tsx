@@ -265,7 +265,7 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] h-auto flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[700px] h-[85vh] max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
