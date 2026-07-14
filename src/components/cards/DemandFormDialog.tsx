@@ -511,6 +511,10 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                     onChange={(e) => updateBriefingField('references', e.target.value)}
                     className="min-h-[60px]"
                   />
+                  <BriefingImageUploader
+                    value={briefingData.references}
+                    onChange={(v) => updateBriefingField('references', v)}
+                  />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
