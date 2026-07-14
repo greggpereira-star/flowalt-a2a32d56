@@ -428,7 +428,7 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
     }
   };
 
-  const handleDuplicate = async (card: Card, targetSpaceId?: string) => {
+  const handleDuplicate = async (card: Card, targetSpaceId?: string, mode: 'mirror' | 'copy' = 'mirror') => {
     try {
       await createCard.mutateAsync({
         title: `${card.title} (cópia)`,
@@ -439,8 +439,15 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
         due_date: card.due_date || undefined,
         client_id: card.client_id || undefined,
         duplicate_to_space_id: targetSpaceId,
+        duplication_mode: targetSpaceId ? mode : undefined,
       });
-      toast({ title: targetSpaceId ? 'Card duplicado e espelhado' : 'Card duplicado' });
+      toast({
+        title: targetSpaceId
+          ? mode === 'copy'
+            ? 'Card copiado (independente)'
+            : 'Card duplicado e espelhado'
+          : 'Card duplicado',
+      });
     } catch (error) {
       toast({ title: 'Erro ao duplicar', variant: 'destructive' });
     }
