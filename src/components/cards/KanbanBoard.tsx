@@ -523,7 +523,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }
   };
 
-  const handleDuplicate = async (card: Card) => {
+  const handleDuplicate = async (card: Card, targetSpaceId?: string) => {
     try {
       await createCard.mutateAsync({
         title: `${card.title} (cópia)`,
@@ -533,8 +533,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         urgency: card.urgency,
         due_date: card.due_date || undefined,
         client_id: card.client_id || undefined,
+        duplicate_to_space_id: targetSpaceId,
       });
-      toast({ title: 'Card duplicado' });
+      toast({ title: targetSpaceId ? 'Card duplicado e espelhado' : 'Card duplicado' });
     } catch (error) {
       toast({
         title: 'Erro ao duplicar',
