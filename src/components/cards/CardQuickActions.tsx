@@ -130,11 +130,29 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
 
         <DropdownMenuSeparator />
 
-        {/* Quick actions */}
-        <DropdownMenuItem onClick={onDuplicate}>
-          <Copy className="mr-2 h-4 w-4" />
-          Duplicar card
-        </DropdownMenuItem>
+        {/* Duplicate submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicar card
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-52">
+            <DropdownMenuItem onClick={() => onDuplicate()}>
+              <Copy className="mr-2 h-4 w-4" />
+              Nesta pasta
+            </DropdownMenuItem>
+            {otherSpaces.length > 0 && <DropdownMenuSeparator />}
+            {otherSpaces.map((space) => (
+              <DropdownMenuItem
+                key={space.id}
+                onClick={() => onDuplicate(space.id)}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                {space.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
 
