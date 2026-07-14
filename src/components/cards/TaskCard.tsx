@@ -28,7 +28,7 @@ interface TaskCardProps {
   assignees?: Assignee[];
   onStatusChange?: (status: CardStatus) => void;
   onUrgencyChange?: (urgency: CardUrgency) => void;
-  onDuplicate?: () => void;
+  onDuplicate?: (targetSpaceId?: string) => void;
   onDelete?: () => void;
   showQuickActions?: boolean;
 }
