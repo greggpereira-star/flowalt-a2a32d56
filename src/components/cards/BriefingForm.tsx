@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
+import { BriefingImageUploader } from './BriefingImageUploader';
+
 
 export interface BriefingData {
   context: string;
@@ -220,7 +222,13 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({
             minHeight="60px"
             maxHeight="150px"
           />
+          <BriefingImageUploader
+            value={data.references || ''}
+            onChange={(v) => updateField('references', v)}
+            disabled={disabled}
+          />
         </div>
+
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
