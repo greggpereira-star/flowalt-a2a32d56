@@ -46,6 +46,7 @@ import {
   Copy,
 } from 'lucide-react';
 import type { BriefingData } from './BriefingForm';
+import { BriefingImageUploader } from './BriefingImageUploader';
 
 interface DemandFormDialogProps {
   open: boolean;
@@ -510,6 +511,10 @@ export const DemandFormDialog: React.FC<DemandFormDialogProps> = ({
                     value={briefingData.references}
                     onChange={(e) => updateBriefingField('references', e.target.value)}
                     className="min-h-[60px]"
+                  />
+                  <BriefingImageUploader
+                    value={briefingData.references}
+                    onChange={(v) => updateBriefingField('references', v)}
                   />
                 </div>
 
