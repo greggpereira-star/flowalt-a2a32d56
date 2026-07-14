@@ -136,21 +136,51 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
             <Copy className="mr-2 h-4 w-4" />
             Duplicar card
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-52">
+          <DropdownMenuSubContent className="w-60">
             <DropdownMenuItem onClick={() => onDuplicate()}>
               <Copy className="mr-2 h-4 w-4" />
-              Nesta pasta
+              Copiar nesta pasta
             </DropdownMenuItem>
-            {otherSpaces.length > 0 && <DropdownMenuSeparator />}
-            {otherSpaces.map((space) => (
-              <DropdownMenuItem
-                key={space.id}
-                onClick={() => onDuplicate(space.id)}
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
-                {space.name}
-              </DropdownMenuItem>
-            ))}
+
+            {otherSpaces.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Layers className="mr-2 h-4 w-4" />
+                    Espelhar em (sincronizado)
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-52">
+                    {otherSpaces.map((space) => (
+                      <DropdownMenuItem
+                        key={space.id}
+                        onClick={() => onDuplicate(space.id, 'mirror')}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {space.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar para (independente)
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-52">
+                    {otherSpaces.map((space) => (
+                      <DropdownMenuItem
+                        key={space.id}
+                        onClick={() => onDuplicate(space.id, 'copy')}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {space.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </>
+            )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
