@@ -22,7 +22,7 @@ import {
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSpaces } from '@/hooks/useSpaces';
+import { useDuplicationSpaces } from '@/hooks/useDuplicationSpaces';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
@@ -53,7 +53,7 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
-  const { data: spaces } = useSpaces();
+  const { data: spaces } = useDuplicationSpaces();
   const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   const isCardCreator = card.created_by === user?.id;

@@ -23,7 +23,7 @@ import {
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSpaces } from '@/hooks/useSpaces';
+import { useDuplicationSpaces } from '@/hooks/useDuplicationSpaces';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 
@@ -53,7 +53,7 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
 }) => {
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
-  const { data: spaces } = useSpaces();
+  const { data: spaces } = useDuplicationSpaces();
   const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   // User can delete if they're admin OR they created the card

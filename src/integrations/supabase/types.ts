@@ -11445,6 +11445,16 @@ export type Database = {
         Args: { p_folder_id: string; p_user_id: string }
         Returns: boolean
       }
+      list_workspace_spaces_for_duplication: {
+        Args: { _workspace_id: string }
+        Returns: {
+          color: string
+          icon: string
+          id: string
+          name: string
+          sort_order: number
+        }[]
+      }
       log_entitlement_block: {
         Args: {
           p_action: string
