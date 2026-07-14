@@ -115,11 +115,29 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
 
         <ContextMenuSeparator />
 
-        {/* Quick actions */}
-        <ContextMenuItem onClick={onDuplicate}>
-          <Copy className="mr-2 h-4 w-4" />
-          Duplicar card
-        </ContextMenuItem>
+        {/* Duplicate submenu */}
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicar card
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-56">
+            <ContextMenuItem onClick={() => onDuplicate()}>
+              <Copy className="mr-2 h-4 w-4" />
+              Nesta pasta
+            </ContextMenuItem>
+            {otherSpaces.length > 0 && <ContextMenuSeparator />}
+            {otherSpaces.map((space) => (
+              <ContextMenuItem
+                key={space.id}
+                onClick={() => onDuplicate(space.id)}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                {space.name}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
 
         <ContextMenuSeparator />
 
