@@ -372,186 +372,25 @@ export const useCreateCard = (currentSpaceId?: string) => {
         created_by: user.id,
       });
 
-      // Handle atomic duplication if requested
+      // Handle atomic mirror duplication if requested (server-side RPC bypasses
+      // per-space/folder ACL so the mirrored card is always visible in the target space).
       if (input.duplicate_to_space_id) {
         const targetSpaceId = input.duplicate_to_space_id;
-        console.log(`[useCreateCard] Atomic duplication requested to space: ${targetSpaceId}`);
-        await info('cards-hook', 'Iniciando espelhamento atômico', { cardId, targetSpaceId });
-        
-        // Step 1: Link card to the target space
-        const { error: dupError } = await supabase
-          .from('card_spaces')
-          .insert({
-            card_id: cardId,
-            space_id: targetSpaceId,
-          });
-        
-        if (dupError) {
-          console.error('[useCreateCard] Atomic duplication failed (card_spaces):', dupError);
-          logError('cards-hook', 'Falha no espelhamento card_spaces', { cardId, targetSpaceId, error: dupError });
-        } else {
-          console.log('[useCreateCard] Atomic duplication successful in card_spaces');
-          await info('cards-hook', 'Espelhamento card_spaces concluído', { cardId, targetSpaceId });
-          
-          // Step 2: Ensure the card is linked to a folder in the target space for visibility
-          // If the original card was in a folder, try to find/create a matching folder.
-          // If not, find a default folder (like "Backlog" or the first one) in the target space.
-          if (input.folder_id) {
-            const { data: sourceFolder } = await supabase
-              .from('folders')
-              .select('*')
-              .eq('id', input.folder_id)
-              .maybeSingle();
+        console.log(`[useCreateCard] Mirroring card ${cardId} to space ${targetSpaceId}`);
+        await info('cards-hook', 'Iniciando espelhamento via RPC', { cardId, targetSpaceId });
 
-            if (sourceFolder) {
-              // Try to find an existing folder with the same name in the target space
-              // Using a standard query instead of maybeSingle() to handle potential name duplicates
-              let { data: matchingFolders } = await supabase
-                .from('folders')
-                .select('id')
-                .eq('space_id', targetSpaceId)
-                .eq('name', sourceFolder.name)
-                .eq('is_archived', false)
-                .order('created_at', { ascending: false });
+        const { error: mirrorError } = await supabase.rpc('mirror_card_to_space', {
+          _card_id: cardId,
+          _target_space_id: targetSpaceId,
+        });
 
-              let targetFolder = matchingFolders && matchingFolders.length > 0 ? matchingFolders[0] : null;
-
-              // If it doesn't exist, create it automatically
-              if (!targetFolder) {
-                console.log(`[useCreateCard] Creating folder "${sourceFolder.name}" in target space`);
-                const { data: newFolder, error: createFolderError } = await supabase
-                  .from('folders')
-                  .insert({
-                    workspace_id: currentWorkspace.id,
-                    space_id: targetSpaceId,
-                    name: sourceFolder.name,
-                    icon: sourceFolder.icon,
-                    color: sourceFolder.color,
-                    description: sourceFolder.description,
-                  })
-                  .select('id')
-                  .single();
-                
-                if (!createFolderError) {
-                  targetFolder = newFolder;
-                }
-              }
-
-              if (targetFolder) {
-                // Link to the matched folder
-                await supabase
-                  .from('card_folders')
-                  .insert({
-                    card_id: cardId,
-                    folder_id: targetFolder.id,
-                  });
-                
-                console.log(`[useCreateCard] Atomic duplication mapped to folder "${sourceFolder.name}"`);
-
-                // ENHANCEMENT: Also link to the primary/first folder of the target space to ensure visibility in default views
-                const { data: primaryFolders } = await supabase
-                  .from('folders')
-                  .select('id, name')
-                  .eq('space_id', targetSpaceId)
-                  .eq('is_archived', false)
-                  .neq('id', targetFolder.id) // Don't link twice to the same folder
-                  .order('sort_order', { ascending: true })
-                  .limit(1);
-
-                if (primaryFolders && primaryFolders.length > 0) {
-                  const primaryFolder = primaryFolders[0];
-                  console.log(`[useCreateCard] Also linking to primary folder "${primaryFolder.name}" for visibility`);
-                  await supabase
-                    .from('card_folders')
-                    .insert({
-                      card_id: cardId,
-                      folder_id: primaryFolder.id,
-                    });
-                }
-              }
-
-              if (targetFolder) {
-                const { error: folderDupError } = await supabase
-                  .from('card_folders')
-                  .insert({
-                    card_id: cardId,
-                    folder_id: targetFolder.id,
-                  });
-                
-                if (folderDupError) {
-                  console.error('[useCreateCard] Atomic duplication folder mapping failed:', folderDupError);
-                  logError('cards-hook', 'Falha no mapeamento de pasta no espelhamento', { 
-                    cardId, 
-                    targetSpaceId, 
-                    targetFolderId: targetFolder.id, 
-                    error: folderDupError 
-                  });
-                } else {
-                  console.log(`[useCreateCard] Atomic duplication mapped to folder "${sourceFolder.name}" in target space`);
-                  await info('cards-hook', 'Mapeamento de pasta no espelhamento concluído', { 
-                    cardId, 
-                    folderName: sourceFolder.name, 
-                    targetFolderId: targetFolder.id 
-                  });
-              }
-            }
-          } else {
-            // No source folder provided, find a default folder in the target space for visibility
-            console.log(`[useCreateCard] No source folder, finding default folder in target space: ${targetSpaceId}`);
-            const { data: defaultFolders } = await supabase
-              .from('folders')
-              .select('id, name')
-              .eq('space_id', targetSpaceId)
-              .eq('is_archived', false)
-              .order('sort_order', { ascending: true })
-              .limit(1);
-
-            if (defaultFolders && defaultFolders.length > 0) {
-              const targetFolder = defaultFolders[0];
-              const { error: folderDupError } = await supabase
-                .from('card_folders')
-                .insert({
-                  card_id: cardId,
-                  folder_id: targetFolder.id,
-                });
-              
-              if (!folderDupError) {
-                console.log(`[useCreateCard] Atomic duplication mapped to default folder "${targetFolder.name}"`);
-                await info('cards-hook', 'Mapeamento de pasta padrão concluído', { 
-                  cardId, 
-                  targetSpaceId, 
-                  targetFolderId: targetFolder.id,
-                  folderName: targetFolder.name 
-                });
-              }
-            } else {
-              // No folders exist at all in target space - create a "Backlog" folder
-              console.log(`[useCreateCard] No folders in target space, creating "Backlog" folder`);
-              const { data: newFolder, error: createFolderError } = await supabase
-                .from('folders')
-                .insert({
-                  workspace_id: currentWorkspace.id,
-                  space_id: targetSpaceId,
-                  name: 'Backlog',
-                  icon: 'list',
-                  color: '#6366f1'
-                })
-                .select('id')
-                .single();
-              
-              if (!createFolderError && newFolder) {
-                await supabase
-                  .from('card_folders')
-                  .insert({
-                    card_id: cardId,
-                    folder_id: newFolder.id,
-                  });
-                await info('cards-hook', 'Pasta "Backlog" criada e vinculada no destino', { cardId, targetSpaceId });
-              }
-            }
-          }
-          }
+        if (mirrorError) {
+          console.error('[useCreateCard] mirror_card_to_space failed:', mirrorError);
+          logError('cards-hook', 'Falha no espelhamento (RPC)', { cardId, targetSpaceId, error: mirrorError });
+          throw new Error(getErrorMessage(mirrorError, 'Falha ao espelhar card no espaço destino.'));
         }
+
+        await info('cards-hook', 'Espelhamento concluído', { cardId, targetSpaceId });
       }
 
       // Retorna um objeto mínimo para invalidar cache e permitir UX.
