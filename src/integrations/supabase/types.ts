@@ -11510,6 +11510,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: number
       }
+      mirror_card_to_space: {
+        Args: { _card_id: string; _target_space_id: string }
+        Returns: undefined
+      }
       promote_to_owner: {
         Args: { p_target_user_id: string; p_workspace_id: string }
         Returns: boolean
