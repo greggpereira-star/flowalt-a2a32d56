@@ -439,6 +439,47 @@ export const useCreateCard = (currentSpaceId?: string) => {
   });
 };
 
+/**
+ * Espelha um card EXISTENTE em outro espaço (sincronizado).
+ *
+ * Diferente de useCreateCard com duplicate_to_space_id, este hook NÃO cria um
+ * novo card: ele apenas vincula o próprio card (mesma linha em `cards`) ao
+ * espaço destino via a RPC `mirror_card_to_space`. Assim o card aparece nos
+ * dois espaços e qualquer edição é vista por ambos (é a mesma linha).
+ */
+export const useMirrorCardToSpace = (currentSpaceId?: string) => {
+  const queryClient = useQueryClient();
+  const { info, error: logError } = useLogWriter();
+
+  return useMutation({
+    mutationFn: async ({ cardId, targetSpaceId }: { cardId: string; targetSpaceId: string }) => {
+      await info('cards-hook', 'Espelhando card existente via RPC', { cardId, targetSpaceId });
+
+      const { error: mirrorError } = await supabase.rpc('mirror_card_to_space', {
+        _card_id: cardId,
+        _target_space_id: targetSpaceId,
+      });
+
+      if (mirrorError) {
+        console.error('[useMirrorCardToSpace] mirror_card_to_space failed:', mirrorError);
+        logError('cards-hook', 'Falha ao espelhar card existente (RPC)', { cardId, targetSpaceId, error: mirrorError });
+        throw new Error(getErrorMessage(mirrorError, 'Falha ao espelhar card no espaço destino.'));
+      }
+
+      await info('cards-hook', 'Espelhamento de card existente concluído', { cardId, targetSpaceId });
+      return { cardId, targetSpaceId };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['cards', 'space', variables.targetSpaceId] });
+      if (currentSpaceId) {
+        queryClient.invalidateQueries({ queryKey: ['cards', 'space', currentSpaceId] });
+      }
+      queryClient.refetchQueries({ queryKey: ['cards', 'space'], type: 'active' });
+    },
+  });
+};
+
 export const useUpdateCard = () => {
   const queryClient = useQueryClient();
 

@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useUpdateCard, useDeleteCard, useCreateCard } from '@/hooks/useCards';
+import { useUpdateCard, useDeleteCard, useCreateCard, useMirrorCardToSpace } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useCardDependencies } from '@/hooks/useDependencies';
 import { useClients } from '@/hooks/useClients';
@@ -170,6 +170,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard(cards[0]?.display_space_id || cards[0]?.space_id);
+  const mirrorCard = useMirrorCardToSpace(cards[0]?.display_space_id || cards[0]?.space_id);
   const transitionCard = useTransitionCard();
   
   // Clients data for displaying client info on cards
@@ -525,27 +526,32 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const handleDuplicate = async (card: Card, targetSpaceId?: string, mode: 'mirror' | 'copy' = 'mirror') => {
     try {
+      // Espelhamento sincronizado: vincula o PRÓPRIO card ao espaço destino
+      // (mesma linha em `cards`), sem criar um novo card. Assim as edições
+      // aparecem nos dois espaços.
+      if (targetSpaceId && mode === 'mirror') {
+        await mirrorCard.mutateAsync({ cardId: card.id, targetSpaceId });
+        toast({ title: 'Card espelhado (sincronizado)' });
+        return;
+      }
+
       await createCard.mutateAsync({
         title: `${card.title} (cópia)`,
-        space_id: card.space_id,
+        space_id: targetSpaceId || card.space_id,
         description: card.description || undefined,
         status: 'backlog', // Always start duplicates in backlog
         urgency: card.urgency,
         due_date: card.due_date || undefined,
         client_id: card.client_id || undefined,
         duplicate_to_space_id: targetSpaceId,
-        duplication_mode: targetSpaceId ? mode : undefined,
+        duplication_mode: targetSpaceId ? 'copy' : undefined,
       });
       toast({
-        title: targetSpaceId
-          ? mode === 'copy'
-            ? 'Card copiado (independente)'
-            : 'Card duplicado e espelhado'
-          : 'Card duplicado',
+        title: targetSpaceId ? 'Card copiado (independente)' : 'Card duplicado',
       });
     } catch (error) {
       toast({
-        title: 'Erro ao duplicar',
+        title: mode === 'mirror' && targetSpaceId ? 'Erro ao espelhar' : 'Erro ao duplicar',
         variant: 'destructive',
       });
     }
