@@ -3,6 +3,9 @@ project_id = "vnohlxerngxizmzyptyw"
 [functions.public-api]
 verify_jwt = false
 
+[functions.public-proposal]
+verify_jwt = false
+
 [functions.webhook-retry]
 verify_jwt = true
 

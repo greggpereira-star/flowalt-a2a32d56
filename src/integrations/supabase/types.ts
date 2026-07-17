@@ -648,6 +648,145 @@ export type Database = {
           },
         ]
       }
+      altcontrol_proposal_doc_events: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          proposal_doc_id: string
+          type: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          proposal_doc_id: string
+          type: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          proposal_doc_id?: string
+          type?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_proposal_doc_events_proposal_doc_id_fkey"
+            columns: ["proposal_doc_id"]
+            isOneToOne: false
+            referencedRelation: "altcontrol_proposal_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      altcontrol_proposal_docs: {
+        Row: {
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          contract_id: string | null
+          created_at: string
+          created_by: string
+          document: Json
+          document_hash: string | null
+          first_viewed_at: string | null
+          id: string
+          last_viewed_at: string | null
+          onboarding_card_id: string | null
+          public_token: string | null
+          seller_name: string | null
+          selected_option_id: string | null
+          signature_image: string | null
+          signature_ip: string | null
+          signature_user_agent: string | null
+          signed_at: string | null
+          signer_document: string | null
+          signer_email: string | null
+          signer_name: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          valid_until: string | null
+          view_count: number
+          workspace_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          contract_id?: string | null
+          created_at?: string
+          created_by: string
+          document?: Json
+          document_hash?: string | null
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          onboarding_card_id?: string | null
+          public_token?: string | null
+          seller_name?: string | null
+          selected_option_id?: string | null
+          signature_image?: string | null
+          signature_ip?: string | null
+          signature_user_agent?: string | null
+          signed_at?: string | null
+          signer_document?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          valid_until?: string | null
+          view_count?: number
+          workspace_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          document?: Json
+          document_hash?: string | null
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          onboarding_card_id?: string | null
+          public_token?: string | null
+          seller_name?: string | null
+          selected_option_id?: string | null
+          signature_image?: string | null
+          signature_ip?: string | null
+          signature_user_agent?: string | null
+          signed_at?: string | null
+          signer_document?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          valid_until?: string | null
+          view_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "altcontrol_proposal_docs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       altcontrol_proposals: {
         Row: {
           approval_comment: string | null

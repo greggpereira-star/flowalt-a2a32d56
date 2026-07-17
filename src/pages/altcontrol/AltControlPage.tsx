@@ -13,6 +13,7 @@ import {
   Settings,
   Plus,
   Gauge,
+  Sparkles,
 } from 'lucide-react';
 import { usePendingApprovals } from '@/hooks/useAltControl';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -103,10 +104,16 @@ const AltControlNavigation: React.FC = () => {
         </Tabs>
       </div>
 
-      <Button onClick={() => navigate('/altcontrol/proposals/new')} className="gap-2">
-        <Plus className="h-4 w-4" />
-        Nova Proposta
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => navigate('/altcontrol/proposals/generator')} className="gap-2">
+          <Sparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Gerador de Proposta</span>
+        </Button>
+        <Button onClick={() => navigate('/altcontrol/proposals/new')} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Nova Proposta
+        </Button>
+      </div>
     </div>
   );
 };

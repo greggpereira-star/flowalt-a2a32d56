@@ -45,8 +45,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const IdeasBankPage = lazy(() => import("./pages/IdeasBankPage"));
 const PublicBoardPage = lazy(() => import("./pages/PublicBoardPage"));
+const PublicProposalPage = lazy(() => import("./pages/PublicProposalPage"));
 const AltControlPage = lazy(() => import("./pages/altcontrol/AltControlPage").then(module => ({ default: module.AltControlPage })));
 const NewProposalPage = lazy(() => import("./pages/altcontrol/NewProposalPage").then(module => ({ default: module.NewProposalPage })));
+const ProposalGeneratorPage = lazy(() => import("./pages/altcontrol/ProposalGeneratorPage"));
 const ProposalDetailPage = lazy(() => import("./pages/altcontrol/ProposalDetailPage").then(module => ({ default: module.ProposalDetailPage })));
 const ApprovalDetailPage = lazy(() => import("./pages/altcontrol/ApprovalDetailPage").then(module => ({ default: module.ApprovalDetailPage })));
 const ContractDetailPage = lazy(() => import("./pages/altcontrol/ContractDetailPage").then(module => ({ default: module.ContractDetailPage })));
@@ -118,6 +120,7 @@ const App = () => (
                 <Route path="/invite/:token" element={<AcceptInvitePage />} />
                 <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
                 <Route path="/share/board/:token" element={<PublicBoardPage />} />
+                <Route path="/p/:token" element={<PublicProposalPage />} />
                 
                 
                 {/* Protected Routes with shared AppLayout */}
@@ -149,6 +152,8 @@ const App = () => (
                   <Route path="/ideas" element={<IdeasBankPage />} />
                   <Route path="/altcontrol/*" element={<AltControlPage />} />
                   <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
+                  <Route path="/altcontrol/proposals/generator" element={<ProposalGeneratorPage />} />
+                  <Route path="/altcontrol/proposals/generator/:docId" element={<ProposalGeneratorPage />} />
                   <Route path="/altcontrol/proposals/:proposalId" element={<ProposalDetailPage />} />
                   <Route path="/altcontrol/approvals/:proposalId" element={<ApprovalDetailPage />} />
                   <Route path="/altcontrol/contracts/:contractId" element={<ContractDetailPage />} />
