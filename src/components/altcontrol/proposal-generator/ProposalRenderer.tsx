@@ -159,14 +159,15 @@ export const ProposalRenderer = React.forwardRef<HTMLDivElement, ProposalRendere
             position: 'absolute', left: 0, right: 9, top: 0, bottom: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-            color: '#fff', fontWeight: 600, fontSize: theme.sidebarFontSize, letterSpacing: 0.5, whiteSpace: 'nowrap',
+            fontFamily: `'${theme.sidebarFont || theme.bodyFont}', sans-serif`,
+            color: '#fff', fontWeight: theme.sidebarWeight ?? 600, fontSize: theme.sidebarFontSize, letterSpacing: 0.5, whiteSpace: 'nowrap',
           }}>{theme.sidebarText}</div>
           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 9, background: GRAD_V }} />
         </div>
 
         {/* Conteúdo */}
         <div style={{ position: 'absolute', left: 120, right: 0, top: 0, bottom: 0, padding: '40px 46px 30px 40px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontFamily: titleFont, fontWeight: 800, fontSize: 74, lineHeight: 0.92, letterSpacing: -1, color: '#0d0d0d' }}>
+          <div style={{ fontFamily: titleFont, fontWeight: 800, fontSize: theme.titleFontSize ?? 74, lineHeight: 0.92, letterSpacing: -1, color: '#0d0d0d' }}>
             {option.title}
             {option.tier && <span style={{ fontFamily: titleFont, fontWeight: 500, fontSize: 26, letterSpacing: 0 }}> {option.tier}</span>}
           </div>

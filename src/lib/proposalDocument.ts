@@ -95,9 +95,12 @@ export interface ProposalOption {
 // Tema global --------------------------------------------------------
 export interface ProposalTheme {
   titleFont: string;          // fonte do título "Orçamento"
+  titleFontSize?: number;     // tamanho do título (px)
   bodyFont: string;           // fonte do corpo
   sidebarText: string;        // texto vertical da faixa lateral
-  sidebarFontSize: number;    // proporção validada
+  sidebarFont?: string;       // fonte da faixa lateral
+  sidebarFontSize: number;    // tamanho da fonte da faixa lateral
+  sidebarWeight?: number;     // peso da fonte da faixa lateral
 }
 
 export interface ProposalDocumentModel {
@@ -115,9 +118,12 @@ export const PROPOSAL_FONTS = [
 
 export const DEFAULT_THEME: ProposalTheme = {
   titleFont: 'Poppins',
+  titleFontSize: 74,
   bodyFont: 'Inter',
   sidebarText: 'estratégia, gestão e comunicação',
+  sidebarFont: 'Inter',
   sidebarFontSize: 50,
+  sidebarWeight: 600,
 };
 
 let _seq = 0;
@@ -144,6 +150,16 @@ export function createEmptyOption(title = 'Orçamento'): ProposalOption {
     ],
     priceKind: 'monthly',
   };
+}
+
+// Clona um bloco gerando novos ids (para duplicar)
+export function cloneBlock(block: ProposalBlock): ProposalBlock {
+  const copy: any = JSON.parse(JSON.stringify(block));
+  copy.id = uid();
+  if (copy.type === 'table' && Array.isArray(copy.rows)) {
+    copy.rows = copy.rows.map((r: any) => ({ ...r, id: uid('row') }));
+  }
+  return copy;
 }
 
 // Converte **negrito** + quebras de linha em HTML seguro (conteúdo interno da agência)
