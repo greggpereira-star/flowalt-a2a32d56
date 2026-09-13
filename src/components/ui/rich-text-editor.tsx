@@ -49,6 +49,35 @@ interface TipTapNode {
  * portion carries the `link` mark. This makes legacy content clickable
  * without forcing the user to re-edit it.
  */
+/**
+ * Converte texto puro em HTML com URLs clicáveis.
+ *
+ * Briefings antigos foram salvos como texto cru, sem estrutura do TipTap.
+ * Carregados assim, viravam texto sem marca de link — nenhum `<a>` para
+ * clicar, e a pessoa precisava copiar a URL e colar no navegador.
+ *
+ * O texto é escapado antes de qualquer substituição: o conteúdo vem do banco
+ * e não pode injetar HTML ao ser reaberto no editor.
+ */
+function linkifyPlainText(texto: string): string {
+  const escapado = texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  URL_REGEX.lastIndex = 0;
+  const comLinks = escapado.replace(URL_REGEX, (url) => {
+    const href = url.startsWith('http') ? url : `https://${url}`;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer nofollow">${url}</a>`;
+  });
+
+  // Quebras de linha viram parágrafos para o TipTap preservar o formato.
+  return comLinks
+    .split(/\n/)
+    .map((linha) => `<p>${linha || '<br>'}</p>`)
+    .join('');
+}
+
 function linkifyJSON<T>(doc: T): T {
   if (!doc || typeof doc !== 'object') return doc;
   const node = doc as unknown as TipTapNode;
@@ -437,7 +466,7 @@ export function RichTextEditor({
     try {
       return linkifyJSON(JSON.parse(content));
     } catch {
-      return content;
+      return linkifyPlainText(content);
     }
   }, []);
 
@@ -485,6 +514,27 @@ export function RichTextEditor({
     editable: !disabled,
     autofocus: autoFocus,
     editorProps: {
+      /**
+       * Abre o link ao clicar, mesmo com o editor editável.
+       *
+       * O TipTap, em modo de edição, trata o clique num link como
+       * posicionamento de cursor: `openOnClick` só age quando o editor está
+       * somente-leitura. Na prática isso obrigava quem consultava um briefing
+       * a selecionar a URL, copiar e colar no navegador.
+       *
+       * Aqui o clique abre em nova aba. Para editar o texto de um link, o
+       * caminho continua sendo o teclado (setas/seleção), que não passa por
+       * este handler.
+       */
+      handleClick: (view, pos, event) => {
+        const alvo = (event.target as HTMLElement | null)?.closest('a');
+        const href = alvo?.getAttribute('href');
+        if (!href) return false;
+
+        event.preventDefault();
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return true;
+      },
       handleKeyDown: (view, event) => {
         // Submit on Enter (without Shift) if onSubmit is provided
         if (event.key === 'Enter' && !event.shiftKey && onSubmitRef.current) {
@@ -530,17 +580,22 @@ export function RichTextEditor({
         editor.commands.setContent(parsed, { emitUpdate: false });
       }
     } catch {
-      // If not valid JSON, treat as plain text
+      // Texto puro (briefings antigos): entra como HTML já linkificado.
       if (value !== editor.getText()) {
-        editor.commands.setContent(value, { emitUpdate: false });
+        editor.commands.setContent(linkifyPlainText(value), { emitUpdate: false });
       }
     }
   }, [value, editor]);
 
-  // Update editable state
+  // Update editable state. `emitUpdate` must stay false here — toggling
+  // editability is not a content change, and letting it emit fires onUpdate
+  // with whatever the editor's document happens to be at that instant. Right
+  // after mount that's the freshly-created (possibly still empty, pre-sync)
+  // doc, which would get reported to onChange as if the user had just
+  // cleared the field.
   useEffect(() => {
     if (editor) {
-      editor.setEditable(!disabled);
+      editor.setEditable(!disabled, false);
     }
   }, [disabled, editor]);
 
