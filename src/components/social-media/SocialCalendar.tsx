@@ -261,7 +261,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 p-4 border-b">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 border-b">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={() => handleNavigate('prev')}>
@@ -271,7 +271,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-lg font-semibold">
+          <h2 className="whitespace-nowrap text-base sm:text-lg font-semibold">
             {format(currentDate, viewMode === 'month' ? "MMMM 'de' yyyy" : "'Semana de' dd/MM", { locale: ptBR })}
           </h2>
           <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
@@ -279,9 +279,9 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
           </Button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="grid w-full grid-cols-3 items-center gap-2 sm:flex sm:w-auto sm:flex-none sm:gap-3">
           <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-full sm:w-[120px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -291,7 +291,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
           </Select>
 
           <Select value={platformFilter} onValueChange={(v) => setPlatformFilter(v as SocialPlatform | 'all')}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Plataforma" />
             </SelectTrigger>
             <SelectContent>
@@ -306,7 +306,7 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
           </Select>
 
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as SocialPostStatus | 'all')}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -318,7 +318,15 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => { setSelectedDate(null); setCreateDialogOpen(true); }}>
+          {/* O cabecalho da pagina de Marketing ja tem "Nova Postagem".
+              No desktop os dois ficam distantes e o daqui e conveniente;
+              no mobile, com tudo empilhado, viravam dois botoes iguais a
+              poucos pixels um do outro. Some so na tela pequena — criar
+              clicando num dia do calendario continua funcionando. */}
+          <Button
+            className="hidden sm:inline-flex"
+            onClick={() => { setSelectedDate(null); setCreateDialogOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Postagem
           </Button>

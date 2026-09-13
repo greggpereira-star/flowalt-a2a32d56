@@ -234,22 +234,22 @@ export const DashboardAgenda: React.FC<DashboardAgendaProps> = ({ limit = 5 }) =
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            Agenda de Hoje
+            <Calendar className="h-5 w-5 shrink-0 text-primary" />
+            <span className="truncate">Agenda de Hoje</span>
           </h2>
           <p className="text-sm text-muted-foreground">
-            {agendaData && agendaData.length > 0 
+            {agendaData && agendaData.length > 0
               ? `Você tem ${agendaData.length} compromisso${agendaData.length > 1 ? 's' : ''} hoje.`
               : 'Nenhum compromisso agendado para hoje.'}
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="rounded-full gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all"
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all shrink-0 self-start sm:self-auto"
           onClick={() => navigate('/calendar')}
         >
           Ver agenda completa

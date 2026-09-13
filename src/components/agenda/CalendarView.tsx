@@ -43,6 +43,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getEventTypeStyle } from '@/lib/agenda/eventTypes';
+import { useEventParticipantsBatch } from '@/hooks/agenda/useEventParticipantsBatch';
+import { EventTypeLegend } from '@/components/agenda/EventTypeLegend';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   useEvents,
   useCreateEvent,
@@ -90,8 +94,10 @@ interface CalendarViewProps {
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
@@ -106,7 +112,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const calendarEnd = endOfWeek(monthEnd, { locale: ptBR });
 
   const { data: events, isLoading } = useEvents(calendarStart, calendarEnd);
+
+  // Participantes de todos os eventos do periodo numa consulta so. Buscar
+  // por evento geraria dezenas de idas ao servidor apenas para desenhar
+  // avatares numa lista.
+  const { data: participantsByEvent } = useEventParticipantsBatch(
+    (events ?? []).map((e) => e.id),
+  );
   const { data: spaces } = useSpaces();
+
+  // O evento nao carrega cliente (nenhum dos 84 tem card vinculado), mas
+  // 59 tem espaco. O espaco responde "de que area e isso" — que era
+  // metade da pergunta que a legenda de cor nao cobre.
+  const spaceById = useMemo(
+    () => new Map((spaces ?? []).map((sp) => [sp.id, sp])),
+    [spaces],
+  );
   const { data: members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { birthdayNotices } = useNotices();
 
@@ -238,6 +259,40 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
     return map;
   }, [events, birthdayNotices]);
 
+  const dayDetailsEvents = useMemo(() => {
+    if (!dayDetailsDate) return [];
+    return eventsByDay.get(format(dayDetailsDate, 'yyyy-MM-dd')) || [];
+  }, [dayDetailsDate, eventsByDay]);
+
+  // Agrupa a lista do dia em manha / tarde / noite.
+  //
+  // So agrupa a partir de 5 eventos: com dois ou tres itens os titulos de
+  // periodo ocupariam mais espaco que o proprio conteudo e o dia pareceria
+  // mais cheio do que e. O dia mais cheio do historico tem 3 eventos, entao
+  // hoje isso nunca dispara — e infraestrutura para quando a agenda encher.
+  const LIMIAR_AGRUPAMENTO = 5;
+
+  const dayDetailsGroups = useMemo(() => {
+    if (dayDetailsEvents.length < LIMIAR_AGRUPAMENTO) return null;
+
+    const grupos: { titulo: string; itens: typeof dayDetailsEvents }[] = [
+      { titulo: 'Manhã', itens: [] },
+      { titulo: 'Tarde', itens: [] },
+      { titulo: 'Noite', itens: [] },
+    ];
+
+    dayDetailsEvents.forEach((ev) => {
+      const inicio = (ev as Event).start_time;
+      // Aniversario e evento de dia inteiro nao tem hora util: vao para
+      // a manha, no topo da lista.
+      const hora = inicio && !(ev as Event).all_day ? parseISO(inicio).getHours() : 0;
+      const indice = hora < 12 ? 0 : hora < 18 ? 1 : 2;
+      grupos[indice].itens.push(ev);
+    });
+
+    return grupos.filter((g) => g.itens.length > 0);
+  }, [dayDetailsEvents]);
+
   const resetForm = () => {
     setFormData({
       title: '',
@@ -264,6 +319,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
       end_date: dateStr,
     }));
     setDialogOpen(true);
+  };
+
+  const handleDayCellClick = (date: Date, dayHasEvents: boolean) => {
+    // Dia com evento abre a lista do dia; dia vazio vai direto para o
+    // formulario. Antes a lista so existia no mobile, entao no desktop os
+    // participantes, o espaco e o agrupamento por periodo nao eram vistos
+    // por ninguem — a celula da grade nao tem largura para mostra-los.
+    // Quem quiser criar evento num dia ocupado usa o botao do rodape do
+    // painel, que ja chama handleDateClick.
+    if (dayHasEvents) {
+      setDayDetailsDate(date);
+      return;
+    }
+    handleDateClick(date);
   };
 
   const handleEventClick = async (event: Event, e: React.MouseEvent) => {
@@ -436,6 +505,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
         </Button>
       </div>
 
+      {/* Legenda logo abaixo do cabecalho: a cor so comunica depois que a
+          pessoa sabe o que cada uma significa, e quem entra novo no time nao
+          tem como adivinhar. */}
+      <div className="flex justify-end">
+        <EventTypeLegend />
+      </div>
+
       {/* Calendar Grid Container */}
       <div className="flex-1 bg-background border rounded-xl overflow-hidden flex flex-col shadow-sm">
         {/* Week Days Header */}
@@ -464,16 +540,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
               <div
                 key={index}
                 className={cn(
-                  'relative min-h-[120px] p-2 flex flex-col gap-1 overflow-hidden transition-colors group',
+                  'relative p-2 flex flex-col gap-1 overflow-hidden transition-colors group',
+                  isMobile ? 'min-h-[52px] p-1' : 'min-h-[120px]',
                   !isCurrentMonth ? 'bg-muted/[0.15] opacity-40' : 'bg-background hover:bg-muted/10',
                   // Highlight days with events (dark-mode friendly)
                   hasEvents && !isPastDay && 'bg-primary/[0.06] dark:bg-primary/10 ring-1 ring-inset ring-primary/20 dark:ring-primary/30',
                   hasEvents && isPastDay && 'bg-muted/30 dark:bg-muted/20 ring-1 ring-inset ring-border/60',
                   'cursor-pointer border-t-0 border-l-0'
                 )}
-                onClick={() => handleDateClick(day)}
+                onClick={() => handleDayCellClick(day, hasEvents)}
               >
-                <div className="flex items-center justify-between mb-1 shrink-0">
+                <div className={cn('flex items-center justify-between shrink-0', isMobile ? 'flex-col gap-0.5' : 'mb-1')}>
                   <div
                     className={cn(
                       'text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg transition-all',
@@ -500,6 +577,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   )}
                 </div>
 
+                {isMobile ? null : (
                 <div className="flex-1 flex flex-col gap-1 overflow-hidden">
                   {dayEvents.slice(0, 3).map(event => {
                     if ('isBirthday' in event && event.isBirthday) {
@@ -521,17 +599,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                       <div
                         key={event.id}
                         className={cn(
-                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-colors',
-                          'bg-card shadow-sm hover:bg-muted/40 border-border/60 hover:border-primary/40'
+                          'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-colors cursor-pointer',
+                          // O card inteiro carrega a cor do tipo: num mes cheio
+                          // o olho varre blocos de cor, nao pontos de 6px.
+                          getEventTypeStyle((event as Event).event_type).tile,
+                          isPastDay && 'opacity-60'
                         )}
                         onClick={(e) => handleEventClick(event as Event, e)}
                       >
                         <div className="flex items-center gap-1.5">
-                          <div 
-                            className="w-1.5 h-1.5 rounded-full shrink-0" 
-                            style={{ backgroundColor: (event as Event).color || config.color.replace('bg-', '') }} 
-                          />
-                          <span className="truncate text-foreground/90">{event.title}</span>
+                          {/* Icone em vez de ponto: azul e violeta ficam
+                              quase iguais num bloco de 10px, e quem nao
+                              distingue matiz nao teria outro sinal. O
+                              simbolo e o mesmo da legenda. */}
+                          {(() => {
+                            const Icone = getEventTypeStyle((event as Event).event_type).icon;
+                            return <Icone className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2.5} aria-hidden="true" />;
+                          })()}
+                          <span className="truncate">{event.title}</span>
                         </div>
                         {!(event as Event).all_day && (
                           <span className="text-[9px] text-muted-foreground ml-3 leading-none">
@@ -547,11 +632,134 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Day Details (mobile: lista de eventos do dia tocado) */}
+      <Dialog open={!!dayDetailsDate} onOpenChange={(open) => !open && setDayDetailsDate(null)}>
+        <DialogContent className="max-w-sm sm:max-w-lg max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <div className="px-5 py-4 border-b bg-muted/30 shrink-0">
+            <DialogTitle className="text-base font-semibold capitalize">
+              {dayDetailsDate && format(dayDetailsDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </DialogTitle>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {dayDetailsEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento neste dia</p>
+            ) : (
+              (dayDetailsGroups ?? [{ titulo: '', itens: dayDetailsEvents }]).map((grupo) => (
+                <div key={grupo.titulo || 'todos'} className="space-y-2">
+                  {grupo.titulo && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {grupo.titulo}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground/60">
+                        {grupo.itens.length}
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                  )}
+
+                  {grupo.itens.map(event => {
+                if ('isBirthday' in event && event.isBirthday) {
+                  return (
+                    <div
+                      key={event.id}
+                      className="text-sm px-3 py-2.5 rounded-lg font-medium bg-pink-500/10 text-pink-600 border border-pink-200 dark:border-pink-900/50 flex items-center gap-2"
+                    >
+                      <Cake className="h-4 w-4 shrink-0" />
+                      <span>{event.title.replace('🎉 ', '').replace('!', '')}</span>
+                    </div>
+                  );
+                }
+                const config = EVENT_TYPE_CONFIG[(event as Event).event_type];
+                const startTime = format(parseISO((event as Event).start_time), 'HH:mm');
+                return (
+                  <div
+                    key={event.id}
+                    className={cn(
+                      'text-sm px-3 py-2.5 rounded-lg border transition-colors flex items-center gap-2 cursor-pointer',
+                      getEventTypeStyle((event as Event).event_type).tile,
+                    )}
+                    onClick={(e) => {
+                      setDayDetailsDate(null);
+                      handleEventClick(event as Event, e);
+                    }}
+                  >
+                    <div
+                      className={cn('w-2 h-2 rounded-full shrink-0', getEventTypeStyle((event as Event).event_type).accent)}
+                    />
+                    <span className="flex-1 min-w-0 truncate font-medium">{event.title}</span>
+
+                    {(() => {
+                      const espaco = (event as Event).space_id
+                        ? spaceById.get((event as Event).space_id as string)
+                        : undefined;
+                      if (!espaco) return null;
+                      return (
+                        <span className="hidden sm:inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: espaco.color || undefined }}
+                            aria-hidden="true"
+                          />
+                          {espaco.name}
+                        </span>
+                      );
+                    })()}
+
+                    {/* Rostos respondem "quem esta envolvido" sem exigir clique.
+                        Tres cabem sem quebrar a linha; a media real e 2,4 por
+                        evento, entao o contador aparece pouco. */}
+                    {(participantsByEvent?.[event.id]?.length ?? 0) > 0 && (
+                      <div className="flex -space-x-1.5 shrink-0">
+                        {participantsByEvent![event.id].slice(0, 3).map((pessoa) => (
+                          <Avatar key={pessoa.userId} className="h-5 w-5 border border-background">
+                            <AvatarImage src={pessoa.avatarUrl ?? undefined} alt={pessoa.fullName} />
+                            <AvatarFallback className="bg-muted text-[8px] font-medium">
+                              {pessoa.fullName.split(' ').slice(0, 2).map((n) => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {participantsByEvent![event.id].length > 3 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-background bg-muted text-[8px] font-semibold text-muted-foreground">
+                            +{participantsByEvent![event.id].length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {!(event as Event).all_day && (
+                      <span className="text-xs text-muted-foreground shrink-0">{startTime}</span>
+                    )}
+                  </div>
+                );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="px-4 py-3 border-t bg-muted/30 shrink-0">
+            <Button
+              className="w-full"
+              size="sm"
+              onClick={() => {
+                const date = dayDetailsDate;
+                setDayDetailsDate(null);
+                if (date) handleDateClick(date);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Evento
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -612,7 +820,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   {formErrors.title && <p className="text-[10px] text-destructive font-medium">{formErrors.title}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Tipo</Label>
                     <Select
@@ -678,13 +886,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">Início</Label>
                     <Input
                       type="date"
                       value={formData.start_date}
-                      onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData(f => ({
+                          ...f,
+                          start_date: e.target.value,
+                          // A imensa maioria dos compromissos comeca e termina
+                          // no mesmo dia, entao repetir a data e trabalho a
+                          // toa. So preenche quando o fim esta vazio ou quando
+                          // ainda acompanhava o inicio anterior: se a pessoa
+                          // escolheu um dia diferente de proposito (evento de
+                          // varios dias), a escolha dela fica.
+                          end_date:
+                            !f.end_date || f.end_date === f.start_date
+                              ? e.target.value
+                              : f.end_date,
+                        }))
+                      }
                       className={cn(formErrors.start_date && "border-destructive")}
                     />
                     {!formData.all_day && (

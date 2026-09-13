@@ -201,22 +201,37 @@ export const useCreateEvent = () => {
 
       if (eventError) throw eventError;
 
-      // Add participants
-      if (participant_ids && participant_ids.length > 0) {
-        const participants = participant_ids.map(userId => ({
-          event_id: event.id,
-          user_id: userId,
-        }));
+      // Participantes num upsert so, criador incluido na mesma lista.
+      //
+      // Antes eram dois inserts: um com os convidados e outro com o criador.
+      // Quando a pessoa que cria o evento tambem se marcava como participante
+      // — o caso comum, ja que ela aparece primeiro na lista e vem
+      // pre-selecionada — a segunda escrita batia na constraint
+      // UNIQUE (event_id, user_id) e voltava 409. O evento ja estava criado,
+      // entao a tela dizia "Erro ao salvar evento" para algo que tinha dado
+      // certo, e quem tentasse de novo criaria um evento duplicado.
+      //
+      // `ignoreDuplicates` cobre tambem o caso de o mesmo id vir repetido do
+      // formulario, sem precisar confiar na limpeza da tela.
+      const idsParticipantes = Array.from(
+        new Set([...(participant_ids ?? []), user.id]),
+      );
 
-        await supabase.from('event_participants').insert(participants);
-      }
-
-      // Add creator as participant
-      await supabase.from('event_participants').insert({
+      const linhasParticipantes = idsParticipantes.map(userId => ({
         event_id: event.id,
-        user_id: user.id,
-        status: 'accepted',
-      });
+        user_id: userId,
+        // Quem cria ja esta ciente do compromisso; os demais recebem convite.
+        status: userId === user.id ? 'accepted' : 'pending',
+      }));
+
+      const { error: participantsError } = await supabase
+        .from('event_participants')
+        .upsert(linhasParticipantes, {
+          onConflict: 'event_id,user_id',
+          ignoreDuplicates: true,
+        });
+
+      if (participantsError) throw participantsError;
 
       return event;
     },
