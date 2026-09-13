@@ -83,8 +83,8 @@ export function WebhookManager() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <Webhook className="h-5 w-5" />
                 Webhooks
@@ -95,7 +95,7 @@ export function WebhookManager() {
             </div>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" disabled={!canCreateWebhook}>
+                <Button size="sm" className="shrink-0" disabled={!canCreateWebhook}>
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Webhook
                 </Button>

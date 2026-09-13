@@ -300,6 +300,18 @@ export class InstagramAdapter implements SocialPlatformAdapter {
     );
 
     const publishData = await publishResponse.json();
+    // A Graph API responde HTTP 200 com {error:{...}} em falhas de escopo,
+    // mídia inválida ou conta desconectada. Sem esta checagem o post era
+    // marcado como publicado no painel e não existia na rede.
+    if (publishData.error) {
+      throw new SocialPlatformError(
+        publishData.error.message,
+        this.mapErrorCode(publishData.error.code),
+        'instagram',
+        this.isRetryable(publishData.error.code)
+      );
+    }
+
     return {
       success: true,
       platform_post_id: publishData.id,
@@ -362,6 +374,15 @@ export class InstagramAdapter implements SocialPlatformAdapter {
     );
 
     const publishData = await publishResponse.json();
+    if (publishData.error) {
+      throw new SocialPlatformError(
+        publishData.error.message,
+        this.mapErrorCode(publishData.error.code),
+        'instagram',
+        this.isRetryable(publishData.error.code)
+      );
+    }
+
     return {
       success: true,
       platform_post_id: publishData.id,
@@ -653,6 +674,15 @@ export class FacebookAdapter implements SocialPlatformAdapter {
       );
 
       const data = await response.json();
+      if (data.error) {
+        throw new SocialPlatformError(
+          data.error.message,
+          SocialErrorCode.PLATFORM_ERROR,
+          'facebook',
+          false
+        );
+      }
+
       return {
         success: true,
         platform_post_id: data.post_id || data.id,
@@ -701,6 +731,15 @@ export class FacebookAdapter implements SocialPlatformAdapter {
     );
 
     const data = await response.json();
+    if (data.error) {
+      throw new SocialPlatformError(
+        data.error.message,
+        SocialErrorCode.PLATFORM_ERROR,
+        'facebook',
+        false
+      );
+    }
+
     return {
       success: true,
       platform_post_id: data.id,
@@ -730,6 +769,15 @@ export class FacebookAdapter implements SocialPlatformAdapter {
     );
 
     const data = await response.json();
+    if (data.error) {
+      throw new SocialPlatformError(
+        data.error.message,
+        SocialErrorCode.PLATFORM_ERROR,
+        'facebook',
+        false
+      );
+    }
+
     return {
       success: true,
       platform_post_id: data.id,

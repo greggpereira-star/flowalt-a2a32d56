@@ -967,7 +967,7 @@ export function PlatformConnectionWizard({
                   // Super Admin sees setup guide for Meta
                   <MetaSetupGuide
                     appId="2562991294073382"
-                    callbackUrl="https://vnohlxerngxizmzyptyw.supabase.co/functions/v1/social-oauth-callback"
+                    callbackUrl={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-oauth-callback`}
                     onClose={() => {
                       setRequiresSetup(false);
                       setErrorMessage(null);

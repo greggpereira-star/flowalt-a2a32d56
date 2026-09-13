@@ -30,6 +30,18 @@ const DeferredMount: React.FC<{ children: React.ReactNode; delay?: number }> = (
   return <>{children}</>;
 };
 
+// Fallback só da área de conteúdo — usado quando uma página lazy (rota ainda
+// não visitada nesta sessão) ou uma aba lazy dentro dela ainda está baixando
+// seu chunk. Sem uma barreira de Suspense aqui, a suspensão sobe até a única
+// barreira global em App.tsx, que desmonta a árvore inteira — sidebar,
+// cabeçalho, tudo — e troca pela tela cheia de loading, dando a sensação de
+// que a página inteira "recarregou" ao trocar de menu.
+const ContentFallback = () => (
+  <div className="flex h-full min-h-[50vh] items-center justify-center">
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
+
 const DeferredLayoutTools: React.FC = () => {
   return (
     <DeferredMount delay={1800}>
@@ -127,7 +139,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
         {/* Main Content */}
         <main className={cn('flex-1', isSpaceRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto')}>
-          <div className={cn(isSpaceRoute ? 'h-full min-h-0' : undefined)}>{children}</div>
+          <div className={cn(isSpaceRoute ? 'h-full min-h-0' : undefined)}>
+            <Suspense fallback={<ContentFallback />}>{children}</Suspense>
+          </div>
         </main>
 
         <DeferredLayoutTools />

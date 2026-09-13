@@ -274,7 +274,9 @@ const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProps<"main
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
+        // min-w-0 + overflow-x-hidden: impede que conteúdo largo (tabelas, gráficos,
+        // barras de abas) force o flex-item a crescer além da largura da tela no mobile
+        "relative flex min-h-svh min-w-0 flex-1 flex-col overflow-x-hidden bg-background",
         "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className,
       )}

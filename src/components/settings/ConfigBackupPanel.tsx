@@ -159,14 +159,14 @@ export function ConfigBackupPanel() {
       <CardContent className="space-y-6">
         {/* Export Section */}
         <div className="p-4 rounded-lg border bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="min-w-0">
               <h3 className="font-medium">Exportar Configurações</h3>
               <p className="text-sm text-muted-foreground">
                 Faça download de todas as configurações
               </p>
             </div>
-            <Button onClick={exportConfiguration} disabled={isExporting}>
+            <Button onClick={exportConfiguration} disabled={isExporting} className="shrink-0 w-full sm:w-auto">
               <Download className={`h-4 w-4 mr-2 ${isExporting ? 'animate-pulse' : ''}`} />
               {isExporting ? 'Exportando...' : 'Exportar'}
             </Button>
@@ -190,14 +190,14 @@ export function ConfigBackupPanel() {
 
         {/* Import Section */}
         <div className="p-4 rounded-lg border bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="min-w-0">
               <h3 className="font-medium">Importar Configurações</h3>
               <p className="text-sm text-muted-foreground">
                 Restaure configurações de um backup
               </p>
             </div>
-            <div>
+            <div className="shrink-0 w-full sm:w-auto">
               <input
                 type="file"
                 accept=".json"
@@ -207,7 +207,7 @@ export function ConfigBackupPanel() {
                 disabled={isImporting}
               />
               <label htmlFor="backup-import">
-                <Button asChild variant="outline" disabled={isImporting}>
+                <Button asChild variant="outline" disabled={isImporting} className="w-full sm:w-auto">
                   <span>
                     <Upload className={`h-4 w-4 mr-2 ${isImporting ? 'animate-pulse' : ''}`} />
                     {isImporting ? 'Importando...' : 'Importar'}

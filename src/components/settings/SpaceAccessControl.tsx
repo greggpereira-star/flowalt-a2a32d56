@@ -86,10 +86,10 @@ export function SpaceAccessControl() {
       {spaces?.map((space) => (
         <Card key={space.id}>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{ backgroundColor: space.color || '#6366f1' }}
                 >
                   {(space as any).access_level === 'restricted' ? (
@@ -98,34 +98,35 @@ export function SpaceAccessControl() {
                     <Unlock className="h-4 w-4 text-white" />
                   )}
                 </div>
-                <div>
-                  <CardTitle className="text-base">{space.name}</CardTitle>
-                  <CardDescription className="text-xs">
-                    {space.is_system && <Badge variant="outline" className="mr-2">Sistema</Badge>}
+                <div className="min-w-0">
+                  <CardTitle className="text-base truncate">{space.name}</CardTitle>
+                  <CardDescription className="text-xs flex items-center flex-wrap gap-1">
+                    {space.is_system && <Badge variant="outline">Sistema</Badge>}
                     {(space as any).access_level === 'restricted' ? 'Restrito' : 'Operacional'}
                   </CardDescription>
                 </div>
               </div>
-              
+
               {editingSpace !== space.id ? (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleEdit(space)}
                   disabled={space.is_system}
+                  className="shrink-0 self-start sm:self-auto"
                 >
                   Editar
                 </Button>
               ) : (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
+                <div className="flex gap-2 shrink-0 self-start sm:self-auto">
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => setEditingSpace(null)}
                   >
                     Cancelar
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => handleSave(space.id)}
                     disabled={updateSpace.isPending}

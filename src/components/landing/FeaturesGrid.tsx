@@ -29,7 +29,7 @@ export const FeaturesGrid: React.FC = () => (
         </p>
       </motion.div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {features.map((f, i) => (
           <motion.div
             key={f.title}

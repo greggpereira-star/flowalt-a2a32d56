@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useSystemMetrics,
   useDashboardSnapshots,
@@ -108,10 +107,10 @@ export function SystemMonitorPanel() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
+              <Activity className="h-5 w-5 shrink-0 text-primary" />
               Monitoramento do Sistema
             </CardTitle>
             <CardDescription>
@@ -123,6 +122,7 @@ export function SystemMonitorPanel() {
             size="sm"
             onClick={handleRefreshSnapshots}
             disabled={isRefreshing}
+            className="shrink-0 w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Atualizar Snapshots
@@ -154,15 +154,15 @@ export function SystemMonitorPanel() {
                 <p className="text-sm mt-1">Clique em "Atualizar Snapshots" para gerar</p>
               </div>
             ) : (
-              <ScrollArea className="h-[400px]">
+              <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
                 <div className="space-y-4">
                   {snapshots?.map((snapshot) => (
                     <div
                       key={snapshot.id}
                       className="p-4 rounded-lg border bg-card"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="capitalize">
                             {snapshot.snapshot_type}
                           </Badge>
@@ -171,9 +171,9 @@ export function SystemMonitorPanel() {
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          Atualizado {formatDistanceToNow(new Date(snapshot.computed_at), { 
-                            addSuffix: true, 
-                            locale: ptBR 
+                          Atualizado {formatDistanceToNow(new Date(snapshot.computed_at), {
+                            addSuffix: true,
+                            locale: ptBR
                           })}
                         </span>
                       </div>
@@ -192,7 +192,7 @@ export function SystemMonitorPanel() {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             )}
           </TabsContent>
 
@@ -203,7 +203,7 @@ export function SystemMonitorPanel() {
                 <p>Nenhuma métrica registrada ainda</p>
               </div>
             ) : (
-              <ScrollArea className="h-[400px]">
+              <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -246,7 +246,7 @@ export function SystemMonitorPanel() {
                     ))}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
             )}
           </TabsContent>
 
@@ -260,7 +260,7 @@ export function SystemMonitorPanel() {
                 </p>
               </div>
             ) : (
-              <ScrollArea className="h-[400px]">
+              <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -299,7 +299,7 @@ export function SystemMonitorPanel() {
                     ))}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
             )}
           </TabsContent>
         </Tabs>

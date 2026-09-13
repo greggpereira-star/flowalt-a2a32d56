@@ -25,6 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Trash2, GripVertical, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 interface TemplateStep {
   id: string;
@@ -51,13 +52,7 @@ const CATEGORIES = [
   { value: 'outro', label: 'Outro' },
 ];
 
-const CARD_STATUSES = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Andamento' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'done', label: 'Concluído' },
-];
+const CARD_STATUSES = CARD_STATUS_OPTIONS;
 
 export function TemplateWizard({ open, onOpenChange, onSuccess }: TemplateWizardProps) {
   const { currentWorkspace } = useWorkspace();

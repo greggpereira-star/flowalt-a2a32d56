@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays, differenceInHours, isPast, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
+import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 
 interface ApprovalsPendingViewProps {
   cards: CardType[];
@@ -151,17 +152,6 @@ export const ApprovalsPendingView: React.FC<ApprovalsPendingViewProps> = ({
     return format(dueDate, "dd 'de' MMMM", { locale: ptBR });
   };
 
-  const getStatusText = (status: string) => {
-    const statusMap: Record<string, string> = {
-      in_review: 'Em Aprovação',
-      in_progress: 'Em Produção',
-      backlog: 'Backlog',
-      todo: 'A Fazer',
-      done: 'Concluído',
-    };
-    return statusMap[status] || status;
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -221,7 +211,7 @@ export const ApprovalsPendingView: React.FC<ApprovalsPendingViewProps> = ({
                     <div className="flex items-center gap-2 mb-1">
                       {getCriticalityBadge(card)}
                       <Badge variant="outline" className="text-xs">
-                        {getStatusText(card.status)}
+                        {getCardStatusLabel(card.status)}
                       </Badge>
                     </div>
                     <h4 className="font-medium truncate">{card.title}</h4>

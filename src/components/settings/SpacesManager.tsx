@@ -145,7 +145,7 @@ function SortableSpaceItem({ space, onEdit, onArchive }: SortableSpaceItemProps)
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(space)}>
@@ -358,17 +358,17 @@ export function SpacesManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FolderKanban className="h-5 w-5 text-primary" />
-            <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <FolderKanban className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0">
               <CardTitle>Gerenciador de Espaços</CardTitle>
               <CardDescription>
                 Espaços organizam o trabalho por contexto
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

@@ -1,3 +1,13 @@
+/* @import PRECISA ser a primeiríssima regra do arquivo — o CSS spec invalida
+   (e o browser descarta silenciosamente) um @import que vem depois de
+   qualquer outra regra. Como os @tailwind acima se expandem em centenas de
+   regras reais no CSS final, um @import logo abaixo deles nunca chegava a
+   carregar em produção: Inter e JetBrains Mono vinham caindo no fallback do
+   sistema o tempo todo, sem erro visível (fallback parecido o bastante pra
+   ninguém notar). Confirmado inspecionando o dist/ final: zero ocorrências
+   de "@import" no CSS compilado. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +18,130 @@
    "O sistema existe para organizar o trabalho, não para controlar pessoas"
    ============================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fontes de marca ALT — usadas apenas no Gerador de Propostas (theme.titleFont
+   / theme.bodyFont em src/lib/proposalDocument.ts). Archivo: SIL Open Font
+   License (livre). Poppins: Google Fonts (livre) — substituto da Nexa nos
+   títulos (ver nota abaixo). */
+
+/* NEXA DESATIVADA: os arquivos enviados são do pacote trial (befonts.com),
+   que tem TODOS os glifos acentuados (á, ã, ç, é, ê, õ, ü — inclusive as
+   marcas de acento isoladas) substituídos por um único contorno quebrado,
+   idêntico em todos eles — provavelmente proposital, para limitar o trial em
+   idiomas com acentuação. Confirmado via inspeção dos glifos (fontTools) e
+   ao vivo no construtor ("Condição" virava "Condi▯o"). Poppins assumiu como
+   fonte de título por ter visual próximo (geométrica, arredondada) e
+   acentuação completa. Se surgirem os arquivos retail da Nexa (não o trial),
+   descomente os blocos abaixo, restaure 'Nexa' em PROPOSAL_FONTS
+   (src/lib/proposalDocument.ts) e troque DEFAULT_THEME.titleFont de volta.
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/proposal/Nexa-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/proposal/Nexa-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/proposal/Nexa-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/proposal/Nexa-Heavy.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/proposal/Archivo-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/proposal/Archivo-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/proposal/Archivo-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/proposal/Archivo-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/proposal/Archivo-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Poppins hospedada localmente (não via @import do Google Fonts) — evita
+   depender de rede externa e do bug de posição de @import acima. */
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/proposal/Poppins-900.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
@@ -297,6 +430,16 @@
 
   .scrollbar-minimal:hover::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.35);
+  }
+
+  /* Scrollbar totalmente oculta (barras de navegação deslizáveis mobile) */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Focus visible melhorado */

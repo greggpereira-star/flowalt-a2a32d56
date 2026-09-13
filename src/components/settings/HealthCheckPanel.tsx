@@ -272,20 +272,20 @@ export function HealthCheckPanel() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
+              <Activity className="h-5 w-5 shrink-0" />
               Health Check
             </CardTitle>
             <CardDescription>
               Status dos serviços da plataforma
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {getStatusBadge(overallStatus)}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={runHealthCheck}
               disabled={isChecking}
@@ -301,20 +301,20 @@ export function HealthCheckPanel() {
           {services.map((service) => (
             <div
               key={service.name}
-              className="flex items-center justify-between p-4 rounded-lg border bg-card"
+              className="flex items-center justify-between gap-3 p-4 rounded-lg border bg-card"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-muted">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-lg bg-muted shrink-0">
                   {getServiceIcon(service.name)}
                 </div>
-                <div>
-                  <p className="font-medium">{service.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{service.name}</p>
+                  <p className="text-sm text-muted-foreground truncate">
                     {service.details || 'Verificando...'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 shrink-0">
                 {service.latency !== undefined && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Clock className="h-3 w-3" />

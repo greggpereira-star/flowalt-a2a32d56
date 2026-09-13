@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -247,7 +246,7 @@ function VisibilityAuditTab() {
               ))}
             </div>
           ) : hasIssues ? (
-            <ScrollArea className="h-[250px] pr-4">
+            <div className="max-h-[65vh] sm:h-[250px] overflow-y-auto overscroll-contain pr-1 sm:pr-4">
               <div className="space-y-2">
                 {issues?.map((issue) => {
                   const Icon = IssueTypeIcon[issue.type] || LayoutGrid;
@@ -274,7 +273,7 @@ function VisibilityAuditTab() {
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mb-3">
@@ -308,7 +307,7 @@ function VisibilityAuditTab() {
               ))}
             </div>
           ) : hasDenials ? (
-            <ScrollArea className="h-[200px] pr-4">
+            <div className="max-h-[65vh] sm:h-[200px] overflow-y-auto overscroll-contain pr-1 sm:pr-4">
               <div className="space-y-2">
                 {denials?.map((denial) => {
                   const metadata = denial.metadata as Record<string, unknown> | null;
@@ -348,7 +347,7 @@ function VisibilityAuditTab() {
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mb-3">
@@ -523,10 +522,10 @@ export function GovernancePanel() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
+            <Shield className="h-6 w-6 shrink-0 text-primary" />
             Governança e Permissões
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -534,7 +533,7 @@ export function GovernancePanel() {
           </p>
         </div>
         {canViewAudit && (
-          <Badge variant="outline" className="gap-1.5">
+          <Badge variant="outline" className="gap-1.5 shrink-0 self-start sm:self-auto">
             <Eye className="h-3.5 w-3.5" />
             Modo Auditoria
           </Badge>
@@ -542,14 +541,14 @@ export function GovernancePanel() {
       </div>
 
       <Tabs defaultValue={canViewAudit ? "visibility" : "roles"} className="space-y-6">
-        <TabsList>
+        <TabsList className="w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide no-scrollbar">
           {canViewAudit && (
-            <TabsTrigger value="visibility" className="gap-2">
+            <TabsTrigger value="visibility" className="gap-2 shrink-0">
               <EyeOff className="h-4 w-4" />
               Visibilidade & Acessos
             </TabsTrigger>
           )}
-          <TabsTrigger value="roles" className="gap-2">
+          <TabsTrigger value="roles" className="gap-2 shrink-0">
             <Users className="h-4 w-4" />
             Papéis & Permissões
           </TabsTrigger>

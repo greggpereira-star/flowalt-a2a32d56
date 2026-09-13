@@ -3,20 +3,13 @@ import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { FilterQuery } from '@/hooks/useCardFilters';
+import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 
 interface ActiveFiltersChipsProps {
   query: FilterQuery;
   onRemoveFilter: (category: keyof FilterQuery, key?: string) => void;
   onClearAll: () => void;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  todo: 'A Fazer',
-  doing: 'Em Progresso',
-  review: 'Em Revisão',
-  done: 'Concluído',
-  blocked: 'Bloqueado',
-};
 
 const URGENCY_LABELS: Record<string, string> = {
   low: 'Baixa',
@@ -46,7 +39,7 @@ export const ActiveFiltersChips: React.FC<ActiveFiltersChipsProps> = ({
 
   if (query.status?.card_status?.length) {
     query.status.card_status.forEach(s => {
-      chips.push({ label: STATUS_LABELS[s] || s, category: 'status', key: s });
+      chips.push({ label: getCardStatusLabel(s), category: 'status', key: s });
     });
   }
 

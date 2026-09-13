@@ -230,10 +230,10 @@ export function WorkspaceInvitesPanel() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-primary" />
-              <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Mail className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
                 <CardTitle>Convites</CardTitle>
                 <CardDescription>
                   Convide pessoas para participar do workspace
@@ -248,7 +248,7 @@ export function WorkspaceInvitesPanel() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button size="sm" disabled={!canInvite}>
+                <Button size="sm" disabled={!canInvite} className="shrink-0 w-full sm:w-auto">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Convidar
                 </Button>
@@ -469,11 +469,11 @@ export function WorkspaceInvitesPanel() {
                 return (
                   <div
                     key={invite.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border bg-card"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{invite.email}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           {roleData?.icon}
                           {roleLabel}
@@ -483,8 +483,8 @@ export function WorkspaceInvitesPanel() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Badge variant={status.variant} className="gap-1">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                      <Badge variant={status.variant} className="gap-1 shrink-0">
                         <StatusIcon className="h-3 w-3" />
                         {status.label}
                       </Badge>

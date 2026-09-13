@@ -132,14 +132,14 @@ export function TemplateManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
           <h3 className="text-lg font-medium">Templates de Processos</h3>
           <p className="text-sm text-muted-foreground">
             Crie templates reutilizáveis para padronizar seus processos
           </p>
         </div>
-        <Button onClick={() => setWizardOpen(true)}>
+        <Button onClick={() => setWizardOpen(true)} className="shrink-0 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Novo Template
         </Button>

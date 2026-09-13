@@ -40,79 +40,101 @@ export function LeaderboardDashboard() {
 
       if (membersError) throw membersError;
 
-      // Get stats for each member
-      const stats: UserStats[] = [];
+      const memberIds = (members || []).map(m => m.user_id);
+      if (memberIds.length === 0) return [];
 
-      for (const member of members || []) {
-        // Get profile for this user
-        const { data: profile } = await supabase
+      // Antes isto era um `for...of` com `await` dentro: 6 consultas por
+      // membro, executadas EM SÉRIE (sem Promise.all). Com 11 pessoas eram 67
+      // idas ao servidor uma após a outra, e o custo crescia junto com o time.
+      // Agora são 5 consultas no total, agrupadas por `.in(...)`, resolvidas em
+      // paralelo — a agregação por pessoa acontece em memória.
+      const [
+        profilesRes,
+        cardsRes,
+        timeEntriesRes,
+        commentsRes,
+        badgesRes,
+      ] = await Promise.all([
+        supabase
           .from('profiles')
-          .select('full_name, email, avatar_url')
-          .eq('id', member.user_id)
-          .single();
-        
-        // Cards created
-        const { count: cardsCreated } = await supabase
+          .select('id, full_name, email, avatar_url')
+          .in('id', memberIds),
+        supabase
           .from('cards')
-          .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', currentWorkspace.id)
-          .eq('created_by', member.user_id);
-
-        // Cards completed (delivered)
-        const { count: cardsCompleted } = await supabase
-          .from('cards')
-          .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', currentWorkspace.id)
-          .eq('owner_id', member.user_id)
-          .eq('status', 'delivered');
-
-        // Time entries
-        const { data: timeEntries } = await supabase
+          .select('created_by, owner_id, status')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
           .from('time_entries')
-          .select('duration_seconds')
+          .select('user_id, duration_seconds')
           .eq('workspace_id', currentWorkspace.id)
-          .eq('user_id', member.user_id);
-
-        const totalHours = (timeEntries || []).reduce(
-          (acc, te) => acc + (te.duration_seconds || 0),
-          0
-        ) / 3600;
-
-        // Comments
-        const { count: commentsCount } = await supabase
+          .in('user_id', memberIds),
+        supabase
           .from('comments')
-          .select('*, cards!inner(workspace_id)', { count: 'exact', head: true })
-          .eq('user_id', member.user_id)
-          .eq('cards.workspace_id', currentWorkspace.id);
-
-        // Badges
-        const { count: badgesCount } = await supabase
+          .select('user_id, cards!inner(workspace_id)')
+          .eq('cards.workspace_id', currentWorkspace.id)
+          .in('user_id', memberIds),
+        supabase
           .from('user_badges')
-          .select('*', { count: 'exact', head: true })
+          .select('user_id')
           .eq('workspace_id', currentWorkspace.id)
-          .eq('user_id', member.user_id);
+          .in('user_id', memberIds),
+      ]);
 
-        // Calculate score
-        const score = 
-          (cardsCreated || 0) * 10 +
-          (cardsCompleted || 0) * 25 +
+      const profileById = new Map(
+        (profilesRes.data ?? []).map(p => [p.id, p])
+      );
+
+      const contar = <T,>(linhas: T[] | null, chave: (linha: T) => string | null) => {
+        const mapa = new Map<string, number>();
+        (linhas ?? []).forEach(linha => {
+          const k = chave(linha);
+          if (k) mapa.set(k, (mapa.get(k) ?? 0) + 1);
+        });
+        return mapa;
+      };
+
+      const criadosPor = contar(cardsRes.data, c => c.created_by);
+      const entreguesPor = contar(
+        (cardsRes.data ?? []).filter(c => c.status === 'delivered'),
+        c => c.owner_id
+      );
+      const comentariosPor = contar(commentsRes.data, c => c.user_id);
+      const badgesPor = contar(badgesRes.data, b => b.user_id);
+
+      const segundosPor = new Map<string, number>();
+      (timeEntriesRes.data ?? []).forEach(te => {
+        if (!te.user_id) return;
+        segundosPor.set(te.user_id, (segundosPor.get(te.user_id) ?? 0) + (te.duration_seconds || 0));
+      });
+
+      const stats: UserStats[] = memberIds.map(userId => {
+        const profile = profileById.get(userId);
+        const cardsCreated = criadosPor.get(userId) ?? 0;
+        const cardsCompleted = entreguesPor.get(userId) ?? 0;
+        const commentsCount = comentariosPor.get(userId) ?? 0;
+        const badgesCount = badgesPor.get(userId) ?? 0;
+        const totalHours = (segundosPor.get(userId) ?? 0) / 3600;
+
+        const score =
+          cardsCreated * 10 +
+          cardsCompleted * 25 +
           Math.floor(totalHours) * 5 +
-          (commentsCount || 0) * 2 +
-          (badgesCount || 0) * 50;
+          commentsCount * 2 +
+          badgesCount * 50;
 
-        stats.push({
-          user_id: member.user_id,
+        return {
+          user_id: userId,
           full_name: profile?.full_name || profile?.email || 'Usuário',
           email: profile?.email || '',
           avatar_url: profile?.avatar_url || null,
-          cards_created: cardsCreated || 0,
-          cards_completed: cardsCompleted || 0,
+          cards_created: cardsCreated,
+          cards_completed: cardsCompleted,
           total_hours: Math.round(totalHours * 10) / 10,
-          comments_count: commentsCount || 0,
-          badges_count: badgesCount || 0,
+          comments_count: commentsCount,
+          badges_count: badgesCount,
           score,
-        });
-      }
+        };
+      });
 
       // Sort by score
       return stats.sort((a, b) => b.score - a.score);

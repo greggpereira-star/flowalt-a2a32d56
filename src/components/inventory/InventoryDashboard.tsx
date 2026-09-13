@@ -138,14 +138,14 @@ export function InventoryDashboard() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="catalog">Catálogo</TabsTrigger>
-          <TabsTrigger value="movements">Movimentações</TabsTrigger>
-          <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
-          <TabsTrigger value="depreciation">Depreciação</TabsTrigger>
-          <TabsTrigger value="subscriptions">Licenças</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="alerts">Alertas</TabsTrigger>
+        <TabsList className="flex md:grid w-full md:grid-cols-7 overflow-x-auto">
+          <TabsTrigger value="catalog" className="shrink-0">Catálogo</TabsTrigger>
+          <TabsTrigger value="movements" className="shrink-0">Movimentações</TabsTrigger>
+          <TabsTrigger value="maintenance" className="shrink-0">Manutenção</TabsTrigger>
+          <TabsTrigger value="depreciation" className="shrink-0">Depreciação</TabsTrigger>
+          <TabsTrigger value="subscriptions" className="shrink-0">Licenças</TabsTrigger>
+          <TabsTrigger value="templates" className="shrink-0">Templates</TabsTrigger>
+          <TabsTrigger value="alerts" className="shrink-0">Alertas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalog" className="mt-6">

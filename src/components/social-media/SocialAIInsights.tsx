@@ -305,7 +305,7 @@ export function SocialAIInsights() {
           )}
 
           {/* Key Metrics Analysis */}
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Growth Analysis */}
             {insights.growth_analysis && (
               <Card>
@@ -432,7 +432,7 @@ export function SocialAIInsights() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {insights.content_insights.map((insight, idx) => (
                     <div key={idx} className="p-4 rounded-lg border bg-muted/30">
                       <h4 className="font-medium mb-2">{insight.insight}</h4>

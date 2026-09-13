@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { FiltersButton } from './FiltersButton';
 import { SearchInput } from './SearchInput';
 import type { FilterQuery } from '@/hooks/useCardFilters';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 interface FiltersPanelProps {
   query: FilterQuery;
@@ -21,14 +22,7 @@ interface FiltersPanelProps {
   activeFiltersCount: number;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'doing', label: 'Em Progresso' },
-  { value: 'review', label: 'Em Revisão' },
-  { value: 'done', label: 'Concluído' },
-  { value: 'delivered', label: 'Entregue' },
-  { value: 'blocked', label: 'Bloqueado' },
-];
+const STATUS_OPTIONS = CARD_STATUS_OPTIONS;
 
 const URGENCY_OPTIONS = [
   { value: 'low', label: 'Baixa' },

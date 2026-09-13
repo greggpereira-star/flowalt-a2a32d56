@@ -65,8 +65,6 @@ export function ConnectorsPanel() {
     disconnect,
     syncNow,
     analyzeSyncPatterns,
-    importCalendarEvents,
-    importBankTransactions,
     refreshStatuses,
   } = useConnectors();
 
@@ -204,7 +202,7 @@ export function ConnectorsPanel() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" />
@@ -356,18 +354,21 @@ export function ConnectorsPanel() {
                   <p className="text-sm text-muted-foreground">
                     Importe eventos do Google Calendar para a Agenda do Flowalt
                   </p>
-                  <Button 
-                    variant="outline" 
+                  {/* Botão desabilitado: a importação ainda não fala com a API do
+                      Google. A implementação anterior gravava eventos fictícios
+                      ("Reunião de Alinhamento", "Deadline Projeto X") direto na
+                      agenda real, sem sequer olhar o período escolhido. */}
+                  <Button
+                    variant="outline"
                     className="w-full"
-                    onClick={() => {
-                      const start = new Date();
-                      const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                      importCalendarEvents(start, end);
-                    }}
+                    disabled
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Importar próximos 30 dias
                   </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Integração em desenvolvimento — ainda não disponível.
+                  </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
@@ -387,18 +388,22 @@ export function ConnectorsPanel() {
                   <p className="text-sm text-muted-foreground">
                     Importe transações bancárias para conciliação
                   </p>
-                  <Button 
-                    variant="outline" 
+                  {/* Botão desabilitado: a importação ainda não fala com nenhum
+                      banco. A implementação anterior gravava dois lançamentos
+                      fictícios no financeiro real (R$ 5.000 de receita e R$ 1.500
+                      de despesa, ambos como "pago"), contaminando DRE, fluxo de
+                      caixa e Painel Executivo. */}
+                  <Button
+                    variant="outline"
                     className="w-full"
-                    onClick={() => {
-                      const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                      const end = new Date();
-                      importBankTransactions('account-1', start, end);
-                    }}
+                    disabled
                   >
                     <Landmark className="h-4 w-4 mr-2" />
                     Importar últimos 30 dias
                   </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Integração em desenvolvimento — ainda não disponível.
+                  </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">

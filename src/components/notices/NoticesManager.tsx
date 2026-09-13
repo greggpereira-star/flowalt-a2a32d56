@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -350,13 +349,13 @@ export const NoticesManager: React.FC = () => {
             </TabsList>
 
             <TabsContent value="active">
-              <ScrollArea className="h-[400px]">
+              <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
                 {activeNotices.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum aviso ativo
                   </div>
                 ) : (
-                  <div className="space-y-3 pr-4">
+                  <div className="space-y-3 pr-1 sm:pr-4">
                     {activeNotices.map((notice: any) => (
                       <NoticeCard
                         key={notice.id}
@@ -368,17 +367,17 @@ export const NoticesManager: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="expired">
-              <ScrollArea className="h-[400px]">
+              <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
                 {expiredNotices.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum aviso expirado
                   </div>
                 ) : (
-                  <div className="space-y-3 pr-4 opacity-70">
+                  <div className="space-y-3 pr-1 sm:pr-4 opacity-70">
                     {expiredNotices.map((notice: any) => (
                       <NoticeCard
                         key={notice.id}
@@ -391,7 +390,7 @@ export const NoticesManager: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </ScrollArea>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -547,7 +546,7 @@ const ConfirmationsSheet: React.FC<{
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               Quem confirmou ({confirmations?.length || 0})
             </h4>
-            <ScrollArea className="h-[300px]">
+            <div className="max-h-[65vh] sm:h-[300px] overflow-y-auto overscroll-contain">
               {isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
@@ -591,7 +590,7 @@ const ConfirmationsSheet: React.FC<{
                   <p>Nenhuma confirmação ainda</p>
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </div>
         </div>
       </SheetContent>

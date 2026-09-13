@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { 
@@ -193,10 +192,10 @@ export const SuperAdminDashboard = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <Shield className="h-5 w-5 shrink-0" />
             Super Admin - Visão da Plataforma
           </CardTitle>
           <CardDescription>
@@ -208,6 +207,7 @@ export const SuperAdminDashboard = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
+          className="shrink-0 w-full sm:w-auto"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           Atualizar
@@ -216,10 +216,10 @@ export const SuperAdminDashboard = () => {
 
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
-            <TabsTrigger value="alerts">Alertas</TabsTrigger>
+          <TabsList className="w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide no-scrollbar">
+            <TabsTrigger value="overview" className="shrink-0">Visão Geral</TabsTrigger>
+            <TabsTrigger value="workspaces" className="shrink-0">Workspaces</TabsTrigger>
+            <TabsTrigger value="alerts" className="shrink-0">Alertas</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -287,16 +287,16 @@ export const SuperAdminDashboard = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[400px]">
+            <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
               <div className="space-y-2">
                 {workspaces?.map((ws) => (
                   <div
                     key={ws.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{ws.name}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{ws.name}</span>
                         <Badge variant={ws.status === 'active' ? 'default' : 'secondary'}>
                           {ws.status}
                         </Badge>
@@ -306,7 +306,7 @@ export const SuperAdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-4 text-sm shrink-0">
                       <div className="text-center">
                         <div className="font-medium">{ws.member_count}</div>
                         <div className="text-xs text-muted-foreground">membros</div>
@@ -329,12 +329,12 @@ export const SuperAdminDashboard = () => {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           {/* Alerts Tab */}
           <TabsContent value="alerts" className="mt-4">
-            <ScrollArea className="h-[400px]">
+            <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
               {logsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
@@ -369,7 +369,7 @@ export const SuperAdminDashboard = () => {
                   Nenhum alerta recente
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>

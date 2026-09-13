@@ -12,7 +12,7 @@ const highlights = [
 export const SolutionSection: React.FC = () => (
   <section className="py-24 lg:py-32 bg-muted/20">
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
-      <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Mock product screenshot */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}

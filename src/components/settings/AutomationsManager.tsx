@@ -55,16 +55,9 @@ import {
   Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
-const STATUS_OPTIONS = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'briefing', label: 'Briefing' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'approved', label: 'Aprovado' },
-  { value: 'delivered', label: 'Entregue' },
-];
+const STATUS_OPTIONS = CARD_STATUS_OPTIONS;
 
 const URGENCY_OPTIONS = [
   { value: 'low', label: 'Baixa' },
@@ -236,10 +229,10 @@ export function AutomationsManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-yellow-500" />
+              <Zap className="h-5 w-5 shrink-0 text-yellow-500" />
               Automações
             </CardTitle>
             <CardDescription>
@@ -248,7 +241,7 @@ export function AutomationsManager() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
+              <Button onClick={() => resetForm()} className="shrink-0 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Automação
               </Button>
@@ -427,13 +420,13 @@ export function AutomationsManager() {
             {automations?.map((automation) => (
               <div
                 key={automation.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border ${
                   automation.is_active ? 'bg-card' : 'bg-muted/50 opacity-60'
                 }`}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   <div
-                    className={`p-2 rounded-lg ${
+                    className={`p-2 rounded-lg shrink-0 ${
                       automation.is_active ? 'bg-yellow-500/10' : 'bg-muted'
                     }`}
                   >
@@ -443,21 +436,21 @@ export function AutomationsManager() {
                       }`}
                     />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{automation.name}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium truncate">{automation.name}</p>
                       {!automation.is_active && (
                         <Badge variant="secondary">Inativa</Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                       <Badge variant="outline">{getStatusLabel(automation.trigger_status)}</Badge>
-                      <ArrowRight className="h-3 w-3" />
+                      <ArrowRight className="h-3 w-3 shrink-0" />
                       <Badge variant="outline">{getActionLabel(automation.action_type)}</Badge>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pl-[52px] sm:pl-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-2">

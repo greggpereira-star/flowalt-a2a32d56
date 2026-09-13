@@ -23,7 +23,7 @@ export const HowItWorks: React.FC = () => (
         </h2>
       </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {steps.map((s, i) => (
           <motion.div
             key={s.step}

@@ -77,17 +77,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
-// Status options
-const STATUS_OPTIONS = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'briefing', label: 'Briefing' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'approved', label: 'Aprovado' },
-  { value: 'delivered', label: 'Entregue' },
-];
+const STATUS_OPTIONS = CARD_STATUS_OPTIONS;
 
 const URGENCY_OPTIONS = [
   { value: 'low', label: 'Baixa' },

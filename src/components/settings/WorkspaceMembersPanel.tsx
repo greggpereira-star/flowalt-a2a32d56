@@ -123,10 +123,10 @@ export function WorkspaceMembersPanel() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-primary" />
-              <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Users className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
                 <CardTitle>Membros do Workspace</CardTitle>
                 <CardDescription>
                   {members?.length || 0} membro{members?.length !== 1 ? 's' : ''} ativo{members?.length !== 1 ? 's' : ''}
@@ -134,10 +134,10 @@ export function WorkspaceMembersPanel() {
               </div>
             </div>
             {canManageWorkspace && (
-              <Button 
+              <Button
                 onClick={() => setShowExternalCollaboratorModal(true)}
                 size="sm"
-                className="gap-2"
+                className="gap-2 shrink-0 w-full sm:w-auto"
               >
                 <UserPlus className="h-4 w-4" />
                 Novo Colaborador Externo
@@ -158,30 +158,32 @@ export function WorkspaceMembersPanel() {
               return (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={member.profile?.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {getInitials(member.profile?.full_name, member.profile?.email || '')}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage src={member.profile?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {getInitials(member.profile?.full_name, member.profile?.email || '')}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">
-                        {member.profile?.full_name || member.profile?.email}
-                      </span>
-                      {isCurrentUser && (
-                        <Badge variant="outline" className="text-xs">Você</Badge>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">
+                          {member.profile?.full_name || member.profile?.email}
+                        </span>
+                        {isCurrentUser && (
+                          <Badge variant="outline" className="text-xs">Você</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {member.profile?.email}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {member.profile?.email}
-                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pl-[52px] sm:pl-0">
                     <Badge variant="secondary" className="gap-1">
                       <RoleIcon className={`h-3 w-3 ${roleConfig.color}`} />
                       {roleConfig.label}

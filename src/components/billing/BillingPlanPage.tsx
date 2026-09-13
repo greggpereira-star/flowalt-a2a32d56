@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { 
   Sparkles, Building2, Crown, Users, FolderKanban, Database, 
@@ -170,17 +169,17 @@ export const BillingPlanPage: React.FC = () => {
       {/* Current Plan Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-xl ${tierConfig[currentTier].color}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`p-3 rounded-xl shrink-0 ${tierConfig[currentTier].color}`}>
                 <TierIcon className="h-6 w-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <CardTitle className="text-xl">Plano {tierConfig[currentTier].label}</CardTitle>
                 <CardDescription>{tierConfig[currentTier].description}</CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
               <Badge variant={statusLabels[status].variant}>
                 {statusLabels[status].label}
               </Badge>
@@ -268,10 +267,10 @@ export const BillingPlanPage: React.FC = () => {
       {/* Usage & Limits */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
+                <Database className="h-5 w-5 shrink-0" />
                 Uso e Limites
               </CardTitle>
               <CardDescription>
@@ -279,7 +278,7 @@ export const BillingPlanPage: React.FC = () => {
               </CardDescription>
             </div>
             {canManageBilling && (
-              <Button variant="outline" size="sm" onClick={() => setShowManageUsage(true)}>
+              <Button variant="outline" size="sm" onClick={() => setShowManageUsage(true)} className="shrink-0 w-full sm:w-auto">
                 <Settings className="h-4 w-4 mr-2" />
                 Gerenciar
               </Button>
@@ -332,7 +331,7 @@ export const BillingPlanPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[200px]">
+          <div className="max-h-[65vh] sm:h-[200px] overflow-y-auto overscroll-contain">
             <div className="space-y-3">
               {entitlements?.map((ent) => {
                 const isEnabled = ent.value?.enabled === true;
@@ -340,16 +339,16 @@ export const BillingPlanPage: React.FC = () => {
                 const tier = ent.value?.tier;
 
                 return (
-                  <div key={ent.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                    <div className="flex items-center gap-2">
+                  <div key={ent.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       {isEnabled ? (
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
                       ) : (
-                        <X className="h-4 w-4 text-muted-foreground" />
+                        <X className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
-                      <span className="text-sm">{ent.key.replace(/\./g, ' → ')}</span>
+                      <span className="text-sm truncate">{ent.key.replace(/\./g, ' → ')}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {value !== undefined && (
                         <Badge variant="outline">{value}</Badge>
                       )}
@@ -367,7 +366,7 @@ export const BillingPlanPage: React.FC = () => {
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
