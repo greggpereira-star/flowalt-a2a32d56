@@ -38,14 +38,16 @@ interface KanbanColumnEditorProps {
   onOpenChange: (open: boolean) => void;
   columns: KanbanColumn[];
   onReorder: (fromIndex: number, toIndex: number) => void;
-  onRename: (columnId: CardStatus, newLabel: string) => void;
+  // Opcional: os rotulos das colunas sao fixos e compartilhados pelo time.
+  // Ver comentario em useKanbanColumns sobre por que renomear foi desativado.
+  onRename?: (columnId: CardStatus, newLabel: string) => void;
   onToggleVisibility: (columnId: CardStatus) => void;
   onReset: () => void;
 }
 
 interface SortableColumnItemProps {
   column: KanbanColumn;
-  onRename: (newLabel: string) => void;
+  onRename?: (newLabel: string) => void;
   onToggle: () => void;
 }
 

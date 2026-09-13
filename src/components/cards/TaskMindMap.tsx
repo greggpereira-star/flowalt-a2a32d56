@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
+import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
+import { useStatusLabel } from '@/hooks/useStatusLabel';
 
 interface TaskMindMapProps {
   cards: Card[];
@@ -16,15 +18,16 @@ interface TaskMindMapProps {
   folderName?: string;
 }
 
+// So as cores sao desta tela; o rotulo vem do vocabulario compartilhado.
 const STATUS_CONFIG: Record<string, { label: string; color: string; lineColor: string }> = {
-  backlog: { label: 'Backlog', color: 'bg-gray-400', lineColor: '#9ca3af' },
-  briefing: { label: 'Briefing', color: 'bg-blue-500', lineColor: '#3b82f6' },
-  todo: { label: 'A Fazer', color: 'bg-purple-500', lineColor: '#a855f7' },
-  in_progress: { label: 'Em Progresso', color: 'bg-yellow-500', lineColor: '#eab308' },
-  review: { label: 'Revisão', color: 'bg-orange-500', lineColor: '#f97316' },
-  approved: { label: 'Aprovado', color: 'bg-green-500', lineColor: '#22c55e' },
-  delivered: { label: 'Entregue', color: 'bg-emerald-600', lineColor: '#059669' },
-  done: { label: 'Concluído', color: 'bg-green-600', lineColor: '#16a34a' },
+  backlog: { label: CARD_STATUS_LABELS.backlog, color: 'bg-gray-400', lineColor: '#9ca3af' },
+  briefing: { label: CARD_STATUS_LABELS.briefing, color: 'bg-blue-500', lineColor: '#3b82f6' },
+  todo: { label: CARD_STATUS_LABELS.todo, color: 'bg-purple-500', lineColor: '#a855f7' },
+  in_progress: { label: CARD_STATUS_LABELS.in_progress, color: 'bg-yellow-500', lineColor: '#eab308' },
+  review: { label: CARD_STATUS_LABELS.review, color: 'bg-orange-500', lineColor: '#f97316' },
+  approved: { label: CARD_STATUS_LABELS.approved, color: 'bg-green-500', lineColor: '#22c55e' },
+  delivered: { label: CARD_STATUS_LABELS.delivered, color: 'bg-emerald-600', lineColor: '#059669' },
+  archived: { label: CARD_STATUS_LABELS.archived, color: 'bg-gray-500', lineColor: '#6b7280' },
 };
 
 interface MindMapNodeProps {
@@ -63,6 +66,7 @@ const StatusBranch: React.FC<StatusBranchProps> = ({
   setRef,
 }) => {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.backlog;
+  const rotulo = useStatusLabel();
 
   return (
     <div ref={setRef} className="flex items-start gap-3">
@@ -77,7 +81,7 @@ const StatusBranch: React.FC<StatusBranchProps> = ({
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
         <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
-        <span className="text-sm font-medium">{config.label}</span>
+        <span className="text-sm font-medium">{rotulo(status)}</span>
         <Badge variant="secondary" className="ml-auto text-xs">
           {cards.length}
         </Badge>
@@ -106,6 +110,8 @@ export const TaskMindMap: React.FC<TaskMindMapProps> = ({
   spaceName = 'Espaço',
   folderName,
 }) => {
+  // Nome da etapa vem do workspace; STATUS_CONFIG guarda so a cor.
+  const rotulo = useStatusLabel();
   const [expandedStatuses, setExpandedStatuses] = useState<Set<string>>(new Set(['in_progress', 'todo', 'review']));
   const rootRef = useRef<HTMLDivElement>(null);
   const branchRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -275,7 +281,7 @@ export const TaskMindMap: React.FC<TaskMindMapProps> = ({
               return (
                 <div key={status} className="flex items-center gap-1.5">
                   <div className={cn("w-2.5 h-2.5 rounded-sm", config.color)} />
-                  <span className="text-xs text-muted-foreground">{config.label}</span>
+                  <span className="text-xs text-muted-foreground">{rotulo(status)}</span>
                 </div>
               );
             })}

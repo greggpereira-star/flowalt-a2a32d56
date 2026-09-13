@@ -44,8 +44,11 @@ import { format, differenceInDays, differenceInHours } from 'date-fns';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
+import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
+import { useStatusLabel } from '@/hooks/useStatusLabel';
 
 const CoordinationPage: React.FC = () => {
+  const rotuloStatus = useStatusLabel();
   usePageTracking('coordination');
   const { currentWorkspace } = useWorkspace();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -94,7 +97,11 @@ const CoordinationPage: React.FC = () => {
 
   const { data: dependencies = [], isLoading: depsLoading } = useDependencies();
   const { data: memberCapacity = [], isLoading: capacityLoading } = useMemberCapacity();
-  const { data: cardMemberAssignments = [], isLoading: assignmentsLoading } = useCardMemberAssignments();
+  // `includeInactive` aqui porque esta tela desenha a coluna de entregues.
+  // Sem isso o hook filtra fora os cards delivered/archived, os vinculos
+  // somem, e o avatar cai no fallback "?" — a pessoa continua no card, mas
+  // a tela mostra um card sem responsavel. O Gantt ja tinha esbarrado nisso.
+  const { data: cardMemberAssignments = [], isLoading: assignmentsLoading } = useCardMemberAssignments({ includeInactive: true });
 
   // Calculate bottlenecks with space and owner info
   const bottlenecks = useMemo(() => {
@@ -276,11 +283,11 @@ const CoordinationPage: React.FC = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
+                <BarChart3 className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
                 Total de Cards
               </CardTitle>
             </CardHeader>
@@ -291,9 +298,9 @@ const CoordinationPage: React.FC = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4 text-yellow-500" />
-                Em Progresso
+              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
+                <Clock className="h-4 w-4 shrink-0 mt-0.5 text-yellow-500" />
+                {rotuloStatus('in_progress')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -303,8 +310,8 @@ const CoordinationPage: React.FC = () => {
 
           <Card className={metrics.overdue > 0 ? 'border-destructive/50' : ''}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
                 Atrasados
               </CardTitle>
             </CardHeader>
@@ -317,8 +324,8 @@ const CoordinationPage: React.FC = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
+                <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-green-500" />
                 No Prazo
               </CardTitle>
             </CardHeader>
@@ -426,7 +433,7 @@ const CoordinationPage: React.FC = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <BottleneckCard
                   title="Cards Atrasados"
                   type="overdue"

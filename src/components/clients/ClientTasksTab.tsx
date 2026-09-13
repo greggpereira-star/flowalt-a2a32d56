@@ -28,21 +28,25 @@ import {
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CardStatus } from '@/lib/supabase';
+import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
+import { useStatusLabel } from '@/hooks/useStatusLabel';
 
 interface ClientTasksTabProps {
   clientId: string;
   onViewCard?: (cardId: string) => void;
 }
 
+// Icone e cor sao decisao desta tela; o rotulo e o mesmo que o time ve no
+// Kanban, porque o cliente e o time precisam conversar sobre o mesmo card.
 const statusConfig: Record<CardStatus, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
-  backlog: { label: 'Backlog', icon: Inbox, color: 'text-gray-500', bgColor: 'bg-gray-100' },
-  briefing: { label: 'Briefing', icon: FileText, color: 'text-amber-600', bgColor: 'bg-amber-100' },
-  todo: { label: 'A Fazer', icon: ListTodo, color: 'text-slate-600', bgColor: 'bg-slate-100' },
-  in_progress: { label: 'Em Andamento', icon: PlayCircle, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  review: { label: 'Revisão', icon: Eye, color: 'text-purple-600', bgColor: 'bg-purple-100' },
-  approved: { label: 'Aprovado', icon: ThumbsUp, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
-  delivered: { label: 'Entregue', icon: Package, color: 'text-green-600', bgColor: 'bg-green-100' },
-  archived: { label: 'Arquivado', icon: Circle, color: 'text-gray-400', bgColor: 'bg-gray-100' },
+  backlog: { label: CARD_STATUS_LABELS.backlog, icon: Inbox, color: 'text-gray-500', bgColor: 'bg-gray-100' },
+  briefing: { label: CARD_STATUS_LABELS.briefing, icon: FileText, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  todo: { label: CARD_STATUS_LABELS.todo, icon: ListTodo, color: 'text-slate-600', bgColor: 'bg-slate-100' },
+  in_progress: { label: CARD_STATUS_LABELS.in_progress, icon: PlayCircle, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  review: { label: CARD_STATUS_LABELS.review, icon: Eye, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+  approved: { label: CARD_STATUS_LABELS.approved, icon: ThumbsUp, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
+  delivered: { label: CARD_STATUS_LABELS.delivered, icon: Package, color: 'text-green-600', bgColor: 'bg-green-100' },
+  archived: { label: CARD_STATUS_LABELS.archived, icon: Circle, color: 'text-gray-400', bgColor: 'bg-gray-100' },
 };
 
 const TaskCard: React.FC<{ 
@@ -51,6 +55,7 @@ const TaskCard: React.FC<{
   onViewCard?: (cardId: string) => void;
 }> = ({ card, onStatusChange, onViewCard }) => {
   const config = statusConfig[card.status as CardStatus];
+  const rotulo = useStatusLabel();
   const StatusIcon = config.icon;
   
   const isOverdue = card.due_date && card.status !== 'delivered' && card.status !== 'approved' && isPast(new Date(card.due_date)) && !isToday(new Date(card.due_date));
@@ -90,7 +95,7 @@ const TaskCard: React.FC<{
               config.bgColor,
               nextStatus && "hover:scale-110"
             )}
-            title={nextStatus ? `Mover para ${statusConfig[nextStatus].label}` : undefined}
+            title={nextStatus ? `Mover para ${rotulo(nextStatus)}` : undefined}
           >
             <StatusIcon className={cn("h-4 w-4", config.color)} />
           </button>
@@ -103,7 +108,7 @@ const TaskCard: React.FC<{
             
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.color, config.bgColor)}>
-                {config.label}
+                {rotulo(card.status)}
               </Badge>
               
               {card.due_date && (
@@ -138,7 +143,7 @@ const TaskCard: React.FC<{
                   e.stopPropagation();
                   onStatusChange(card.id, nextStatus);
                 }}
-                title={`Mover para ${statusConfig[nextStatus].label}`}
+                title={`Mover para ${rotulo(nextStatus)}`}
               >
                 <ArrowRight className="h-3 w-3" />
               </Button>
@@ -162,6 +167,7 @@ const TaskCard: React.FC<{
 };
 
 export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ clientId, onViewCard }) => {
+  const rotulo = useStatusLabel();
   const { data: cards, isLoading } = useClientSpaceCards(clientId);
   const stats = useClientSpaceStats(clientId);
   const updateCard = useUpdateCard();
@@ -189,7 +195,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ clientId, onView
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16" />)}
         </div>
         <Skeleton className="h-64" />
@@ -200,7 +206,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ clientId, onView
   return (
     <div className="space-y-4">
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="cursor-pointer hover:bg-muted/50" onClick={() => setFilter('todo')}>
           <CardContent className="p-3 flex items-center gap-2">
             <div className={cn("p-1.5 rounded-lg", filter === 'todo' ? 'bg-slate-200' : 'bg-slate-100')}>
@@ -312,7 +318,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ clientId, onView
               <p className="text-sm text-muted-foreground">
                 {filter === 'all' 
                   ? 'Nenhuma tarefa vinculada a este cliente'
-                  : `Nenhuma tarefa com status "${statusConfig[filter].label}"`
+                  : `Nenhuma tarefa com status "${rotulo(filter)}"`
                 }
               </p>
             </div>

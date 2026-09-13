@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { executeStageAutomations } from '@/lib/automationEngine';
+import { mapStageToStatus, mapStatusToStage } from '@/lib/cardStatusMapping';
 import type { Json } from '@/integrations/supabase/types';
 
 // =====================================================
@@ -503,6 +504,11 @@ export const useTransitionCard = () => {
           current_stage: toStage,
           stage_entered_at: new Date().toISOString(),
           workflow_id: workflowId,
+          // Sem isto, avancar ate "Concluido" pelo workflow mexia so em
+          // `current_stage`: o card seguia com status antigo e nunca disparava
+          // o carimbo de conclusao. Havia 95 transicoes para `concluido` e
+          // nenhum `completed_at` preenchido.
+          status: mapStageToStatus(toStage),
         })
         .eq('id', cardId);
 
@@ -635,36 +641,9 @@ export const useCompleteWorkflow = (workflowId: string | undefined) => {
   };
 };
 
-// Map old status to new stage slug
-export const mapStatusToStage = (status: string): string => {
-  const statusToStageMap: Record<string, string> = {
-    backlog: 'backlog',
-    briefing: 'planejamento',
-    todo: 'planejamento',
-    a_fazer: 'planejamento', // alias for new slug
-    in_progress: 'em_producao',
-    review: 'revisao',
-    approved: 'aprovacao',
-    delivered: 'concluido',
-  };
-
-  return statusToStageMap[status] || 'backlog';
-};
-
-// Map stage slug to legacy status
-export const mapStageToStatus = (stage: string): string => {
-  const stageToStatusMap: Record<string, string> = {
-    backlog: 'backlog',
-    planejamento: 'todo',
-    a_fazer: 'todo', // alias for new slug
-    em_producao: 'in_progress',
-    revisao: 'review',
-    aprovacao: 'approved',
-    concluido: 'delivered',
-  };
-
-  return stageToStatusMap[stage] || 'backlog';
-};
+// Mantidos como reexport: os mapas agora vivem em `@/lib/cardStatusMapping`
+// para que o motor de automacoes possa usa-los sem criar ciclo de import.
+export { mapStatusToStage, mapStageToStatus };
 
 // Get human-readable stage name
 export const getStageDisplayName = (stageSlug: string): string => {

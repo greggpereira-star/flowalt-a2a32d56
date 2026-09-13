@@ -28,16 +28,8 @@ import { ptBR } from 'date-fns/locale';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import type { Card as CardType } from '@/hooks/useCards';
-
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  briefing: 'Briefing',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  approved: 'Aprovado',
-  delivered: 'Entregue',
-};
+import { CARD_STATUS_LABELS, getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
+import { useStatusLabel } from '@/hooks/useStatusLabel';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'bg-muted text-muted-foreground',
@@ -50,6 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TasksPage: React.FC = () => {
+  const rotuloStatus = useStatusLabel();
   usePageTracking('cards');
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -214,7 +207,7 @@ const TasksPage: React.FC = () => {
         </div>
       </div>
       <Badge className={STATUS_COLORS[card.status]}>
-        {STATUS_LABELS[card.status]}
+        {getCardStatusLabel(card.status)}
       </Badge>
       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
@@ -310,7 +303,7 @@ const TasksPage: React.FC = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Play className="h-4 w-4 text-primary" />
-                Em Progresso
+                {rotuloStatus('in_progress')}
               </CardTitle>
             </CardHeader>
             <CardContent>

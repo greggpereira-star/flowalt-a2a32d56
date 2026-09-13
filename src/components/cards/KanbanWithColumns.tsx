@@ -30,8 +30,8 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
     columns,
     visibleStatuses,
     columnLabels,
-    toggleVisibility,
     renameColumn,
+    toggleVisibility,
     reorderColumns,
     resetToDefaults,
   } = useKanbanColumns(viewId);
@@ -55,7 +55,7 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/30">
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/30 flex-wrap">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -101,7 +101,7 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
       <KanbanColumnsEditor
         open={editorOpen}
         onOpenChange={setEditorOpen}
-        columns={columns}
+        columns={columns.map(c => ({ ...c, label: columnLabels[c.id] ?? c.label }))}
         onToggleVisibility={toggleVisibility}
         onRename={renameColumn}
         onReorder={reorderColumns}

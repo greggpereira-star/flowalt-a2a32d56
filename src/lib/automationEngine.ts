@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { normalizarDestino } from '@/lib/cardStatusMapping';
 import type { Json } from '@/integrations/supabase/types';
 
 // =====================================================
@@ -154,11 +155,17 @@ async function executeChangeStatus(
     };
   }
 
+  // `target_status` chega ora como slug de estagio (tela de workflow) ora como
+  // status legado (central de automacoes). Escrever so `current_stage` deixava
+  // o card com os dois campos divergentes e sem carimbo de conclusao.
+  const destino = normalizarDestino(targetStatus);
+
   const { error } = await supabase
     .from('cards')
-    .update({ 
-      current_stage: targetStatus,
+    .update({
+      current_stage: destino.stage,
       stage_entered_at: new Date().toISOString(),
+      status: destino.status,
     })
     .eq('id', context.cardId);
 

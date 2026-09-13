@@ -36,6 +36,8 @@ import { ptBR } from 'date-fns/locale';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { PendingInvitesNotification } from '@/components/cards/PendingInvitesNotification';
 import { ClientHealthWidget } from '@/components/dashboard/ClientHealthWidget';
+import { CARD_STATUS_LABELS, getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
+import { useStatusLabel } from '@/hooks/useStatusLabel';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'hsl(var(--muted-foreground))',
@@ -48,17 +50,8 @@ const STATUS_COLORS: Record<string, string> = {
   archived: 'hsl(var(--muted-foreground))',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  briefing: 'Briefing',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  approved: 'Aprovado',
-  delivered: 'Entregue',
-};
-
 const Dashboard: React.FC = () => {
+  const rotuloStatus = useStatusLabel();
   usePageTracking('dashboard');
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
@@ -69,9 +62,12 @@ const Dashboard: React.FC = () => {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      // Só as colunas que esta tela lê. Com select('*') vinha junto o
+      // briefing_data (JSONB), que sozinho era ~58% do payload e não é usado
+      // em nenhum lugar do Dashboard.
       const { data, error } = await supabase
         .from('cards')
-        .select('*')
+        .select('id, title, status, due_date, space_id')
         .eq('workspace_id', currentWorkspace.id)
         .neq('status', 'archived');
 
@@ -115,7 +111,7 @@ const Dashboard: React.FC = () => {
       return acc;
     }, {} as Record<string, number>) || {}
   ).map(([status, count]) => ({
-    name: STATUS_LABELS[status] || status,
+    name: getCardStatusLabel(status),
     value: count,
     color: STATUS_COLORS[status] || 'hsl(var(--muted-foreground))',
   }));
@@ -150,7 +146,7 @@ const Dashboard: React.FC = () => {
               <Skeleton key={i} className="h-32" />
             ))}
           </div>
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Skeleton className="h-80" />
             <Skeleton className="h-80" />
           </div>
@@ -162,7 +158,7 @@ const Dashboard: React.FC = () => {
   return (
     <>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {/* Birthday reminder */}
         <TodayBirthdaysReminder />
 
@@ -196,7 +192,7 @@ const Dashboard: React.FC = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Em Progresso</CardTitle>
+              <CardTitle className="text-sm font-medium">{rotuloStatus('in_progress')}</CardTitle>
               <Clock className="h-4 w-4 text-status-inProgress" />
             </CardHeader>
             <CardContent>
@@ -235,7 +231,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Charts Row */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Hours Chart */}
           <Card>
             <CardHeader>
@@ -289,43 +285,45 @@ const Dashboard: React.FC = () => {
               <CardDescription>Cards agrupados por status</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center">
-                {statusDistribution.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {statusDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-popover border rounded-lg p-2 shadow-lg">
-                              <p className="text-sm font-medium">
-                                {data.name}: {data.value}
-                              </p>
-                            </div>
-                          );
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    Sem dados para exibir
-                  </div>
-                )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:h-64">
+                <div className="h-56 sm:h-full sm:flex-1 w-full shrink-0">
+                  {statusDistribution.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-popover border rounded-lg p-2 shadow-lg">
+                                <p className="text-sm font-medium">
+                                  {data.name}: {data.value}
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      Sem dados para exibir
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-2">
                   {statusDistribution.map((status) => (
                     <div key={status.name} className="flex items-center gap-2">
@@ -346,7 +344,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Bottom Row: Clients Widget + Overdue Cards */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Client Health Widget */}
           <ClientHealthWidget />
 
@@ -384,7 +382,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="destructive">
-                            {STATUS_LABELS[card.status]}
+                            {getCardStatusLabel(card.status)}
                           </Badge>
                           <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
