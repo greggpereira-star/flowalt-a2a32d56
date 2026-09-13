@@ -1,12 +1,21 @@
 // Service Worker for PWA + Push Notifications
-const CACHE_NAME = 'flowalt-v1';
-const STATIC_CACHE = 'flowalt-static-v1';
+// v5: o SW so era registrado por quem ativava notificacao e nunca procurava
+// versao nova, entao navegadores ficavam presos numa build antiga. O registro
+// passou para o boot (src/lib/pwa/registerServiceWorker.ts) e a troca de
+// versao agora recarrega a pagina sozinha. Subir os nomes de cache aqui
+// descarta o que ficou gravado pelas versoes anteriores.
+//
+// v4: o filtro de API estava quebrado (ver comentario no handler de fetch) e
+// respostas autenticadas foram parar no cache dos navegadores. Subir a versao
+// faz o activate descartar o cache antigo, junto com esses dados.
+const CACHE_NAME = 'flowalt-v5';
+const STATIC_CACHE = 'flowalt-static-v4';
 
-// Static assets to cache for offline
+// Static assets to cache for offline (o HTML principal (`/`) nunca entra aqui:
+// precisa sempre vir da rede para nao travar o app numa versao antiga)
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
-  '/favicon.ico',
+  '/flowalt-symbol.png',
 ];
 
 // Install - cache static assets
@@ -39,8 +48,29 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests and API calls
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/api/') || 
-      event.request.url.includes('supabase.co')) {
+
+  // O filtro antigo procurava por 'supabase.co', dominio do projeto hospedado
+  // que foi desligado na migracao. Com o Supabase self-hosted a condicao nunca
+  // batia, entao TODA resposta da API passou a ser cacheada: dados financeiros
+  // e de kanban ficavam gravados no navegador e eram servidos como atuais
+  // quando a rede caia. Filtrar pelos caminhos da API funciona em qualquer
+  // dominio, agora e depois de uma futura troca de host.
+  const apiPathMarkers = [
+    '/api/',
+    '/rest/v1/',
+    '/auth/v1/',
+    '/storage/v1/',
+    '/realtime/v1/',
+    '/functions/v1/',
+  ];
+  if (apiPathMarkers.some((marker) => event.request.url.includes(marker))) {
+    return;
+  }
+
+  // Navegacoes (o HTML da SPA) sempre direto da rede, sem cache: garante que
+  // toda atualizacao publicada chega na hora, sem depender de o cache expirar.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request));
     return;
   }
 
@@ -75,8 +105,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/flowalt-symbol.png',
+    badge: '/flowalt-symbol.png',
     tag: data.tag || 'default',
     vibrate: [100, 50, 100],
     data: {
