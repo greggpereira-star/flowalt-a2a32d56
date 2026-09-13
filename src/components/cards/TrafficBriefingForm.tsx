@@ -57,7 +57,7 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Objetivo</Label>
               <Select
@@ -122,7 +122,7 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Orçamento Total</Label>
               <Input
@@ -175,7 +175,7 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
             />
           </div>
 
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Idade Mínima</Label>
               <Input
@@ -215,7 +215,7 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Interesses</Label>
               <RichTextEditor
@@ -248,7 +248,7 @@ export const TrafficBriefingForm: React.FC<TrafficBriefingFormProps> = ({
           <CardTitle className="text-base">Configurações Técnicas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>KPIs Esperados</Label>
               <RichTextEditor

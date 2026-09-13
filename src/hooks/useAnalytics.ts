@@ -141,7 +141,7 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
 
       // Fetch all data in parallel (avoid N+1 queries!)
       // NOTE: keep card queries bounded by the selected range to prevent huge payloads.
-      const [membersRes, cardsCreatedRes, cardsCompletedRes, timeEntriesRes, commentsRes] = await Promise.all([
+      const [membersRes, cardsCreatedRes, cardsCompletedRes, timeEntriesRes, commentsRes, assignmentsRes] = await Promise.all([
         supabase
           .from('workspace_members')
           .select(`
@@ -177,6 +177,14 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
           .select('user_id, card_id')
           .gte('created_at', startStr)
           .lte('created_at', endStr),
+        // `cards.owner_id` e campo legado e esta vazio na maioria dos cards: quem
+        // e responsavel vem de `card_members`. Medindo produtividade so por
+        // owner_id, 76 cards tinham dono onde 278 tem responsavel de verdade —
+        // por isso quase todo mundo aparecia com zero.
+        supabase
+          .from('card_members')
+          .select('card_id, user_id, cards!inner(workspace_id)')
+          .eq('cards.workspace_id', currentWorkspace.id),
       ]);
 
       const members = membersRes.data || [];
@@ -184,6 +192,19 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
       const cardsCompletedInRange = cardsCompletedRes.data || [];
       const timeEntries = timeEntriesRes.data || [];
       const comments = commentsRes.data || [];
+
+      const responsaveisPorCard = new Map<string, Set<string>>();
+      (assignmentsRes.data || []).forEach(a => {
+        const doCard = responsaveisPorCard.get(a.card_id) ?? new Set<string>();
+        doCard.add(a.user_id);
+        responsaveisPorCard.set(a.card_id, doCard);
+      });
+
+      // owner_id continua valendo como fallback para os cards antigos que o tem.
+      const ehResponsavel = (
+        card: { id: string; owner_id: string | null },
+        userId: string,
+      ) => responsaveisPorCard.get(card.id)?.has(userId) || card.owner_id === userId;
 
       // Filter comments to cards that appear in the selected period.
       // (This avoids needing an extra "all cards in workspace" query.)
@@ -198,8 +219,8 @@ export function useAnalytics(dateRange: { start: Date; end: Date }) {
         const profile = member.profiles as any;
 
         const cardsCreated = cardsCreatedInRange.filter(c => c.created_by === member.user_id).length;
-        const cardsCompleted = cardsCompletedInRange.filter(c => c.owner_id === member.user_id).length;
-        const totalAssigned = cardsCreatedInRange.filter(c => c.owner_id === member.user_id).length;
+        const cardsCompleted = cardsCompletedInRange.filter(c => ehResponsavel(c, member.user_id)).length;
+        const totalAssigned = cardsCreatedInRange.filter(c => ehResponsavel(c, member.user_id)).length;
 
         const hoursLogged = timeEntries
           .filter(e => e.user_id === member.user_id)

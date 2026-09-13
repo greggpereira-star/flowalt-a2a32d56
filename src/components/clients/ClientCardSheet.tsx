@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useClientCard, useUpdateClientCard, useDeleteClientCard, useClientFinancials, useUpdateClientFinancials, ClientCard, ClientFinancials, ClientStatus } from '@/hooks/useClientCards';
+import { useClientFinancialReport } from '@/hooks/useClientFinancialReport';
+import { useClientsHealth } from '@/hooks/useClientsHealth';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -92,7 +94,7 @@ const IdentityTab: React.FC<{
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nome do Cliente</Label>
           <Input
@@ -113,7 +115,7 @@ const IdentityTab: React.FC<{
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
           <Select
@@ -160,7 +162,7 @@ const IdentityTab: React.FC<{
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="color">Cor do Cliente</Label>
           <div className="flex gap-2">
@@ -603,6 +605,13 @@ const FinancialTab: React.FC<{
   canViewFinancials: boolean;
 }> = ({ clientId, canViewFinancials }) => {
   const { data: financials, isLoading } = useClientFinancials(clientId);
+  // As métricas realizadas (receita/custo/horas) vêm do relatório calculado a
+  // partir de transactions + time_entries, não das colunas client_financials.
+  // Aquelas colunas nascem zeradas e só mudam por edição manual — nenhum
+  // trigger as alimenta —, então mostravam R$ 0,00 para clientes com mais de
+  // R$ 100 mil faturados. `financials` continua sendo a fonte do que é de fato
+  // acordado à mão: contrato, margem esperada e observações.
+  const { data: report } = useClientFinancialReport(clientId);
   const updateFinancials = useUpdateClientFinancials();
   const [formData, setFormData] = useState<Partial<ClientFinancials>>({});
 
@@ -650,7 +659,7 @@ const FinancialTab: React.FC<{
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="contract_value">Valor do Contrato</Label>
           <Input
@@ -692,11 +701,11 @@ const FinancialTab: React.FC<{
 
       {/* Métricas Calculadas */}
       <Separator />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-green-600">
-              R$ {((financials?.total_revenue || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(report?.totalRevenue ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-muted-foreground">Receita Total</p>
           </CardContent>
@@ -704,14 +713,14 @@ const FinancialTab: React.FC<{
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-red-600">
-              R$ {((financials?.total_cost || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {((report?.totalExpenses ?? 0) + (report?.laborCost ?? 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-muted-foreground">Custo Total</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{financials?.total_hours || 0}h</p>
+            <p className="text-2xl font-bold">{(report?.totalHours ?? 0).toFixed(1)}h</p>
             <p className="text-xs text-muted-foreground">Horas Consumidas</p>
           </CardContent>
         </Card>
@@ -742,6 +751,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   onOpenChange,
 }) => {
   const { data: client, isLoading } = useClientCard(clientId || undefined);
+  const { data: health } = useClientsHealth();
   const updateClient = useUpdateClientCard();
   const deleteClient = useDeleteClientCard();
   const { data: members } = useWorkspaceMembers();
@@ -777,8 +787,13 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
     }
   };
 
-  const stateConfig = financialStateConfig[client?.financial_state || 'healthy'];
+  // Saúde vem do cálculo ao vivo, não de client_cards.health_score/financial_state.
+  // Aquelas colunas têm DEFAULT 100/'healthy' e só eram reescritas quando alguém
+  // abria o relatório — mostravam "saudável" para cliente nunca medido.
+  const clientHealth = health?.get(client?.id || '');
+  const stateConfig = clientHealth ? financialStateConfig[clientHealth.financialState] : null;
   const StateIcon = stateConfig?.icon || TrendingUp;
+  const healthScore = clientHealth?.healthScore;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -819,38 +834,43 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <Badge className={cn('text-xs px-3 py-1', statusConfig[client.status].color)}>
                     {statusConfig[client.status].label}
                   </Badge>
-                  <Badge variant="outline" className={cn('text-xs gap-1.5 px-2.5 py-1', stateConfig?.color)}>
-                    <StateIcon className="h-3 w-3" />
-                    {stateConfig?.label}
-                  </Badge>
+                  {stateConfig && (
+                    <Badge variant="outline" className={cn('text-xs gap-1.5 px-2.5 py-1', stateConfig.color)}>
+                      <StateIcon className="h-3 w-3" />
+                      {stateConfig.label}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Health Score Bar */}
-              <div className="mt-5 pt-4 border-t border-border/50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-muted-foreground">Health Score</span>
-                  <span className={cn(
-                    'text-sm font-bold',
-                    client.health_score >= 80 ? 'text-green-600' :
-                    client.health_score >= 60 ? 'text-amber-600' :
-                    client.health_score >= 40 ? 'text-orange-600' : 'text-red-600'
-                  )}>
-                    {client.health_score}/100
-                  </span>
+              {/* Health Score Bar — só para quem enxerga finanças, já que o
+                  score deriva de receita, custo e margem. */}
+              {healthScore !== undefined && (
+                <div className="mt-5 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">Health Score</span>
+                    <span className={cn(
+                      'text-sm font-bold',
+                      healthScore >= 80 ? 'text-green-600' :
+                      healthScore >= 60 ? 'text-amber-600' :
+                      healthScore >= 40 ? 'text-orange-600' : 'text-red-600'
+                    )}>
+                      {healthScore}/100
+                    </span>
+                  </div>
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500',
+                        healthScore >= 80 ? 'bg-green-500' :
+                        healthScore >= 60 ? 'bg-amber-500' :
+                        healthScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                      )}
+                      style={{ width: `${healthScore}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      'h-full rounded-full transition-all duration-500',
-                      client.health_score >= 80 ? 'bg-green-500' :
-                      client.health_score >= 60 ? 'bg-amber-500' :
-                      client.health_score >= 40 ? 'bg-orange-500' : 'bg-red-500'
-                    )}
-                    style={{ width: `${client.health_score}%` }}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Actions row - separated for clarity */}
               {canDelete && (
@@ -900,45 +920,45 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
 
             {/* Tabs com scroll */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="w-full grid grid-cols-10 h-auto">
-                  <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-0.5">
+              <div className="px-6 pt-4 flex-shrink-0 -mx-6 sm:mx-0">
+                <TabsList className="flex sm:grid sm:grid-cols-10 h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0">
+                  <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Building2 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Identidade</span>
                   </TabsTrigger>
-                  <TabsTrigger value="onboarding" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="onboarding" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Users className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Onboard</span>
                   </TabsTrigger>
-                  <TabsTrigger value="branding" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="branding" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Palette className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Branding</span>
                   </TabsTrigger>
-                  <TabsTrigger value="voice" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="voice" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <MessageSquare className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Voz</span>
                   </TabsTrigger>
-                  <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <FileText className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Contrato</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tasks" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="tasks" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <LayoutList className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Tarefas</span>
                   </TabsTrigger>
-                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <BarChart3 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Relatório</span>
                   </TabsTrigger>
-                  <TabsTrigger value="policies" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="policies" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Settings2 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Políticas</span>
                   </TabsTrigger>
-                  <TabsTrigger value="simulator" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="simulator" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Calculator className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Simulador</span>
                   </TabsTrigger>
-                  <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-0.5">
+                  <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <DollarSign className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Financeiro</span>
                   </TabsTrigger>

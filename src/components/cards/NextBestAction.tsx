@@ -12,6 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 import type { Card } from '@/hooks/useCards';
+import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
 
 interface NextBestActionProps {
   card: Card;
@@ -115,7 +116,7 @@ export const NextBestAction: React.FC<NextBestActionProps> = ({
       priority: 6,
       icon: Play,
       label: 'Iniciar trabalho',
-      description: 'Mover para "Em Progresso"',
+      description: `Mover para "${CARD_STATUS_LABELS.in_progress}"`,
       color: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50',
     });

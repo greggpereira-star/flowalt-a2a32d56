@@ -131,7 +131,7 @@ export const WorkflowMetricsPanel: React.FC = () => {
       </div>
 
       {/* Lead Time / Cycle Time Comparison */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">

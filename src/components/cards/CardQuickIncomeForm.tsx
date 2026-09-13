@@ -128,7 +128,7 @@ export function CardQuickIncomeForm({ cardId, trigger }: CardQuickIncomeFormProp
             {/* Quick Type Selection */}
             <div className="space-y-2">
               <FormLabel>Tipo de Receita</FormLabel>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {QUICK_INCOME_TYPES.map((type) => {
                   const Icon = type.icon;
                   return (

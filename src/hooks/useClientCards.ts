@@ -54,9 +54,6 @@ export interface ClientCard {
   payment_day: number | null;
   
   // Metadados
-  health_score: number;
-  financial_state: ClientFinancialState;
-  
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -70,9 +67,20 @@ export interface ClientFinancials {
   billing_type: string | null;
   expected_margin: number | null;
   financial_notes: string | null;
+  /**
+   * @deprecated Métricas realizadas não moram mais aqui. Estas quatro colunas
+   * nascem zeradas (o insert em useCreateClientCard não as preenche) e nenhum
+   * trigger as liga a transactions/time_entries — ficavam em 0,00 para todos os
+   * clientes, inclusive os de seis dígitos. Use `useClientFinancialReport`, que
+   * calcula a partir das tabelas de origem. Mantidas no tipo apenas porque as
+   * colunas ainda existem no banco; nenhuma tela deve lê-las.
+   */
   total_revenue: number;
+  /** @deprecated Ver total_revenue. Use useClientFinancialReport().totalExpenses + laborCost. */
   total_cost: number;
+  /** @deprecated Ver total_revenue. Use useClientFinancialReport().totalHours. */
   total_hours: number;
+  /** @deprecated Ver total_revenue. Use useClientFinancialReport().profitMargin. */
   real_margin: number | null;
   created_at: string;
   updated_at: string;

@@ -445,24 +445,27 @@ export default function PeopleAnalyticsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {memberStats.map((member, index) => (
-                    <div key={member.user_id} className="flex items-center gap-4">
+                    <div key={member.user_id} className="flex items-center gap-2 sm:gap-4">
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted font-bold text-sm">
                         {index + 1}
                       </div>
                       <Avatar>
                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <p className="font-medium">{member.name}</p>
-                        <div className="flex gap-4 text-xs text-muted-foreground">
+                      {/* min-w-0 deixa o nome truncar em vez de empurrar a
+                          barra de progresso para fora da tela; sem isso a linha
+                          media 415px numa tela de 375px. */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{member.name}</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                           <span>{member.cards_completed} concluídos</span>
                           <span>{member.total_hours}h trabalhadas</span>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="shrink-0 text-right">
                         <div className="flex items-center gap-2">
-                          <Progress value={member.productivity_score} className="w-20" />
-                          <span className="font-medium w-10">{member.productivity_score}%</span>
+                          <Progress value={member.productivity_score} className="w-12 sm:w-20" />
+                          <span className="w-9 font-medium tabular-nums">{member.productivity_score}%</span>
                         </div>
                       </div>
                     </div>

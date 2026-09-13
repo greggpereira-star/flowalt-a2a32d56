@@ -53,6 +53,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 
 type QuickAddMode = 'quick' | 'full';
@@ -67,12 +68,10 @@ interface QuickAddCardProps {
   isSocialMedia?: boolean;
 }
 
-const STATUS_OPTIONS: { value: CardStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'briefing', label: 'Briefing' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-];
+// A criacao rapida so oferece o comeco do fluxo — subconjunto e decisao
+// desta tela, mas os nomes continuam vindo da fonte unica.
+const STATUS_OPTIONS: { value: CardStatus; label: string }[] = CARD_STATUS_OPTIONS
+  .filter(o => ['backlog', 'briefing', 'todo', 'in_progress'].includes(o.value));
 
 const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = [
   { value: 'low', label: 'Baixa', color: 'bg-slate-500' },

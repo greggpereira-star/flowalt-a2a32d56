@@ -380,7 +380,7 @@ export const SprintManager: React.FC = () => {
       {activeSprints.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Ativos</h4>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeSprints.map(sprint => (
               <SprintCard
                 key={sprint.id}
@@ -398,7 +398,7 @@ export const SprintManager: React.FC = () => {
       {planningSprints.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Em Planejamento</h4>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {planningSprints.map(sprint => (
               <SprintCard
                 key={sprint.id}
@@ -429,7 +429,7 @@ export const SprintManager: React.FC = () => {
       {completedSprints.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Finalizados</h4>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {completedSprints.slice(0, 3).map(sprint => (
               <SprintCard
                 key={sprint.id}

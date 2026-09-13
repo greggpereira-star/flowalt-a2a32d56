@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
@@ -7,22 +7,26 @@ import { useCards, useCardsByFolder } from '@/hooks/useCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
 import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
-import { KanbanBoard } from '@/components/cards/KanbanBoard';
+// Kanban (colunas) é a view padrão do espaço — fica no bundle principal para
+// abrir sem um passo extra de rede. As demais views (avançado, lista,
+// calendário, gantt, mapa mental, aprovações, checklist, ideias) são menos
+// usadas e mais pesadas (gantt/mapa mental em especial), então carregam sob
+// demanda: só quem realmente troca de view paga o custo de baixá-las.
 import { KanbanWithColumns } from '@/components/cards/KanbanWithColumns';
-import { KanbanAdvanced } from '@/components/cards/KanbanAdvanced';
-import { ListView } from '@/components/cards/ListView';
-import { CalendarBoardView } from '@/components/cards/CalendarBoardView';
-import { MindMapView } from '@/components/cards/MindMapView';
-import { GanttAdvanced } from '@/components/coordination/GanttAdvanced';
+const KanbanAdvanced = lazy(() => import('@/components/cards/KanbanAdvanced').then(m => ({ default: m.KanbanAdvanced })));
+const ListView = lazy(() => import('@/components/cards/ListView').then(m => ({ default: m.ListView })));
+const CalendarBoardView = lazy(() => import('@/components/cards/CalendarBoardView').then(m => ({ default: m.CalendarBoardView })));
+const MindMapView = lazy(() => import('@/components/cards/MindMapView').then(m => ({ default: m.MindMapView })));
+const GanttAdvanced = lazy(() => import('@/components/coordination/GanttAdvanced').then(m => ({ default: m.GanttAdvanced })));
+const ApprovalsPendingView = lazy(() => import('@/components/social-media/ApprovalsPendingView').then(m => ({ default: m.ApprovalsPendingView })));
+const WeeklyChecklistView = lazy(() => import('@/components/social-media/WeeklyChecklistView').then(m => ({ default: m.WeeklyChecklistView })));
+const IdeasBankView = lazy(() => import('@/components/social-media/IdeasBankView').then(m => ({ default: m.IdeasBankView })));
 import { CreateCardDialog } from '@/components/cards/CreateCardDialog';
 import { DemandFormDialog } from '@/components/cards/DemandFormDialog';
 import { QuickAddCard } from '@/components/cards/QuickAddCard';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { WorkflowInitializer } from '@/components/workflow/WorkflowInitializer';
 import { CreateFolderWithTemplateDialog } from '@/components/social-media/CreateFolderWithTemplateDialog';
-import { ApprovalsPendingView } from '@/components/social-media/ApprovalsPendingView';
-import { WeeklyChecklistView } from '@/components/social-media/WeeklyChecklistView';
-import { IdeasBankView } from '@/components/social-media/IdeasBankView';
 import { FiltersToolbar } from '@/components/filters';
 import { EmptySpaceState } from '@/components/spaces/EmptySpaceState';
 import { useQuery } from '@tanstack/react-query';
@@ -103,6 +107,12 @@ function useFolderView(viewId: string | null) {
     enabled: !!viewId,
   });
 }
+
+const ViewFallback = () => (
+  <div className="flex items-center justify-center h-full">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const SpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
@@ -383,43 +393,104 @@ const SpacePage: React.FC = () => {
 
         {/* Fixed Header - Always visible */}
         <div className="flex-shrink-0 border-b border-border bg-background">
-          <div className="px-4 py-2.5 flex items-center justify-between gap-3">
-            {/* Left: View name with breadcrumb */}
-            <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-              <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: space.color }}
-              />
-              {activeView ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+          <div className="px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            {/* Row 1 on mobile: breadcrumb + view switcher/add button share a line; becomes 3 separate flex items on sm+ via `contents` */}
+            <div className="flex items-center justify-between gap-2 sm:contents">
+              {/* Left: View name with breadcrumb */}
+              <div className="flex items-center gap-2 min-w-0 sm:order-1 sm:flex-shrink-0">
+                <div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: space.color }}
+                />
+                {activeView ? (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs text-muted-foreground truncate max-w-[60px] sm:max-w-[80px]">
+                      {space.name}
+                    </span>
+                    <span className="text-muted-foreground">/</span>
+                    <h1 className="text-sm font-semibold truncate max-w-[100px] sm:max-w-[200px]">
+                      {activeView.name}
+                    </h1>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 ml-1 shrink-0"
+                      onClick={handleClearView}
+                      title="Ver todos os cards"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <h1 className="text-sm font-semibold truncate max-w-[140px] sm:max-w-none">
                     {space.name}
-                  </span>
-                  <span className="text-muted-foreground">/</span>
-                  <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
-                    {activeView.name}
                   </h1>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 ml-1"
-                    onClick={handleClearView}
-                    title="Ver todos os cards"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <h1 className="text-sm font-semibold truncate max-w-[120px] sm:max-w-none">
-                  {space.name}
-                </h1>
-              )}
-              {viewLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                )}
+                {viewLoading && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
+              </div>
+
+              {/* Right: View Switcher + Add Button */}
+              <div className="flex items-center gap-2 shrink-0 sm:order-3">
+                {/* View Switcher - only show if no active view or view allows switching */}
+                {!activeView && (
+                  <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
+                    <TabsList className="h-9 bg-muted/50">
+                      <TabsTrigger value="kanban" className="px-2 sm:px-3 h-8" title="Kanban Simples">
+                        <LayoutGrid className="h-4 w-4" />
+                      </TabsTrigger>
+                      <TabsTrigger value="kanban-advanced" className="px-2 sm:px-3 h-8" title="Kanban Avançado">
+                        <LayoutGrid className="h-4 w-4" />
+                        <span className="text-[9px] ml-0.5 font-bold">+</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="list" className="px-2 sm:px-3 h-8" title="Lista">
+                        <List className="h-4 w-4" />
+                      </TabsTrigger>
+                      <TabsTrigger value="calendar" className="px-2 sm:px-3 h-8" title="Calendário">
+                        <Calendar className="h-4 w-4" />
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
+
+                {/* Show view type badge when a view is active */}
+                {activeView && (
+                  <Badge variant="secondary" className="gap-1 capitalize">
+                    {activeView.view_type === 'kanban' && <LayoutGrid className="h-3 w-3" />}
+                    {activeView.view_type === 'list' && <List className="h-3 w-3" />}
+                    {activeView.view_type === 'calendar' && <Calendar className="h-3 w-3" />}
+                    {activeView.view_type}
+                  </Badge>
+                )}
+
+                {/* Add Button */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="default" className="h-9 gap-2 px-3 sm:px-4">
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Adicionar</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Card
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDemandFormOpen(true)}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Nova Demanda (Briefing)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
+                      <FolderPlus className="h-4 w-4 mr-2" />
+                      Nova Pasta
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
-            {/* Center: Search + Filters */}
-            <div className="flex items-center gap-2 flex-1 max-w-xl">
-              <div className="relative flex-1">
+            {/* Row 2 on mobile: Search + Filters, full width; center column on sm+ */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:flex-1 sm:max-w-xl sm:order-2">
+              <div className="relative w-full sm:flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   ref={searchInputRef}
@@ -434,64 +505,6 @@ const SpacePage: React.FC = () => {
                 scopeId={spaceId}
                 onFiltersChange={setAdvancedFilters}
               />
-            </div>
-
-            {/* Right: View Switcher + Add Button */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* View Switcher - only show if no active view or view allows switching */}
-              {!activeView && (
-                <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
-                  <TabsList className="h-9 bg-muted/50">
-                    <TabsTrigger value="kanban" className="px-3 h-8" title="Kanban Simples">
-                      <LayoutGrid className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="kanban-advanced" className="px-3 h-8" title="Kanban Avançado">
-                      <LayoutGrid className="h-4 w-4" />
-                      <span className="text-[9px] ml-0.5 font-bold">+</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="list" className="px-3 h-8" title="Lista">
-                      <List className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="calendar" className="px-3 h-8" title="Calendário">
-                      <Calendar className="h-4 w-4" />
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              )}
-
-              {/* Show view type badge when a view is active */}
-              {activeView && (
-                <Badge variant="secondary" className="gap-1 capitalize">
-                  {activeView.view_type === 'kanban' && <LayoutGrid className="h-3 w-3" />}
-                  {activeView.view_type === 'list' && <List className="h-3 w-3" />}
-                  {activeView.view_type === 'calendar' && <Calendar className="h-3 w-3" />}
-                  {activeView.view_type}
-                </Badge>
-              )}
-
-              {/* Add Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="default" className="h-9 gap-2 px-4">
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Adicionar</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Card
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDemandFormOpen(true)}>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Nova Demanda (Briefing)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setCreateFolderOpen(true)}>
-                    <FolderPlus className="h-4 w-4 mr-2" />
-                    Nova Pasta
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 
@@ -553,60 +566,76 @@ const SpacePage: React.FC = () => {
                 viewId={activeViewId}
               />
             ) : view === 'kanban-advanced' ? (
-              <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
-                <KanbanAdvanced
+              <Suspense fallback={<ViewFallback />}>
+                <div className="h-full p-4 overflow-x-auto overflow-y-hidden">
+                  <KanbanAdvanced
+                    cards={filteredCards}
+                    onCardClick={handleCardClick}
+                    onAddCard={handleAddCard}
+                    spaceId={spaceId}
+                  />
+                </div>
+              </Suspense>
+            ) : view === 'list' ? (
+              <Suspense fallback={<ViewFallback />}>
+                <div className="h-full p-4 overflow-auto">
+                  <ListView cards={filteredCards} onCardClick={handleCardClick} />
+                </div>
+              </Suspense>
+            ) : view === 'calendar' ? (
+              <Suspense fallback={<ViewFallback />}>
+                <CalendarBoardView
                   cards={filteredCards}
                   onCardClick={handleCardClick}
-                  onAddCard={handleAddCard}
-                  spaceId={spaceId}
+                  dateMode={calendarDateMode}
                 />
-              </div>
-            ) : view === 'list' ? (
-              <div className="h-full p-4 overflow-auto">
-                <ListView cards={filteredCards} onCardClick={handleCardClick} />
-              </div>
-            ) : view === 'calendar' ? (
-              <CalendarBoardView 
-                cards={filteredCards} 
-                onCardClick={handleCardClick}
-                dateMode={calendarDateMode}
-              />
+              </Suspense>
             ) : view === 'gantt' ? (
-              <div className="h-full overflow-auto">
-                <GanttAdvanced 
-                  cards={filteredCards} 
-                  dependencies={[]}
-                  onCardClick={(cardId) => {
-                    const card = filteredCards.find(c => c.id === cardId);
-                    if (card) handleCardClick(card);
-                  }}
-                />
-              </div>
+              <Suspense fallback={<ViewFallback />}>
+                <div className="h-full overflow-auto">
+                  <GanttAdvanced
+                    cards={filteredCards}
+                    dependencies={[]}
+                    onCardClick={(cardId) => {
+                      const card = filteredCards.find(c => c.id === cardId);
+                      if (card) handleCardClick(card);
+                    }}
+                  />
+                </div>
+              </Suspense>
             ) : view === 'mindmap' ? (
-              <MindMapView 
-                cards={filteredCards} 
-                onCardClick={handleCardClick}
-                spaceName={space.name}
-                folderName={activeView?.name}
-                viewId={activeViewId || 'default'}
-                spaceId={space.id}
-              />
+              <Suspense fallback={<ViewFallback />}>
+                <MindMapView
+                  cards={filteredCards}
+                  onCardClick={handleCardClick}
+                  spaceName={space.name}
+                  folderName={activeView?.name}
+                  viewId={activeViewId || 'default'}
+                  spaceId={space.id}
+                />
+              </Suspense>
             ) : view === 'approvals' ? (
-              <ApprovalsPendingView 
-                cards={filteredCards} 
-                onCardClick={handleCardClick}
-                isLoading={cardsLoading}
-              />
+              <Suspense fallback={<ViewFallback />}>
+                <ApprovalsPendingView
+                  cards={filteredCards}
+                  onCardClick={handleCardClick}
+                  isLoading={cardsLoading}
+                />
+              </Suspense>
             ) : view === 'checklist' && activeViewId && selectedFolder ? (
-              <WeeklyChecklistView 
-                folderId={selectedFolder} 
-                viewId={activeViewId}
-              />
+              <Suspense fallback={<ViewFallback />}>
+                <WeeklyChecklistView
+                  folderId={selectedFolder}
+                  viewId={activeViewId}
+                />
+              </Suspense>
             ) : view === 'ideas' && activeViewId && selectedFolder ? (
-              <IdeasBankView 
-                folderId={selectedFolder} 
-                viewId={activeViewId}
-              />
+              <Suspense fallback={<ViewFallback />}>
+                <IdeasBankView
+                  folderId={selectedFolder}
+                  viewId={activeViewId}
+                />
+              </Suspense>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Calendar className="h-12 w-12 text-muted-foreground mb-4" />

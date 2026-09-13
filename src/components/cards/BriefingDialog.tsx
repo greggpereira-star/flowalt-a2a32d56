@@ -34,7 +34,7 @@ import type { BriefingData } from './BriefingForm';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { extractPlainText } from '@/components/ui/rich-text-viewer';
 import { BriefingSummarySheet } from './BriefingSummarySheet';
-import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
+import { normalizeBriefingData } from './briefingDataUtils';
 
 interface ValidationResult {
   isValid: boolean;
@@ -149,22 +149,46 @@ export const BriefingDialog: React.FC<BriefingDialogProps> = ({
   useEffect(() => { cardIdRef.current = cardId; }, [cardId]);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
+  // Tracks whether we've already pulled `data` into the local draft for the
+  // current open session. Once that happens (or the user starts typing), this
+  // effect must stop reacting to `data` prop changes: `data` reflects the
+  // parent's copy, which can briefly lag behind our own debounced auto-save
+  // (e.g. right after we send an edit/deletion, before the refetch confirms
+  // it). Re-syncing on every `data` change let that lagging, stale prop win
+  // over content the user had just cleared or rewritten — the field would
+  // visibly "restore" the old value, as if from a backup. localData is the
+  // single source of truth for the duration of an open session; the debounced
+  // auto-save below is what keeps the server in sync with it, not the other
+  // way around.
   const lastCardIdRef = useRef(cardId);
+  const hasSyncedThisSessionRef = useRef(false);
+  const wasOpenForSyncRef = useRef(open);
+
   useEffect(() => {
+    const justOpened = open && !wasOpenForSyncRef.current;
+    wasOpenForSyncRef.current = open;
+
     if (cardId !== lastCardIdRef.current) {
       lastCardIdRef.current = cardId;
       hasUnsavedChanges.current = false;
+      hasSyncedThisSessionRef.current = true;
       const nextData = normalizeBriefingData(data);
       localDataRef.current = nextData;
       setLocalData(nextData);
       return;
     }
-    if (open && !hasUnsavedChanges.current) {
-      setLocalData(prev => {
-        const nextData = mergeBriefingDataPreservingFilled(prev, data);
-        localDataRef.current = nextData;
-        return nextData;
-      });
+
+    if (justOpened) {
+      // Reopening (possibly the same card): take one fresh snapshot from the
+      // server in case it changed while the dialog was closed.
+      hasSyncedThisSessionRef.current = false;
+    }
+
+    if (open && !hasSyncedThisSessionRef.current && !hasUnsavedChanges.current) {
+      hasSyncedThisSessionRef.current = true;
+      const nextData = normalizeBriefingData(data);
+      localDataRef.current = nextData;
+      setLocalData(nextData);
     }
   }, [open, data, cardId]);
 

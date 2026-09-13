@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useBirthdays } from '@/hooks/useBirthdays';
+import { useBirthdays, parseLocalDateOnly } from '@/hooks/useBirthdays';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { Cake, Calendar, Gift, PartyPopper, Clock, Users } from 'lucide-react';
 import { format, getMonth } from 'date-fns';
@@ -83,7 +83,7 @@ const BirthdaysPage: React.FC = () => {
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          {format(new Date(member.birthday), "dd 'de' MMMM", { locale: ptBR })}
+          {format(parseLocalDateOnly(member.birthday), "dd 'de' MMMM", { locale: ptBR })}
         </p>
       </div>
       

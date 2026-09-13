@@ -92,6 +92,8 @@ export function useIdeaReferences(boardId?: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+    // Sem onError a falha era invisível: o sheet não fechava e nada era dito.
+    onError: (e: any) => toast({ title: 'Erro ao salvar', description: e.message, variant: 'destructive' }),
   });
 
   const toggleFavorite = useMutation({
@@ -103,6 +105,8 @@ export function useIdeaReferences(boardId?: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+    // A estrela simplesmente não mudava de estado, sem explicação.
+    onError: (e: any) => toast({ title: 'Erro ao favoritar', description: e.message, variant: 'destructive' }),
   });
 
   const remove = useMutation({
@@ -115,6 +119,7 @@ export function useIdeaReferences(boardId?: string) {
       qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
       toast({ title: 'Referência excluída' });
     },
+    onError: (e: any) => toast({ title: 'Erro ao excluir', description: e.message, variant: 'destructive' }),
   });
 
   const bulkMove = useMutation({

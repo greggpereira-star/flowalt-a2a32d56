@@ -3,6 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { differenceInDays, getMonth, getDate, setYear, startOfDay, isSameDay } from 'date-fns';
 
+/**
+ * Lê uma data "YYYY-MM-DD" (coluna `date`, sem hora/fuso) como meia-noite
+ * LOCAL. `new Date("YYYY-MM-DD")` interpreta a string como UTC; em fusos
+ * negativos (ex.: Brasil, UTC-3) os getters locais (getDate/getMonth) então
+ * devolvem o dia ANTERIOR, fazendo aniversários aparecerem um dia mais cedo
+ * do que a data real cadastrada.
+ */
+export function parseLocalDateOnly(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export interface BirthdayMember {
   user_id: string;
   full_name: string;
@@ -52,7 +64,7 @@ export function useBirthdays(month?: number) {
       const birthdayMembers: BirthdayMember[] = profiles
         .filter(p => p.birthday)
         .map(profile => {
-          const birthdayDate = new Date(profile.birthday!);
+          const birthdayDate = parseLocalDateOnly(profile.birthday!);
           
           // Calculate next birthday
           let nextBirthday = setYear(birthdayDate, currentYear);
@@ -81,7 +93,7 @@ export function useBirthdays(month?: number) {
         // Filter by month if specified
         .filter(member => {
           if (month === undefined) return true;
-          const birthdayMonth = getMonth(new Date(member.birthday));
+          const birthdayMonth = getMonth(parseLocalDateOnly(member.birthday));
           return birthdayMonth === month;
         })
         // Sort by days until birthday

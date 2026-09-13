@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, format } from 'date-fns';
 import type { Card } from '@/hooks/useCards';
 
@@ -33,6 +34,21 @@ const DEFAULT_WEEKLY_HOURS = 40;
 export const useCapacity = (cards: Card[], weekStart?: Date) => {
   const { currentWorkspace } = useWorkspace();
   const { data: members } = useWorkspaceMembers();
+  const { data: assignments } = useCardMemberAssignments();
+
+  // A atribuicao de responsavel vive em `card_members`; `cards.owner_id` e
+  // campo legado e esta vazio em 206 dos 302 cards, porque atribuir alguem
+  // grava so o vinculo. Planejar capacidade so por owner_id enxergava 21
+  // cards ativos onde existem 63 — o time inteiro aparecia ocioso.
+  const cardsPorMembro = useMemo(() => {
+    const mapa = new Map<string, Set<string>>();
+    (assignments ?? []).forEach(a => {
+      const doMembro = mapa.get(a.user_id) ?? new Set<string>();
+      doMembro.add(a.card_id);
+      mapa.set(a.user_id, doMembro);
+    });
+    return mapa;
+  }, [assignments]);
 
   const startDate = weekStart || startOfWeek(new Date(), { weekStartsOn: 1 });
   const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
@@ -46,9 +62,11 @@ export const useCapacity = (cards: Card[], weekStart?: Date) => {
 
     members.forEach(member => {
       // Get member's cards
-      const memberCards = cards.filter(c => 
-        c.owner_id === member.user_id && 
-        c.status !== 'delivered' && 
+      const atribuidos = cardsPorMembro.get(member.user_id);
+      const memberCards = cards.filter(c =>
+        // owner_id ainda vale como fallback para os cards antigos que o tem.
+        (atribuidos?.has(c.id) || c.owner_id === member.user_id) &&
+        c.status !== 'delivered' &&
         c.status !== 'archived'
       );
 
@@ -97,7 +115,7 @@ export const useCapacity = (cards: Card[], weekStart?: Date) => {
     });
 
     return allocations;
-  }, [cards, members, days]);
+  }, [cards, members, days, cardsPorMembro]);
 
   // Calculate weekly summaries per user
   const userSummaries = useMemo((): UserCapacitySummary[] => {
@@ -162,16 +180,24 @@ export const useCapacity = (cards: Card[], weekStart?: Date) => {
 
 // Hook to check if assigning a card would cause overload
 export const useCapacityCheck = () => {
+  const { data: assignments } = useCardMemberAssignments();
+
   const checkAssignment = (
     userId: string,
     cards: Card[],
     newCardHours: number,
     dueDate: Date
   ): { wouldOverload: boolean; newUtilization: number } => {
-    // Simple check - would need more sophisticated logic for real implementation
-    const userCards = cards.filter(c => 
-      c.owner_id === userId && 
-      c.status !== 'delivered' && 
+    // Mesma razao do hook acima: a carga real da pessoa esta em `card_members`.
+    // So por owner_id, quase ninguem apareceria carregado e a checagem de
+    // sobrecarga liberaria qualquer atribuicao.
+    const atribuidos = new Set(
+      (assignments ?? []).filter(a => a.user_id === userId).map(a => a.card_id),
+    );
+
+    const userCards = cards.filter(c =>
+      (atribuidos.has(c.id) || c.owner_id === userId) &&
+      c.status !== 'delivered' &&
       c.status !== 'archived'
     );
 

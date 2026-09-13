@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Card } from './useCards';
+import { isBriefingSatisfied } from '@/components/cards/briefingDataUtils';
 
 interface AIActionSuggestion {
   action: string;
@@ -43,7 +44,9 @@ export const useCardAI = () => {
               dueDate: card.due_date,
               estimatedHours: card.estimated_hours,
               actualHours: card.actual_hours,
-              briefingCompleted: card.briefing_completed,
+              // Mesma verdade derivada usada no gate do Kanban: a flag sozinha
+              // faria a IA analisar como "briefado" um card sem briefing.
+              briefingCompleted: isBriefingSatisfied(card),
               checklistProgress,
               isBlocked,
             },

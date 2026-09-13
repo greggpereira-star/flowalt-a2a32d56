@@ -43,6 +43,7 @@ import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useCardMembers, useAddCardMember, useRemoveCardMember } from '@/hooks/useCardMembers';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 interface Client {
   id: string;
@@ -69,14 +70,7 @@ interface CardPropertiesPanelProps {
   onClientChange: (clientId: string | null) => void;
 }
 
-const STATUS_OPTIONS: { value: CardStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'A Fazer' },
-  { value: 'in_progress', label: 'Em Progresso' },
-  { value: 'review', label: 'Revisão' },
-  { value: 'approved', label: 'Aprovado' },
-  { value: 'delivered', label: 'Entregue' },
-];
+const STATUS_OPTIONS: { value: CardStatus; label: string }[] = CARD_STATUS_OPTIONS;
 
 const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = [
   { value: 'low', label: 'Baixa', color: 'text-muted-foreground' },

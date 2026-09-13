@@ -127,7 +127,7 @@ export const MetricsPanel: React.FC = () => {
 
   if (isLoading || !metricsData) {
     return (
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card><CardContent className="h-64 animate-pulse bg-muted" /></Card>
         <Card><CardContent className="h-64 animate-pulse bg-muted" /></Card>
       </div>
@@ -176,7 +176,7 @@ export const MetricsPanel: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Hours by Sector */}
         <Card>
           <CardHeader>

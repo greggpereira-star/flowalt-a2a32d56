@@ -282,124 +282,37 @@ export function useConnectors() {
     return patterns;
   }, []);
 
-  // Google Calendar specific: Import events to Flowalt Agenda
-  const importCalendarEvents = useCallback(async (startDate: Date, endDate: Date) => {
-    if (!currentWorkspace?.id) return [];
-    
-    const mockEvents: Array<{
-      title: string;
-      start_time: string;
-      end_time: string;
-      description: string;
-      event_type: 'meeting' | 'deadline' | 'milestone' | 'other' | 'recording';
-    }> = [
-      {
-        title: 'Reunião de Alinhamento',
-        start_time: new Date(Date.now() + 86400000).toISOString(),
-        end_time: new Date(Date.now() + 86400000 + 3600000).toISOString(),
-        description: 'Importado do Google Calendar',
-        event_type: 'meeting',
-      },
-      {
-        title: 'Deadline Projeto X',
-        start_time: new Date(Date.now() + 172800000).toISOString(),
-        end_time: new Date(Date.now() + 172800000 + 3600000).toISOString(),
-        description: 'Importado do Google Calendar',
-        event_type: 'deadline',
-      },
-    ];
-
-    const { data, error } = await supabase
-      .from('events')
-      .insert(mockEvents.map(e => ({
-        ...e,
-        workspace_id: currentWorkspace.id,
-      })))
-      .select();
-
-    if (error) {
-      toast.error('Erro ao importar eventos');
-      return [];
-    }
-
-    toast.success(`${data?.length || 0} eventos importados`);
-    return data || [];
-  }, [currentWorkspace]);
-
-  // Google Drive specific: Link attachments to cards
-  const importDriveFiles = useCallback(async (cardId: string, fileIds: string[]) => {
-    const mockFiles = fileIds.map((id, idx) => ({
-      card_id: cardId,
-      file_name: `documento_${idx + 1}.pdf`,
-      file_url: `https://drive.google.com/file/d/${id}`,
-      file_type: 'application/pdf',
-      file_size: Math.floor(Math.random() * 1000000),
-    }));
-
-    toast.success(`${mockFiles.length} arquivos vinculados`);
-    return mockFiles;
+  // As funções de importação abaixo NÃO estão implementadas: não existe
+  // integração real com Google Calendar, Google Drive, Open Finance ou emissor
+  // de NF. As versões anteriores devolviam dados fictícios — e duas delas
+  // GRAVAVAM esses dados no banco de produção: eventos inventados na agenda e
+  // dois lançamentos de R$ 5.000 / R$ 1.500 marcados como pagos no financeiro,
+  // que entrariam em DRE, fluxo de caixa e Painel Executivo como se fossem
+  // reais. Os parâmetros de período eram simplesmente ignorados.
+  //
+  // Enquanto a integração de verdade não existe, elas não gravam nada e
+  // avisam o usuário. Os botões que as chamavam estão desabilitados em
+  // ConnectorsPanel.tsx.
+  const naoImplementado = useCallback((recurso: string) => {
+    toast.info(`A importação via ${recurso} ainda não está disponível.`);
+    return [];
   }, []);
 
-  // Open Finance specific: Import bank transactions
-  const importBankTransactions = useCallback(async (accountId: string, startDate: Date, endDate: Date) => {
-    if (!currentWorkspace?.id) return [];
-    
-    const mockTransactions = [
-      {
-        description: 'Pagamento Cliente ABC',
-        amount: 5000,
-        type: 'income' as const,
-        due_date: new Date().toISOString().split('T')[0],
-        status: 'paid' as const,
-      },
-      {
-        description: 'Fornecedor XYZ',
-        amount: 1500,
-        type: 'expense' as const,
-        due_date: new Date().toISOString().split('T')[0],
-        status: 'paid' as const,
-      },
-    ];
+  const importCalendarEvents = useCallback(async (_startDate: Date, _endDate: Date) => {
+    return naoImplementado('Google Calendar');
+  }, [naoImplementado]);
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert(mockTransactions.map(t => ({
-        ...t,
-        workspace_id: currentWorkspace.id,
-      })))
-      .select();
+  const importDriveFiles = useCallback(async (_cardId: string, _fileIds: string[]) => {
+    return naoImplementado('Google Drive');
+  }, [naoImplementado]);
 
-    if (error) {
-      toast.error('Erro ao importar transações');
-      return [];
-    }
+  const importBankTransactions = useCallback(async (_accountId: string, _startDate: Date, _endDate: Date) => {
+    return naoImplementado('Open Finance');
+  }, [naoImplementado]);
 
-    toast.success(`${data?.length || 0} transações importadas`);
-    return data || [];
-  }, [currentWorkspace]);
-
-  // NF Emissor specific: Fetch and match invoices
-  const fetchInvoices = useCallback(async (cnpj: string) => {
-    const mockInvoices = [
-      {
-        number: 'NF-001234',
-        value: 5000,
-        issueDate: new Date().toISOString(),
-        status: 'emitida',
-        matchedTransactionId: null,
-      },
-      {
-        number: 'NF-001235',
-        value: 3500,
-        issueDate: new Date().toISOString(),
-        status: 'emitida',
-        matchedTransactionId: null,
-      },
-    ];
-
-    toast.info(`${mockInvoices.length} notas fiscais encontradas`);
-    return mockInvoices;
-  }, []);
+  const fetchInvoices = useCallback(async (_cnpj: string) => {
+    return naoImplementado('emissor de NF');
+  }, [naoImplementado]);
 
   // Suggest transaction matches for reconciliation
   const suggestMatches = useCallback(async () => {

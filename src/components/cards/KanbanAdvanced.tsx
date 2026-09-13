@@ -11,6 +11,7 @@ import {
   rectIntersection,
   useDroppable,
 } from '@dnd-kit/core';
+import { KanbanBoard } from './KanbanBoard';
 import { TaskCard } from './TaskCard';
 import { DraggableCard } from './DraggableCard';
 import { DragOverlayCard } from './DragOverlayCard';
@@ -92,6 +93,7 @@ import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Assignee } from './CardAssignees';
@@ -151,12 +153,17 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
   spaceId,
 }) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
   const createCard = useCreateCard();
   const mirrorCard = useMirrorCardToSpace();
   const { data: members } = useWorkspaceMembers();
-  const { data: cardAssignments } = useCardMemberAssignments();
+  // `includeInactive` aqui porque esta tela desenha a coluna de entregues.
+  // Sem isso o hook filtra fora os cards delivered/archived, os vinculos
+  // somem, e o avatar cai no fallback "?" — a pessoa continua no card, mas
+  // a tela mostra um card sem responsavel. O Gantt ja tinha esbarrado nisso.
+  const { data: cardAssignments } = useCardMemberAssignments({ includeInactive: true });
 
   // Map of card_id -> array of user_ids assigned via card_members
   const cardMembersMap = useMemo(() => {
@@ -830,6 +837,19 @@ export const KanbanAdvanced: React.FC<KanbanAdvancedProps> = ({
       </div>
     );
   };
+
+  // No celular, os recursos avançados (swimlanes, filtros, capacidade, drag-and-drop)
+  // nao cabem bem na tela — reaproveita a visao mobile ja pronta do KanbanBoard.
+  if (isMobile) {
+    return (
+      <KanbanBoard
+        cards={filteredCards}
+        onCardClick={onCardClick}
+        onAddCard={onAddCard}
+        visibleStatuses={visibleStatuses}
+      />
+    );
+  }
 
   return (
     <DndContext

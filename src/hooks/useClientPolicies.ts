@@ -249,12 +249,16 @@ export const useGenerateUpsellSuggestions = () => {
         .eq('client_card_id', clientCardId)
         .maybeSingle();
 
-      // Get cards for this client
+      // Mesmo bug já corrigido em useClientFinancialReport: `legacy_client_id`
+      // é nulo em todos os clientes, então a condição virava `client_id.eq.''`
+      // e nenhum card era encontrado — totalHours saía 0 e a sugestão de
+      // ampliar pacote de horas nunca disparava. O vínculo real é
+      // `cards.client_id` -> `client_cards.id`.
       const { data: cards } = await supabase
         .from('cards')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .eq('client_id', clientCard.legacy_client_id || '');
+        .eq('client_id', clientCard.id);
 
       // Get time entries
       const cardIds = (cards || []).map(c => c.id);
@@ -266,6 +270,21 @@ export const useGenerateUpsellSuggestions = () => {
         : { data: [] };
 
       const totalHours = (timeEntries || []).reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
+
+      // Receita realizada sai de transactions, não de client_financials.
+      // total_revenue nasce zerado e nada o alimenta, então a comparação com o
+      // contrato abaixo nunca disparava — o gatilho de expandir escopo estava
+      // morto. Mesmo vínculo usado em useClientFinancialReport.
+      const orFilter = [
+        `client_id.eq.${clientCard.id}`,
+        ...(cardIds.length > 0 ? [`card_id.in.(${cardIds.join(',')})`] : []),
+      ].join(',');
+
+      const { data: clientTransactions } = await supabase
+        .from('transactions')
+        .select('type, status, amount')
+        .eq('workspace_id', currentWorkspace.id)
+        .or(orFilter);
       const suggestions: Array<{
         client_card_id: string;
         workspace_id: string;
@@ -300,7 +319,9 @@ export const useGenerateUpsellSuggestions = () => {
 
       // Check high margin - opportunity for scope expansion
       const contractValue = financials?.contract_value || 0;
-      const totalRevenue = financials?.total_revenue || 0;
+      const totalRevenue = (clientTransactions || [])
+        .filter(t => t.type === 'income' && t.status === 'paid')
+        .reduce((acc, t) => acc + Number(t.amount), 0);
       if (contractValue > 0 && totalRevenue >= contractValue * 0.8) {
         suggestions.push({
           client_card_id: clientCardId,

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useClientsSpace, useClientsSpaceFolders } from '@/hooks/useClientsSpace';
 import { useClientCardsByStatus, type ClientStatus, type ClientCard } from '@/hooks/useClientCards';
+import { useClientsHealth, type ClientHealth } from '@/hooks/useClientsHealth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,9 +41,19 @@ const financialStateConfig: Record<string, { label: string; color: string; bgCol
   loss: { label: 'Prejuízo', color: 'text-red-800', bgColor: 'bg-red-200' },
 };
 
-const ClientCardItem: React.FC<{ client: ClientCard; onClick: () => void }> = ({ client, onClick }) => {
-  const stateConfig = financialStateConfig[client.financial_state] || financialStateConfig.healthy;
-  
+const ClientCardItem: React.FC<{
+  client: ClientCard;
+  onClick: () => void;
+  health?: ClientHealth;
+}> = ({ client, onClick, health }) => {
+  // Score e estado vêm do cálculo ao vivo. A coluna client_cards.health_score
+  // não é usada aqui: ela tem DEFAULT 100 e só era reescrita quando alguém
+  // abria o relatório do cliente, então mostrava "saudável" para quem nunca
+  // foi medido. Enquanto o cálculo não chega, mostramos traço em vez de
+  // chutar um estado.
+  const stateConfig = health ? financialStateConfig[health.financialState] : null;
+  const score = health?.healthScore;
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
@@ -68,9 +79,11 @@ const ClientCardItem: React.FC<{ client: ClientCard; onClick: () => void }> = ({
               <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                 {client.name}
               </h3>
-              <Badge variant="outline" className={cn('text-xs', stateConfig.color, stateConfig.bgColor)}>
-                {stateConfig.label}
-              </Badge>
+              {stateConfig && (
+                <Badge variant="outline" className={cn('text-xs', stateConfig.color, stateConfig.bgColor)}>
+                  {stateConfig.label}
+                </Badge>
+              )}
             </div>
             
             {client.segment && (
@@ -80,17 +93,18 @@ const ClientCardItem: React.FC<{ client: ClientCard; onClick: () => void }> = ({
             {/* Health Score */}
             <div className="flex items-center gap-2 mt-2">
               <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div 
+                <div
                   className={cn(
                     'h-full rounded-full transition-all',
-                    client.health_score >= 80 ? 'bg-green-500' :
-                    client.health_score >= 60 ? 'bg-amber-500' :
-                    client.health_score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                    score === undefined ? 'bg-muted' :
+                    score >= 80 ? 'bg-green-500' :
+                    score >= 60 ? 'bg-amber-500' :
+                    score >= 40 ? 'bg-orange-500' : 'bg-red-500'
                   )}
-                  style={{ width: `${client.health_score}%` }}
+                  style={{ width: `${score ?? 0}%` }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground font-medium">{client.health_score}</span>
+              <span className="text-xs text-muted-foreground font-medium">{score ?? '—'}</span>
             </div>
           </div>
         </div>
@@ -105,7 +119,8 @@ const ClientsGrid: React.FC<{
   onClientClick: (id: string) => void;
 }> = ({ status, searchQuery, onClientClick }) => {
   const { data: clients, isLoading } = useClientCardsByStatus(status);
-  
+  const { data: health } = useClientsHealth();
+
   const filteredClients = clients?.filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.segment?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -140,8 +155,9 @@ const ClientsGrid: React.FC<{
       {filteredClients.map((client) => (
         <ClientCardItem 
           key={client.id} 
-          client={client} 
+          client={client}
           onClick={() => onClientClick(client.id)}
+          health={health?.get(client.id)}
         />
       ))}
     </div>
@@ -180,9 +196,9 @@ export const ClientsPage: React.FC = () => {
   return (
     <>
       <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Building2 className="h-7 w-7 text-primary" />
@@ -192,7 +208,7 @@ export const ClientsPage: React.FC = () => {
                 Centro de resultado com P&L por cliente
               </p>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
+            <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Novo Cliente
             </Button>
@@ -269,14 +285,15 @@ export const ClientsPage: React.FC = () => {
 
           {/* Tabs Content */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ClientStatus)}>
-            <TabsList>
+            <TabsList className="w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide no-scrollbar">
               {Object.entries(statusConfig).map(([key, config]) => {
                 const Icon = config.icon;
                 const count = key === 'active' ? stats.active : key === 'paused' ? stats.paused : stats.closed;
                 return (
-                  <TabsTrigger key={key} value={key} className="gap-2">
+                  <TabsTrigger key={key} value={key} className="gap-1.5 sm:gap-2 px-2.5 sm:px-3 shrink-0">
                     <Icon className={cn('h-4 w-4', config.color)} />
-                    {config.label}
+                    <span className="hidden sm:inline">{config.label}</span>
+                    <span className="sm:hidden">{config.label.replace('Clientes ', '')}</span>
                     <Badge variant="secondary" className="ml-1">{count}</Badge>
                   </TabsTrigger>
                 );

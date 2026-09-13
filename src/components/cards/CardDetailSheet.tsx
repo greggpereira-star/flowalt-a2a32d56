@@ -19,7 +19,7 @@ import {
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
-import { mergeBriefingDataPreservingFilled, normalizeBriefingData } from './briefingDataUtils';
+import { normalizeBriefingData, isBriefingContentComplete } from './briefingDataUtils';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
@@ -276,9 +276,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
       const nextBriefingData = normalizeBriefingData(card.briefing_data);
       setBriefingData(prev => {
-        const safeBriefingData = briefingDialogOpenRef.current
-          ? mergeBriefingDataPreservingFilled(prev, nextBriefingData)
-          : nextBriefingData;
+        // While the briefing dialog is open, it owns the active draft (with its
+        // own debounced auto-save) — a background refetch landing mid-edit must
+        // not overwrite it, or a field the user just cleared/rewrote silently
+        // reverts to the old saved value. Only resync from the server once the
+        // dialog is closed.
+        const safeBriefingData = briefingDialogOpenRef.current ? prev : nextBriefingData;
         briefingDataRef.current = safeBriefingData;
         return safeBriefingData;
       });
@@ -352,7 +355,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     const currentCard = cardRef.current;
     if (!currentCard || targetCardId !== currentCard.id) return;
 
-    const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, newData);
+    // newData is the briefing dialog's own actively-edited draft — it is always
+    // the authoritative latest state (including intentional deletions). Merging
+    // it against our possibly-stale local copy would let old content win back
+    // over a field the user just cleared.
+    const safeData = normalizeBriefingData(newData);
     briefingDataRef.current = safeData;
     setBriefingData(safeData);
     handleSave({ briefing_data: safeData });
@@ -387,11 +394,24 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
     if (!currentCard || targetCardId !== currentCard.id) return;
     const updates: { briefing_completed: boolean; briefing_data?: BriefingData } = { briefing_completed: true };
     if (briefingDataOverride) {
-      const safeData = mergeBriefingDataPreservingFilled(briefingDataRef.current, briefingDataOverride);
+      // Same reasoning as handleBriefingDataChange: this override is the dialog's
+      // final authoritative draft at submit time, not something to merge against
+      // our stale copy.
+      const safeData = normalizeBriefingData(briefingDataOverride);
       updates.briefing_data = safeData;
       briefingDataRef.current = safeData;
       setBriefingData(safeData);
     }
+    // O diálogo já desabilita "Concluir Briefing" sem os obrigatórios, mas a
+    // flag é a fonte de várias telas e chegou ao banco ligada e vazia em 24
+    // cards. Repetimos a checagem aqui para que nenhum caminho futuro grave
+    // "completo" sem conteúdo.
+    const effectiveData = updates.briefing_data ?? currentCard.briefing_data;
+    if (!isBriefingContentComplete(effectiveData)) {
+      toast.error('Preencha contexto e entregáveis antes de concluir o briefing');
+      return;
+    }
+
     await handleSave(updates);
     toast.success('Briefing marcado como completo');
   };
@@ -414,7 +434,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="max-w-[1320px] w-[95vw] h-[min(92vh,860px)] p-0 flex flex-col overflow-hidden bg-background gap-0 rounded-xl shadow-lg"
+          className="left-0 top-0 w-screen h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none border-0 sm:left-[50%] sm:top-[50%] sm:max-w-[1320px] sm:w-[95vw] sm:h-[min(92vh,860px)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl sm:border p-0 flex flex-col overflow-hidden bg-background gap-0 shadow-lg"
           hideCloseButton
         >
         <VisuallyHidden.Root>

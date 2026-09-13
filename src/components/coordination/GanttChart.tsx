@@ -8,6 +8,7 @@ import { format, differenceInDays, addDays, startOfDay, eachDayOfInterval } from
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
 import type { Dependency } from '@/hooks/useDependencies';
+import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 
 interface GanttChartProps {
   cards: CardType[];
@@ -23,16 +24,6 @@ const STATUS_COLORS: Record<string, string> = {
   review: 'bg-purple-500',
   approved: 'bg-green-500',
   delivered: 'bg-green-600',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  briefing: 'Briefing',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  approved: 'Aprovado',
-  delivered: 'Entregue',
 };
 
 export const GanttChart: React.FC<GanttChartProps> = ({
@@ -236,13 +227,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                             onClick={() => onCardClick?.(bar.id)}
                           >
                             <span className="text-[10px] text-white font-medium truncate">
-                              {STATUS_LABELS[bar.status]}
+                              {getCardStatusLabel(bar.status)}
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="font-medium">{bar.title}</p>
-                          <p className="text-xs">{STATUS_LABELS[bar.status]}</p>
+                          <p className="text-xs">{getCardStatusLabel(bar.status)}</p>
                           {bar.isOverdue && (
                             <Badge variant="destructive" className="mt-1">Atrasado</Badge>
                           )}

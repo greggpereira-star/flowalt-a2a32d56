@@ -57,10 +57,10 @@ export const CreateClientDialog: React.FC<CreateClientDialogProps> = ({
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!name.trim() || createClient.isPending}>
+            <Button type="submit" size="sm" disabled={!name.trim() || createClient.isPending}>
               {createClient.isPending ? 'Criando...' : 'Criar Cliente'}
             </Button>
           </DialogFooter>

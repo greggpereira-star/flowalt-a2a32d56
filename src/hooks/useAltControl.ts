@@ -615,11 +615,16 @@ export const useUpsertProposalItems = () => {
       proposalId: string; 
       items: { service_id: string; hours_per_month: number; notes?: string }[] 
     }) => {
-      // Delete existing items
-      await supabase
+      // O erro deste delete era descartado. Se ele falhasse (RLS, rede), o
+      // insert seguinte rodava assim mesmo e a proposta ficava com os itens
+      // antigos MAIS os novos — dobrando horas e valor total sem qualquer
+      // aviso. Falhar aqui tem que interromper a operação.
+      const { error: deleteError } = await supabase
         .from('altcontrol_proposal_items')
         .delete()
         .eq('proposal_id', proposalId);
+
+      if (deleteError) throw deleteError;
 
       // Insert new items
       if (items.length > 0) {

@@ -3,6 +3,51 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { triggerWebhook, getCardWorkspaceId } from '@/lib/webhookTrigger';
 
+const ATTACHMENTS_BUCKET = 'attachments';
+const SIGNED_URL_EXPIRY = 60 * 60;
+
+/**
+ * O bucket 'attachments' é PRIVADO, então URL pública nele responde HTTP 400 —
+ * era o que estava gravado aqui, deixando todo anexo de card inacessível. O
+ * caminho certo é guardar só o path e assinar na leitura.
+ *
+ * Esta função aceita as três formas que existem no banco hoje: o path puro
+ * (uploads novos), a URL pública do self-hosted, e a URL pública do projeto
+ * Supabase antigo que foi desligado na migração. Mesma abordagem já usada em
+ * useTransactionAttachments.ts.
+ */
+const extractAttachmentPath = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+
+  // Uploads novos guardam o path direto, que começa com o id do card.
+  if (!value.includes('://')) return value;
+
+  const markers = [
+    '/storage/v1/object/public/attachments/',
+    '/storage/v1/object/sign/attachments/',
+    '/storage/v1/object/authenticated/attachments/',
+  ];
+
+  try {
+    const url = new URL(value);
+    for (const marker of markers) {
+      const index = url.pathname.indexOf(marker);
+      if (index >= 0) {
+        return decodeURIComponent(url.pathname.slice(index + marker.length));
+      }
+    }
+  } catch {
+    // Cai no split abaixo se não for uma URL válida.
+  }
+
+  const parts = value.split('/attachments/');
+  if (parts.length > 1) {
+    return decodeURIComponent(parts[1].split('?')[0]);
+  }
+
+  return null;
+};
+
 export interface Attachment {
   id: string;
   card_id: string;
@@ -12,6 +57,8 @@ export interface Attachment {
   file_type: string | null;
   file_size: number | null;
   created_at: string;
+  /** URL assinada temporária; é o que a UI deve usar para abrir/exibir. */
+  signedUrl: string | null;
 }
 
 export const useAttachments = (cardId: string | undefined) => {
@@ -27,7 +74,27 @@ export const useAttachments = (cardId: string | undefined) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Attachment[];
+
+      const rows = data ?? [];
+      const paths = rows.map((row) => extractAttachmentPath(row.file_url));
+      const validPaths = paths.filter((p): p is string => !!p);
+
+      // Uma chamada só para todos os anexos, em vez de uma por arquivo.
+      const signedByPath = new Map<string, string>();
+      if (validPaths.length > 0) {
+        const { data: signed } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .createSignedUrls(validPaths, SIGNED_URL_EXPIRY);
+
+        signed?.forEach((item) => {
+          if (item.path && item.signedUrl) signedByPath.set(item.path, item.signedUrl);
+        });
+      }
+
+      return rows.map((row, i) => ({
+        ...row,
+        signedUrl: paths[i] ? signedByPath.get(paths[i]!) ?? null : null,
+      })) as Attachment[];
     },
     enabled: !!cardId,
   });
@@ -52,24 +119,21 @@ export const useUploadAttachment = () => {
       const filePath = `${card_id}/${user.id}/${Date.now()}-${sanitizedName}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('attachments')
+        .from(ATTACHMENTS_BUCKET)
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(filePath);
-
-      // Create attachment record
+      // Guarda o PATH, não uma URL absoluta: o bucket é privado (URL pública
+      // não funciona) e URL absoluta congelaria o domínio na linha, que foi
+      // exatamente o que quebrou os anexos na migração de servidor.
       const { data, error } = await supabase
         .from('attachments')
         .insert({
           card_id,
           user_id: user.id,
           file_name: file.name,
-          file_url: urlData.publicUrl,
+          file_url: filePath,
           file_type: file.type,
           file_size: file.size,
         })
@@ -104,11 +168,11 @@ export const useDeleteAttachment = () => {
 
   return useMutation({
     mutationFn: async ({ id, card_id, file_url }: { id: string; card_id: string; file_url: string }) => {
-      // Extract path from URL for deletion
-      const urlParts = file_url.split('/attachments/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        await supabase.storage.from('attachments').remove([filePath]);
+      // Mesmo extrator da leitura, para funcionar tanto com o path novo quanto
+      // com as URLs absolutas legadas.
+      const filePath = extractAttachmentPath(file_url);
+      if (filePath) {
+        await supabase.storage.from(ATTACHMENTS_BUCKET).remove([filePath]);
       }
 
       const { error } = await supabase

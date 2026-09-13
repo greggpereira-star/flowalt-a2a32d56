@@ -17,8 +17,14 @@ import {
   parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Card } from '@/hooks/useCards';
 
 type CalendarDateMode = 'task_due_date' | 'post_date';
@@ -63,6 +69,8 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
   dateMode = 'task_due_date',
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
+  const isMobile = useIsMobile();
   const isPostCalendar = dateMode === 'post_date';
 
   // Get calendar days for the current month view
@@ -125,14 +133,17 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
   return (
     <div className="h-full flex flex-col p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <h2 className="text-lg font-semibold capitalize">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
           <Badge variant={isPostCalendar ? 'default' : 'secondary'} className="gap-1">
             {isPostCalendar ? <Megaphone className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-            {isPostCalendar ? 'Calendário por Data de Postagem' : 'Calendário por Prazo da Tarefa'}
+            <span className="hidden sm:inline">
+              {isPostCalendar ? 'Calendário por Data de Postagem' : 'Calendário por Prazo da Tarefa'}
+            </span>
+            <span className="sm:hidden">{isPostCalendar ? 'Postagem' : 'Prazo'}</span>
           </Badge>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevMonth}>
@@ -149,7 +160,7 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
 
         {/* Unscheduled count */}
         {unscheduledCards.length > 0 && (
-          <Badge variant="secondary" className="gap-1">
+          <Badge variant="secondary" className="gap-1 self-start sm:self-auto">
             <CalendarDays className="h-3 w-3" />
             {unscheduledCards.length} {isPostCalendar ? 'sem data de postagem' : 'sem prazo da tarefa'}
           </Badge>
@@ -187,14 +198,17 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
             return (
               <div
                 key={index}
+                onClick={() => isMobile && dayCards.length > 0 && setDayDetailsDate(day)}
                 className={cn(
-                  'border-b border-r p-1 min-h-[100px] flex flex-col',
+                  'border-b border-r p-1 flex flex-col',
+                  isMobile ? 'min-h-[52px]' : 'min-h-[100px]',
+                  isMobile && dayCards.length > 0 && 'cursor-pointer',
                   !isCurrentMonth && 'bg-muted/30',
                   isTodayDate && 'bg-primary/5'
                 )}
               >
                 {/* Day number */}
-                <div className="flex items-center justify-between mb-1">
+                <div className={cn('flex items-center justify-between mb-1', isMobile && 'flex-col gap-0.5')}>
                   <span
                     className={cn(
                       'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
@@ -204,14 +218,17 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
                   >
                     {format(day, 'd')}
                   </span>
-                  {dayCards.length > 3 && (
+                  {dayCards.length > 0 && (isMobile ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  ) : dayCards.length > 3 && (
                     <Badge variant="outline" className="text-[10px] h-4 px-1">
                       +{dayCards.length - 3}
                     </Badge>
-                  )}
+                  ))}
                 </div>
 
                 {/* Cards */}
+                {!isMobile && (
                 <ScrollArea className="flex-1">
                   <div className="space-y-0.5">
                     {dayCards.slice(0, 3).map(card => (
@@ -236,11 +253,43 @@ export const CalendarBoardView: React.FC<CalendarBoardViewProps> = ({
                     ))}
                   </div>
                 </ScrollArea>
+                )}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Day Details (mobile) */}
+      <Dialog open={!!dayDetailsDate} onOpenChange={(open) => !open && setDayDetailsDate(null)}>
+        <DialogContent className="max-w-sm max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <div className="px-5 py-4 border-b bg-muted/30 shrink-0">
+            <DialogTitle className="text-base font-semibold capitalize">
+              {dayDetailsDate && format(dayDetailsDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </DialogTitle>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+            {(dayDetailsDate ? cardsByDate[format(dayDetailsDate, 'yyyy-MM-dd')] || [] : []).map(card => (
+              <button
+                key={card.id}
+                onClick={() => {
+                  setDayDetailsDate(null);
+                  onCardClick(card);
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-2.5 rounded-lg text-sm truncate flex items-center gap-2 transition-colors hover:opacity-80',
+                  STATUS_COLORS[card.status] || STATUS_COLORS.backlog
+                )}
+              >
+                {card.urgency && URGENCY_DOTS[card.urgency] && (
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', URGENCY_DOTS[card.urgency])} />
+                )}
+                <span className="truncate">{card.title}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Unscheduled cards section */}
       {unscheduledCards.length > 0 && (

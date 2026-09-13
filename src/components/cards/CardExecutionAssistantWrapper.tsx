@@ -24,6 +24,7 @@ import { useDependencies } from '@/hooks/useDependencies';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useAllCards } from '@/hooks/useCards';
 import { CardAIAssistant } from './CardAIAssistant';
+import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
 
 interface CardExecutionAssistantWrapperProps {
   cardId: string;
@@ -174,7 +175,7 @@ export const CardExecutionAssistantWrapper: React.FC<CardExecutionAssistantWrapp
     recommendations.push({
       type: 'tip',
       title: 'Atualizar Status',
-      description: 'Considere mover o card para "Em Progresso".',
+      description: `Considere mover o card para "${CARD_STATUS_LABELS.in_progress}".`,
       priority: 3,
     });
   }

@@ -96,7 +96,12 @@ export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ cardId }) =>
   };
 
   const handleDownload = (attachment: Attachment) => {
-    window.open(attachment.file_url, '_blank');
+    // O bucket é privado: só a URL assinada abre o arquivo.
+    if (!attachment.signedUrl) {
+      toast.error('Não foi possível abrir este anexo. O arquivo pode ter sido removido do armazenamento.');
+      return;
+    }
+    window.open(attachment.signedUrl, '_blank');
   };
 
   if (isLoading) {
@@ -161,10 +166,10 @@ export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ cardId }) =>
               >
                 {/* Thumbnail or Icon */}
                 <div className="flex-shrink-0">
-                  {isImage ? (
+                  {isImage && attachment.signedUrl ? (
                     <div className="h-12 w-12 rounded overflow-hidden bg-muted">
                       <img
-                        src={attachment.file_url}
+                        src={attachment.signedUrl}
                         alt={attachment.file_name}
                         className="h-full w-full object-cover"
                       />

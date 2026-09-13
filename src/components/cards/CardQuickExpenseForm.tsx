@@ -132,7 +132,7 @@ export function CardQuickExpenseForm({ cardId, trigger }: CardQuickExpenseFormPr
             {/* Quick Type Selection */}
             <div className="space-y-2">
               <FormLabel>Tipo de Despesa</FormLabel>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {QUICK_EXPENSE_TYPES.map((type) => {
                   const Icon = type.icon;
                   return (

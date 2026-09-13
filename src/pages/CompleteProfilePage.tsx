@@ -14,6 +14,7 @@ import { ImageCropper } from '@/components/ui/image-cropper';
 import { Loader2, Camera, Calendar, Check, Sparkles, Crop } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDateOnly } from '@/hooks/useBirthdays';
 
 const CompleteProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -316,7 +317,7 @@ const CompleteProfilePage: React.FC = () => {
               {profileStatus?.hasBirthday && profileStatus.profile?.birthday && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Check className="h-3 w-3 text-green-500" />
-                  {format(new Date(profileStatus.profile.birthday), "dd 'de' MMMM", { locale: ptBR })}
+                  {format(parseLocalDateOnly(profileStatus.profile.birthday), "dd 'de' MMMM", { locale: ptBR })}
                 </p>
               )}
             </div>

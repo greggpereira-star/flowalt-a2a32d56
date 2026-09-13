@@ -36,6 +36,7 @@ import type { Card as CardType } from '@/hooks/useCards';
 import type { Dependency } from '@/hooks/useDependencies';
 import { useCreateDependency, useDeleteDependency } from '@/hooks/useDependencies';
 import { useToast } from '@/hooks/use-toast';
+import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 interface DependencyManagerProps {
   cards: CardType[];
@@ -230,13 +231,11 @@ export const DependencyManager: React.FC<DependencyManagerProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="backlog">Backlog</SelectItem>
-              <SelectItem value="briefing">Briefing</SelectItem>
-              <SelectItem value="todo">A Fazer</SelectItem>
-              <SelectItem value="in_progress">Em Progresso</SelectItem>
-              <SelectItem value="review">Revisão</SelectItem>
-              <SelectItem value="approved">Aprovado</SelectItem>
-              <SelectItem value="delivered">Entregue</SelectItem>
+              {CARD_STATUS_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <div className="flex items-center gap-2">

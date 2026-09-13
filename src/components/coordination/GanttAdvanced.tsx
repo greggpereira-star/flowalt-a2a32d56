@@ -44,7 +44,9 @@ import type { Dependency } from '@/hooks/useDependencies';
 import { useUpdateCard } from '@/hooks/useCards';
 import { useCreateDependency, useDeleteDependency } from '@/hooks/useDependencies';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useToast } from '@/hooks/use-toast';
+import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 
 interface GanttAdvancedProps {
   cards: CardType[];
@@ -79,16 +81,6 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-green-600',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  briefing: 'Briefing',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  approved: 'Aprovado',
-  delivered: 'Entregue',
-};
-
 type ZoomLevel = 'day' | 'week' | 'month';
 
 export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
@@ -103,6 +95,8 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
   const createDependency = useCreateDependency();
   const deleteDependency = useDeleteDependency();
   const { data: members } = useWorkspaceMembers();
+  // includeInactive: o Gantt desenha tambem as barras ja entregues.
+  const { data: cardAssignments } = useCardMemberAssignments({ includeInactive: true });
 
   // State
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('day');
@@ -158,6 +152,23 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
     };
   }, [viewStartDate, viewDays, dayWidth, zoomLevel]);
 
+  // `cards.owner_id` e campo legado e esta vazio na maioria dos cards: o
+  // responsavel real vem de `card_members` (21 cards ativos tinham owner_id
+  // contra 63 com responsavel). Sem isso o overlay de capacidade nunca
+  // acusava risco e as barras ficavam sem dono.
+  const responsaveisPorCard = useMemo(() => {
+    const mapa = new Map<string, string[]>();
+    cards.forEach(c => {
+      if (c.owner_id) mapa.set(c.id, [c.owner_id]);
+    });
+    (cardAssignments ?? []).forEach(a => {
+      const doCard = mapa.get(a.card_id) ?? [];
+      if (!doCard.includes(a.user_id)) doCard.push(a.user_id);
+      mapa.set(a.card_id, doCard);
+    });
+    return mapa;
+  }, [cards, cardAssignments]);
+
   // Process cards into bars
   const cardBars = useMemo(() => {
     return cards
@@ -197,8 +208,9 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
         });
 
         // Capacity risk
-        const hasCapacityRisk = capacityData.some(cd => 
-          cd.userId === card.owner_id && 
+        const responsaveis = responsaveisPorCard.get(card.id) ?? [];
+        const hasCapacityRisk = capacityData.some(cd =>
+          responsaveis.includes(cd.userId) &&
           cd.allocatedHours > cd.capacityHours
         );
 
@@ -218,11 +230,13 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
           progress,
           dueDate: card.due_date,
           estimatedHours: card.estimated_hours,
-          ownerId: card.owner_id,
+          // O overlay por dia acompanha um responsavel so; owner_id primeiro
+          // para nao mudar o que ja funcionava nos cards antigos.
+          ownerId: card.owner_id ?? responsaveis[0] ?? null,
           isMilestone: duration === 1 && card.status === 'approved',
         };
       });
-  }, [cards, dependencies, viewStartDate, dayWidth, capacityData]);
+  }, [cards, dependencies, viewStartDate, dayWidth, capacityData, responsaveisPorCard]);
 
   // Draw dependency lines
   const dependencyLines = useMemo(() => {
@@ -607,7 +621,7 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
                         </TooltipTrigger>
                         <TooltipContent side="right">
                           <p className="font-medium">{bar.title}</p>
-                          <p className="text-xs">{STATUS_LABELS[bar.status]}</p>
+                          <p className="text-xs">{getCardStatusLabel(bar.status)}</p>
                           {bar.isOverdue && <Badge variant="destructive" className="mt-1">Atrasado</Badge>}
                           {bar.isBlocked && <Badge variant="outline" className="mt-1 text-orange-500">Bloqueado</Badge>}
                           {bar.hasCapacityRisk && <Badge variant="outline" className="mt-1 text-red-500">Sobrecarga</Badge>}
@@ -734,7 +748,7 @@ export const GanttAdvanced: React.FC<GanttAdvancedProps> = ({
                           <TooltipContent>
                             <div className="space-y-1">
                               <p className="font-medium">{bar.title}</p>
-                              <p className="text-xs">{STATUS_LABELS[bar.status]} • {bar.progress}% completo</p>
+                              <p className="text-xs">{getCardStatusLabel(bar.status)} • {bar.progress}% completo</p>
                               {bar.dueDate && (
                                 <p className="text-xs">Prazo: {format(new Date(bar.dueDate), "dd/MM/yyyy")}</p>
                               )}

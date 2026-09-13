@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { isBriefingSatisfied } from './briefingDataUtils';
 import {
   DndContext,
   DragOverlay,
@@ -18,7 +19,7 @@ import { CardContextMenu } from './CardContextMenu';
 import { TransitionBlockedModal } from './TransitionBlockedModal';
 import { DestructiveActionGuard } from '@/components/governance/DestructiveActionGuard';
 import { statusConfig } from './CardBadges';
-import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Sparkles, AlertCircle, FileText, ListChecks, Link2, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
@@ -41,6 +42,7 @@ import {
 } from '@/hooks/useWorkflow';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Assignee } from './CardAssignees';
@@ -166,6 +168,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   globalSortDirection = null,
 }) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { currentRole, currentWorkspace } = useWorkspace();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
@@ -179,7 +182,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   
   // Members data for displaying assignees on cards
   const { data: members } = useWorkspaceMembers();
-  const { data: cardAssignments } = useCardMemberAssignments();
+  // `includeInactive` aqui porque esta tela desenha a coluna de entregues.
+  // Sem isso o hook filtra fora os cards delivered/archived, os vinculos
+  // somem, e o avatar cai no fallback "?" — a pessoa continua no card, mas
+  // a tela mostra um card sem responsavel. O Gantt ja tinha esbarrado nisso.
+  const { data: cardAssignments } = useCardMemberAssignments({ includeInactive: true });
 
   const cardMembersMap = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -229,7 +236,50 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  
+
+  // Mobile: qual status esta selecionado na lista (nao ha drag-and-drop no celular)
+  const [mobileStatus, setMobileStatus] = useState<CardStatus>(visibleStatuses[0]);
+
+  // Mobile: swipe horizontal na lista de cards para navegar entre colunas do pipeline
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const activePillRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleMobileTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleMobileTouchEnd = useCallback((e: React.TouchEvent, activeStatus: CardStatus, statuses: CardStatus[]) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const SWIPE_THRESHOLD = 60;
+
+    // So considera swipe horizontal se o gesto for claramente mais horizontal que vertical
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) {
+      return;
+    }
+
+    const currentIndex = statuses.indexOf(activeStatus);
+    if (deltaX < 0 && currentIndex < statuses.length - 1) {
+      setSwipeDirection('left');
+      setMobileStatus(statuses[currentIndex + 1]);
+    } else if (deltaX > 0 && currentIndex > 0) {
+      setSwipeDirection('right');
+      setMobileStatus(statuses[currentIndex - 1]);
+    }
+  }, []);
+
+  // Mantem o chip do status ativo visivel na barra rolavel ao trocar de coluna
+  useEffect(() => {
+    activePillRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [mobileStatus]);
+
   // Transition blocking modal state
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [pendingTransition, setPendingTransition] = useState<{
@@ -293,6 +343,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }, {} as Record<CardStatus, Card[]>);
   }, [cards, visibleStatuses, sortDirections, globalSortDirection]);
 
+  // Mobile: ao carregar, seleciona automaticamente a primeira coluna que tem cards
+  // (evita que o usuario caia sempre no "Backlog" vazio e ache que nao ha nenhum card)
+  const hasAutoSelectedInitialStatus = useRef(false);
+  useEffect(() => {
+    if (!isMobile || hasAutoSelectedInitialStatus.current || cards.length === 0) return;
+    hasAutoSelectedInitialStatus.current = true;
+    const currentHasCards = (groupedCards[mobileStatus] || []).length > 0;
+    if (currentHasCards) return;
+    const firstNonEmpty = visibleStatuses.find(status => (groupedCards[status] || []).length > 0);
+    if (firstNonEmpty) {
+      setMobileStatus(firstNonEmpty);
+    }
+  }, [isMobile, cards, groupedCards, visibleStatuses, mobileStatus]);
+
   // Get active card for drag overlay
   const activeCard = useMemo(() => {
     if (!activeId) return null;
@@ -349,7 +413,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       workflowId: defaultWorkflow.id,
       stages,
       transitions,
-      briefingCompleted: card.briefing_completed,
+      // Deriva do conteúdo do briefing, não da flag. `briefing_completed` é
+      // gravada sem nunca olhar o que foi escrito, então liberava para produção
+      // card com a flag ligada e briefing vazio, e barrava card com briefing
+      // escrito e flag desligada. A regra é a mesma que BriefingDialog cobra
+      // para deixar concluir o briefing.
+      briefingCompleted: isBriefingSatisfied(card),
       checklistProgress,
       hasActiveDependencies,
       userRole: currentRole || 'member',
@@ -576,6 +645,151 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // Check if user can force transitions
   const canForceTransition = currentRole === 'owner' || currentRole === 'admin';
+
+  // ================= Visao mobile: lista por status (sem drag-and-drop) =================
+  if (isMobile) {
+    const activeStatus = visibleStatuses.includes(mobileStatus) ? mobileStatus : visibleStatuses[0];
+    const activeCards = groupedCards[activeStatus] || [];
+
+    const activeIndex = visibleStatuses.indexOf(activeStatus);
+    const hasPrev = activeIndex > 0;
+    const hasNext = activeIndex < visibleStatuses.length - 1;
+
+    return (
+      <>
+        <div className="relative flex flex-col h-full">
+          {/* Seletor de status (chips roláveis) */}
+          <div className="flex gap-2 overflow-x-auto pb-2 px-0.5 -mx-0.5 shrink-0">
+            {visibleStatuses.map((status) => {
+              const config = statusConfig[status];
+              const count = (groupedCards[status] || []).length;
+              const isActive = status === activeStatus;
+              return (
+                <button
+                  key={status}
+                  ref={isActive ? activePillRef : undefined}
+                  onClick={() => { setSwipeDirection(null); setMobileStatus(status); }}
+                  className={cn(
+                    'flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border/30 text-foreground/80'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      status === 'backlog' && 'bg-status-backlog',
+                      status === 'todo' && 'bg-status-todo',
+                      status === 'in_progress' && 'bg-status-in-progress',
+                      status === 'review' && 'bg-status-review',
+                      status === 'approved' && 'bg-status-approved',
+                      status === 'delivered' && 'bg-status-delivered',
+                    )}
+                  />
+                  {columnLabels?.[status] || config.label}
+                  <Badge
+                    variant="secondary"
+                    className={cn('h-4 min-w-4 px-1 text-[10px] font-bold', isActive && 'bg-primary-foreground/20 text-primary-foreground')}
+                  >
+                    {count}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dicas de navegacao lateral do pipeline */}
+          {hasPrev && (
+            <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2 opacity-30">
+              <ChevronLeft className="h-6 w-6" />
+            </div>
+          )}
+          {hasNext && (
+            <div className="pointer-events-none absolute right-0 top-1/2 z-10 -translate-y-1/2 opacity-30">
+              <ChevronRight className="h-6 w-6" />
+            </div>
+          )}
+
+          {/* Lista de cards do status selecionado - arraste horizontalmente para navegar entre colunas do pipeline */}
+          <div
+            key={activeStatus}
+            className={cn(
+              'flex-1 overflow-y-auto space-y-2 pt-2 pb-4 touch-pan-y animate-in fade-in duration-200',
+              swipeDirection === 'left' && 'slide-in-from-right-8',
+              swipeDirection === 'right' && 'slide-in-from-left-8',
+            )}
+            onTouchStart={handleMobileTouchStart}
+            onTouchEnd={(e) => handleMobileTouchEnd(e, activeStatus, visibleStatuses)}
+          >
+            {activeCards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground/50" />
+                </div>
+                <p className="text-xs text-muted-foreground">Nenhum card</p>
+              </div>
+            ) : (
+              activeCards.map((card) => {
+                const clientInfo = card.client_id ? clientMap.get(card.client_id) : undefined;
+                const assignedIds = cardMembersMap.get(card.id) || [];
+                const assignees: Assignee[] = assignedIds.length > 0
+                  ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
+                  : (card.owner_id && memberMap.has(card.owner_id) ? [memberMap.get(card.owner_id)!] : []);
+                return (
+                  <div key={card.id}>
+                    <CardBlockIndicators card={card} />
+                    <TaskCard
+                      card={card}
+                      onClick={() => onCardClick(card)}
+                      clientName={clientInfo?.name}
+                      clientColor={clientInfo?.color || undefined}
+                      assignees={assignees}
+                      onStatusChange={(status) => handleStatusChange(card, status)}
+                      onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
+                      onDuplicate={(targetSpaceId, mode) => handleDuplicate(card, targetSpaceId, mode)}
+                      onDelete={() => handleDelete(card)}
+                    />
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Botao adicionar card no status ativo */}
+          <Button
+            onClick={() => onAddCard(activeStatus)}
+            className="fixed bottom-20 right-4 h-12 w-12 rounded-full shadow-lg p-0 z-20"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <TransitionBlockedModal
+          open={blockModalOpen}
+          onOpenChange={setBlockModalOpen}
+          fromStage={pendingTransition?.fromStage ?? ''}
+          toStage={pendingTransition?.toStage ?? ''}
+          validation={pendingTransition?.validation ?? null}
+          onForceTransition={handleForceTransition}
+          onFixGate={handleFixGate}
+          canForce={canForceTransition}
+        />
+
+        <DestructiveActionGuard
+          open={!!deleteTarget}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          entityType="card"
+          entityId={deleteTarget?.id || ''}
+          entityName={deleteTarget?.title || ''}
+          createdBy={deleteTarget?.created_by}
+          hasHistory={true}
+          forceMode="archive"
+          onConfirm={confirmDelete}
+        />
+      </>
+    );
+  }
 
   return (
     <>
