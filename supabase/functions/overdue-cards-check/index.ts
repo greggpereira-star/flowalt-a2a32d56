@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
                     card_title: card.title,
                     due_date: new Date(card.due_date).toLocaleDateString('pt-BR'),
                     days_overdue: daysOverdue,
-                    card_url: `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/space/${card.workspace_id}?card=${card.id}`,
+                    card_url: `${(Deno.env.get('APP_URL') ?? 'https://flowalt.com.br')}/space/${card.workspace_id}?card=${card.id}`,
                   },
                 }),
               });

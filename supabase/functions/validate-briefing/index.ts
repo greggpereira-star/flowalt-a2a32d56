@@ -96,10 +96,12 @@ serve(async (req) => {
       );
     }
 
-    // Try AI validation
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
+    // Migrado do gateway da Lovable para a Anthropic: a LOVABLE_API_KEY não
+    // existe mais neste ambiente, então a validação por IA nunca rodava — caía
+    // sempre no fallback abaixo, que aprova qualquer briefing.
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+
+    if (!ANTHROPIC_API_KEY) {
       console.log("validate-briefing: No API key, using basic validation");
       // Fallback to basic validation if no API key
       return new Response(
@@ -134,16 +136,19 @@ ENTREGÁVEIS: ${deliverables.substring(0, 200)}
 Válido?`;
 
     try {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "claude-sonnet-4-6",
+          max_tokens: 1500,
+          // Na Messages API o system prompt é campo próprio, não uma mensagem.
+          system: systemPrompt,
           messages: [
-            { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
           temperature: 0.1,
@@ -166,7 +171,8 @@ Válido?`;
       }
 
       const aiData = await response.json();
-      const content = aiData.choices?.[0]?.message?.content || "";
+      // A Anthropic devolve uma lista de blocos; o texto vem no bloco `text`.
+      const content = aiData.content?.find((b: { type: string }) => b.type === "text")?.text || "";
       
       console.log("validate-briefing: AI content received", content.substring(0, 200));
 

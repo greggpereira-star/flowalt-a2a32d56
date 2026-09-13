@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       }
 
       // Confirmação por email ao cliente
-      const publicUrl = `${req.headers.get("origin") || "https://app.flowalt.com.br"}/p/${token}`;
+      const publicUrl = `${req.headers.get("origin") || (Deno.env.get('APP_URL') ?? 'https://flowalt.com.br')}/p/${token}`;
       if (signerEmail || doc.client_email) {
         await sendEmail(
           signerEmail || doc.client_email,

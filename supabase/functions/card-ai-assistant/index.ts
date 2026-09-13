@@ -29,9 +29,17 @@ serve(async (req) => {
       cardContext: CardContext;
     };
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Migrado do gateway da Lovable (ai.gateway.lovable.dev) para a Anthropic:
+    // a LOVABLE_API_KEY não existe mais neste ambiente e o gateway pertencia à
+    // plataforma de onde o projeto saiu, então esta função estava 100% morta —
+    // falhava logo na primeira linha. Usa a mesma chave já configurada para a
+    // Análise por IA do Painel Executivo.
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Assistente de IA não configurado (chave da Anthropic ausente)." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let systemPrompt = "";
@@ -79,82 +87,77 @@ ${cardContext.description ? `Descrição atual: ${cardContext.description}` : 'S
 Sugira uma descrição mais completa e estruturada, incluindo objetivo, escopo e entregáveis.`;
     }
 
+    // Formato da Messages API da Anthropic: o system prompt é um campo próprio,
+    // não uma mensagem com role "system".
     const body: Record<string, unknown> = {
-      model: "google/gemini-2.5-flash",
+      model: "claude-sonnet-4-6",
+      max_tokens: 2000,
+      system: systemPrompt,
       messages: [
-        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
     };
 
-    // Use tool calling for structured output
+    // Tool calling para saída estruturada. A Anthropic usa `input_schema` no
+    // lugar de `function.parameters`, e o tool_choice é { type: "tool", name }.
     if (type === "suggestions") {
       body.tools = [
         {
-          type: "function",
-          function: {
-            name: "suggest_actions",
-            description: "Retorna sugestões de próximas ações para o card",
-            parameters: {
-              type: "object",
-              properties: {
-                suggestions: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      action: { type: "string", description: "Ação sugerida" },
-                      priority: { type: "string", enum: ["high", "medium", "low"] },
-                      reasoning: { type: "string", description: "Justificativa curta" }
-                    },
-                    required: ["action", "priority", "reasoning"],
-                    additionalProperties: false
-                  }
+          name: "suggest_actions",
+          description: "Retorna sugestões de próximas ações para o card",
+          input_schema: {
+            type: "object",
+            properties: {
+              suggestions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    action: { type: "string", description: "Ação sugerida" },
+                    priority: { type: "string", enum: ["high", "medium", "low"] },
+                    reasoning: { type: "string", description: "Justificativa curta" }
+                  },
+                  required: ["action", "priority", "reasoning"]
                 }
-              },
-              required: ["suggestions"],
-              additionalProperties: false
-            }
+              }
+            },
+            required: ["suggestions"]
           }
         }
       ];
-      body.tool_choice = { type: "function", function: { name: "suggest_actions" } };
+      body.tool_choice = { type: "tool", name: "suggest_actions" };
     } else if (type === "checklist") {
       body.tools = [
         {
-          type: "function",
-          function: {
-            name: "generate_checklist",
-            description: "Gera itens de checklist para o card",
-            parameters: {
-              type: "object",
-              properties: {
+          name: "generate_checklist",
+          description: "Gera itens de checklist para o card",
+          input_schema: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
                 items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string", description: "Título do item" },
-                      order: { type: "number", description: "Ordem do item" }
-                    },
-                    required: ["title", "order"],
-                    additionalProperties: false
-                  }
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "Título do item" },
+                    order: { type: "number", description: "Ordem do item" }
+                  },
+                  required: ["title", "order"]
                 }
-              },
-              required: ["items"],
-              additionalProperties: false
-            }
+              }
+            },
+            required: ["items"]
           }
         }
       ];
-      body.tool_choice = { type: "function", function: { name: "generate_checklist" } };
+      body.tool_choice = { type: "tool", name: "generate_checklist" };
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -167,14 +170,20 @@ Sugira uma descrição mais completa e estruturada, incluindo objetivo, escopo e
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      const errorText = await response.text();
+
+      // A Anthropic sinaliza saldo insuficiente com 400 + "credit balance",
+      // não com 402 como fazia o gateway anterior. Sem este tratamento o
+      // usuário veria um "Erro ao processar com IA" genérico para o que é, na
+      // verdade, uma questão de faturamento da conta.
+      if (response.status === 402 || errorText.includes("credit balance")) {
         return new Response(
-          JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos ao seu workspace." }), 
+          JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos na conta da Anthropic." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+
+      console.error("Anthropic API error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Erro ao processar com IA" }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -182,12 +191,18 @@ Sugira uma descrição mais completa e estruturada, incluindo objetivo, escopo e
     }
 
     const data = await response.json();
-    
+
+    // Na Anthropic a resposta é uma lista de blocos: o resultado estruturado
+    // vem num bloco `tool_use` (já como objeto, sem precisar de JSON.parse) e o
+    // texto livre num bloco `text`.
     let result;
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      result = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-    } else if (data.choices?.[0]?.message?.content) {
-      result = { content: data.choices[0].message.content };
+    const toolUse = data.content?.find((b: { type: string }) => b.type === "tool_use");
+    const textBlock = data.content?.find((b: { type: string }) => b.type === "text");
+
+    if (toolUse?.input) {
+      result = toolUse.input;
+    } else if (textBlock?.text) {
+      result = { content: textBlock.text };
     }
 
     return new Response(

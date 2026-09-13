@@ -2310,10 +2310,6 @@ export type Database = {
           contracted_services: string[] | null
           created_at: string
           created_by: string | null
-          financial_state:
-            | Database["public"]["Enums"]["client_financial_state"]
-            | null
-          health_score: number | null
           id: string
           important_links: Json | null
           keywords: string[] | null
@@ -2353,10 +2349,6 @@ export type Database = {
           contracted_services?: string[] | null
           created_at?: string
           created_by?: string | null
-          financial_state?:
-            | Database["public"]["Enums"]["client_financial_state"]
-            | null
-          health_score?: number | null
           id?: string
           important_links?: Json | null
           keywords?: string[] | null
@@ -2396,10 +2388,6 @@ export type Database = {
           contracted_services?: string[] | null
           created_at?: string
           created_by?: string | null
-          financial_state?:
-            | Database["public"]["Enums"]["client_financial_state"]
-            | null
-          health_score?: number | null
           id?: string
           important_links?: Json | null
           keywords?: string[] | null

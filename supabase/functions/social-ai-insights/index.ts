@@ -41,7 +41,10 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    // Migrado do gateway da Lovable para a Anthropic: a LOVABLE_API_KEY não
+    // existe mais aqui, então a análise por IA nunca rodava — caía sempre no
+    // fallback baseado em regras.
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
@@ -141,7 +144,7 @@ serve(async (req) => {
     const dataContext = buildDataContext(allAssetMetrics, posts || []);
 
     // Generate insights using Lovable AI
-    const insights = await generateAIInsights(lovableApiKey, dataContext, analysis_type);
+    const insights = await generateAIInsights(anthropicApiKey, dataContext, analysis_type);
 
     return new Response(JSON.stringify({
       success: true,
@@ -382,30 +385,33 @@ Gere uma análise completa e profunda em formato JSON conforme especificado.`;
   }
 
   try {
-    const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        // Na Messages API o system prompt é campo próprio, não uma mensagem.
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 4000,
         temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
-      console.error('AI API error:', await response.text());
+      console.error('Anthropic API error:', await response.text());
       return generateRuleBasedInsights(dataContext);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    // A Anthropic devolve uma lista de blocos; o texto vem no bloco `text`.
+    const content = data.content?.find((b: { type: string }) => b.type === 'text')?.text;
     
     if (!content) {
       return generateRuleBasedInsights(dataContext);

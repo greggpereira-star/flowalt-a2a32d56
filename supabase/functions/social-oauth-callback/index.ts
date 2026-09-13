@@ -563,7 +563,7 @@ serve(async (req) => {
           try {
             targetUrl = new URL(returnUrl);
           } catch {
-            targetUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+            targetUrl = new URL(returnUrl, (Deno.env.get('APP_URL') ?? 'https://flowalt.com.br'));
           }
           
           errorParams.forEach((value, key) => targetUrl.searchParams.set(key, value));
@@ -653,7 +653,7 @@ serve(async (req) => {
       successUrl = new URL(returnUrl);
     } catch {
       // Backwards-compatible fallback for older stored states
-      successUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+      successUrl = new URL(returnUrl, (Deno.env.get('APP_URL') ?? 'https://flowalt.com.br'));
     }
 
     successUrl.searchParams.set('oauth_success', 'true');
@@ -685,10 +685,10 @@ function createErrorRedirect(
     try {
       targetUrl = new URL(returnUrl);
     } catch {
-      targetUrl = new URL(returnUrl, supabaseUrl.replace('.supabase.co', '.lovable.app'));
+      targetUrl = new URL(returnUrl, (Deno.env.get('APP_URL') ?? 'https://flowalt.com.br'));
     }
   } else {
-    targetUrl = new URL('/marketing', supabaseUrl.replace('.supabase.co', '.lovable.app'));
+    targetUrl = new URL('/marketing', (Deno.env.get('APP_URL') ?? 'https://flowalt.com.br'));
   }
 
   targetUrl.searchParams.set('oauth_error', error);
