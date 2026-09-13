@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -98,6 +99,11 @@ export function useNotifications() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     },
+    // Chamada via .mutate() puro nos componentes, sem try/catch: sem onError a
+    // exclusão falhava e a notificação simplesmente continuava lá, sem aviso.
+    onError: () => {
+      toast.error('Não foi possível excluir a notificação.');
+    },
   });
 
   const clearAll = useMutation({
@@ -113,6 +119,10 @@ export function useNotifications() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    },
+    // "Limpar tudo" é destrutivo: falhar em silêncio é o pior desfecho.
+    onError: () => {
+      toast.error('Não foi possível limpar as notificações.');
     },
   });
 

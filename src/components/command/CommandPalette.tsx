@@ -10,9 +10,11 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useSpaces } from '@/hooks/useSpaces';
-import { useAllCards } from '@/hooks/useCards';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { resolveCardSpaceId } from '@/lib/cards/resolveCardSpace';
 import {
   LayoutDashboard,
   Calendar,
@@ -38,7 +40,9 @@ interface CommandAction {
   description?: string;
   icon: React.ReactNode;
   shortcut?: string;
-  action: () => void;
+  // Aceita Promise porque abrir um card exige consultar o espaço real antes
+  // de navegar (ver resolveCardSpaceId).
+  action: () => void | Promise<void>;
   group: 'navigation' | 'actions' | 'spaces' | 'cards' | 'settings';
 }
 
@@ -49,7 +53,31 @@ export function CommandPalette() {
   const location = useLocation();
   const { currentWorkspace } = useWorkspace();
   const { data: spaces } = useSpaces();
-  const { data: cards } = useAllCards();
+
+  // Este componente fica montado em TODA página autenticada (App.tsx). Antes
+  // ele usava useAllCards(), que faz select('*') da tabela cards inteira — ou
+  // seja, todo carregamento de qualquer tela baixava todos os cards do
+  // workspace (incluindo o JSONB de briefing) só para listar 10 títulos aqui.
+  // Agora busca só as colunas exibidas, no máximo 10 linhas, e apenas depois
+  // que o usuário abre o palette.
+  const { data: cards } = useQuery({
+    queryKey: ['command-palette-cards', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data, error } = await supabase
+        .from('cards')
+        .select('id, title, status, space_id')
+        .eq('workspace_id', currentWorkspace.id)
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: open && !!currentWorkspace?.id,
+    staleTime: 60_000,
+  });
 
   // Toggle command palette with keyboard shortcut
   useEffect(() => {
@@ -64,7 +92,7 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  const handleSelect = useCallback((action: () => void) => {
+  const handleSelect = useCallback((action: () => void | Promise<void>) => {
     setOpen(false);
     setSearch('');
     action();
@@ -193,9 +221,17 @@ export function CommandPalette() {
       icon: card.status === 'delivered' 
         ? <CheckCircle2 className="h-4 w-4 text-green-500" /> 
         : <FileText className="h-4 w-4" />,
-      action: () => {
-        // Navigate to the card's space with the card selected
-        navigate(`/space/${card.space_id}?card=${card.id}`);
+      action: async () => {
+        // card.space_id é o espaço de ORIGEM e não acompanha o card quando ele
+        // é compartilhado com outro quadro. resolveCardSpaceId consulta o
+        // vínculo real antes de navegar; sem isso a busca rápida abria o
+        // quadro errado e o card não aparecia.
+        const spaceId = await resolveCardSpaceId(card.id, card.space_id);
+        if (spaceId) {
+          navigate(`/space/${spaceId}?card=${card.id}`);
+        } else {
+          navigate(`/tasks?card=${card.id}`);
+        }
       },
       group: 'cards' as const,
     }));

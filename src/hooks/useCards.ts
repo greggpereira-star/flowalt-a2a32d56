@@ -153,20 +153,10 @@ export const useCardsByFolder = (folderId: string | undefined) => {
     queryFn: async () => {
       if (!folderId || !currentWorkspace?.id) return [];
 
-      const { data: cardFolders, error: cfError } = await supabase
-        .from('card_folders')
-        .select('card_id')
-        .eq('folder_id', folderId);
-
-      if (cfError) throw cfError;
-      if (!cardFolders.length) return [];
-
-      const cardIds = cardFolders.map(cf => cf.card_id);
-
       const { data, error } = await supabase
         .from('cards')
-        .select('*, card_custom_fields(field_key, field_value)')
-        .in('id', cardIds)
+        .select('*, card_folders!inner(folder_id), card_custom_fields(field_key, field_value)')
+        .eq('card_folders.folder_id', folderId)
         .neq('status', 'archived')
         .order('sort_order', { ascending: true });
 
@@ -180,7 +170,7 @@ export const useCardsByFolder = (folderId: string | undefined) => {
           {}
         );
 
-        const { card_custom_fields, ...cardData } = card as any;
+        const { card_custom_fields, card_folders, ...cardData } = card as any;
         return { ...cardData, custom_fields: customFields };
       }) as Card[];
     },
@@ -408,6 +398,52 @@ export const useCreateCard = (currentSpaceId?: string) => {
         created_by: user.id,
       } as unknown as Card;
     },
+    // Atualizacao otimista: o card entra na coluna no instante do clique.
+    //
+    // Sem isso havia um intervalo entre salvar e o card aparecer (a criacao so
+    // refletia na tela depois do refetch disparado no onSuccess). Nesse vazio a
+    // pessoa concluia que a criacao falhou e clicava de novo — foi a origem
+    // confirmada de 20 cards duplicados no workspace, varios criados pelo mesmo
+    // usuario com 14 a 60 segundos de diferenca.
+    onMutate: async (input: CreateCardInput) => {
+      const spaceKey = ['cards', 'space', input.space_id];
+
+      // Evita que um refetch em voo sobrescreva o card otimista.
+      await queryClient.cancelQueries({ queryKey: spaceKey });
+
+      const previous = queryClient.getQueryData<Card[]>(spaceKey);
+      const optimisticId = 'optimistic-' + Date.now();
+
+      const optimisticCard = {
+        id: optimisticId,
+        workspace_id: currentWorkspace?.id ?? '',
+        space_id: input.space_id,
+        display_space_id: input.space_id,
+        title: input.title,
+        description: input.description ?? null,
+        status: input.status ?? 'backlog',
+        urgency: input.urgency ?? 'medium',
+        due_date: input.due_date ?? null,
+        client_id: input.client_id ?? null,
+        owner_id: null,
+        created_by: user?.id ?? null,
+        created_at: new Date().toISOString(),
+        _optimistic: true,
+      } as unknown as Card;
+
+      queryClient.setQueryData<Card[]>(spaceKey, (old) => [optimisticCard, ...(old ?? [])]);
+
+      return { previous, spaceKey };
+    },
+
+    onError: (_err, _input, context) => {
+      // Desfaz o card otimista: deixa-lo na tela apos uma falha faria a pessoa
+      // acreditar que criou algo que nao existe.
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(context.spaceKey, context.previous);
+      }
+    },
+
     onSuccess: (data, variables) => {
       // Step 1: Invalidate and refetch all active card lists
       queryClient.invalidateQueries({ queryKey: ['cards'] });
@@ -502,9 +538,25 @@ export const useUpdateCard = () => {
       traffic_briefing_data?: any;
       estimated_hours?: number | null;
     }) => {
+      // `completed_at` nunca era gravado: quem carimbava era `useUpdateCardStatus`,
+      // que nao tinha um unico consumidor. Kanban, lote e clientes chamam este
+      // update generico, que so repassava os campos recebidos — 29 cards
+      // entregues ficaram sem data de conclusao. A regra tem que morar aqui,
+      // e nao depender de cada tela lembrar dela.
+      const comCarimbo: typeof updates & { completed_at?: string | null } = { ...updates };
+
+      if (updates.status === 'delivered') {
+        comCarimbo.completed_at = new Date().toISOString();
+      } else if (updates.status && updates.status !== 'archived') {
+        // Card reaberto perde a data; se ficasse, mentiria nos relatorios.
+        // 'archived' fica de fora: arquivar e o "excluir" do app e nao deve
+        // apagar o historico de quem ja foi entregue.
+        comCarimbo.completed_at = null;
+      }
+
       const { data, error } = await supabase
         .from('cards')
-        .update(updates)
+        .update(comCarimbo)
         .eq('id', id)
         .select()
         .single();
@@ -529,25 +581,16 @@ export const useUpdateCard = () => {
   });
 };
 
+// Mantido so pela assinatura (cardId em vez de id). A regra de conclusao nao
+// e reimplementada aqui: ter duas mutations com semanticas diferentes foi
+// justamente o que deixou `completed_at` vazio.
 export const useUpdateCardStatus = () => {
   const queryClient = useQueryClient();
+  const updateCard = useUpdateCard();
 
   return useMutation({
     mutationFn: async ({ cardId, status }: { cardId: string; status: CardStatus }) => {
-      const updates: { status: CardStatus; completed_at?: string } = { status };
-      
-      if (status === 'delivered') {
-        updates.completed_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('cards')
-        .update(updates)
-        .eq('id', cardId)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await updateCard.mutateAsync({ id: cardId, status });
 
       // Trigger webhook
       triggerWebhook(data.workspace_id, 'card.status_changed', {

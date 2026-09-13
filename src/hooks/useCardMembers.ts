@@ -83,10 +83,58 @@ export const useAddCardMember = () => {
         .single();
 
       if (error) throw error;
+
+      // Avisa quem foi marcado.
+      //
+      // Até aqui, ser adicionado como responsável não gerava notificação
+      // alguma: o card mudava de dono e a pessoa só descobria se alguém
+      // avisasse por fora. As notificações de "assignment" que existiam vinham
+      // apenas de menção em comentário (useComments), nunca da atribuição em si.
+      //
+      // Falhar em notificar não pode desfazer a atribuição, que já foi gravada
+      // com sucesso — por isso o erro aqui é registrado, e não propagado.
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const actorId = authData?.user?.id;
+
+        // Quem se adiciona sozinho não precisa ser avisado.
+        if (actorId && actorId !== userId) {
+          const { data: card } = await supabase
+            .from('cards')
+            .select('title, workspace_id, space_id')
+            .eq('id', cardId)
+            .maybeSingle();
+
+          if (card?.workspace_id) {
+            const { data: actor } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', actorId)
+              .maybeSingle();
+
+            const actorName = actor?.full_name ?? 'Alguém';
+
+            await supabase.from('notifications').insert({
+              user_id: userId,
+              workspace_id: card.workspace_id,
+              type: 'assignment',
+              title: 'Você foi adicionado a um card',
+              message: `${actorName} adicionou você em "${card.title}"`,
+              // O space_id aqui é uma dica: a navegação valida esse valor
+              // contra os vínculos reais antes de abrir (resolveCardSpaceId).
+              metadata: { card_id: cardId, space_id: card.space_id },
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.error('Responsável adicionado, mas a notificação falhou:', notifyError);
+      }
+
       return data;
     },
     onSuccess: (_, { cardId }) => {
       queryClient.invalidateQueries({ queryKey: ['card_members', cardId] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Responsável adicionado');
     },
     onError: (error: Error) => {

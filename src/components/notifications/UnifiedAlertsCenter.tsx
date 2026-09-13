@@ -43,7 +43,8 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { resolveCardTarget } from '@/lib/cards/resolveCardSpace';
 import { useTodayBirthdays } from '@/hooks/useBirthdays';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -171,19 +172,22 @@ export function UnifiedAlertsCenter() {
       notification.metadata?.card_id
     ) {
       const cardId = notification.metadata.card_id as string;
-      let spaceId = notification.metadata.space_id as string | undefined;
-      if (!spaceId) {
-        try {
-          const { data } = await supabase
-            .from('cards')
-            .select('space_id')
-            .eq('id', cardId)
-            .single();
-          spaceId = data?.space_id;
-        } catch (err) {
-          console.error('Error fetching card space_id:', err);
-        }
+      const notificationSpaceId = notification.metadata.space_id as string | undefined;
+
+      // O espaço vem de resolveCardTarget, que valida a dica da notificação
+      // contra os vínculos reais em `card_spaces` (ver a função para o porquê).
+      const target = await resolveCardTarget(cardId, notificationSpaceId);
+      const spaceId = target.spaceId;
+
+      // Metade das notificações do workspace aponta para cards arquivados
+      // depois que o aviso foi criado. O link continua correto, mas abrir sem
+      // dizer nada faz a pessoa achar que caiu no quadro errado.
+      if (target.isArchived) {
+        toast.info('Este card foi arquivado', {
+          description: 'Ele não aparece mais no quadro ativo. Você está vendo o histórico.',
+        });
       }
+
       if (spaceId) navigate(`/space/${spaceId}?card=${cardId}`);
       else navigate(`/tasks?card=${cardId}`);
       setOpen(false);

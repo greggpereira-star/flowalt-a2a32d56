@@ -45,23 +45,58 @@ export function NotificationCenter() {
       notification.metadata?.card_id
     ) {
       const cardId = notification.metadata.card_id as string;
-      let spaceId = notification.metadata.space_id as string | undefined;
-      
-      // If space_id is missing, fetch it from the card
-      if (!spaceId) {
-        try {
-          const { data: cardData } = await supabase
-            .from('cards')
-            .select('space_id')
-            .eq('id', cardId)
-            .single();
-          
-          spaceId = cardData?.space_id;
-        } catch (error) {
-          console.error('Error fetching card space_id:', error);
+      const notificationSpaceId = notification.metadata.space_id as string | undefined;
+
+      // O espaço de um card vive em `card_spaces` (um card pode estar em
+      // vários). A coluna `cards.space_id` é o campo legado e NÃO é atualizada
+      // quando o card muda de espaço — por isso a notificação levava o usuário
+      // ao quadro de origem, onde o card não aparece, dando a impressão de que
+      // ele havia sumido.
+      //
+      // A escolha segue esta ordem, sempre validando contra os espaços onde o
+      // card realmente está:
+      //   1. o espaço citado na notificação, se ainda for válido — é o
+      //      contexto em que a pessoa foi marcada, então é o mais fiel;
+      //   2. o vínculo MAIS RECENTE em `card_spaces` — quando um card nasce
+      //      em Social Media e depois é compartilhado com Audiovisual, é o
+      //      segundo que representa para onde ele foi encaminhado. Preferir o
+      //      legado aqui devolveria a pessoa ao quadro de origem, que é
+      //      exatamente o problema relatado;
+      //   3. o espaço legado, se ainda for válido;
+      //   4. a lista de tarefas, que encontra o card em qualquer espaço.
+      let spaceId: string | undefined;
+
+      try {
+        const [spacesResult, cardResult] = await Promise.all([
+          supabase
+            .from('card_spaces')
+            .select('space_id, created_at')
+            .eq('card_id', cardId)
+            .order('created_at', { ascending: false }),
+          supabase.from('cards').select('space_id').eq('id', cardId).maybeSingle(),
+        ]);
+
+        const validSpaceIds = (spacesResult.data ?? [])
+          .map((row) => row.space_id)
+          .filter(Boolean) as string[];
+
+        const legacySpaceId = cardResult.data?.space_id as string | undefined;
+
+        if (notificationSpaceId && validSpaceIds.includes(notificationSpaceId)) {
+          spaceId = notificationSpaceId;
+        } else if (validSpaceIds.length > 0) {
+          // validSpaceIds vem ordenado por created_at desc: o primeiro é o
+          // vínculo mais recente.
+          spaceId = validSpaceIds[0];
+        } else {
+          // Sem vínculo em card_spaces: o campo legado é a única pista. Se
+          // ele também estiver vazio, cai no fallback para /tasks abaixo.
+          spaceId = legacySpaceId;
         }
+      } catch (error) {
+        console.error('Erro ao resolver o espaço do card:', error);
       }
-      
+
       if (spaceId) {
         navigate(`/space/${spaceId}?card=${cardId}`);
       } else {
