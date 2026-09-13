@@ -14,7 +14,9 @@ import {
   Share2,
   MessageCircle,
   AtSign,
+  CheckCircle2,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -216,12 +218,12 @@ export const WorkRadar: React.FC = () => {
             <Skeleton className="h-5 w-5" />
             <Skeleton className="h-5 w-32" />
           </div>
-          <div className="grid grid-cols-5 gap-6">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-6">
+            <Skeleton className="h-16 lg:h-24" />
+            <Skeleton className="h-16 lg:h-24" />
+            <Skeleton className="h-16 lg:h-24" />
+            <Skeleton className="h-16 lg:h-24" />
+            <Skeleton className="h-16 lg:h-24" />
           </div>
         </CardContent>
       </Card>
@@ -230,55 +232,60 @@ export const WorkRadar: React.FC = () => {
 
   return (
     <Card className="col-span-full">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <h3 className="text-sm font-semibold text-foreground">Work Radar</h3>
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
           </div>
+          <h3 className="text-sm font-semibold text-foreground">Work Radar</h3>
         </div>
-        <p className="text-xs text-muted-foreground mb-5">
+        <p className="text-xs text-muted-foreground mb-5 pl-9">
           Visão rápida do que precisa de atenção
         </p>
 
-        {/* 5 Column Grid */}
-        <div className="grid grid-cols-5 gap-6">
-          {/* Column 1: Atenção Urgente */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-medium text-destructive">Atenção Urgente</span>
+        {/* Lista de seções: 1 coluna em telas pequenas/médias, 5 colunas em telas grandes */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-6 divide-y divide-border/50 lg:divide-y-0">
+          {/* Seção 1: Atenção Urgente */}
+          <div className="space-y-3 pt-3 first:pt-0 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Atenção Urgente</span>
+              </div>
               {criticalCount > 0 && (
-                <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">
+                <Badge variant="destructive" className="h-5 min-w-5 px-1 flex items-center justify-center text-[10px] rounded-full">
                   {criticalCount}
                 </Badge>
               )}
             </div>
 
             {criticalCount === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-8">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 Nenhuma tarefa urgente
-              </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {criticalCards?.slice(0, 3).map(card => (
                   <div
                     key={card.id}
                     onClick={() => navigate('/tasks')}
-                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-3 hover:translate-x-0.5 ${
+                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-[3px] hover:translate-x-0.5 ${
                       card.severity === 'critical'
                         ? 'bg-destructive/5 border-l-destructive hover:bg-destructive/10'
                         : 'bg-amber-500/5 border-l-amber-500 hover:bg-amber-500/10'
                     }`}
                   >
                     <p className="text-sm font-medium text-foreground truncate mb-0.5">
-                      {card.title.toUpperCase()}
+                      {card.title}
                     </p>
                     <p className={`text-xs ${
                       card.severity === 'critical' ? 'text-destructive' : 'text-amber-600'
                     }`}>
-                      {card.severity === 'critical' 
+                      {card.severity === 'critical'
                         ? `${Math.abs(card.daysUntil)} ${Math.abs(card.daysUntil) === 1 ? 'dia' : 'dias'} de atraso`
                         : 'Vence hoje'}
                     </p>
@@ -288,17 +295,22 @@ export const WorkRadar: React.FC = () => {
             )}
           </div>
 
-          {/* Column 2: Timers Ativos */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Timer className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="text-xs font-medium text-emerald-600">Timers Ativos</span>
+          {/* Seção 2: Timers Ativos */}
+          <div className="space-y-3 pt-3 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <Timer className="h-3.5 w-3.5 text-emerald-600" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Timers Ativos</span>
+              </div>
             </div>
 
             {(runningTimers?.length || 0) === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-8">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 Nenhum timer ativo
-              </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {runningTimers?.slice(0, 3).map(timer => (
@@ -326,29 +338,34 @@ export const WorkRadar: React.FC = () => {
             )}
           </div>
 
-          {/* Column 3: Falhas de Social Media */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Share2 className="h-3.5 w-3.5 text-pink-600" />
-              <span className="text-xs font-medium text-pink-600">Falhas de Publicação</span>
+          {/* Seção 3: Falhas de Social Media */}
+          <div className="space-y-3 pt-3 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-pink-500/10 flex items-center justify-center shrink-0">
+                  <Share2 className="h-3.5 w-3.5 text-pink-600" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Falhas de Publicação</span>
+              </div>
               {failedSocialCount > 0 && (
-                <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full bg-pink-500 text-white">
+                <Badge className="h-5 min-w-5 px-1 flex items-center justify-center text-[10px] rounded-full bg-pink-500 text-white">
                   {failedSocialCount}
                 </Badge>
               )}
             </div>
 
             {failedSocialCount === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-8">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 Nenhuma falha de publicação
-              </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {failedSocialPosts?.slice(0, 3).map(post => (
                   <div
                     key={post.id}
                     onClick={() => navigate('/marketing')}
-                    className="p-3 rounded-lg cursor-pointer transition-all duration-200 bg-pink-500/5 border-l-3 border-l-pink-500 hover:bg-pink-500/10 hover:translate-x-0.5"
+                    className="p-3 rounded-lg cursor-pointer transition-all duration-200 bg-pink-500/5 border-l-[3px] border-l-pink-500 hover:bg-pink-500/10 hover:translate-x-0.5"
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       {post.platform === 'instagram' ? (
@@ -373,17 +390,22 @@ export const WorkRadar: React.FC = () => {
             )}
           </div>
 
-          {/* Column 4: Agenda de Hoje */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-blue-600" />
-              <span className="text-xs font-medium text-foreground">Agenda de Hoje</span>
+          {/* Seção 4: Agenda de Hoje */}
+          <div className="space-y-3 pt-3 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Calendar className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Agenda de Hoje</span>
+              </div>
             </div>
 
             {(todayEvents?.length || 0) === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-8">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 Nenhum evento hoje
-              </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {todayEvents?.slice(0, 3).map(event => (
@@ -404,22 +426,27 @@ export const WorkRadar: React.FC = () => {
             )}
           </div>
 
-          {/* Column 5: Mensagens e Menções */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">Mensagens</span>
+          {/* Seção 5: Mensagens e Menções */}
+          <div className="space-y-3 pt-3 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <MessageCircle className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Mensagens</span>
+              </div>
               {unreadNotifCount > 0 && (
-                <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full bg-primary text-primary-foreground">
+                <Badge className="h-5 min-w-5 px-1 flex items-center justify-center text-[10px] rounded-full bg-primary text-primary-foreground">
                   {unreadNotifCount}
                 </Badge>
               )}
             </div>
 
             {unreadNotifCount === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-8">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 Nenhuma mensagem não lida
-              </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {unreadNotifications?.slice(0, 3).map(notification => (
@@ -434,7 +461,7 @@ export const WorkRadar: React.FC = () => {
                         navigate(`/workspace?card=${cardId}`);
                       }
                     }}
-                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-3 hover:translate-x-0.5 ${
+                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-l-[3px] hover:translate-x-0.5 ${
                       notification.type === 'mention'
                         ? 'bg-primary/5 border-l-primary hover:bg-primary/10'
                         : 'bg-muted/50 border-l-muted-foreground/30 hover:bg-muted'

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useClientsHealth } from '@/hooks/useClientsHealth';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { Database } from '@/integrations/supabase/types';
 
 type ClientFinancialState = Database['public']['Enums']['client_financial_state'];
@@ -41,28 +43,58 @@ export const ClientHealthWidget: React.FC = () => {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
 
-  const { data: clients, isLoading } = useQuery({
+  const { canViewClientFinancials } = usePermissions();
+  const { data: health, isLoading: isLoadingHealth } = useClientsHealth();
+
+  const { data: rawClients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['dashboard-client-health', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      // Sem `order`/`limit` no banco: ordenar por health_score no Postgres
+      // ordenava pela coluna cacheada, que ficava em 100 (o DEFAULT) para todo
+      // cliente cujo relatório ninguém abriu — o dashboard destacava como mais
+      // saudável justamente quem nunca foi medido. A ordenação agora é feita
+      // sobre o score calculado, depois de recebê-lo.
       const { data, error } = await supabase
         .from('client_cards')
-        .select('id, name, color, logo_url, health_score, financial_state, status')
+        .select('id, name, color, logo_url, status')
         .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active')
-        .order('health_score', { ascending: true })
-        .limit(10);
+        .eq('status', 'active');
 
       if (error) throw error;
-      return data as ClientSummary[];
+      return data;
     },
     enabled: !!currentWorkspace?.id,
   });
 
+  const isLoading = isLoadingClients || isLoadingHealth;
+
+  const clients: ClientSummary[] | undefined = useMemo(() => {
+    if (!rawClients) return undefined;
+    return rawClients
+      .map(c => {
+        const h = health?.get(c.id);
+        return {
+          ...c,
+          health_score: h?.healthScore ?? 0,
+          financial_state: (h?.financialState ?? 'critical') as ClientFinancialState,
+        };
+      })
+      .sort((a, b) => a.health_score - b.health_score)
+      .slice(0, 10);
+  }, [rawClients, health]);
+
+  // Depois dos hooks, nunca antes: o widget inteiro é leitura financeira —
+  // score e semáforo saem de receita, custo e margem. Quem não pode ver
+  // `transactions` não tem o que ver aqui. Antes exibíamos a coluna cacheada,
+  // que era um número financeiro mostrado a quem não tem acesso a finanças,
+  // além de desatualizado.
+  if (!canViewClientFinancials) return null;
+
   if (isLoading) {
     return (
-      <Card>
+      <Card className="min-w-0">
         <CardHeader className="pb-3">
           <Skeleton className="h-5 w-32" />
         </CardHeader>
@@ -92,17 +124,17 @@ export const ClientHealthWidget: React.FC = () => {
     : 0;
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="min-w-0 text-base font-medium flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
             Saúde dos Clientes
           </CardTitle>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-xs"
+            className="shrink-0 text-xs"
             onClick={() => navigate('/clients')}
           >
             Ver todos
@@ -173,11 +205,15 @@ export const ClientHealthWidget: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{client.name}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={cn('text-[10px] px-1', stateConfig.color, stateConfig.bgColor)}>
+                      {/* Selo e score exigiam largura fixa numa linha sem
+                          quebra: o conteudo esticava o card inteiro ate 584px
+                          numa tela de 375px. Agora eles quebram para a linha
+                          de baixo em vez de empurrar o card. */}
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <Badge variant="outline" className={cn('shrink-0 text-[10px] px-1', stateConfig.color, stateConfig.bgColor)}>
                           {stateConfig.label}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
                           Score: {client.health_score}
                         </span>
                       </div>
