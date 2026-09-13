@@ -8,10 +8,14 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { GlobalModalProvider } from "@/contexts/GlobalModalContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 
 const Index = lazy(() => import("./pages/Index"));
+// Home V2 em preview: convive com a Home atual ate ser aprovada.
+const HomePageV2 = lazy(() => import("./pages/HomePage"));
+const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NewWorkspace = lazy(() => import("./pages/NewWorkspace"));
@@ -25,6 +29,8 @@ const FinancialPage = lazy(() => import("./pages/FinancialPage"));
 const PartnersPage = lazy(() => import("./pages/PartnersPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
+// Dashboard novo em rota paralela enquanto o antigo segue servindo o time.
+const DashboardV2 = lazy(() => import("./pages/DashboardV2"));
 const GamificationPage = lazy(() => import("./pages/GamificationPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const PeopleAnalyticsPage = lazy(() => import("./pages/PeopleAnalyticsPage"));
@@ -57,7 +63,25 @@ const OnboardingTour = lazy(() => import("@/components/onboarding/OnboardingTour
 const CommandPalette = lazy(() => import("@/components/command/CommandPalette").then(module => ({ default: module.CommandPalette })));
 const KeyboardShortcutsDialog = lazy(() => import("@/components/command/KeyboardShortcutsDialog").then(module => ({ default: module.KeyboardShortcutsDialog })));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Sem isto (defaults do React Query: staleTime 0 + refetchOnWindowFocus
+      // true), toda troca de aba/foco da janela refaz TODAS as queries ativas
+      // ao mesmo tempo — em telas com muitos hooks (Kanban, Financeiro) isso
+      // gera um "piscar" generalizado de loading e pode substituir dados que
+      // o usuário está no meio de editar, o que parece um refresh sozinho.
+      // staleTime de 1 min também faz voltar entre páginas (Dashboard <->
+      // Financeiro) parecer instantâneo, servindo do cache em vez de recarregar
+      // e mostrar skeleton de novo. Hooks que precisam de dado sempre-fresco
+      // (polling, timers) já sobrescrevem isso individualmente e continuam
+      // funcionando normalmente.
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const PageFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -108,6 +132,7 @@ const App = () => (
         <AuthProvider>
           <WorkspaceProvider>
             <GlobalModalProvider>
+              <ErrorBoundary>
               <Suspense fallback={<PageFallback />}>
               <Routes>
                 {/* Public Routes */}
@@ -125,14 +150,21 @@ const App = () => (
                 
                 {/* Protected Routes with shared AppLayout */}
                 <Route element={<ProtectedLayout />}>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<HomePageV2 />} />
+                  <Route path="/home-legacy" element={<Index />} />
+                  <Route path="/activity" element={<ActivityPage />} />
                   <Route path="/complete-profile" element={<CompleteProfilePage />} />
                   <Route path="/oauth/bridge" element={<OAuthBridgePage />} />
                   <Route path="/first-access" element={<FirstAccessPage />} />
                   <Route path="/platform" element={<PlatformAdminPage />} />
                   <Route path="/security-audit" element={<SecurityAuditPage />} />
                   <Route path="/workspace/new" element={<NewWorkspace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  {/* Dashboard novo assumiu a rota principal em 16/08/2026.
+                      O antigo continua acessível em /dashboard-legacy: se algo
+                      aparecer com o time, a volta e trocar estas duas linhas. */}
+                  <Route path="/dashboard" element={<DashboardV2 />} />
+                  <Route path="/dashboard-legacy" element={<Dashboard />} />
+                  <Route path="/dashboard-v2" element={<DashboardV2 />} />
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/time" element={<TimePage />} />
                   <Route path="/coordination" element={<CoordinationPage />} />
@@ -162,6 +194,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>
+              </ErrorBoundary>
 
               <ConditionalTools />
             </GlobalModalProvider>
