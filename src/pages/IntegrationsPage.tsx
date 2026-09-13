@@ -161,77 +161,77 @@ export default function IntegrationsPage() {
           className="space-y-8"
         >
           <div className="flex justify-center px-4 md:px-8 lg:px-12">
-            <TabsList className="grid grid-cols-5 sm:grid-cols-8 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-4xl w-full">
+            <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-4xl w-full">
               {/* API & Keys */}
-              <TabsTrigger value="api-keys" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Key className="h-5 w-5" />
-                <span className="text-xs font-medium">API Keys</span>
+              <TabsTrigger value="api-keys" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Key className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">API Keys</span>
               </TabsTrigger>
               
               {/* Webhooks */}
-              <TabsTrigger value="webhooks" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Webhook className="h-5 w-5" />
-                <span className="text-xs font-medium">Webhooks</span>
+              <TabsTrigger value="webhooks" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Webhook className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Webhooks</span>
               </TabsTrigger>
-              <TabsTrigger value="webhook-health" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Heart className="h-5 w-5" />
-                <span className="text-xs font-medium">Saúde</span>
+              <TabsTrigger value="webhook-health" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Heart className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Saúde</span>
               </TabsTrigger>
-              <TabsTrigger value="webhook-dlq" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <RotateCcw className="h-5 w-5" />
-                <span className="text-xs font-medium">Replay</span>
+              <TabsTrigger value="webhook-dlq" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <RotateCcw className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Replay</span>
               </TabsTrigger>
-              <TabsTrigger value="webhook-monitor" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <BarChart3 className="h-5 w-5" />
-                <span className="text-xs font-medium">Monitor</span>
+              <TabsTrigger value="webhook-monitor" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <BarChart3 className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Monitor</span>
               </TabsTrigger>
               
               {/* Events & Logs */}
-              <TabsTrigger value="events" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Search className="h-5 w-5" />
-                <span className="text-xs font-medium">Eventos</span>
+              <TabsTrigger value="events" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Search className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Eventos</span>
               </TabsTrigger>
-              <TabsTrigger value="api-metrics" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-xs font-medium">Métricas</span>
+              <TabsTrigger value="api-metrics" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <TrendingUp className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Métricas</span>
               </TabsTrigger>
-              <TabsTrigger value="api-logs" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Activity className="h-5 w-5" />
-                <span className="text-xs font-medium">Logs</span>
+              <TabsTrigger value="api-logs" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Activity className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Logs</span>
               </TabsTrigger>
               
               {/* Tools */}
-              <TabsTrigger value="api-tester" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Play className="h-5 w-5" />
-                <span className="text-xs font-medium">Tester</span>
+              <TabsTrigger value="api-tester" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Play className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Tester</span>
               </TabsTrigger>
-              <TabsTrigger value="docs" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Code className="h-5 w-5" />
-                <span className="text-xs font-medium">Docs</span>
+              <TabsTrigger value="docs" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Code className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Docs</span>
               </TabsTrigger>
               
               {/* Integrations */}
-              <TabsTrigger value="marketplace" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Store className="h-5 w-5" />
-                <span className="text-xs font-medium">Marketplace</span>
+              <TabsTrigger value="marketplace" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Store className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Marketplace</span>
               </TabsTrigger>
-              <TabsTrigger value="connectors" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Link2 className="h-5 w-5" />
-                <span className="text-xs font-medium">Conectores</span>
+              <TabsTrigger value="connectors" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Link2 className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Conectores</span>
               </TabsTrigger>
-              <TabsTrigger value="predictive" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Brain className="h-5 w-5" />
-                <span className="text-xs font-medium">Preditivo</span>
+              <TabsTrigger value="predictive" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Brain className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Preditivo</span>
               </TabsTrigger>
               
               {/* Advanced */}
-              <TabsTrigger value="feature-flags" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Flag className="h-5 w-5" />
-                <span className="text-xs font-medium">Flags</span>
+              <TabsTrigger value="feature-flags" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Flag className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Flags</span>
               </TabsTrigger>
-              <TabsTrigger value="audit" className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
-                <Shield className="h-5 w-5" />
-                <span className="text-xs font-medium">Auditoria</span>
+              <TabsTrigger value="audit" className="flex min-w-0 flex-col items-center gap-1.5 py-3 px-1.5 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+                <Shield className="h-5 w-5 shrink-0" />
+                <span className="w-full truncate text-center text-[11px] sm:text-xs font-medium leading-tight">Auditoria</span>
               </TabsTrigger>
             </TabsList>
           </div>

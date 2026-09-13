@@ -119,7 +119,7 @@ export function TaxSettingsPanel() {
       {/* Header com Status Atual */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Building2 className="h-5 w-5 text-primary" />
@@ -172,7 +172,7 @@ export function TaxSettingsPanel() {
           </div>
 
           {/* Data de Vigência */}
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <Label>Vigente a partir de:</Label>
@@ -199,14 +199,14 @@ export function TaxSettingsPanel() {
 
       {/* Configurações por Regime */}
       <Tabs value={selectedRegime} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="simples_nacional" disabled={selectedRegime !== 'simples_nacional'}>
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
+          <TabsTrigger value="simples_nacional" disabled={selectedRegime !== 'simples_nacional'} className="whitespace-normal py-2">
             Simples Nacional
           </TabsTrigger>
-          <TabsTrigger value="lucro_presumido" disabled={selectedRegime !== 'lucro_presumido'}>
+          <TabsTrigger value="lucro_presumido" disabled={selectedRegime !== 'lucro_presumido'} className="whitespace-normal py-2">
             Lucro Presumido
           </TabsTrigger>
-          <TabsTrigger value="lucro_real" disabled={selectedRegime !== 'lucro_real'}>
+          <TabsTrigger value="lucro_real" disabled={selectedRegime !== 'lucro_real'} className="whitespace-normal py-2">
             Lucro Real
           </TabsTrigger>
         </TabsList>
@@ -479,10 +479,10 @@ export function TaxSettingsPanel() {
           <CardTitle className="text-base">ISS Municipal</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-2">
               <Label>Alíquota ISS</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Input
                   type="number"
                   step="0.01"
@@ -524,7 +524,7 @@ export function TaxSettingsPanel() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>IRRF</Label>
                   <div className="flex items-center gap-1">

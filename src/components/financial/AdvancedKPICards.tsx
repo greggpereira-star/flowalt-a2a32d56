@@ -62,9 +62,16 @@ function KPICard({ title, value, subtitle, trend, icon, variant = "default", siz
   };
 
   const sizeStyles = {
-    sm: "p-4",
-    md: "p-5",
-    lg: "p-6",
+    sm: "p-3 sm:p-4",
+    md: "p-4 sm:p-5",
+    lg: "p-4 sm:p-6",
+  };
+
+  // Valor responsivo: menor no mobile para caber cifras longas (ex: R$ 31.965,98)
+  const valueSize = {
+    sm: "text-base sm:text-lg xl:text-xl",
+    md: "text-lg sm:text-xl xl:text-2xl",
+    lg: "text-xl sm:text-2xl xl:text-3xl",
   };
 
   return (
@@ -72,29 +79,33 @@ function KPICard({ title, value, subtitle, trend, icon, variant = "default", siz
       "border transition-all duration-200 hover:shadow-md",
       variantStyles[variant]
     )}>
-      <CardContent className={cn("space-y-3", sizeStyles[size])}>
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <CardContent className={cn("space-y-2 sm:space-y-3", sizeStyles[size])}>
+        <div className="flex items-start justify-between gap-2">
+          {/* min-w-0 + hyphens deixam o titulo encolher e quebrar dentro do
+              proprio card. Sem isso, "FOLHA DE PAGAMENTO" nao cabia na coluna
+              estreita, nao quebrava por ser palavra longa com tracking, e
+              transbordava por cima do card ao lado. */}
+          <span className="min-w-0 flex-1 hyphens-auto break-words text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground leading-tight">
             {title}
           </span>
           <div className={cn(
-            "p-2 rounded-lg",
+            "p-1.5 sm:p-2 rounded-lg shrink-0",
             iconStyles[variant]
           )}>
             {icon}
           </div>
         </div>
-        
-        <div>
+
+        <div className="min-w-0">
           <p className={cn(
-            "font-bold tracking-tight",
-            size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl"
+            "font-bold tracking-tight tabular-nums truncate",
+            valueSize[size]
           )}>
             {value}
           </p>
           
           {(subtitle || trend !== undefined) && (
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
               {trend !== undefined && (
                 <span className={cn(
                   "inline-flex items-center text-xs font-medium",
@@ -109,7 +120,7 @@ function KPICard({ title, value, subtitle, trend, icon, variant = "default", siz
                 </span>
               )}
               {subtitle && (
-                <span className="text-xs text-muted-foreground">{subtitle}</span>
+                <span className="min-w-0 break-words text-[11px] sm:text-xs text-muted-foreground leading-tight">{subtitle}</span>
               )}
             </div>
           )}
@@ -122,7 +133,7 @@ function KPICard({ title, value, subtitle, trend, icon, variant = "default", siz
 export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="border border-border/50">
             <CardContent className="p-5 space-y-3">
@@ -147,7 +158,7 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
   return (
     <div className="space-y-4">
       {/* Primary KPIs Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <KPICard
           title="Receita Bruta"
           value={formatCurrency(kpis.revenue)}
@@ -198,7 +209,7 @@ export function AdvancedKPICards({ kpis, isLoading }: AdvancedKPICardsProps) {
       </div>
 
       {/* Secondary KPIs Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <KPICard
           title="Ticket Médio"
           value={formatCurrency(kpis.avgTicket)}

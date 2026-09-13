@@ -157,7 +157,7 @@ export const ClientMetricsPanel: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Health Score Chart */}
         <Card>
           <CardHeader className="pb-2">
@@ -353,7 +353,7 @@ const ClientMetricRow: React.FC<{ client: ClientWorkflowMetric }> = ({ client })
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 text-sm">
         {/* Progress */}
         <div>
           <p className="text-xs text-muted-foreground mb-1">Progresso</p>

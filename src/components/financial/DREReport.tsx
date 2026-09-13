@@ -380,9 +380,9 @@ export function DREReport() {
           <div className="divide-y">
             {/* Receitas */}
             <div className="p-4">
-              <div className="flex justify-between items-center font-semibold text-emerald-600 mb-2">
-                <span>RECEITAS OPERACIONAIS</span>
-                <span>{formatCurrency(currentData.totalIncome)}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 font-semibold text-emerald-600 mb-2.5">
+                <span className="text-sm sm:text-base tracking-tight">RECEITAS OPERACIONAIS</span>
+                <span className="tabular-nums">{formatCurrency(currentData.totalIncome)}</span>
               </div>
               <div className="space-y-1 pl-4">
                 {Object.entries(currentData.incomeByCategory).length === 0 ? (
@@ -404,9 +404,9 @@ export function DREReport() {
 
             {/* Despesas */}
             <div className="p-4">
-              <div className="flex justify-between items-center font-semibold text-rose-600 mb-2">
-                <span>DESPESAS OPERACIONAIS</span>
-                <span>({formatCurrency(currentData.totalExpenses)})</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 font-semibold text-rose-600 mb-2.5">
+                <span className="text-sm sm:text-base tracking-tight">DESPESAS OPERACIONAIS</span>
+                <span className="tabular-nums">({formatCurrency(currentData.totalExpenses)})</span>
               </div>
               <div className="space-y-1 pl-4">
                 {Object.entries(currentData.expensesByCategory).length === 0 ? (
@@ -430,14 +430,15 @@ export function DREReport() {
 
             {/* Resultado Operacional */}
             <div className="p-4 bg-muted/30">
-              <div className="flex justify-between items-center font-bold text-lg">
-                <span>RESULTADO OPERACIONAL (EBITDA)</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 font-bold">
+                <span className="text-sm sm:text-lg tracking-tight">RESULTADO OPERACIONAL (EBITDA)</span>
                 <span
-                  className={
+                  className={cn(
+                    "text-lg tabular-nums",
                     currentData.operationalResult >= 0
                       ? "text-emerald-600"
                       : "text-rose-600"
-                  }
+                  )}
                 >
                   {formatCurrency(currentData.operationalResult)}
                 </span>
@@ -446,16 +447,16 @@ export function DREReport() {
 
             {/* Impostos */}
             <div className="p-4">
-              <div className="flex justify-between items-center font-semibold text-amber-600 mb-2">
-                <div className="flex items-center gap-2">
-                  <span>IMPOSTOS SOBRE RECEITA</span>
-                  <Badge variant="outline" className="text-xs">
+              <div className="font-semibold text-amber-600 mb-2.5 space-y-1.5">
+                <span className="block text-sm sm:text-base tracking-tight">IMPOSTOS SOBRE RECEITA</span>
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant="outline" className="text-xs font-normal shrink-0">
                     {regimeLabels[currentTaxes.regime] || "Simples Nacional"}
                   </Badge>
+                  <span className="tabular-nums">({formatCurrency(currentTaxes.total_taxes)})</span>
                 </div>
-                <span>({formatCurrency(currentTaxes.total_taxes)})</span>
               </div>
-              <div className="space-y-1 pl-4">
+              <div className="space-y-1.5 pl-4">
                 {currentTaxes.das > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">DAS (Simples Nacional)</span>
@@ -503,22 +504,23 @@ export function DREReport() {
 
             {/* Resultado Líquido */}
             <div className="p-4 bg-primary/5">
-              <div className="flex justify-between items-center font-bold text-lg">
-                <span>RESULTADO LÍQUIDO (após impostos)</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 font-bold">
+                <span className="text-sm sm:text-lg tracking-tight">RESULTADO LÍQUIDO (após impostos)</span>
                 <div className="flex items-center gap-2">
                   {netProfitAfterTaxes > 0 ? (
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    <TrendingUp className="w-5 h-5 text-emerald-600 shrink-0" />
                   ) : netProfitAfterTaxes < 0 ? (
-                    <TrendingDown className="w-5 h-5 text-rose-600" />
+                    <TrendingDown className="w-5 h-5 text-rose-600 shrink-0" />
                   ) : (
-                    <Minus className="w-5 h-5 text-muted-foreground" />
+                    <Minus className="w-5 h-5 text-muted-foreground shrink-0" />
                   )}
                   <span
-                    className={
+                    className={cn(
+                      "text-lg tabular-nums",
                       netProfitAfterTaxes >= 0
                         ? "text-emerald-600"
                         : "text-rose-600"
-                    }
+                    )}
                   >
                     {formatCurrency(netProfitAfterTaxes)}
                   </span>
@@ -527,7 +529,7 @@ export function DREReport() {
             </div>
 
             {/* Indicadores */}
-            <div className="p-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               <div className="text-center">
                 <div className="text-xl font-bold text-emerald-600">
                   {formatCurrency(currentData.totalIncome)}

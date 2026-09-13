@@ -98,23 +98,23 @@ export function MarketingPage() {
     <AppLayout>
       <div className="h-full flex flex-col">
         {/* Header with Navigation */}
-        <div className="flex items-center justify-between p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex w-full flex-col items-center gap-1 text-center sm:w-auto sm:flex-row sm:items-center sm:gap-4 sm:text-left">
             {/* Back Navigation */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="gap-2 text-muted-foreground hover:text-foreground"
+              className="self-start gap-2 text-muted-foreground hover:text-foreground sm:self-auto"
             >
               <ArrowLeft className="h-4 w-4" />
               <Home className="h-4 w-4" />
             </Button>
             
-            <div className="h-6 w-px bg-border" />
+            <div className="hidden h-6 w-px bg-border sm:block" />
             
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
+              <h1 className="flex items-center justify-center gap-2 text-2xl font-bold sm:justify-start">
                 <Sparkles className="h-6 w-6 text-primary" />
                 Marketing
               </h1>
@@ -125,7 +125,7 @@ export function MarketingPage() {
           </div>
 
         {/* Quick Stats & Actions with Realtime Indicator */}
-        <div className="flex items-center gap-4">
+        <div className="grid w-full grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-4">
           {/* Realtime Status */}
           <TooltipProvider>
             <Tooltip>
@@ -153,25 +153,25 @@ export function MarketingPage() {
             </Tooltip>
           </TooltipProvider>
           
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+          <div className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-muted/50">
             <Clock className="h-4 w-4 text-blue-500" />
             <span className="text-sm font-medium">{scheduledPosts?.length || 0} agendados</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+          <div className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-muted/50">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <span className="text-sm font-medium">{publishedPosts?.length || 0} publicados</span>
           </div>
           {(failedPosts?.length || 0) > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200">
+            <div className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-50 border border-red-200">
               <AlertCircle className="h-4 w-4 text-red-500" />
               <span className="text-sm font-medium text-red-700">{failedPosts?.length || 0} com erro</span>
             </div>
           )}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+          <div className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-muted/50">
             <Plug className="h-4 w-4 text-purple-500" />
             <span className="text-sm font-medium">{activePlatforms.length} plataformas</span>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button className="col-span-2 w-full sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Postagem
           </Button>
@@ -181,17 +181,17 @@ export function MarketingPage() {
       {/* Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <div className="border-b px-6">
-          <TabsList className="h-12 bg-transparent p-0 gap-4">
+          <TabsList className="flex h-auto flex-wrap justify-start bg-transparent p-0 gap-x-3 gap-y-1 sm:gap-x-4">
             <TabsTrigger
               value="calendar"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <Calendar className="h-4 w-4 mr-2" />
               Calendário Editorial
             </TabsTrigger>
             <TabsTrigger
               value="scheduled"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <Clock className="h-4 w-4 mr-2" />
               Agendados
@@ -203,21 +203,21 @@ export function MarketingPage() {
             </TabsTrigger>
             <TabsTrigger
               value="published"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Publicados
             </TabsTrigger>
             <TabsTrigger
               value="metrics"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Métricas
             </TabsTrigger>
             <TabsTrigger
               value="insights"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
               disabled={!hasSocialInsights}
             >
               <Sparkles className="h-4 w-4 mr-2" />
@@ -226,7 +226,7 @@ export function MarketingPage() {
             </TabsTrigger>
             <TabsTrigger
               value="reports"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
               disabled={!hasSocialReports}
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -235,14 +235,14 @@ export function MarketingPage() {
             </TabsTrigger>
             <TabsTrigger
               value="platforms"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <Plug className="h-4 w-4 mr-2" />
               Plataformas
             </TabsTrigger>
             <TabsTrigger
               value="jobs"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-3"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-1 pb-2 sm:pb-3 whitespace-nowrap"
             >
               <Activity className="h-4 w-4 mr-2" />
               Jobs
