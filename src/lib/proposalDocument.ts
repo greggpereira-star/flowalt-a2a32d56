@@ -110,18 +110,23 @@ export interface ProposalDocumentModel {
   options: ProposalOption[];
 }
 
-// Fontes disponíveis no seletor
+// Fontes disponíveis no seletor. Archivo é a fonte oficial da marca ALT para
+// texto (ver src/index.css para os @font-face). Nexa foi removida da lista:
+// os arquivos fornecidos são do pacote trial e têm os glifos acentuados
+// (á, ã, ç, é, ê, õ, ü) todos quebrados — ver nota em src/index.css. Poppins
+// assume como padrão de título por ter visual próximo (geométrica,
+// arredondada) e acentuação completa, até chegarem os arquivos retail.
 export const PROPOSAL_FONTS = [
-  'Poppins', 'Inter', 'Montserrat', 'Archivo Black', 'Anton',
+  'Archivo', 'Poppins', 'Inter', 'Montserrat', 'Archivo Black', 'Anton',
   'Helvetica Neue', 'Arial',
 ] as const;
 
 export const DEFAULT_THEME: ProposalTheme = {
   titleFont: 'Poppins',
   titleFontSize: 74,
-  bodyFont: 'Inter',
+  bodyFont: 'Archivo',
   sidebarText: 'estratégia, gestão e comunicação',
-  sidebarFont: 'Inter',
+  sidebarFont: 'Archivo',
   sidebarFontSize: 50,
   sidebarWeight: 600,
 };

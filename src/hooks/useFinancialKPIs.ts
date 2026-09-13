@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
-import { startOfMonth, endOfMonth, subMonths, addMonths, format, differenceInDays } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, addMonths, format, differenceInDays, startOfDay } from "date-fns";
 
 export interface TaxBreakdown {
   regime: string;
@@ -245,7 +245,9 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       });
 
       // Aging Report
-      const today = new Date();
+      // Normalizado para o inicio do dia: due_date e coluna `date` e as
+      // comparacoes abaixo sao de dia contra dia, nao de instante.
+      const today = startOfDay(new Date());
       const aging = {
         current: 0,
         days30: 0,
@@ -255,7 +257,7 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       };
 
       pending.forEach(t => {
-        const dueDate = new Date(t.due_date);
+        const dueDate = startOfDay(new Date(t.due_date + "T00:00:00"));
         const daysOverdue = differenceInDays(today, dueDate);
         const amount = Number(t.amount);
 
@@ -280,7 +282,7 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const paidWithDates = paidExpenses.filter(t => t.paid_date);
       const avgPaymentTime = paidWithDates.length > 0
         ? paidWithDates.reduce((acc, t) => {
-            const due = new Date(t.due_date);
+            const due = startOfDay(new Date(t.due_date + "T00:00:00"));
             const paid = new Date(t.paid_date!);
             return acc + differenceInDays(paid, due);
           }, 0) / paidWithDates.length
@@ -290,7 +292,7 @@ export function useFinancialKPIs(selectedMonth?: Date) {
       const receivedWithDates = paidIncome.filter(t => t.paid_date);
       const avgReceivableTime = receivedWithDates.length > 0
         ? receivedWithDates.reduce((acc, t) => {
-            const due = new Date(t.due_date);
+            const due = startOfDay(new Date(t.due_date + "T00:00:00"));
             const paid = new Date(t.paid_date!);
             return acc + differenceInDays(paid, due);
           }, 0) / receivedWithDates.length
@@ -300,7 +302,7 @@ export function useFinancialKPIs(selectedMonth?: Date) {
         if (t.status === "cancelled") return false;
         if (t.status === "overdue") return true;
         if (t.status !== "pending") return false;
-        return new Date(t.due_date) < today;
+        return startOfDay(new Date(t.due_date + "T00:00:00")) < today;
       }).length;
 
       return {
@@ -353,7 +355,9 @@ export function useCashFlowProjection(months: number = 12) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      const today = new Date();
+      // Normalizado para o inicio do dia: due_date e coluna `date` e as
+      // comparacoes abaixo sao de dia contra dia, nao de instante.
+      const today = startOfDay(new Date());
       const projections = [];
 
       for (let i = 0; i < months; i++) {
@@ -418,7 +422,9 @@ export function useAgingReport() {
         .eq("type", "income")
         .order("due_date", { ascending: true });
 
-      const today = new Date();
+      // Normalizado para o inicio do dia: due_date e coluna `date` e as
+      // comparacoes abaixo sao de dia contra dia, nao de instante.
+      const today = startOfDay(new Date());
       const grouped = {
         current: [] as typeof pending,
         days30: [] as typeof pending,
@@ -428,7 +434,7 @@ export function useAgingReport() {
       };
 
       (pending || []).forEach(t => {
-        const dueDate = new Date(t.due_date);
+        const dueDate = startOfDay(new Date(t.due_date + "T00:00:00"));
         const daysOverdue = differenceInDays(today, dueDate);
 
         if (daysOverdue <= 0) grouped.current?.push(t);

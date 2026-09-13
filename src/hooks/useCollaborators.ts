@@ -262,7 +262,7 @@ export function useCreateOrUpdateCollaborator() {
         // If salary changed, add to history
         if (details.base_salary && details.base_salary !== existing.base_salary) {
           const { data: userData } = await supabase.auth.getUser();
-          await supabase.from("salary_history").insert({
+          const { error: historyError } = await supabase.from("salary_history").insert({
             collaborator_id: existing.id,
             workspace_id: currentWorkspace.id,
             previous_salary: existing.base_salary,
@@ -270,6 +270,16 @@ export function useCreateOrUpdateCollaborator() {
             effective_date: new Date().toISOString().split("T")[0],
             created_by: userData.user?.id,
           });
+
+          // Histórico salarial é registro trabalhista: um degrau perdido
+          // inviabiliza cálculo retroativo e rescisão. Antes o erro era
+          // descartado e a tela dizia "Colaborador atualizado com sucesso",
+          // com o salário novo valendo e a trilha sem a alteração.
+          if (historyError) {
+            throw new Error(
+              `Salário atualizado, mas o histórico não pôde ser registrado: ${historyError.message}`,
+            );
+          }
         }
 
         return data;
@@ -290,7 +300,7 @@ export function useCreateOrUpdateCollaborator() {
         // Add initial salary to history if provided
         if (details.base_salary) {
           const { data: userData } = await supabase.auth.getUser();
-          await supabase.from("salary_history").insert({
+          const { error: historyError } = await supabase.from("salary_history").insert({
             collaborator_id: data.id,
             workspace_id: currentWorkspace.id,
             new_salary: details.base_salary,
@@ -298,6 +308,14 @@ export function useCreateOrUpdateCollaborator() {
             reason: "Salário inicial",
             created_by: userData.user?.id,
           });
+
+          // Mesmo motivo do bloco de alteração: sem o salário inicial na
+          // trilha, não existe ponto de partida para comparar reajustes.
+          if (historyError) {
+            throw new Error(
+              `Colaborador criado, mas o salário inicial não pôde ser registrado no histórico: ${historyError.message}`,
+            );
+          }
         }
 
         return data;

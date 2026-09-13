@@ -129,9 +129,9 @@ export function CollaboratorManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-semibold">Gestão de Colaboradores</h2>
-        <Button 
+        <Button
           onClick={() => generateSalaries.mutate(new Date())}
           disabled={generateSalaries.isPending}
         >
@@ -226,8 +226,8 @@ export function CollaboratorManager() {
           </div>
 
           {/* Sub tabs for members vs external */}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={listSubTab === "members" ? "default" : "outline"}
                 size="sm"
@@ -257,6 +257,73 @@ export function CollaboratorManager() {
           {listSubTab === "members" && (
             <Card>
               <CardContent className="p-0">
+                {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+                <div className="md:hidden divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+                  {collaborators.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8 text-sm">
+                      Nenhum colaborador com acesso ao sistema
+                    </div>
+                  ) : (
+                    collaborators.map((collab) => {
+                      const expiringDocs = getExpiringDocuments(collab?.documents);
+                      return (
+                        <div
+                          key={collab?.member?.id || collab?.id}
+                          className="p-3 flex items-start justify-between gap-2 cursor-pointer active:bg-muted/40"
+                          onClick={() => setSelectedCollaborator(collab)}
+                        >
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <Avatar className="w-8 h-8 shrink-0">
+                              <AvatarImage src={collab?.member?.profile?.avatar_url || ""} />
+                              <AvatarFallback>
+                                {getInitials(collab?.full_name || collab?.member?.profile?.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {collab?.full_name || collab?.member?.profile?.full_name || "Sem nome"}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {getDisplayTitle(collab)}{collab?.member?.department ? ` · ${collab.member.department}` : ""}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                <Badge variant="outline" className="text-[10px]">
+                                  {collab?.contract_type?.toUpperCase() || "CLT"}
+                                </Badge>
+                                <span className="text-xs font-medium">
+                                  {collab?.contract_type === "socio"
+                                    ? `${collab?.partner_percentage || 0}%`
+                                    : formatCurrency(collab?.base_salary)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">· {collab?.weekly_hours || 40}h/sem</span>
+                                {expiringDocs.length > 0 && (
+                                  <Badge variant="outline" className="text-orange-500 border-orange-500 text-[10px]">
+                                    <AlertCircle className="w-2.5 h-2.5 mr-1" />
+                                    {expiringDocs.length} doc(s)
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCollaborator(collab?.member?.id || null);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Desktop: tabela completa */}
+                <div className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -323,7 +390,7 @@ export function CollaboratorManager() {
                               </Badge>
                             </TableCell>
                             <TableCell className="font-medium">
-                              {collab?.contract_type === "socio" 
+                              {collab?.contract_type === "socio"
                                 ? `${collab?.partner_percentage || 0}%`
                                 : formatCurrency(collab?.base_salary)}
                             </TableCell>
@@ -351,6 +418,7 @@ export function CollaboratorManager() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -359,6 +427,80 @@ export function CollaboratorManager() {
           {listSubTab === "external" && (
             <Card>
               <CardContent className="p-0">
+                {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+                <div className="md:hidden divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+                  {loadingExternal ? (
+                    <div className="text-center text-muted-foreground py-8 text-sm">Carregando...</div>
+                  ) : externalCollaborators.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8 text-sm">
+                      Nenhum colaborador externo cadastrado
+                    </div>
+                  ) : (
+                    externalCollaborators.map((collab) => (
+                      <div
+                        key={collab.id}
+                        className="p-3 flex items-start justify-between gap-2 cursor-pointer active:bg-muted/40"
+                        onClick={() => setSelectedExternalCollaborator(collab)}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <Avatar className="w-8 h-8 shrink-0">
+                            <AvatarFallback>{getInitials(collab.full_name)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm truncate">{collab.full_name}</p>
+                              {!collab.is_active && (
+                                <Badge variant="secondary" className="text-[10px] shrink-0">Inativo</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {collab.job_title || "-"}{collab.department ? ` · ${collab.department}` : ""}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              <Badge variant="outline" className="text-[10px]">
+                                {collab.contract_type?.toUpperCase() || "CLT"}
+                              </Badge>
+                              <span className="text-xs font-medium">
+                                {collab.contract_type === "socio"
+                                  ? `${(collab as any).partner_percentage || 0}%`
+                                  : formatCurrency(collab.base_salary)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">· {collab.weekly_hours || 40}h/sem</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingExternalId(collab.id);
+                              setExternalFormOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteExternalId(collab.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop: tabela completa */}
+                <div className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -423,7 +565,7 @@ export function CollaboratorManager() {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {collab.contract_type === "socio" 
+                            {collab.contract_type === "socio"
                               ? `${(collab as any).partner_percentage || 0}%`
                               : formatCurrency(collab.base_salary)}
                           </TableCell>
@@ -464,6 +606,7 @@ export function CollaboratorManager() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -608,19 +751,19 @@ function CollaboratorDetailView({
   return (
     <div className="space-y-6 pt-4">
       {/* Header */}
-      <div className="flex items-start gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <Avatar className="w-16 h-16">
           <AvatarImage src={collaborator.member?.profile?.avatar_url || ""} />
           <AvatarFallback className="text-lg">
             {getInitials(collaborator.full_name || collaborator.member?.profile?.full_name)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
+        <div className="flex-1 min-w-[180px]">
           <h3 className="text-xl font-semibold">
             {collaborator.full_name || collaborator.member?.profile?.full_name}
           </h3>
           <p className="text-muted-foreground">{collaborator.member?.profile?.email}</p>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             <Badge>{collaborator.member?.function_title || "Sem cargo"}</Badge>
             <Badge variant="outline">{collaborator.contract_type?.toUpperCase() || "CLT"}</Badge>
           </div>
@@ -871,18 +1014,18 @@ function ExternalCollaboratorDetailView({
   return (
     <div className="space-y-6 pt-4">
       {/* Header */}
-      <div className="flex items-start gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <Avatar className="w-16 h-16">
           <AvatarFallback className="text-lg">
             {getInitials(collaborator.full_name)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
+        <div className="flex-1 min-w-[180px]">
           <h3 className="text-xl font-semibold">{collaborator.full_name}</h3>
           <p className="text-muted-foreground">
             {collaborator.email || collaborator.phone || "Sem contato"}
           </p>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             <Badge>{collaborator.job_title || "Sem cargo"}</Badge>
             <Badge variant="outline">{collaborator.contract_type?.toUpperCase() || "CLT"}</Badge>
             {!collaborator.is_active && (

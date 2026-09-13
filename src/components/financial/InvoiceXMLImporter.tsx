@@ -152,9 +152,9 @@ export function InvoiceXMLImporter() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Upload className="w-4 h-4" />
-          Importar XML
+        <Button variant="outline" size="sm" className="w-full lg:w-auto justify-center gap-2 text-xs sm:text-sm px-2 lg:h-10">
+          <Upload className="w-4 h-4 shrink-0" />
+          <span className="truncate">Importar XML</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">

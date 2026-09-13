@@ -302,10 +302,93 @@ export function DDAPanel() {
     return <span className="text-muted-foreground">{days}d</span>;
   };
 
+  // Menu de ações do boleto — reaproveitado pela tabela (desktop) e pelo card (mobile)
+  const renderBoletoActions = (boleto: DDABoleto) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={() => setDetailSheet(boleto)}>
+          <Eye className="h-4 w-4 mr-2" />
+          Ver Detalhes
+        </DropdownMenuItem>
+
+        {boleto.digitable_line && (
+          <DropdownMenuItem onClick={() => handleCopyLine(boleto.digitable_line!)}>
+            <Copy className="h-4 w-4 mr-2" />
+            Copiar Linha Digitável
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        {/* Workflow Actions */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <GitMerge className="h-4 w-4 mr-2" />
+            Alterar Workflow
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {Object.entries(workflowConfig).map(([key, config]) => {
+              const Icon = config.icon;
+              return (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => handleWorkflowChange(boleto.id, key as WorkflowStatus)}
+                  disabled={boleto.workflow_status === key}
+                >
+                  <Icon className="h-4 w-4 mr-2" />
+                  {config.label}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuSeparator />
+
+        {/* AP Actions - only if user can manage */}
+        {canManage && !boleto.linked_ap_id && boleto.workflow_status !== 'paid_reconciled' && (
+          <>
+            <DropdownMenuItem onClick={() => setCreateAPDialog(boleto)}>
+              <Wallet className="h-4 w-4 mr-2 text-primary" />
+              Criar Conta a Pagar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLinkTransactionDialog(boleto)}>
+              <Link2 className="h-4 w-4 mr-2" />
+              Vincular a Transação
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setMatchesDialog(boleto)}>
+              <ArrowUpRight className="h-4 w-4 mr-2" />
+              Buscar Matches
+            </DropdownMenuItem>
+          </>
+        )}
+
+        {/* Delete - only admin/owner */}
+        {canDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => handleSoftDelete(boleto.id)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remover
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="w-5 h-5" />
@@ -315,7 +398,7 @@ export function DDAPanel() {
             Boletos emitidos contra seu CNPJ • Fluxo de Contas a Pagar
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -520,88 +603,89 @@ export function DDAPanel() {
       {/* Filters & Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
               <CardTitle className="text-base">Boletos</CardTitle>
               {syncStatus?.last_sync && (
-                <CardDescription>
+                <CardDescription className="truncate">
                   Última sync: {format(parseISO(syncStatus.last_sync.synced_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                 </CardDescription>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{filteredBoletos.length} resultados</Badge>
-            </div>
+            <Badge variant="outline" className="shrink-0">{filteredBoletos.length} resultados</Badge>
           </div>
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cedente, documento, código..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="space-y-2.5 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cedente, documento, código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            
-            <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
-              <SelectTrigger className="w-[150px]">
-                <GitMerge className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Workflow" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {Object.entries(workflowConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
-            <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
-              <SelectTrigger className="w-[150px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Vencimento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="overdue">Vencidos</SelectItem>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="week">Próx. 7 dias</SelectItem>
-                <SelectItem value="month">Próx. 30 dias</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Grade 2x2 no mobile (intencional, em vez de depender de flex-wrap com
+                larguras fixas) — vira linha única a partir do sm: */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
+              <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <GitMerge className="h-4 w-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Workflow" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Object.entries(workflowConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={linkedFilter} onValueChange={setLinkedFilter}>
-              <SelectTrigger className="w-[150px]">
-                <Link2 className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Vínculo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="linked">Vinculados</SelectItem>
-                <SelectItem value="unlinked">Não vinculados</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <Calendar className="h-4 w-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Vencimento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="overdue">Vencidos</SelectItem>
+                  <SelectItem value="today">Hoje</SelectItem>
+                  <SelectItem value="week">Próx. 7 dias</SelectItem>
+                  <SelectItem value="month">Próx. 30 dias</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {(workflowFilter !== 'all' || dueDateFilter !== 'all' || linkedFilter !== 'all' || searchTerm) && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setWorkflowFilter('all');
-                  setDueDateFilter('all');
-                  setLinkedFilter('all');
-                  setSearchTerm('');
-                }}
-              >
-                Limpar filtros
-              </Button>
-            )}
+              <Select value={linkedFilter} onValueChange={setLinkedFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <Link2 className="h-4 w-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Vínculo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="linked">Vinculados</SelectItem>
+                  <SelectItem value="unlinked">Não vinculados</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(workflowFilter !== 'all' || dueDateFilter !== 'all' || linkedFilter !== 'all' || searchTerm) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full sm:w-auto justify-center sm:justify-start"
+                  onClick={() => {
+                    setWorkflowFilter('all');
+                    setDueDateFilter('all');
+                    setLinkedFilter('all');
+                    setSearchTerm('');
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Table */}
@@ -627,146 +711,115 @@ export function DDAPanel() {
               )}
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Cedente</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Workflow</TableHead>
-                    <TableHead>Vínculo</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBoletos.map((boleto) => (
-                    <TableRow key={boleto.id} className="group">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate max-w-[180px]">{boleto.cedente_nome}</p>
-                            {boleto.cedente_documento && (
-                              <p className="text-xs text-muted-foreground">{boleto.cedente_documento}</p>
-                            )}
-                          </div>
+            <>
+              {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+              <div className="md:hidden border rounded-lg divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+                {filteredBoletos.map((boleto) => (
+                  <div key={boleto.id} className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{boleto.cedente_nome}</p>
+                          {boleto.cedente_documento && (
+                            <p className="text-xs text-muted-foreground">{boleto.cedente_documento}</p>
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-semibold">
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="font-semibold text-sm tabular-nums">
                           {formatCurrency(boleto.valor_atualizado || boleto.valor_original)}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="text-sm">
-                            {format(parseISO(boleto.data_vencimento), 'dd/MM/yyyy')}
-                          </p>
-                          <p className="text-xs">{getDaysUntilDue(boleto.data_vencimento)}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getWorkflowBadge(boleto.workflow_status || 'captured')}
-                      </TableCell>
-                      <TableCell>
-                        {boleto.linked_ap_id || boleto.transaction_id ? (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-                            <Link2 className="w-3 h-3 mr-1" />
-                            Vinculado
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            Não vinculado
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem onClick={() => setDetailSheet(boleto)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </DropdownMenuItem>
-                            
-                            {boleto.digitable_line && (
-                              <DropdownMenuItem onClick={() => handleCopyLine(boleto.digitable_line!)}>
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copiar Linha Digitável
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuSeparator />
-                            
-                            {/* Workflow Actions */}
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>
-                                <GitMerge className="h-4 w-4 mr-2" />
-                                Alterar Workflow
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent>
-                                {Object.entries(workflowConfig).map(([key, config]) => {
-                                  const Icon = config.icon;
-                                  return (
-                                    <DropdownMenuItem 
-                                      key={key}
-                                      onClick={() => handleWorkflowChange(boleto.id, key as WorkflowStatus)}
-                                      disabled={boleto.workflow_status === key}
-                                    >
-                                      <Icon className="h-4 w-4 mr-2" />
-                                      {config.label}
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                              </DropdownMenuSubContent>
-                            </DropdownMenuSub>
-                            
-                            <DropdownMenuSeparator />
-                            
-                            {/* AP Actions - only if user can manage */}
-                            {canManage && !boleto.linked_ap_id && boleto.workflow_status !== 'paid_reconciled' && (
-                              <>
-                                <DropdownMenuItem onClick={() => setCreateAPDialog(boleto)}>
-                                  <Wallet className="h-4 w-4 mr-2 text-primary" />
-                                  Criar Conta a Pagar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setLinkTransactionDialog(boleto)}>
-                                  <Link2 className="h-4 w-4 mr-2" />
-                                  Vincular a Transação
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setMatchesDialog(boleto)}>
-                                  <ArrowUpRight className="h-4 w-4 mr-2" />
-                                  Buscar Matches
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            
-                            {/* Delete - only admin/owner */}
-                            {canDelete && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleSoftDelete(boleto.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Remover
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                        {renderBoletoActions(boleto)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 mt-2 text-xs">
+                      <span>{format(parseISO(boleto.data_vencimento), 'dd/MM/yyyy')}</span>
+                      {getDaysUntilDue(boleto.data_vencimento)}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-border/40">
+                      {getWorkflowBadge(boleto.workflow_status || 'captured')}
+                      {boleto.linked_ap_id || boleto.transaction_id ? (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                          <Link2 className="w-3 h-3 mr-1" />
+                          Vinculado
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          Não vinculado
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: tabela completa */}
+              <div className="hidden md:block border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Cedente</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Workflow</TableHead>
+                      <TableHead>Vínculo</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBoletos.map((boleto) => (
+                      <TableRow key={boleto.id} className="group">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-medium truncate max-w-[180px]">{boleto.cedente_nome}</p>
+                              {boleto.cedente_documento && (
+                                <p className="text-xs text-muted-foreground">{boleto.cedente_documento}</p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold">
+                            {formatCurrency(boleto.valor_atualizado || boleto.valor_original)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="text-sm">
+                              {format(parseISO(boleto.data_vencimento), 'dd/MM/yyyy')}
+                            </p>
+                            <p className="text-xs">{getDaysUntilDue(boleto.data_vencimento)}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getWorkflowBadge(boleto.workflow_status || 'captured')}
+                        </TableCell>
+                        <TableCell>
+                          {boleto.linked_ap_id || boleto.transaction_id ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                              <Link2 className="w-3 h-3 mr-1" />
+                              Vinculado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Não vinculado
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {renderBoletoActions(boleto)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

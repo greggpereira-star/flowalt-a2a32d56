@@ -17,7 +17,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,14 +117,14 @@ export function CashFlowPendingPanel({ onEdit }: CashFlowPendingPanelProps) {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <span className={cn(
-            "font-semibold whitespace-nowrap",
+            "font-semibold whitespace-nowrap text-sm sm:text-base tabular-nums",
             type === 'income' ? "text-emerald-600" : "text-rose-600"
           )}>
             {type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
           </span>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -160,7 +159,7 @@ export function CashFlowPendingPanel({ onEdit }: CashFlowPendingPanelProps) {
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-emerald-500/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -246,19 +245,17 @@ export function CashFlowPendingPanel({ onEdit }: CashFlowPendingPanelProps) {
                     <p className="text-sm">Nenhuma receita pendente</p>
                   </div>
                 ) : (
-                  <ScrollArea className="max-h-[400px]">
-                    <div className="space-y-2 pr-3">
-                      {incomeTransactions
-                        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-                        .map(transaction => (
-                          <TransactionCard 
-                            key={transaction.id} 
-                            transaction={transaction} 
-                            type="income" 
-                          />
-                        ))}
-                    </div>
-                  </ScrollArea>
+                  <div className="max-h-[65vh] sm:max-h-[400px] overflow-y-auto overscroll-contain space-y-2 pr-1">
+                    {incomeTransactions
+                      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+                      .map(transaction => (
+                        <TransactionCard
+                          key={transaction.id}
+                          transaction={transaction}
+                          type="income"
+                        />
+                      ))}
+                  </div>
                 )}
               </CardContent>
             </CollapsibleContent>
@@ -294,19 +291,17 @@ export function CashFlowPendingPanel({ onEdit }: CashFlowPendingPanelProps) {
                     <p className="text-sm">Nenhuma despesa pendente</p>
                   </div>
                 ) : (
-                  <ScrollArea className="max-h-[400px]">
-                    <div className="space-y-2 pr-3">
-                      {expenseTransactions
-                        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-                        .map(transaction => (
-                          <TransactionCard 
-                            key={transaction.id} 
-                            transaction={transaction} 
-                            type="expense" 
-                          />
-                        ))}
-                    </div>
-                  </ScrollArea>
+                  <div className="max-h-[65vh] sm:max-h-[400px] overflow-y-auto overscroll-contain space-y-2 pr-1">
+                    {expenseTransactions
+                      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+                      .map(transaction => (
+                        <TransactionCard
+                          key={transaction.id}
+                          transaction={transaction}
+                          type="expense"
+                        />
+                      ))}
+                  </div>
                 )}
               </CardContent>
             </CollapsibleContent>

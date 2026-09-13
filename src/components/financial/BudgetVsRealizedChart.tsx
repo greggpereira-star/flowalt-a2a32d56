@@ -102,19 +102,19 @@ export function BudgetVsRealizedChart() {
               summary.percentage <= 80 && "[&>div]:bg-emerald-500"
             )}
           />
-          <div className="grid grid-cols-3 gap-4 pt-2">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Orçado</p>
-              <p className="text-sm font-semibold mt-0.5">{formatCurrency(summary.totalBudget)}</p>
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-4 pt-2">
+            <div className="text-center min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Orçado</p>
+              <p className="text-xs sm:text-sm font-semibold mt-0.5 tabular-nums truncate">{formatCurrency(summary.totalBudget)}</p>
             </div>
-            <div className="text-center border-x border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Realizado</p>
-              <p className="text-sm font-semibold mt-0.5">{formatCurrency(summary.totalRealized)}</p>
+            <div className="text-center min-w-0 border-x border-border/50 px-1">
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Realizado</p>
+              <p className="text-xs sm:text-sm font-semibold mt-0.5 tabular-nums truncate">{formatCurrency(summary.totalRealized)}</p>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Variação</p>
+            <div className="text-center min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Variação</p>
               <p className={cn(
-                "text-sm font-semibold mt-0.5",
+                "text-xs sm:text-sm font-semibold mt-0.5 tabular-nums truncate",
                 summary.variance >= 0 ? "text-emerald-500" : "text-rose-500"
               )}>
                 {formatCurrency(summary.variance)}

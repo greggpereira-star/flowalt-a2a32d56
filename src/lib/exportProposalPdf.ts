@@ -36,8 +36,10 @@ export async function exportProposalPagesToPdf(
   doc.save(filename);
 }
 
-/** Gera o PDF como Blob (para upload/anexo em vez de download direto). */
-export async function renderProposalPagesToPdfBlob(pageElements: HTMLElement[]): Promise<Blob> {
+/** Gera o PDF como Blob (para upload/anexo em vez de download direto).
+ * `pixelRatio` menor reduz drasticamente o tamanho do arquivo — útil para
+ * relatórios enviados por e-mail, onde qualidade de impressão não é o objetivo. */
+export async function renderProposalPagesToPdfBlob(pageElements: HTMLElement[], pixelRatio = 2): Promise<Blob> {
   if (pageElements.length === 0) throw new Error('Nenhuma página para exportar.');
 
   // Formato explícito em px (794x1123 = A4 @ 96dpi) — evita depender do preset
@@ -52,7 +54,7 @@ export async function renderProposalPagesToPdfBlob(pageElements: HTMLElement[]):
   for (let i = 0; i < pageElements.length; i++) {
     const el = pageElements[i];
     const dataUrl = await toPng(el, {
-      pixelRatio: 2,
+      pixelRatio,
       width: el.offsetWidth,
       height: el.offsetHeight,
       style: { margin: '0' },

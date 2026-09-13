@@ -21,7 +21,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -197,7 +196,7 @@ export function FinancialAuditPanel() {
               {pendingApprovals?.slice(0, 5).map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-background border border-border/50"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-background border border-border/50"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-muted">
@@ -241,12 +240,12 @@ export function FinancialAuditPanel() {
       {/* Audit Trail */}
       <Card className="border border-border/50">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="text-base flex items-center gap-2">
               <History className="w-5 h-5" />
               Trilha de Auditoria
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={entityFilter} onValueChange={setEntityFilter}>
                 <SelectTrigger className="w-[140px] h-8">
                   <SelectValue placeholder="Entidade" />
@@ -273,7 +272,9 @@ export function FinancialAuditPanel() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px] pr-4">
+          {/* div simples + overflow-y-auto (ScrollArea do Radix mede a largura pelo
+              conteúdo natural, empurrando linhas largas para fora da tela no mobile) */}
+          <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain pr-1 sm:pr-4">
             <div className="space-y-2">
               {auditEntries?.map((entry) => (
                 <Collapsible
@@ -289,13 +290,13 @@ export function FinancialAuditPanel() {
                     )}
                   >
                     <CollapsibleTrigger asChild>
-                      <button className="w-full p-3 flex items-center justify-between hover:bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
+                      <button className="w-full p-3 flex items-center justify-between gap-2 hover:bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="shrink-0 p-2 rounded-lg bg-muted">
                             {entityIcons[entry.entity_type] || <Activity className="w-4 h-4" />}
                           </div>
-                          <div className="text-left">
-                            <div className="flex items-center gap-2">
+                          <div className="text-left min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
                               <Badge
                                 variant="outline"
                                 className={cn("text-xs", actionColors[entry.action])}
@@ -369,7 +370,7 @@ export function FinancialAuditPanel() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 

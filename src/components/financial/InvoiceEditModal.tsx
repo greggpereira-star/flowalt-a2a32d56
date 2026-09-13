@@ -35,6 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { useUpdateInvoice, Invoice } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
 import { useTransactions } from "@/hooks/useFinancial";
@@ -113,8 +114,10 @@ export function InvoiceEditModal({ open, onOpenChange, invoice }: InvoiceEditMod
   const onSubmit = async (data: FormData) => {
     if (!invoice) return;
 
-    const grossAmount = parseFloat(data.gross_amount.replace(/[^\d,.-]/g, "").replace(",", "."));
-    const taxAmount = data.tax_amount ? parseFloat(data.tax_amount.replace(/[^\d,.-]/g, "").replace(",", ".")) : 0;
+    // Ver comentário em parseCurrencyToNumber: o parse anterior truncava
+    // valores com separador de milhar (R$ 1.234,56 gravava como R$ 1,23).
+    const grossAmount = parseCurrencyToNumber(data.gross_amount);
+    const taxAmount = data.tax_amount ? parseCurrencyToNumber(data.tax_amount) : 0;
 
     await updateInvoice.mutateAsync({
       id: invoice.id,

@@ -570,28 +570,28 @@ export function CostCenterManager() {
             Ambos
           </Button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {/* Month Navigation */}
           <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
             <Button variant="ghost" size="icon" onClick={() => navigateMonth(-1)} className="h-8 w-8">
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-sm font-medium min-w-[120px] text-center">
+            <span className="text-sm font-medium min-w-[100px] sm:min-w-[120px] text-center">
               {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
             </span>
             <Button variant="ghost" size="icon" onClick={() => navigateMonth(1)} className="h-8 w-8">
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          
+
           {/* Budget Alerts */}
           <BudgetAlertsPanel selectedMonth={selectedMonth} />
-          
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Centro de Custo
+              <Button className="grow sm:grow-0">
+                <Plus className="w-4 h-4 mr-2 shrink-0" />
+                <span className="truncate">Novo Centro de Custo</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1056,6 +1056,196 @@ export function CostCenterManager() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Mobile: cards com altura limitada e rolagem vertical nativa.
+                  Mostra os mesmos campos condicionais da tabela (cost/profit/both)
+                  como pares rótulo-valor em vez de colunas. */}
+              <div className="md:hidden rounded-xl border border-border/50 divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+                {costCenterReport.byCenter.map((item) => {
+                  const totalWithSalary = item.totalSpent + item.salarySpent;
+                  const saldo = (item.center.budget_monthly || 0) - totalWithSalary;
+                  const status = item.center.budget_monthly && item.center.budget_monthly > 0
+                    ? getBudgetStatus(item.budgetUsed)
+                    : null;
+                  const profitStatus = item.margin >= 0
+                    ? { color: "bg-emerald-500", status: item.marginPercent >= 20 ? "Saudável" : "Positivo" }
+                    : { color: "bg-rose-500", status: "Negativo" };
+
+                  return (
+                    <div key={item.center.id} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full mt-1 shrink-0"
+                            style={{ backgroundColor: item.center.color || "#3B82F6" }}
+                          />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{item.center.name}</p>
+                            {item.center.code && (
+                              <p className="text-xs text-muted-foreground">{item.center.code}</p>
+                            )}
+                            {item.collaborators.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {item.collaborators.length} colaborador{item.collaborators.length > 1 ? "es" : ""}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => setDrilldownCenterId(item.center.id)}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      {(viewMode === 'cost' || viewMode === 'both') && (
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2.5 pt-2.5 border-t border-border/40 text-xs">
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Orçamento</p>
+                            <p className="truncate">{item.center.budget_monthly ? formatCurrency(item.center.budget_monthly) : "-"}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Total Custo</p>
+                            <p className="font-medium truncate">{formatCurrency(totalWithSalary)}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Despesas</p>
+                            <p className="truncate">{formatCurrency(item.totalSpent)}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Salários</p>
+                            <p className="text-amber-600 truncate">{item.salarySpent > 0 ? formatCurrency(item.salarySpent) : "-"}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {(viewMode === 'profit' || viewMode === 'both') && (
+                        <div className="grid grid-cols-3 gap-x-2 gap-y-1.5 mt-2.5 pt-2.5 border-t border-border/40 text-xs">
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Receita</p>
+                            <p className="text-emerald-600 truncate">{item.totalIncome > 0 ? formatCurrency(item.totalIncome) : "-"}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Margem</p>
+                            <p className={cn("font-medium truncate", item.margin >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                              {formatCurrency(item.margin)}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Margem %</p>
+                            <p className={cn("truncate", item.marginPercent >= 20 ? "text-emerald-600" : item.marginPercent >= 0 ? "text-amber-600" : "text-rose-600")}>
+                              {item.totalIncome > 0 ? `${item.marginPercent.toFixed(1)}%` : "-"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {viewMode === 'cost' && (
+                        <div className="flex items-center justify-between gap-3 mt-2.5 pt-2.5 border-t border-border/40 text-xs">
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground">Saldo</p>
+                            <p className={cn("font-medium truncate", saldo >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                              {item.center.budget_monthly ? formatCurrency(saldo) : "-"}
+                            </p>
+                          </div>
+                          {item.center.budget_monthly && item.center.budget_monthly > 0 && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Progress value={Math.min(item.budgetUsed, 100)} className="w-14 h-2" />
+                              <span className="w-10 text-right">{item.budgetUsed.toFixed(1)}%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-2.5 pt-2.5 border-t border-border/40">
+                        {viewMode === 'profit' ? (
+                          item.totalIncome > 0 ? (
+                            <Badge className={cn(profitStatus.color, "text-white")}>{profitStatus.status}</Badge>
+                          ) : (
+                            <Badge variant="outline">Sem receita</Badge>
+                          )
+                        ) : status ? (
+                          <Badge className={cn(status.color, "text-white")}>{status.status}</Badge>
+                        ) : (
+                          <Badge variant="outline">N/A</Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Unassigned Row */}
+                {(costCenterReport.unassigned.length > 0 || costCenterReport.unassignedSalaryTotal > 0) && (
+                  <div className="p-3 bg-muted/30">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-gray-400 mt-1 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-muted-foreground truncate">Sem Centro de Custo</p>
+                          <p className="text-xs text-muted-foreground">
+                            {costCenterReport.unassigned.length} lançamentos
+                            {costCenterReport.unassignedCollaborators.length > 0 &&
+                              `, ${costCenterReport.unassignedCollaborators.length} colaboradores`}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setShowUnassignedModal(true)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {(viewMode === 'cost' || viewMode === 'both') && (
+                      <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-border/40 text-xs">
+                        <span className="text-muted-foreground">Total Custo</span>
+                        <span className="font-medium text-muted-foreground">
+                          {formatCurrency(costCenterReport.unassignedTotal + costCenterReport.unassignedSalaryTotal)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <Badge variant="outline">Não classificado</Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Total Row */}
+                <div className="p-3 bg-muted/50 font-bold">
+                  <p className="text-sm">TOTAL</p>
+                  {(viewMode === 'cost' || viewMode === 'both') && (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs font-normal">
+                      <div className="min-w-0"><p className="text-muted-foreground font-bold">Orçamento</p><p className="truncate">{formatCurrency(costCenterReport.totalBudget)}</p></div>
+                      <div className="min-w-0"><p className="text-muted-foreground font-bold">Total Custo</p><p className="truncate">{formatCurrency(costCenterReport.totalSpent)}</p></div>
+                    </div>
+                  )}
+                  {(viewMode === 'profit' || viewMode === 'both') && (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs font-normal">
+                      <div className="min-w-0"><p className="text-muted-foreground font-bold">Receita</p><p className="text-emerald-600 truncate">{formatCurrency(costCenterReport.totalIncome)}</p></div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground font-bold">Margem</p>
+                        <p className={cn("truncate", costCenterReport.totalMargin >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {formatCurrency(costCenterReport.totalMargin)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {viewMode === 'cost' && (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs font-normal">
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground font-bold">Saldo</p>
+                        <p className={cn("truncate", (costCenterReport.totalBudget - costCenterReport.totalSpent) >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {formatCurrency(costCenterReport.totalBudget - costCenterReport.totalSpent)}
+                        </p>
+                      </div>
+                      <div className="min-w-0"><p className="text-muted-foreground font-bold">% Execução</p><p className="truncate">{costCenterReport.overallUsage.toFixed(1)}%</p></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop: tabela completa */}
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1310,6 +1500,7 @@ export function CostCenterManager() {
                   </TableRow>
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1331,7 +1522,7 @@ export function CostCenterManager() {
           {selectedCenterData && (
             <div className="space-y-6">
               {/* Summary */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-xs text-muted-foreground">Orçamento</p>
@@ -1366,32 +1557,55 @@ export function CostCenterManager() {
                     Nenhum lançamento neste período
                   </p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <>
+                    {/* Mobile: cards (o Dialog já rola verticalmente, sem limite extra aqui) */}
+                    <div className="md:hidden rounded-lg border divide-y divide-border/40">
                       {selectedCenterData.transactions.map((t) => (
-                        <TableRow key={t.id}>
-                          <TableCell className="text-sm">
-                            {format(new Date(t.due_date), "dd/MM/yyyy")}
-                          </TableCell>
-                          <TableCell>{t.description}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {t.category?.name || "-"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
+                        <div key={t.id} className="p-2.5 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm truncate">{t.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(t.due_date), "dd/MM/yyyy")}
+                              {t.category?.name ? ` · ${t.category.name}` : ""}
+                            </p>
+                          </div>
+                          <span className="text-sm font-medium tabular-nums shrink-0">
                             {formatCurrency(Number(t.amount))}
-                          </TableCell>
-                        </TableRow>
+                          </span>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+
+                    {/* Desktop: tabela completa */}
+                    <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedCenterData.transactions.map((t) => (
+                          <TableRow key={t.id}>
+                            <TableCell className="text-sm">
+                              {format(new Date(t.due_date), "dd/MM/yyyy")}
+                            </TableCell>
+                            <TableCell>{t.description}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {t.category?.name || "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(Number(t.amount))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

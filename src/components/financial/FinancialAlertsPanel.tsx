@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFinancialAlerts, useAcknowledgeAlert } from "@/hooks/useFinancialReports";
 
@@ -63,7 +62,7 @@ export function FinancialAlertsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Bell className="w-5 h-5" />
@@ -80,7 +79,7 @@ export function FinancialAlertsPanel() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -142,7 +141,10 @@ export function FinancialAlertsPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
+          {/* div simples + overflow-y-auto (o ScrollArea do Radix mede a largura pelo
+              conteúdo natural, não pelo container — em mobile isso empurrava a linha
+              inteira para fora da tela). Altura maior no mobile, igual às outras listas. */}
+          <div className="max-h-[65vh] sm:h-[400px] overflow-y-auto overscroll-contain">
             {activeAlerts.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
@@ -156,36 +158,39 @@ export function FinancialAlertsPanel() {
                   return (
                     <div
                       key={alert.id}
-                      className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                      className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                     >
-                      <div className={`p-2 rounded-full ${severityColors[alert.severity]}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{alert.title}</span>
-                          <Badge className={severityColors[alert.severity]}>
-                            {severityLabels[alert.severity]}
-                          </Badge>
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className={`shrink-0 p-2 rounded-full ${severityColors[alert.severity]}`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-                        <p className="text-sm text-muted-foreground">{alert.message}</p>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {format(new Date(alert.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </div>
-                        {alert.suggested_actions && (
-                          <div className="mt-2 text-sm">
-                            <span className="font-medium">Ações sugeridas:</span>
-                            <ul className="list-disc list-inside text-muted-foreground">
-                              {(alert.suggested_actions as string[]).map((action, i) => (
-                                <li key={i}>{action}</li>
-                              ))}
-                            </ul>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="font-medium">{alert.title}</span>
+                            <Badge className={severityColors[alert.severity]}>
+                              {severityLabels[alert.severity]}
+                            </Badge>
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground">{alert.message}</p>
+                          <div className="text-xs text-muted-foreground mt-2">
+                            {format(new Date(alert.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </div>
+                          {alert.suggested_actions && (
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">Ações sugeridas:</span>
+                              <ul className="list-disc list-inside text-muted-foreground">
+                                {(alert.suggested_actions as string[]).map((action, i) => (
+                                  <li key={i}>{action}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="shrink-0 self-start sm:self-center"
                         onClick={() => handleAcknowledge(alert.id)}
                         disabled={acknowledgeAlert.isPending}
                       >
@@ -197,7 +202,7 @@ export function FinancialAlertsPanel() {
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 

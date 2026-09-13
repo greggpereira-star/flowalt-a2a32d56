@@ -9,7 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Area,
 } from "recharts";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -97,7 +96,7 @@ export function MonthlyTrendChart({ selectedMonth }: MonthlyTrendChartProps) {
   return (
     <Card className="border border-border/50">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base font-semibold">Evolução Mensal</CardTitle>
           <Badge variant="outline" className={`gap-1.5 ${trendInfo.bg}`}>
             <trendInfo.icon className={`w-3 h-3 ${trendInfo.color}`} />
@@ -106,94 +105,60 @@ export function MonthlyTrendChart({ selectedMonth }: MonthlyTrendChartProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        {/* Eixo único (R$): barras Receita/Despesa + linha de Resultado.
+            A Margem % foi removida do plot (era eixo duplo) e vive no tooltip. */}
+        <div className="h-[240px] sm:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-              <defs>
-                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
+            <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" vertical={false} />
-              <XAxis 
-                dataKey="month" 
+              <XAxis
+                dataKey="month"
                 className="text-xs text-muted-foreground"
                 axisLine={false}
                 tickLine={false}
-                dy={10}
+                dy={8}
               />
-              <YAxis 
-                yAxisId="left"
+              <YAxis
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                 className="text-xs text-muted-foreground"
                 axisLine={false}
                 tickLine={false}
-                dx={-10}
-              />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                tickFormatter={(value) => `${value.toFixed(0)}%`}
-                className="text-xs text-muted-foreground"
-                axisLine={false}
-                tickLine={false}
-                domain={[-50, 100]}
+                width={40}
               />
               <Tooltip
+                cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  fontSize: "12px",
                 }}
-                formatter={(value: number, name: string) => {
-                  if (name === "margin") return [`${value.toFixed(1)}%`, "Margem"];
-                  return [formatCurrency(value), name === "income" ? "Receitas" : name === "expenses" ? "Despesas" : "Resultado"];
+                formatter={(value: number, name: string, item: { payload?: { margin?: number } }) => {
+                  if (name === "Resultado") {
+                    const m = item?.payload?.margin ?? 0;
+                    return [`${formatCurrency(value)}  ·  margem ${m.toFixed(1)}%`, name];
+                  }
+                  return [formatCurrency(value), name];
                 }}
-                labelFormatter={(label, payload) => payload[0]?.payload?.fullMonth || label}
+                labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
               />
-              <Bar 
-                yAxisId="left"
-                dataKey="income" 
-                fill="hsl(142, 76%, 36%)" 
-                radius={[4, 4, 0, 0]} 
-                barSize={28}
-                name="Receitas"
-              />
-              <Bar 
-                yAxisId="left"
-                dataKey="expenses" 
-                fill="hsl(0, 84%, 60%)" 
-                radius={[4, 4, 0, 0]} 
-                barSize={28}
-                name="Despesas"
-              />
-              <Area
-                yAxisId="left"
+              <Bar dataKey="income" fill="hsl(142, 76%, 40%)" radius={[3, 3, 0, 0]} maxBarSize={22} name="Receitas" />
+              <Bar dataKey="expenses" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} maxBarSize={22} name="Despesas" />
+              <Line
                 type="monotone"
                 dataKey="profit"
-                stroke="hsl(217, 91%, 60%)"
+                stroke="hsl(217, 91%, 55%)"
                 strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#profitGradient)"
+                dot={{ fill: "hsl(217, 91%, 55%)", strokeWidth: 2, stroke: "hsl(var(--card))", r: 4 }}
                 name="Resultado"
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="margin"
-                stroke="hsl(280, 87%, 65%)"
-                strokeWidth={2}
-                dot={{ fill: "hsl(280, 87%, 65%)", strokeWidth: 0, r: 4 }}
-                name="Margem"
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Legend */}
-        <div className="flex justify-center gap-6 pt-4">
+        {/* Legenda */}
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 pt-4">
           <div className="flex items-center gap-2 text-xs">
             <div className="w-3 h-3 rounded-sm bg-emerald-500" />
             <span className="text-muted-foreground">Receitas</span>
@@ -203,12 +168,8 @@ export function MonthlyTrendChart({ selectedMonth }: MonthlyTrendChartProps) {
             <span className="text-muted-foreground">Despesas</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <div className="w-3 h-3 rounded-sm bg-blue-500" />
+            <div className="w-4 h-0.5 bg-blue-500" />
             <span className="text-muted-foreground">Resultado</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <div className="w-3 h-0.5 bg-purple-500" />
-            <span className="text-muted-foreground">Margem %</span>
           </div>
         </div>
       </CardContent>

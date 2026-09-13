@@ -438,7 +438,7 @@ export function TaxGuidesPanel() {
       {/* Header */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <FileText className="h-5 w-5 text-primary" />
@@ -541,7 +541,7 @@ export function TaxGuidesPanel() {
       {/* Tax Guides List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">Guias do Período</CardTitle>
             <Button onClick={handleExportAll} size="sm" className="gap-2">
               <Download className="w-4 h-4" />
@@ -566,54 +566,59 @@ export function TaxGuidesPanel() {
                 return (
                   <div
                     key={guide.id}
-                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                    {/* Nome, status e descrição — sempre em cima, quebrando livremente */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="font-medium">{guide.name}</span>
                         {getStatusBadge(guide.status)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <span>{guide.description}</span>
                         {guide.code && (
-                          <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs">
+                          <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs shrink-0">
                             Código: {guide.code}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="font-semibold">{formatCurrency(guide.value)}</div>
-                        <div className="text-xs text-muted-foreground">
+
+                    {/* Valor + ações — linha própria no mobile, nunca disputa espaço com o nome */}
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                      <div className="text-left sm:text-right">
+                        <div className="font-semibold tabular-nums">{formatCurrency(guide.value)}</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">
                           Venc: {format(dueDate, "dd/MM/yyyy")}
                         </div>
                       </div>
-                      {guide.status !== "paid" ? (
+                      <div className="flex items-center gap-2 shrink-0">
+                        {guide.status !== "paid" ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleOpenPayDialog(guide)}
+                            className="gap-1"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            <span className="hidden sm:inline">Marcar Paga</span>
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200 whitespace-nowrap">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Registrada
+                          </Badge>
+                        )}
                         <Button
-                          variant="default"
+                          variant="outline"
                           size="sm"
-                          onClick={() => handleOpenPayDialog(guide)}
+                          onClick={() => handleExportGuide(guide)}
                           className="gap-1"
                         >
-                          <CreditCard className="w-4 h-4" />
-                          Marcar Paga
+                          <Printer className="w-4 h-4" />
+                          <span className="hidden sm:inline">PDF</span>
                         </Button>
-                      ) : (
-                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Registrada
-                        </Badge>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleExportGuide(guide)}
-                        className="gap-1"
-                      >
-                        <Printer className="w-4 h-4" />
-                        PDF
-                      </Button>
+                      </div>
                     </div>
                   </div>
                 );

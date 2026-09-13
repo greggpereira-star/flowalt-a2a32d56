@@ -610,8 +610,27 @@ export function useImportInvoiceXML() {
         .single();
 
       if (error) {
-        // Rollback transaction if invoice insert fails
-        await supabase.from("transactions").delete().eq("id", transaction.id);
+        // Desfaz o lançamento já criado, já que a nota não entrou.
+        //
+        // O erro deste delete NÃO pode ser ignorado: se ele falhar (a política
+        // de exclusão em transactions costuma ser mais restrita que a de
+        // inserção), a tela diria apenas "erro ao importar" e o usuário
+        // acreditaria que nada foi gravado — enquanto sobra uma despesa órfã
+        // no fluxo de caixa, com o valor da NF-e e sem nota vinculada.
+        const { error: rollbackError } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("id", transaction.id);
+
+        if (rollbackError) {
+          throw new Error(
+            `A nota não pôde ser importada e o lançamento de R$ ${transaction.amount} ` +
+              `criado para ela NÃO foi removido. Exclua manualmente o lançamento ` +
+              `"${transaction.description ?? transaction.id}" no financeiro. ` +
+              `(erro original: ${error.message})`,
+          );
+        }
+
         throw error;
       }
 

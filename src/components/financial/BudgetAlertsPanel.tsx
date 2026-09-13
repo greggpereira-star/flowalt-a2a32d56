@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -199,7 +198,7 @@ export function BudgetAlertsPanel({ selectedMonth = new Date() }: BudgetAlertsPa
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-full sm:w-[540px]">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
@@ -230,9 +229,10 @@ export function BudgetAlertsPanel({ selectedMonth = new Date() }: BudgetAlertsPa
             </Card>
           </div>
 
-          {/* Alert List */}
-          <ScrollArea className="h-[calc(100vh-280px)]">
-            <div className="space-y-3 pr-4">
+          {/* Alert List — div simples + overflow-y-auto (ScrollArea do Radix mede a
+              largura pelo conteúdo natural, empurrando linhas largas para fora da tela) */}
+          <div className="h-[calc(100vh-280px)] overflow-y-auto overscroll-contain">
+            <div className="space-y-3 pr-1 sm:pr-4">
               {alerts.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center">
@@ -312,7 +312,7 @@ export function BudgetAlertsPanel({ selectedMonth = new Date() }: BudgetAlertsPa
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -29,6 +29,8 @@ import {
 } from '@/hooks/useProposalDocs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const BLOCK_TYPES: { type: ProposalBlock['type']; label: string; icon: React.ElementType }[] = [
   { type: 'section', label: 'Seção', icon: Type },
@@ -58,6 +60,8 @@ export default function ProposalGeneratorPage() {
   const { docId } = useParams<{ docId?: string }>();
   const { user } = useAuth();
   const isEditing = !!docId;
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'editor' | 'preview'>('editor');
 
   const { data: existingDoc, isLoading } = useProposalDoc(docId);
   const createDoc = useCreateProposalDoc();
@@ -71,7 +75,7 @@ export default function ProposalGeneratorPage() {
   const [activeOptionId, setActiveOptionId] = useState<string>(doc.options[0]?.id);
   const [savedId, setSavedId] = useState<string | undefined>(docId);
   const [exporting, setExporting] = useState(false);
-  const [zoom, setZoom] = useState(0.62);
+  const [zoom, setZoom] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.38 : 0.62));
 
   const pageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -211,32 +215,61 @@ export default function ProposalGeneratorPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-2.5 border-b bg-background/95 backdrop-blur sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/altcontrol')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-base font-semibold leading-tight">Gerador de Proposta</h1>
-            <p className="text-xs text-muted-foreground">{clientName || 'Nova proposta'}</p>
+      <div className="flex flex-col gap-2 px-3 sm:px-5 py-2.5 border-b bg-background/95 backdrop-blur sticky top-0 z-20">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/altcontrol')} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-semibold leading-tight truncate">Gerador de Proposta</h1>
+              <p className="text-xs text-muted-foreground truncate">{clientName || 'Nova proposta'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting} className="px-2 sm:px-3">
+              <Download className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'PDF'}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleGenerateLink} disabled={generateLink.isPending} className="px-2 sm:px-3">
+              <LinkIcon className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">Gerar link</span>
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={createDoc.isPending || updateDoc.isPending} className="px-2 sm:px-3">
+              <Save className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">Salvar</span>
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting}>
-            <Download className="h-4 w-4 mr-1.5" /> {exporting ? 'Exportando...' : 'PDF'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleGenerateLink} disabled={generateLink.isPending}>
-            <LinkIcon className="h-4 w-4 mr-1.5" /> Gerar link
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={createDoc.isPending || updateDoc.isPending}>
-            <Save className="h-4 w-4 mr-1.5" /> Salvar
-          </Button>
-        </div>
+
+        {/* Mobile: alternar entre Editar e Visualizar (as duas colunas nao cabem lado a lado) */}
+        {isMobile && (
+          <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-lg">
+            <button
+              onClick={() => setMobileView('editor')}
+              className={cn(
+                'flex-1 text-xs font-medium rounded-md py-1.5 transition-colors',
+                mobileView === 'editor' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+              )}
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => setMobileView('preview')}
+              className={cn(
+                'flex-1 text-xs font-medium rounded-md py-1.5 transition-colors',
+                mobileView === 'preview' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+              )}
+            >
+              Visualizar
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Painel de edição */}
-        <div className="w-[460px] border-r bg-muted/20 flex flex-col">
+        <div className={cn(
+          'border-r bg-muted/20 flex-col',
+          isMobile ? (mobileView === 'editor' ? 'flex w-full' : 'hidden') : 'w-[460px] flex'
+        )}>
           <ScrollArea className="flex-1">
             <div className="p-4">
               <Accordion type="multiple" defaultValue={['dados', 'conteudo']} className="space-y-2">
@@ -426,7 +459,10 @@ export default function ProposalGeneratorPage() {
         </div>
 
         {/* Preview A4 */}
-        <div className="flex-1 flex flex-col bg-[#4a4a4a] overflow-hidden">
+        <div className={cn(
+          'flex-1 flex-col bg-[#4a4a4a] overflow-hidden',
+          isMobile ? (mobileView === 'preview' ? 'flex' : 'hidden') : 'flex'
+        )}>
           {/* Barra de zoom */}
           <div className="flex items-center justify-center gap-2 py-1.5 bg-black/20 border-b border-black/30">
             <Button size="icon" variant="ghost" className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/10" onClick={() => setZoom((z) => Math.max(0.3, +(z - 0.1).toFixed(2)))}><ZoomOut className="h-4 w-4" /></Button>

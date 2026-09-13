@@ -178,7 +178,7 @@ export function RetentionsPanel() {
       {/* Header */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Receipt className="h-5 w-5 text-primary" />
@@ -207,8 +207,8 @@ export function RetentionsPanel() {
 
       {/* View Type Tabs */}
       <Tabs value={viewType} onValueChange={(v) => setViewType(v as "suffered" | "made")}>
-        <div className="flex items-center justify-between">
-          <TabsList>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="suffered" className="gap-2">
               <ArrowDownRight className="w-4 h-4" />
               Retenções Sofridas

@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { useCreateInvoice, Invoice } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
 import { useTransactions } from "@/hooks/useFinancial";
@@ -105,8 +106,11 @@ export function InvoiceForm({
   });
 
   const onSubmit = async (data: FormData) => {
-    const grossAmount = parseFloat(data.gross_amount.replace(/[^\d,.-]/g, "").replace(",", "."));
-    const taxAmount = data.tax_amount ? parseFloat(data.tax_amount.replace(/[^\d,.-]/g, "").replace(",", ".")) : 0;
+    // parseCurrencyToNumber remove o ponto de milhar antes de converter. O
+    // parse anterior o mantinha, então "1.234,56" virava "1.234.56" e o
+    // parseFloat parava no segundo ponto: a nota era gravada como R$ 1,23.
+    const grossAmount = parseCurrencyToNumber(data.gross_amount);
+    const taxAmount = data.tax_amount ? parseCurrencyToNumber(data.tax_amount) : 0;
 
     await createInvoice.mutateAsync({
       invoice_number: data.invoice_number,

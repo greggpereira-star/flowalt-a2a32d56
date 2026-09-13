@@ -121,7 +121,7 @@ export function PayrollDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="w-4 h-4" />
@@ -129,16 +129,16 @@ export function PayrollDashboard() {
           <h2 className="text-xl font-semibold">
             Folha de {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
           </h2>
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={nextMonth}
             disabled={selectedMonth >= startOfMonth(new Date())}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => generatePayroll.mutate({ referenceMonth: selectedMonth })}

@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrencyInput } from "@/components/ui/currency-input";
+import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { DateInput } from "@/components/ui/date-input";
 import {
   Select,
@@ -194,10 +194,10 @@ export function ExternalCollaboratorFormModal({
     }
   }, [collaborator, collaboratorId, form]);
 
-  const parseCurrency = (value: string): number => {
-    if (!value) return 0;
-    return parseFloat(value.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-  };
+  // Usa o parser compartilhado do CurrencyInput. A versão local mantinha o
+  // ponto de milhar, então "1.234,56" virava "1.234.56" e o parseFloat parava
+  // no segundo ponto: um salário de R$ 1.234,56 era gravado como R$ 1,23.
+  const parseCurrency = parseCurrencyToNumber;
 
   const onSubmit = async (data: FormData) => {
     const input: ExternalCollaboratorInput = {

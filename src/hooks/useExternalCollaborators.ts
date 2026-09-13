@@ -160,12 +160,22 @@ export function useCreateExternalCollaborator() {
 
       // Log salary history if salary > 0
       if (input.base_salary && input.base_salary > 0) {
-        await supabase.from("external_collaborator_salary_history").insert({
-          collaborator_id: data.id,
-          previous_salary: 0,
-          new_salary: input.base_salary,
-          reason: "Cadastro inicial",
-        });
+        const { error: historyError } = await supabase
+          .from("external_collaborator_salary_history")
+          .insert({
+            collaborator_id: data.id,
+            previous_salary: 0,
+            new_salary: input.base_salary,
+            reason: "Cadastro inicial",
+          });
+
+        // Sem o valor de cadastro na trilha nao existe base de comparacao
+        // para reajustes futuros deste prestador.
+        if (historyError) {
+          throw new Error(
+            `Colaborador criado, mas o valor inicial nao pode ser registrado no historico: ${historyError.message}`,
+          );
+        }
       }
 
       return data;
@@ -231,12 +241,22 @@ export function useUpdateExternalCollaborator() {
 
       // Log salary change if different
       if (current && input.base_salary !== undefined && current.base_salary !== input.base_salary) {
-        await supabase.from("external_collaborator_salary_history").insert({
-          collaborator_id: id,
-          previous_salary: current.base_salary || 0,
-          new_salary: input.base_salary,
-          reason: "Atualização de salário",
-        });
+        const { error: historyError } = await supabase
+          .from("external_collaborator_salary_history")
+          .insert({
+            collaborator_id: id,
+            previous_salary: current.base_salary || 0,
+            new_salary: input.base_salary,
+            reason: "Atualização de salário",
+          });
+
+        // Mudanca de custo mensal de um prestador precisa ficar datada e
+        // rastreavel; antes o erro era descartado sob um toast de sucesso.
+        if (historyError) {
+          throw new Error(
+            `Valor atualizado, mas o historico nao pode ser registrado: ${historyError.message}`,
+          );
+        }
       }
 
       return data;

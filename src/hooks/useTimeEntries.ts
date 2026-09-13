@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -165,10 +166,17 @@ export const useStopTimer = () => {
       if (allEntries) {
         const totalSeconds = allEntries.reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
         const totalHours = parseFloat((totalSeconds / 3600).toFixed(2));
-        await supabase
+        // O erro deste update era descartado: o cronômetro parava normalmente
+        // e o card ficava com o total de horas defasado, sem nenhum aviso.
+        const { error: hoursError } = await supabase
           .from('cards')
           .update({ actual_hours: totalHours })
           .eq('id', card_id);
+
+        if (hoursError) {
+          console.error('Falha ao atualizar actual_hours do card:', hoursError);
+          toast.warning('O tempo foi registrado, mas o total de horas do card não pôde ser atualizado.');
+        }
       }
 
       // Trigger webhook
@@ -204,10 +212,38 @@ export const useDeleteTimeEntry = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Sem este recálculo o card mantinha as horas do lançamento excluído até
+      // que alguém parasse um novo cronômetro — e esse número inflado alimenta
+      // os indicadores de risco do card e as métricas por coluna do kanban.
+      const { data: allEntries, error: entriesError } = await supabase
+        .from('time_entries')
+        .select('duration_seconds')
+        .eq('card_id', card_id)
+        .eq('is_running', false);
+
+      if (entriesError) throw entriesError;
+
+      const totalSeconds = (allEntries ?? []).reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
+      const totalHours = parseFloat((totalSeconds / 3600).toFixed(2));
+
+      const { error: updateError } = await supabase
+        .from('cards')
+        .update({ actual_hours: totalHours })
+        .eq('id', card_id);
+
+      if (updateError) throw updateError;
+
       return { id, card_id };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', data.card_id] });
+      // O total de horas do card mudou: as telas que o exibem precisam saber.
+      queryClient.invalidateQueries({ queryKey: ['card', data.card_id] });
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao excluir o lançamento de tempo');
     },
   });
 };

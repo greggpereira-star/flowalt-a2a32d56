@@ -256,16 +256,17 @@ export function DDAQAChecklist() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <CardTitle className="text-base">Checklist de Validação DDA</CardTitle>
             <CardDescription>Verificação automática de funcionalidades</CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={runChecks}
             disabled={isRunning}
+            className="shrink-0 self-start sm:self-auto"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isRunning ? 'animate-spin' : ''}`} />
             Revalidar

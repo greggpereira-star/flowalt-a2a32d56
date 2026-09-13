@@ -15,15 +15,7 @@ import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { generatePDFReport, downloadPDF, ReportData, ReportSection } from '@/lib/pdfGenerator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  delivered: 'Entregue',
-  archived: 'Arquivado',
-};
+import { CARD_STATUS_LABELS, getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 
 const URGENCY_LABELS: Record<string, string> = {
   low: 'Baixa',
@@ -49,7 +41,7 @@ export const ExportReportsButton: React.FC = () => {
           type: 'summary',
           summary: [
             { label: 'Total de Cards', value: cards.length },
-            { label: 'Em Progresso', value: cards.filter(c => c.status === 'in_progress').length },
+            { label: CARD_STATUS_LABELS.in_progress, value: cards.filter(c => c.status === 'in_progress').length },
             { label: 'Entregues', value: cards.filter(c => c.status === 'delivered').length },
             { label: 'Atrasados', value: cards.filter(c => c.due_date && new Date(c.due_date) < new Date() && c.status !== 'delivered' && c.status !== 'approved').length },
           ],
@@ -61,7 +53,7 @@ export const ExportReportsButton: React.FC = () => {
             headers: ['Título', 'Status', 'Urgência', 'Prazo', 'Horas'],
             rows: cards.slice(0, 50).map(card => [
               card.title.length > 40 ? card.title.substring(0, 40) + '...' : card.title,
-              STATUS_LABELS[card.status] || card.status,
+              getCardStatusLabel(card.status),
               URGENCY_LABELS[card.urgency] || card.urgency,
               card.due_date ? format(new Date(card.due_date), 'dd/MM/yyyy') : '-',
               card.actual_hours?.toFixed(1) || '0',
@@ -113,7 +105,7 @@ export const ExportReportsButton: React.FC = () => {
           type: 'summary',
           summary: [
             { label: 'Cards Entregues', value: statusCounts.delivered || 0 },
-            { label: 'Em Andamento', value: statusCounts.in_progress || 0 },
+            { label: CARD_STATUS_LABELS.in_progress, value: statusCounts.in_progress || 0 },
             { label: 'Total de Horas', value: `${cards.reduce((sum, c) => sum + (c.actual_hours || 0), 0).toFixed(1)}h` },
             { label: 'Membros Ativos', value: members.length },
           ],
@@ -124,7 +116,7 @@ export const ExportReportsButton: React.FC = () => {
           data: {
             headers: ['Status', 'Quantidade', 'Percentual'],
             rows: Object.entries(statusCounts).map(([status, count]) => [
-              STATUS_LABELS[status] || status,
+              getCardStatusLabel(status),
               String(count),
               `${((count / cards.length) * 100).toFixed(1)}%`,
             ]),

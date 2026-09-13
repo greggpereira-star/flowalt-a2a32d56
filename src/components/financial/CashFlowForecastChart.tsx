@@ -55,7 +55,7 @@ export function CashFlowForecastChart() {
   return (
     <Card className="border border-border/50">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base font-semibold">Projeção de Fluxo de Caixa</CardTitle>
           <Badge variant="outline" className={`gap-1.5 ${trendInfo.bg}`}>
             <trendInfo.icon className={`w-3 h-3 ${trendInfo.color}`} />
@@ -65,22 +65,22 @@ export function CashFlowForecastChart() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-muted/30">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Próximo Mês</p>
-            <p className={`text-lg font-semibold mt-1 ${data[0]?.balance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/30">
+          <div className="text-center min-w-0">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Próximo Mês</p>
+            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${data[0]?.balance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(data[0]?.balance || 0)}
             </p>
           </div>
-          <div className="text-center border-x border-border/50">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Em 6 Meses</p>
-            <p className={`text-lg font-semibold mt-1 ${(data[5]?.cumulative || 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          <div className="text-center min-w-0 border-x border-border/50 px-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Em 6 Meses</p>
+            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${(data[5]?.cumulative || 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(data[5]?.cumulative || 0)}
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Em 12 Meses</p>
-            <p className={`text-lg font-semibold mt-1 ${lastBalance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          <div className="text-center min-w-0">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Em 12 Meses</p>
+            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${lastBalance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(lastBalance)}
             </p>
           </div>

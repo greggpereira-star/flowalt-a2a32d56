@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useToast } from "@/hooks/use-toast";
@@ -403,8 +404,14 @@ export function useFinancialSummary(month?: Date) {
         }, 0);
 
       const overdue = data.filter(t => {
-        const dueDate = new Date(t.due_date);
-        return t.status === "pending" && dueDate < new Date();
+        // due_date e uma coluna `date` ("2026-08-10"). `new Date("2026-08-10")`
+        // e interpretado como MEIA-NOITE UTC, que em UTC-3 e 21h do dia
+        // ANTERIOR — a conta era marcada como vencida 3h antes de o dia do
+        // vencimento sequer comecar, e seguia "vencida" no proprio dia de
+        // vencer. O sufixo T00:00:00 forca leitura em hora local, e o
+        // startOfDay dos dois lados compara dia contra dia.
+        const dueDate = startOfDay(new Date(t.due_date + "T00:00:00"));
+        return t.status === "pending" && dueDate < startOfDay(new Date());
       });
 
       return {

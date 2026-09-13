@@ -80,7 +80,7 @@ export function ProjectProfitabilityPanel() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">Rentabilidade</h3>
           <p className="text-sm text-muted-foreground">
@@ -224,7 +224,82 @@ export function ProjectProfitabilityPanel() {
         />
       </div>
 
-      <Card>
+      {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+      <Card className="md:hidden overflow-hidden">
+        <div className="divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+          {isLoading ? (
+            <div className="p-3 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+            </div>
+          ) : filteredData.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8 text-sm">
+              Nenhum {view === "projects" ? "projeto" : "cliente"} encontrado
+            </div>
+          ) : (
+            filteredData.map((item) => (
+              <div key={item.id} className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {"title" in item ? item.title : item.name}
+                    </p>
+                    {view === "projects" && (
+                      <Badge variant="outline" className="font-normal text-[10px] mt-1">
+                        {"clientName" in item ? item.clientName : "-"}
+                      </Badge>
+                    )}
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "shrink-0 font-medium",
+                      item.profitMargin >= 30
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        : item.profitMargin >= 10
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                          : "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                    )}
+                  >
+                    {item.profitMargin.toFixed(1)}%
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mt-2.5 pt-2.5 border-t border-border/40 text-xs">
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground">Receita</p>
+                    <p className="text-emerald-600 font-medium tabular-nums truncate">{formatCurrency(item.income)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground">Custos</p>
+                    <p className="text-rose-600 tabular-nums truncate">{formatCurrency(item.expenses + item.laborCost)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground">Horas</p>
+                    <p className="tabular-nums truncate">{formatHours(item.hours)}</p>
+                  </div>
+                </div>
+                <div className="mt-1.5 text-xs">
+                  <span className="text-muted-foreground">Lucro: </span>
+                  <span className={cn(
+                    "font-medium inline-flex items-center gap-0.5",
+                    item.profit >= 0 ? "text-emerald-600" : "text-rose-600"
+                  )}>
+                    {item.profit >= 0 ? (
+                      <ArrowUpRight className="w-3 h-3" />
+                    ) : (
+                      <ArrowDownRight className="w-3 h-3" />
+                    )}
+                    {formatCurrency(Math.abs(item.profit))}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+
+      {/* Desktop: tabela completa */}
+      <Card className="hidden md:block">
         <ScrollArea className="h-[400px]">
           <Table>
             <TableHeader>

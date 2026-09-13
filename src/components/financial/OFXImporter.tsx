@@ -58,52 +58,72 @@ export function OFXImporter() {
 
       setStatement(result.statement);
 
-      // Match with existing transactions
-      const importedTransactions: ImportedTransaction[] = await Promise.all(
-        result.statement.transactions.map(async (txn) => {
-          // Try to find matching transactions in the database
-          const { data: matches } = await supabase
-            .from("bank_reconciliations")
-            .select("id, transaction_id, status")
-            .eq("workspace_id", currentWorkspace?.id)
-            .eq("external_id", txn.id)
-            .maybeSingle();
+      // O casamento era feito com DUAS consultas por linha do extrato, todas
+      // disparadas de uma vez pelo Promise.all. Um extrato mensal comum tem de
+      // 100 a 300 lançamentos, ou seja, 200 a 600 requisições simultâneas —
+      // suficiente para esgotar o pool de conexões. Agora são duas consultas
+      // no total, cobrindo o extrato inteiro, e o casamento roda em memória.
+      const linhas = result.statement.transactions;
+      const TRES_DIAS = 3 * 24 * 60 * 60 * 1000;
 
-          if (matches) {
-            return {
-              ...txn,
-              selected: false,
-              matchStatus: "matched" as const,
-              matchedTransactionId: matches.transaction_id || undefined,
-            };
-          }
+      const idsExternos = linhas.map((t) => t.id).filter(Boolean);
+      const datas = linhas.map((t) => t.date.getTime());
+      const inicioJanela = new Date(Math.min(...datas) - TRES_DIAS);
+      const fimJanela = new Date(Math.max(...datas) + TRES_DIAS);
 
-          // Try to match by amount and approximate date
-          const dateStr = format(txn.date, "yyyy-MM-dd");
-          const { data: potentialMatches } = await supabase
-            .from("transactions")
-            .select("id, description, amount, due_date")
-            .eq("workspace_id", currentWorkspace?.id)
-            .eq("amount", txn.amount)
-            .gte("due_date", format(new Date(txn.date.getTime() - 3 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"))
-            .lte("due_date", format(new Date(txn.date.getTime() + 3 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"));
+      const [conciliacoesRes, candidatasRes] = await Promise.all([
+        idsExternos.length > 0
+          ? supabase
+              .from("bank_reconciliations")
+              .select("id, transaction_id, status, external_id")
+              .eq("workspace_id", currentWorkspace?.id)
+              .in("external_id", idsExternos)
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("transactions")
+          .select("id, description, amount, due_date")
+          .eq("workspace_id", currentWorkspace?.id)
+          .gte("due_date", format(inicioJanela, "yyyy-MM-dd"))
+          .lte("due_date", format(fimJanela, "yyyy-MM-dd")),
+      ]);
 
-          if (potentialMatches && potentialMatches.length > 0) {
-            return {
-              ...txn,
-              selected: true,
-              matchStatus: "partial" as const,
-              matchedTransactionId: potentialMatches[0].id,
-            };
-          }
+      const conciliacaoPorExternalId = new Map(
+        (conciliacoesRes.data ?? []).map((r: any) => [r.external_id, r])
+      );
 
+      const importedTransactions: ImportedTransaction[] = linhas.map((txn) => {
+        const jaConciliada = conciliacaoPorExternalId.get(txn.id);
+        if (jaConciliada) {
+          return {
+            ...txn,
+            selected: false,
+            matchStatus: "matched" as const,
+            matchedTransactionId: jaConciliada.transaction_id || undefined,
+          };
+        }
+
+        // Mesmo critério de antes: mesmo valor, vencimento a até 3 dias.
+        const candidata = (candidatasRes.data ?? []).find((t: any) => {
+          if (Number(t.amount) !== Number(txn.amount)) return false;
+          const venc = new Date(t.due_date + "T00:00:00").getTime();
+          return Math.abs(venc - txn.date.getTime()) <= TRES_DIAS;
+        });
+
+        if (candidata) {
           return {
             ...txn,
             selected: true,
-            matchStatus: "new" as const,
+            matchStatus: "partial" as const,
+            matchedTransactionId: candidata.id,
           };
-        })
-      );
+        }
+
+        return {
+          ...txn,
+          selected: true,
+          matchStatus: "new" as const,
+        };
+      });
 
       setTransactions(importedTransactions);
       toast.success(`${importedTransactions.length} transações encontradas`);
@@ -140,10 +160,17 @@ export function OFXImporter() {
     setImportProgress(0);
 
     try {
+      // O retorno do insert era descartado. Como o supabase-js NÃO lança em
+      // erro de insert (devolve { error }), uma linha recusada — por
+      // external_id duplicado numa reimportação, por exemplo — falhava em
+      // silêncio e mesmo assim o toast anunciava tudo importado.
+      let gravadas = 0;
+      const falhas: string[] = [];
+
       for (let i = 0; i < selectedTransactions.length; i++) {
         const txn = selectedTransactions[i];
 
-        await supabase.from("bank_reconciliations").insert({
+        const { error: insertError } = await supabase.from("bank_reconciliations").insert({
           workspace_id: currentWorkspace.id,
           external_id: txn.id,
           bank_name: statement.bankId || "Importação OFX",
@@ -159,11 +186,31 @@ export function OFXImporter() {
           source: "ofx_import",
         });
 
+        if (insertError) {
+          falhas.push(txn.description || txn.id);
+          console.error("Falha ao importar lançamento do OFX:", insertError);
+        } else {
+          gravadas++;
+        }
+
         setImportProgress(((i + 1) / selectedTransactions.length) * 100);
       }
 
       queryClient.invalidateQueries({ queryKey: ["bank-reconciliations"] });
-      toast.success(`${selectedTransactions.length} transações importadas com sucesso!`);
+
+      if (gravadas === 0) {
+        toast.error("Nenhum lançamento foi importado. Verifique se o extrato já havia sido importado antes.");
+        return;
+      }
+
+      if (falhas.length > 0) {
+        toast.warning(
+          `${gravadas} de ${selectedTransactions.length} lançamentos importados. ${falhas.length} não puderam ser gravados (possível reimportação).`
+        );
+      } else {
+        toast.success(`${gravadas} transações importadas com sucesso!`);
+      }
+
       setOpen(false);
       setStatement(null);
       setTransactions([]);
@@ -210,9 +257,9 @@ export function OFXImporter() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Upload className="w-4 h-4" />
-          Importar OFX/OFC
+        <Button variant="outline" size="sm" className="w-full lg:w-auto justify-center gap-2 text-xs sm:text-sm px-2 lg:h-10">
+          <Upload className="w-4 h-4 shrink-0" />
+          <span className="truncate">Importar OFX</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">

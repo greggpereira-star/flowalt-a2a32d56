@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { useInvoices, useDeleteInvoice, useUpdateInvoice, Invoice } from "@/hooks/useInvoices";
 
 interface InvoiceListProps {
@@ -103,48 +104,153 @@ export function InvoiceList({ onEdit, onLinkTransaction }: InvoiceListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:flex-wrap">
         <Input
           placeholder="Buscar por número ou destinatário..."
-          className="w-[250px]"
+          className="w-full sm:w-[250px]"
           value={filters.search || ""}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
         />
-        
-        <Select
-          value={filters.invoice_type || "all"}
-          onValueChange={(value) => setFilters({ ...filters, invoice_type: value === "all" ? undefined : value })}
-        >
-          <SelectTrigger className="w-[150px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="nfse">NFS-e</SelectItem>
-            <SelectItem value="nfe">NF-e</SelectItem>
-            <SelectItem value="nfce">NFC-e</SelectItem>
-          </SelectContent>
-        </Select>
 
-        <Select
-          value={filters.status || "all"}
-          onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value })}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="emitida">Emitidas</SelectItem>
-            <SelectItem value="pendente">Pendentes</SelectItem>
-            <SelectItem value="cancelada">Canceladas</SelectItem>
-            <SelectItem value="substituida">Substituídas</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 sm:flex gap-2">
+          <Select
+            value={filters.invoice_type || "all"}
+            onValueChange={(value) => setFilters({ ...filters, invoice_type: value === "all" ? undefined : value })}
+          >
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="nfse">NFS-e</SelectItem>
+              <SelectItem value="nfe">NF-e</SelectItem>
+              <SelectItem value="nfce">NFC-e</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.status || "all"}
+            onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value })}
+          >
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="emitida">Emitidas</SelectItem>
+              <SelectItem value="pendente">Pendentes</SelectItem>
+              <SelectItem value="cancelada">Canceladas</SelectItem>
+              <SelectItem value="substituida">Substituídas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="rounded-md border border-border">
+      {/* Mobile: lista em cards — evita as 10 colunas cortadas da tabela */}
+      <div className="md:hidden rounded-xl border border-border/50 divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+        {invoices.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8 text-sm">
+            Nenhuma nota fiscal encontrada
+          </div>
+        ) : (
+          invoices.map((invoice) => (
+            <div key={invoice.id} className="p-3 active:bg-muted/30 transition-colors">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="font-medium text-sm truncate">{invoice.invoice_number}</span>
+                  <span className="shrink-0">{getTypeBadge(invoice.invoice_type)}</span>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1 -mt-1">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!invoice.transaction_id && (
+                      <DropdownMenuItem onClick={() => onLinkTransaction?.(invoice)}>
+                        <Link2 className="w-4 h-4 mr-2" />
+                        Vincular Transação
+                      </DropdownMenuItem>
+                    )}
+                    {invoice.pdf_url && (
+                      <DropdownMenuItem asChild>
+                        <a href={invoice.pdf_url} target="_blank" rel="noopener noreferrer">
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar PDF
+                        </a>
+                      </DropdownMenuItem>
+                    )}
+                    {invoice.xml_url && (
+                      <DropdownMenuItem asChild>
+                        <a href={invoice.xml_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Baixar XML
+                        </a>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDelete(invoice.id)}
+                      disabled={deleteInvoice.isPending}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="mt-1.5 text-sm">
+                <span className="font-medium">{invoice.recipient_name || "-"}</span>
+                {invoice.recipient_document && (
+                  <span className="text-muted-foreground"> · {invoice.recipient_document}</span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Emitida em {format(new Date(invoice.issue_date), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+
+              <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-border/40">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor Líquido</p>
+                  <p className="text-sm font-semibold text-green-600 tabular-nums truncate">
+                    {formatCurrency(invoice.net_amount)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums truncate">
+                    Bruto {formatCurrency(invoice.gross_amount)} · Impostos -{formatCurrency(invoice.tax_amount)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {getStatusBadge(invoice.status)}
+                  {invoice.transaction_id ? (
+                    <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30 text-[10px]">
+                      <Link2 className="w-2.5 h-2.5 mr-1" />
+                      Vinculada
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                      Não vinculada
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: tabela completa */}
+      <div className="hidden md:block rounded-md border border-border">
         <Table>
           <TableHeader>
             <TableRow>

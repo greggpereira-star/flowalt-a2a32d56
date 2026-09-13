@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,24 @@ export function InvoiceGenerator() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.55);
+
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+    const INVOICE_WIDTH_PX = 793; // 210mm @ 96dpi
+    const PREVIEW_PADDING_PX = 32; // p-4 on both sides
+    const updateScale = () => {
+      const availableWidth = container.clientWidth - PREVIEW_PADDING_PX;
+      const nextScale = Math.min(0.55, availableWidth / INVOICE_WIDTH_PX);
+      setPreviewScale(Math.max(0.28, nextScale));
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const [form, setForm] = useState({
     documentTitle: "Invoice",
@@ -220,35 +238,35 @@ h1{font-size:4.5rem;font-weight:900;letter-spacing:-3px;line-height:1;margin:0 0
         </CardHeader>
         <CardContent className="space-y-5">
           {/* Logo */}
-          <div className="space-y-2 p-3 rounded-lg border border-border/40 bg-muted/20">
+          <div className="space-y-3 p-3 rounded-lg border border-border/40 bg-muted/20">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Logo</Label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               {logoUrl ? (
-                <div className="relative">
+                <div className="relative shrink-0">
                   <img src={logoUrl} alt="Logo" className="h-10 max-w-[140px] object-contain rounded border" />
                   <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground" onClick={() => setLogoUrl(null)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-2 flex-1">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Principal</Label>
+                <div className="grid grid-cols-3 gap-2 flex-1 min-w-0">
+                  <div className="space-y-1 min-w-0">
+                    <Label className="text-[11px] text-muted-foreground truncate block">Principal</Label>
                     <Input value={form.brandMain} onChange={(e) => setForm((p) => ({ ...p, brandMain: e.target.value }))} className="h-8 text-xs" />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Sub Top</Label>
+                  <div className="space-y-1 min-w-0">
+                    <Label className="text-[11px] text-muted-foreground truncate block">Sub Top</Label>
                     <Input value={form.brandSubTop} onChange={(e) => setForm((p) => ({ ...p, brandSubTop: e.target.value }))} className="h-8 text-xs" />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Sub Bottom</Label>
+                  <div className="space-y-1 min-w-0">
+                    <Label className="text-[11px] text-muted-foreground truncate block">Sub Bottom</Label>
                     <Input value={form.brandSubBottom} onChange={(e) => setForm((p) => ({ ...p, brandSubBottom: e.target.value }))} className="h-8 text-xs" />
                   </div>
                 </div>
               )}
-              <div>
+              <div className="shrink-0">
                 <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} className="h-8 text-xs">
+                <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} className="h-8 text-xs w-full sm:w-auto">
                   <ImageIcon className="h-3 w-3 mr-1" />
                   {logoUrl ? "Trocar" : "Upload"}
                 </Button>
@@ -386,8 +404,11 @@ h1{font-size:4.5rem;font-weight:900;letter-spacing:-3px;line-height:1;margin:0 0
             Preview
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center bg-[#555] rounded-lg p-4">
-          <InvoiceTemplateAltPremium ref={previewRef} data={invoiceData} scale={0.55} />
+        <CardContent
+          ref={previewContainerRef}
+          className="flex justify-center bg-[#555] rounded-lg p-4 overflow-hidden"
+        >
+          <InvoiceTemplateAltPremium ref={previewRef} data={invoiceData} scale={previewScale} />
         </CardContent>
       </Card>
     </div>

@@ -187,7 +187,7 @@ export function CostCenterDrilldown({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[600px] sm:w-[800px] sm:max-w-[800px]">
+      <SheetContent className="w-full sm:w-[800px] sm:max-w-[800px]">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-3">
             <div
@@ -206,7 +206,9 @@ export function CostCenterDrilldown({
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-100px)] mt-6 pr-4">
+        {/* div simples + overflow-y-auto (ScrollArea do Radix mede a largura pelo
+            conteúdo natural, empurrando linhas/tabelas largas para fora da tela) */}
+        <div className="h-[calc(100vh-100px)] overflow-y-auto overscroll-contain mt-6 pr-1 sm:pr-4">
           <div className="space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-4">
@@ -543,7 +545,7 @@ export function CostCenterDrilldown({
               </Card>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );

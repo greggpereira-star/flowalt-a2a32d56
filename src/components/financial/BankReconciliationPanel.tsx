@@ -45,6 +45,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useInvoices, Invoice } from "@/hooks/useInvoices";
 import { useTransactions, Transaction } from "@/hooks/useFinancial";
@@ -234,6 +235,10 @@ export function BankReconciliationPanel() {
       queryClient.invalidateQueries({ queryKey: ["financial-audit-trail"] });
       toast.success("Conciliação desfeita");
     },
+    // O reconcileMutation acima já avisava em caso de erro; estes dois não.
+    onError: () => {
+      toast.error("Erro ao desfazer a conciliação");
+    },
   });
 
   const ignoreMutation = useMutation({
@@ -264,6 +269,9 @@ export function BankReconciliationPanel() {
       queryClient.invalidateQueries({ queryKey: ["bank-reconciliations"] });
       queryClient.invalidateQueries({ queryKey: ["financial-audit-trail"] });
       toast.success("Item ignorado");
+    },
+    onError: () => {
+      toast.error("Erro ao ignorar o item");
     },
   });
 
@@ -437,9 +445,99 @@ export function BankReconciliationPanel() {
     }
   };
 
+  // Ações da linha do extrato OFX — reaproveitada pela tabela (desktop) e pelo card (mobile)
+  const renderOfxActions = (item: BankReconciliation) => (
+    <>
+      {item.status === "pending" && (
+        <>
+          <Dialog
+            open={matchDialogOpen && selectedItem?.id === item.id}
+            onOpenChange={(open) => {
+              setMatchDialogOpen(open);
+              if (!open) setSelectedItem(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" onClick={() => setSelectedItem(item)}>
+                <Link2 className="h-4 w-4 mr-1" />
+                Vincular
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Vincular Lançamento</DialogTitle>
+              </DialogHeader>
+              {selectedItem && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <div className="font-medium">
+                      {selectedItem.bank_statement_description}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(selectedItem.bank_statement_date), "dd/MM/yyyy")}{" "}
+                      •{" "}
+                      {formatCurrency(Math.abs(selectedItem.bank_statement_amount))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Correspondências sugeridas:</h4>
+                    {getSuggestedMatches(selectedItem).map((match) => (
+                      <div
+                        key={`${match.type}-${match.id}`}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                        onClick={() => {
+                          reconcileMutation.mutate({
+                            reconciliationId: selectedItem.id,
+                            transactionId: match.type === "transaction" ? match.id : undefined,
+                            invoiceId: match.type === "invoice" ? match.id : undefined,
+                          });
+                        }}
+                      >
+                        <div>
+                          <div className="font-medium">{match.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {format(new Date(match.date), "dd/MM/yyyy")} •{" "}
+                            {formatCurrency(match.amount)}
+                          </div>
+                        </div>
+                        <Badge variant={match.confidence > 60 ? "default" : "secondary"}>
+                          {match.confidence}% match
+                        </Badge>
+                      </div>
+                    ))}
+                    {getSuggestedMatches(selectedItem).length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma correspondência encontrada automaticamente.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+          <Button size="sm" variant="ghost" onClick={() => ignoreMutation.mutate(item.id)}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </>
+      )}
+      {item.status === "reconciled" && (
+        <Button size="sm" variant="ghost" onClick={() => unreconcileMutation.mutate(item.id)}>
+          <Unlink className="h-4 w-4 mr-1" />
+          Desfazer
+        </Button>
+      )}
+      {item.status === "ignored" && (
+        <Button size="sm" variant="ghost" onClick={() => unreconcileMutation.mutate(item.id)}>
+          Restaurar
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Link2 className="w-5 h-5" />
@@ -451,7 +549,7 @@ export function BankReconciliationPanel() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={viewMode} onValueChange={(v) => setViewMode(v as "ofx" | "invoices")}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -465,7 +563,7 @@ export function BankReconciliationPanel() {
       {viewMode === "ofx" ? (
         <>
           {/* OFX Stats */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="text-2xl font-bold">{ofxStats.total}</div>
@@ -501,7 +599,7 @@ export function BankReconciliationPanel() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -514,7 +612,7 @@ export function BankReconciliationPanel() {
                   </div>
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
@@ -534,173 +632,94 @@ export function BankReconciliationPanel() {
                   Nenhum item encontrado. Importe um arquivo OFX para começar.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Banco</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+                  <div className="md:hidden rounded-xl border border-border/50 divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
                     {filteredReconciliations?.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          {format(new Date(item.bank_statement_date), "dd/MM/yyyy", {
-                            locale: ptBR,
-                          })}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {item.bank_statement_description || "-"}
-                        </TableCell>
-                        <TableCell>{item.bank_name || "-"}</TableCell>
-                        <TableCell className="text-right">
+                      <div key={item.id} className="p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {item.bank_statement_description || "-"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(item.bank_statement_date), "dd/MM/yyyy", { locale: ptBR })}
+                              {item.bank_name ? ` · ${item.bank_name}` : ""}
+                            </p>
+                          </div>
                           <span
-                            className={`flex items-center justify-end gap-1 ${
-                              item.bank_statement_type === "credit"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
+                            className={cn(
+                              "shrink-0 flex items-center gap-1 text-sm font-semibold tabular-nums whitespace-nowrap",
+                              item.bank_statement_type === "credit" ? "text-green-600" : "text-red-600"
+                            )}
                           >
                             {item.bank_statement_type === "credit" ? (
-                              <ArrowUpRight className="h-4 w-4" />
+                              <ArrowUpRight className="h-3.5 w-3.5" />
                             ) : (
-                              <ArrowDownRight className="h-4 w-4" />
+                              <ArrowDownRight className="h-3.5 w-3.5" />
                             )}
                             {formatCurrency(Math.abs(item.bank_statement_amount))}
                           </span>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {item.status === "pending" && (
-                              <>
-                                <Dialog
-                                  open={matchDialogOpen && selectedItem?.id === item.id}
-                                  onOpenChange={(open) => {
-                                    setMatchDialogOpen(open);
-                                    if (!open) setSelectedItem(null);
-                                  }}
-                                >
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setSelectedItem(item)}
-                                    >
-                                      <Link2 className="h-4 w-4 mr-1" />
-                                      Vincular
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                      <DialogTitle>Vincular Lançamento</DialogTitle>
-                                    </DialogHeader>
-                                    {selectedItem && (
-                                      <div className="space-y-4">
-                                        <div className="p-4 bg-muted rounded-lg">
-                                          <div className="font-medium">
-                                            {selectedItem.bank_statement_description}
-                                          </div>
-                                          <div className="text-sm text-muted-foreground">
-                                            {format(
-                                              new Date(selectedItem.bank_statement_date),
-                                              "dd/MM/yyyy"
-                                            )}{" "}
-                                            •{" "}
-                                            {formatCurrency(
-                                              Math.abs(selectedItem.bank_statement_amount)
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                          <h4 className="font-medium">
-                                            Correspondências sugeridas:
-                                          </h4>
-                                          {getSuggestedMatches(selectedItem).map((match) => (
-                                            <div
-                                              key={`${match.type}-${match.id}`}
-                                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                                              onClick={() => {
-                                                reconcileMutation.mutate({
-                                                  reconciliationId: selectedItem.id,
-                                                  transactionId:
-                                                    match.type === "transaction"
-                                                      ? match.id
-                                                      : undefined,
-                                                  invoiceId:
-                                                    match.type === "invoice"
-                                                      ? match.id
-                                                      : undefined,
-                                                });
-                                              }}
-                                            >
-                                              <div>
-                                                <div className="font-medium">
-                                                  {match.description}
-                                                </div>
-                                                <div className="text-sm text-muted-foreground">
-                                                  {format(new Date(match.date), "dd/MM/yyyy")} •{" "}
-                                                  {formatCurrency(match.amount)}
-                                                </div>
-                                              </div>
-                                              <Badge
-                                                variant={
-                                                  match.confidence > 60 ? "default" : "secondary"
-                                                }
-                                              >
-                                                {match.confidence}% match
-                                              </Badge>
-                                            </div>
-                                          ))}
-                                          {getSuggestedMatches(selectedItem).length === 0 && (
-                                            <p className="text-sm text-muted-foreground">
-                                              Nenhuma correspondência encontrada automaticamente.
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </DialogContent>
-                                </Dialog>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => ignoreMutation.mutate(item.id)}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            {item.status === "reconciled" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => unreconcileMutation.mutate(item.id)}
-                              >
-                                <Unlink className="h-4 w-4 mr-1" />
-                                Desfazer
-                              </Button>
-                            )}
-                            {item.status === "ignored" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => unreconcileMutation.mutate(item.id)}
-                              >
-                                Restaurar
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-border/40">
+                          {getStatusBadge(item.status)}
+                          <div className="flex items-center gap-2">{renderOfxActions(item)}</div>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+
+                  {/* Desktop: tabela completa */}
+                  <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Banco</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredReconciliations?.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {format(new Date(item.bank_statement_date), "dd/MM/yyyy", {
+                              locale: ptBR,
+                            })}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {item.bank_statement_description || "-"}
+                          </TableCell>
+                          <TableCell>{item.bank_name || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={`flex items-center justify-end gap-1 ${
+                                item.bank_statement_type === "credit"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {item.bank_statement_type === "credit" ? (
+                                <ArrowUpRight className="h-4 w-4" />
+                              ) : (
+                                <ArrowDownRight className="h-4 w-4" />
+                              )}
+                              {formatCurrency(Math.abs(item.bank_statement_amount))}
+                            </span>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(item.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">{renderOfxActions(item)}</div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -708,7 +727,7 @@ export function BankReconciliationPanel() {
       ) : (
         <>
           {/* Invoice Stats */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -788,7 +807,77 @@ export function BankReconciliationPanel() {
               <CardTitle className="text-base">Notas Fiscais para Conciliação</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
+              {/* Mobile: cards com altura limitada e rolagem vertical nativa */}
+              <div className="md:hidden rounded-xl border border-border/50 divide-y divide-border/40 max-h-[65vh] overflow-y-auto overscroll-contain">
+                {invoiceMatches.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8 text-sm">
+                    Nenhuma nota fiscal para conciliar
+                  </div>
+                ) : (
+                  invoiceMatches.map((match) => (
+                    <div key={match.invoice.id} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{match.invoice.invoice_number}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(match.invoice.issue_date), "dd/MM/yyyy")}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          {formatCurrency(match.invoice.net_amount)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-2 pl-2 border-l-2 border-border/50">
+                        <Link2
+                          className={cn(
+                            "w-3.5 h-3.5 shrink-0",
+                            match.transaction ? "text-green-500" : "text-muted-foreground"
+                          )}
+                        />
+                        {match.transaction ? (
+                          <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium truncate">{match.transaction.description}</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {format(new Date(match.transaction.due_date), "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                            <span className="text-xs font-medium tabular-nums shrink-0">
+                              {formatCurrency(match.transaction.amount)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem transação vinculada</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-border/40">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(match.status)}
+                          {match.confidence > 0 && (
+                            <Badge
+                              variant="outline"
+                              className={match.confidence >= 80 ? "text-green-500" : "text-yellow-500"}
+                            >
+                              {match.confidence}%
+                            </Badge>
+                          )}
+                        </div>
+                        {match.status === "pending" && (
+                          <Button size="sm" variant="outline">Confirmar</Button>
+                        )}
+                        {match.status === "unmatched" && (
+                          <Button size="sm" variant="outline">Vincular</Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop: tabela completa */}
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>

@@ -58,7 +58,7 @@ export function TaxCalculatorWidget() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Calculator className="h-5 w-5 text-primary" />
@@ -95,7 +95,7 @@ export function TaxCalculatorWidget() {
             <Separator />
 
             {/* Resumo */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Impostos Totais</p>
                 <p className="text-lg font-semibold text-destructive">

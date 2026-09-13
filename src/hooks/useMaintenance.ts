@@ -98,15 +98,32 @@ export function useCreateMaintenanceRecord() {
           date: record.service_date || today,
           status: 'paid' as const,
         };
-        await supabase.from('transactions').insert([txData]);
+        // O custo da manutenção é uma despesa real. Antes o erro deste insert
+        // era descartado: a manutenção era registrada, o lançamento nunca
+        // entrava no financeiro, e o toast dizia "Manutenção registrada".
+        // O gasto sumia do fluxo de caixa sem deixar rastro.
+        const { error: txError } = await supabase.from('transactions').insert([txData]);
+        if (txError) {
+          throw new Error(
+            `Manutenção registrada, mas a despesa não pôde ser lançada no financeiro: ${txError.message}`,
+          );
+        }
       }
 
       // Update item status to maintenance if not resolved
       if (!record.is_resolved && record.item_id) {
-        await supabase
+        const { error: statusError } = await supabase
           .from('inventory_items')
           .update({ status_condition: 'maintenance' })
           .eq('id', record.item_id);
+
+        // Item que não entra em manutenção continua disponível para retirada,
+        // mesmo estando quebrado.
+        if (statusError) {
+          throw new Error(
+            `Manutenção registrada, mas o item não foi marcado como em manutenção: ${statusError.message}`,
+          );
+        }
       }
 
       return data;

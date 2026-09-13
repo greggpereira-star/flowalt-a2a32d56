@@ -24,10 +24,25 @@ function formatToCurrency(value: string): string {
   });
 }
 
+/**
+ * Converte um valor no formato brasileiro ("1.234,56") para número.
+ *
+ * Exportado porque três telas de financeiro reimplementavam esse parse de
+ * forma errada — mantinham o ponto de milhar e só trocavam a vírgula por
+ * ponto, produzindo "1.234.56", que o parseFloat corta no segundo ponto e
+ * vira 1.234. Uma nota de R$ 1.234,56 era gravada como R$ 1,23.
+ */
 function parseCurrencyToNumber(value: string): number {
   if (!value) return 0;
-  // Remove pontos de milhar e converte vírgula para ponto
-  const cleaned = value.replace(/\./g, "").replace(",", ".");
+  const cleaned = value
+    // Tira símbolo de moeda, espaço e qualquer outro ruído. Necessário porque
+    // as telas de nota fiscal usam um Input livre com placeholder "R$ 0,00",
+    // então o usuário pode digitar o prefixo.
+    .replace(/[^\d,.-]/g, "")
+    // Tira o separador de milhar — a etapa que faltava e causava o truncamento.
+    .replace(/\./g, "")
+    // Vírgula decimal do padrão brasileiro vira ponto.
+    .replace(",", ".");
   return parseFloat(cleaned) || 0;
 }
 

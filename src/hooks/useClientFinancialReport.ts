@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { ClientFinancialState } from './useClientCards';
+import type { ClientFinancialState } from './useClientCards';
+import { computeClientMetrics } from './clientMetrics';
 
 export interface ClientFinancialReport {
   clientId: string;
@@ -46,61 +47,6 @@ export interface ClientFinancialReport {
   }[];
 }
 
-// Calculate financial state based on margins and profitability
-function calculateFinancialState(
-  profitMargin: number,
-  expectedMargin: number | null,
-  hoursEfficiency: number
-): ClientFinancialState {
-  const targetMargin = expectedMargin || 30; // Default 30% margin
-  
-  if (profitMargin >= targetMargin) {
-    return 'healthy';
-  } else if (profitMargin >= targetMargin * 0.7) {
-    return 'attention';
-  } else if (profitMargin >= 0) {
-    return 'critical';
-  }
-  return 'loss';
-}
-
-// Calculate health score (0-100)
-function calculateHealthScore(
-  taskCompletionRate: number,
-  hoursEfficiency: number,
-  profitMargin: number,
-  expectedMargin: number | null
-): number {
-  const targetMargin = expectedMargin || 30;
-  
-  // Weights for each component
-  const taskWeight = 0.25;
-  const hoursWeight = 0.25;
-  const marginWeight = 0.50;
-  
-  // Task completion score (0-100)
-  const taskScore = Math.min(taskCompletionRate, 100);
-  
-  // Hours efficiency score (100 = on budget, less is better but cap at 50)
-  const hoursScore = hoursEfficiency <= 100 
-    ? 100 - Math.abs(100 - hoursEfficiency) * 0.5
-    : Math.max(0, 100 - (hoursEfficiency - 100));
-  
-  // Margin score (based on target margin)
-  let marginScore = 0;
-  if (profitMargin >= targetMargin) {
-    marginScore = 100;
-  } else if (profitMargin >= 0) {
-    marginScore = (profitMargin / targetMargin) * 100;
-  } else {
-    marginScore = Math.max(0, 50 + profitMargin); // Negative margins drop score fast
-  }
-  
-  const finalScore = (taskScore * taskWeight) + (hoursScore * hoursWeight) + (marginScore * marginWeight);
-  
-  return Math.round(Math.min(100, Math.max(0, finalScore)));
-}
-
 // Hook to get comprehensive financial report for a client
 export const useClientFinancialReport = (clientCardId: string | undefined) => {
   const { currentWorkspace } = useWorkspace();
@@ -119,19 +65,31 @@ export const useClientFinancialReport = (clientCardId: string | undefined) => {
 
       if (clientError) throw clientError;
 
-      // Get cards linked to this client (via legacy_client or direct)
+      // `cards.client_id` aponta para `client_cards.id` — é o vínculo real e
+      // resolve os 172 cards com cliente. A busca anterior usava
+      // `legacy_client_id`, que está NULO em todos os clientes, então a
+      // condição virava `client_id.eq.null` e o relatório inteiro (receita,
+      // horas, margem, health score) era calculado sobre ZERO cards. Um
+      // cliente com 81 cards aparecia sem nenhum.
       const { data: cards, error: cardsError } = await supabase
         .from('cards')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
-        .or(`client_id.eq.${clientCard.legacy_client_id || 'null'}`);
+        .eq('client_id', clientCard.id);
 
-      // Also try matching by client name in older integrations
-      const { data: legacyCards } = await supabase
-        .from('cards')
-        .select('*, clients!inner(id)')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('clients.id', clientCard.legacy_client_id || '');
+      if (cardsError) throw cardsError;
+
+      // Integrações antigas podiam apontar para a tabela `clients` via
+      // legacy_client_id. Só consulta quando esse campo existe de fato —
+      // passar string vazia fazia o Postgres recusar a comparação com uuid.
+      const legacyClientId = clientCard.legacy_client_id;
+      const { data: legacyCards } = legacyClientId
+        ? await supabase
+            .from('cards')
+            .select('*')
+            .eq('workspace_id', currentWorkspace.id)
+            .eq('client_id', legacyClientId)
+        : { data: [] as typeof cards };
 
       const allCards = [...(cards || []), ...(legacyCards || [])];
       const cardIds = [...new Set(allCards.map(c => c.id))];
@@ -144,13 +102,25 @@ export const useClientFinancialReport = (clientCardId: string | undefined) => {
             .in('card_id', cardIds)
         : { data: [] };
 
-      // Get transactions for these cards
-      const { data: transactions } = cardIds.length > 0
-        ? await supabase
-            .from('transactions')
-            .select('*')
-            .in('card_id', cardIds)
-        : { data: [] };
+      // `transactions.client_id` aponta para `client_cards.id` e é o vínculo que
+      // o financeiro realmente preenche: das 254 transações da workspace, 40 têm
+      // client_id e ZERO têm card_id. Buscar só por `card_id` fazia toda
+      // transação ficar de fora, e o relatório dava receita 0 para todo mundo —
+      // inclusive para clientes com R$ 46 mil pagos. Pior: esse zero era
+      // persistido em client_cards.health_score, então o erro vazava do
+      // relatório para o semáforo do dashboard (essa escrita já não existe).
+      // Mantemos card_id no OR porque é vínculo válido no schema (transação
+      // lançada a partir de um card), só não usado ainda.
+      const orFilter = [
+        `client_id.eq.${clientCard.id}`,
+        ...(cardIds.length > 0 ? [`card_id.in.(${cardIds.join(',')})`] : []),
+      ].join(',');
+
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .or(orFilter);
 
       // Get profiles for hourly rates
       const userIds = [...new Set((timeEntries || []).map(e => e.user_id))];
@@ -167,59 +137,37 @@ export const useClientFinancialReport = (clientCardId: string | undefined) => {
         });
       }
 
-      // Calculate metrics
-      const now = new Date();
-      const totalTasks = allCards.length;
-      const completedTasks = allCards.filter(c => c.status === 'delivered').length;
-      const inProgressTasks = allCards.filter(c => c.status === 'todo' || c.status === 'review').length;
-      const overduesTasks = allCards.filter(c => 
-        c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved' && c.status !== 'archived'
-      ).length;
-      const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-      // Time metrics
-      const totalHours = (timeEntries || []).reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);
-      const estimatedHours = allCards.reduce((acc, c) => acc + (c.estimated_hours || 0), 0);
-      const hoursEfficiency = estimatedHours > 0 ? (totalHours / estimatedHours) * 100 : 100;
-
-      // Financial metrics
-      const totalRevenue = (transactions || [])
-        .filter(t => t.type === 'income' && t.status === 'paid')
-        .reduce((acc, t) => acc + Number(t.amount), 0);
-
-      const totalExpenses = (transactions || [])
-        .filter(t => t.type === 'expense' && t.status === 'paid')
-        .reduce((acc, t) => acc + Number(t.amount), 0);
-
-      const laborCost = (timeEntries || []).reduce((acc, e) => {
-        const rate = profileRates[e.user_id] || 50;
-        return acc + (e.duration_seconds / 3600) * rate;
-      }, 0);
-
-      const profit = totalRevenue - totalExpenses - laborCost;
-      const profitMargin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
-
-      // Contract metrics
-      const financials = Array.isArray(clientCard.client_financials) 
-        ? clientCard.client_financials[0] 
+      const financials = Array.isArray(clientCard.client_financials)
+        ? clientCard.client_financials[0]
         : clientCard.client_financials;
-      const contractValue = financials?.contract_value || null;
-      const consumedValue = totalExpenses + laborCost;
-      const remainingValue = contractValue ? contractValue - consumedValue : null;
 
-      // Calculate states
-      const financialState = calculateFinancialState(
-        profitMargin, 
-        financials?.expected_margin, 
-        hoursEfficiency
-      );
-      
-      const healthScore = calculateHealthScore(
+      const {
+        totalTasks,
+        completedTasks,
+        inProgressTasks,
+        overduesTasks,
         taskCompletionRate,
+        totalHours,
+        estimatedHours,
         hoursEfficiency,
+        totalRevenue,
+        totalExpenses,
+        laborCost,
+        profit,
         profitMargin,
-        financials?.expected_margin
-      );
+        contractValue,
+        consumedValue,
+        remainingValue,
+        financialState,
+        healthScore,
+      } = computeClientMetrics({
+        cards: allCards,
+        timeEntries: timeEntries || [],
+        transactions: transactions || [],
+        profileRates,
+        contractValue: financials?.contract_value ?? null,
+        expectedMargin: financials?.expected_margin ?? null,
+      });
 
       // Monthly breakdown (last 6 months)
       const months: { month: string; revenue: number; expenses: number; hours: number; tasksCompleted: number }[] = [];
@@ -260,14 +208,12 @@ export const useClientFinancialReport = (clientCardId: string | undefined) => {
         });
       }
 
-      // Update client card with calculated metrics
-      await supabase
-        .from('client_cards')
-        .update({ 
-          health_score: healthScore, 
-          financial_state: financialState 
-        })
-        .eq('id', clientCardId);
+      // Nada é persistido de volta em client_cards. As colunas health_score e
+      // financial_state eram um cache escrito exatamente aqui — o que fazia o
+      // número existir apenas para clientes cujo relatório alguém tinha aberto,
+      // e ficar no DEFAULT 100 para os demais. Dashboard, lista e este relatório
+      // agora calculam pelo mesmo caminho (computeClientMetrics), então não há
+      // segunda cópia para envelhecer.
 
       const report: ClientFinancialReport = {
         clientId: clientCardId,
