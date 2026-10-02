@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LEVEL_CONFIGS } from '@/hooks/useUserLevel';
 import { Switch } from '@/components/ui/switch';
+import { RankingConfigDialog } from '@/components/people/RankingConfigDialog';
 import { formatDistanceToNow } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -182,6 +183,12 @@ export default function PeopleAnalyticsPage() {
   });
 
   const { user } = useAuth();
+  const pesos = {
+    entrega: activity?.[0]?.peso_entrega ?? 50,
+    constancia: activity?.[0]?.peso_constancia ?? 20,
+    colaboracao: activity?.[0]?.peso_colaboracao ?? 20,
+    horas: activity?.[0]?.peso_horas ?? 10,
+  };
   const queryClient = useQueryClient();
   const souAdmin = !!roles?.some(r => r.user_id === user?.id && (r.role === 'owner' || r.role === 'admin'));
 
@@ -407,6 +414,8 @@ export default function PeopleAnalyticsPage() {
               Métricas de produtividade e desempenho da equipe
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          {souAdmin && currentWorkspace?.id && <RankingConfigDialog workspaceId={currentWorkspace.id} />}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -425,6 +434,7 @@ export default function PeopleAnalyticsPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -540,7 +550,7 @@ export default function PeopleAnalyticsPage() {
                   Ranking da Equipe
                 </CardTitle>
                 <CardDescription>
-                  Score de 0 a 100 nos últimos 30 dias: entregas 50%, constância 20%, colaboração 20% e horas 10%. O XP e o nível acumulam a atividade de todo o período.
+                  Score de 0 a 100 nos últimos 30 dias: entregas {pesos.entrega}%, constância {pesos.constancia}%, colaboração {pesos.colaboracao}% e horas {pesos.horas}%. O XP e o nível acumulam a atividade de todo o período.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -576,7 +586,7 @@ export default function PeopleAnalyticsPage() {
                         </div>
                         {member.participa && (
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            Entrega {member.pts_entrega}/50 · Constância {member.pts_constancia}/20 · Colaboração {member.pts_colaboracao}/20 · Horas {member.pts_horas}/10
+                            Entrega {member.pts_entrega}/{pesos.entrega} · Constância {member.pts_constancia}/{pesos.constancia} · Colaboração {member.pts_colaboracao}/{pesos.colaboracao} · Horas {member.pts_horas}/{pesos.horas}
                           </p>
                         )}
                       </div>
