@@ -120,6 +120,34 @@ export const BADGE_DEFINITIONS: Record<string, Omit<Badge, 'id' | 'earnedAt'>> =
     icon: '🐰',
     color: 'bg-gradient-to-r from-pink-400 to-purple-400',
   },
+  carnival_celebrated: {
+    type: 'carnival_celebrated',
+    name: 'Carnaval',
+    description: 'Celebrou o Carnaval no FlowAlt',
+    icon: '🎭',
+    color: 'bg-gradient-to-r from-fuchsia-500 to-yellow-400',
+  },
+  halloween_celebrated: {
+    type: 'halloween_celebrated',
+    name: 'Halloween',
+    description: 'Celebrou o Halloween no FlowAlt',
+    icon: '🎃',
+    color: 'bg-gradient-to-r from-orange-600 to-purple-700',
+  },
+  festa_junina_celebrated: {
+    type: 'festa_junina_celebrated',
+    name: 'Festa Junina',
+    description: 'Celebrou a Festa Junina no FlowAlt',
+    icon: '🌽',
+    color: 'bg-gradient-to-r from-yellow-500 to-red-500',
+  },
+  valentines_celebrated: {
+    type: 'valentines_celebrated',
+    name: 'Dia dos Namorados',
+    description: 'Celebrou o Dia dos Namorados no FlowAlt',
+    icon: '💘',
+    color: 'bg-gradient-to-r from-pink-500 to-rose-600',
+  },
 };
 
 // Module-level guard to prevent duplicate DB writes across renders/components
