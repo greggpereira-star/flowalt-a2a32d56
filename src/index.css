@@ -1123,3 +1123,37 @@
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
 }
+
+/*
+ * Rolagem horizontal do Kanban.
+ *
+ * O estilo global de scrollbar (8px, trilho transparente, polegar na cor da borda) fica
+ * praticamente invisivel sobre o fundo claro, e num quadro com 7 colunas a pessoa nao
+ * percebia que havia mais colunas fora da tela. Aqui a barra tem trilho e polegar
+ * marcados, e fica maior para ser facil de agarrar com o mouse.
+ *
+ * Chrome/Safari usam ::-webkit-scrollbar. As propriedades padrao (scrollbar-color) entram
+ * so no Firefox: no Chrome 121+ elas anulariam o estilo -webkit- acima.
+ */
+.kanban-scroll::-webkit-scrollbar {
+  height: 14px;
+}
+.kanban-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 9999px;
+  margin: 0 16px;
+}
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.45);
+  border-radius: 9999px;
+  border: 3px solid hsl(var(--muted));
+}
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.7);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .kanban-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--muted));
+  }
+}
