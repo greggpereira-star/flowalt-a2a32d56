@@ -54,8 +54,20 @@ export function useWorkspaceInvites() {
   });
 }
 
+export interface CreateInviteResult {
+  token: string;
+  email: string;
+  inviteUrl: string;
+  emailSent: boolean;
+  emailError?: string;
+}
+
 /**
  * Hook to create a workspace invite
+ *
+ * O resultado do envio do e-mail faz parte do retorno (emailSent/emailError): antes só
+ * aparecia num toast que sumia em segundos, e a pessoa que convidava não percebia que o
+ * e-mail tinha falhado. Agora a tela mostra o estado e o link para enviar por outro canal.
  */
 export function useCreateWorkspaceInvite() {
   const queryClient = useQueryClient();
@@ -63,42 +75,40 @@ export function useCreateWorkspaceInvite() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
+    mutationFn: async ({ email, role }: { email: string; role: AppRole }): Promise<CreateInviteResult> => {
       if (!currentWorkspace?.id) throw new Error('No workspace selected');
+
+      const emailNormalizado = email.trim().toLowerCase();
 
       const { data, error } = await supabase.rpc('create_workspace_invite', {
         p_workspace_id: currentWorkspace.id,
-        p_email: email,
+        p_email: emailNormalizado,
         p_role: role,
       });
 
       if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
-      queryClient.invalidateQueries({ queryKey: ['my-workspace-invites'] });
-      
-      // Criar notificação in-app para o usuário convidado (se já existe na plataforma)
+
+      const token = (data as { token?: string } | null)?.token;
+      if (!token) throw new Error('Não foi possível gerar o convite. Tente novamente.');
+
+      // Notificação dentro do app, quando a pessoa já tem conta (não bloqueia o convite).
       try {
-        // Verificar se o usuário já existe na plataforma
         const { data: existingProfile } = await supabase
           .from('profiles')
           .select('id')
-          .eq('email', variables.email)
+          .eq('email', emailNormalizado)
           .maybeSingle();
-        
+
         if (existingProfile) {
-          // Criar notificação in-app
           await supabase.from('notifications').insert({
             user_id: existingProfile.id,
-            workspace_id: currentWorkspace!.id,
+            workspace_id: currentWorkspace.id,
             type: 'workspace_invite',
             title: 'Novo convite de workspace',
-            message: `Você foi convidado para o workspace "${currentWorkspace!.name}"`,
+            message: `Você foi convidado para o workspace "${currentWorkspace.name}"`,
             metadata: {
-              workspace_name: currentWorkspace!.name,
-              role: variables.role,
+              workspace_name: currentWorkspace.name,
+              role,
               invited_by: user?.email,
             },
           });
@@ -106,51 +116,54 @@ export function useCreateWorkspaceInvite() {
       } catch (notifError) {
         console.error('Erro ao criar notificação:', notifError);
       }
-      
-      // Enviar email de notificação
+
+      let emailSent = false;
+      let emailError: string | undefined;
       try {
         const inviterProfile = user?.id ? await fetchUserProfile(user.id) : null;
-        const inviteData = data as { token?: string } | null;
-        
         const result = await sendWorkspaceInviteEmail({
-          email: variables.email,
-          workspace_id: currentWorkspace!.id,
-          workspace_name: currentWorkspace!.name,
+          email: emailNormalizado,
+          workspace_id: currentWorkspace.id,
+          workspace_name: currentWorkspace.name,
           inviter_name: inviterProfile?.name || user?.email || 'Administrador',
           inviter_email: user?.email || undefined,
-          role: variables.role,
-          token: inviteData?.token || '',
+          role,
+          token,
           expires_in: '7 dias',
         });
-        
-        if (result.success) {
-          toast.success(`Convite enviado para ${variables.email}`, {
-            description: 'O email foi entregue. Peça para a pessoa verificar a caixa de entrada (e a pasta de spam).',
-          });
-        } else {
-          toast.warning('Convite criado, mas o email falhou', {
-            description: result.error || 'Compartilhe o link manualmente com a pessoa.',
-          });
-        }
-      } catch (emailError: any) {
-        console.error('Erro ao enviar email:', emailError);
-        toast.warning('Convite criado, mas o email não pôde ser enviado', {
-          description: emailError?.message || 'Compartilhe o link de convite manualmente.',
-        });
+        emailSent = !!result.success;
+        if (!emailSent) emailError = result.error || 'O e-mail não pôde ser enviado.';
+      } catch (emailErr: any) {
+        console.error('Erro ao enviar email:', emailErr);
+        emailError = emailErr?.message || 'O e-mail não pôde ser enviado.';
       }
+
+      return {
+        token,
+        email: emailNormalizado,
+        inviteUrl: `${window.location.origin}/invite/${token}`,
+        emailSent,
+        emailError,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace-invites'] });
+      queryClient.invalidateQueries({ queryKey: ['my-workspace-invites'] });
     },
     onError: (error: Error) => {
       const msg = error.message || '';
       if (msg.includes('pending invite')) {
-        toast.error('Este email já tem um convite pendente', {
-          description: 'Revogue o convite atual antes de enviar um novo, ou reenvie o link existente.',
+        toast.error('Este e-mail já tem um convite pendente', {
+          description: 'Reenvie o convite existente ou revogue-o antes de criar outro.',
         });
       } else if (msg.includes('already a member')) {
-        toast.error('Este usuário já faz parte do workspace');
+        toast.error('Esta pessoa já faz parte do workspace');
       } else if (msg.includes('Permission denied')) {
         toast.error('Você não tem permissão para convidar usuários');
+      } else if (msg.includes('E-mail inválido')) {
+        toast.error('E-mail inválido', { description: 'Confira se há erro de digitação.' });
       } else {
-        toast.error(msg || 'Erro ao enviar convite');
+        toast.error(msg || 'Erro ao criar convite');
       }
     },
   });

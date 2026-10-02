@@ -11,6 +11,7 @@ import { Loader2, ArrowRight, Sparkles, CheckCircle2, Zap, Workflow } from 'luci
 import { FlowaltLogo } from '@/components/brand/FlowaltLogo';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { z } from 'zod';
+import { lerConvitePendente } from '@/lib/invites/pendingInvite';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -32,18 +33,25 @@ const Auth: React.FC = () => {
   const location = useLocation();
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+
+  // Vindo de um convite, o e-mail já é conhecido: vem preenchido e travado. Digitar outro
+  // e-mail era o erro mais comum — o convite só vale para o e-mail para o qual foi criado.
+  const navState = (location.state as any) || {};
+  const convitePendente = lerConvitePendente();
+  const inviteEmail: string | undefined = navState.inviteEmail || convitePendente?.email || undefined;
+  const inviteWorkspace: string | undefined = navState.inviteWorkspace;
   
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = useState<string>(navState.tab === 'signup' ? 'signup' : 'login');
   const [forgotOpen, setForgotOpen] = useState(false);
   
   // Login form
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState(inviteEmail ?? '');
   const [loginPassword, setLoginPassword] = useState('');
   
   // Signup form
   const [signupName, setSignupName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
+  const [signupEmail, setSignupEmail] = useState(inviteEmail ?? '');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
 
@@ -51,7 +59,7 @@ const Auth: React.FC = () => {
   useEffect(() => {
     if (user) {
       const from = (location.state as any)?.from;
-      const pendingToken = sessionStorage.getItem('pending_invite_token');
+      const pendingToken = lerConvitePendente()?.token;
       let redirectTo = '/';
       if (pendingToken) {
         redirectTo = `/invite/${pendingToken}`;
@@ -122,7 +130,7 @@ const Auth: React.FC = () => {
     
     // Se temos um convite pendente, passamos o token no redirect para que após a confirmação do email
     // o usuário seja levado de volta para aceitar o convite.
-    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    const pendingToken = lerConvitePendente()?.token;
     const redirectTo = pendingToken 
       ? `${window.location.origin}/invite/${pendingToken}`
       : `${window.location.origin}/`;
@@ -142,10 +150,15 @@ const Auth: React.FC = () => {
         message = 'O email informado é inválido.';
       } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many')) {
         message = 'Muitas tentativas. Aguarde um momento e tente novamente.';
-      } else if (error.message) {
-        message = error.message;
+      } else if (errorMsg.includes('sending confirmation email') || errorMsg.includes('sending email')) {
+        message = 'Não foi possível enviar o e-mail de confirmação. Tente de novo em alguns minutos ou avise quem te convidou.';
+      } else if (errorMsg.includes('failed to fetch') || errorMsg.includes('network')) {
+        message = 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
+      } else {
+        console.error('Erro ao criar conta:', error);
+        message = 'Não foi possível criar a conta. Tente de novo; se continuar, avise quem te convidou.';
       }
-      
+
       toast({
         title: 'Erro ao criar conta',
         description: message,
@@ -253,6 +266,13 @@ const Auth: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {inviteEmail && (
+              <div className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm">
+                Convite para <strong>{inviteWorkspace || 'um workspace'}</strong>. Use o e-mail{' '}
+                <strong className="break-all">{inviteEmail}</strong>: ele já está preenchido e não pode ser
+                alterado, porque o convite só vale para ele.
+              </div>
+            )}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="mb-6 grid w-full grid-cols-2">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -268,6 +288,8 @@ const Auth: React.FC = () => {
                       type="email"
                       placeholder="seu@email.com"
                       value={loginEmail}
+                      readOnly={!!inviteEmail}
+                      className={inviteEmail ? 'bg-muted' : undefined}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       autoComplete="email"
@@ -326,6 +348,8 @@ const Auth: React.FC = () => {
                       type="email"
                       placeholder="seu@email.com"
                       value={signupEmail}
+                      readOnly={!!inviteEmail}
+                      className={inviteEmail ? 'bg-muted' : undefined}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
                       autoComplete="email"

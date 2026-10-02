@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite, useResendWorkspaceInvite, checkResendLimit } from '@/hooks/useWorkspaceInvites';
+import { type CreateInviteResult, useWorkspaceInvites, useCreateWorkspaceInvite, useRevokeWorkspaceInvite, useResendWorkspaceInvite, checkResendLimit } from '@/hooks/useWorkspaceInvites';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,7 +53,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { 
+import { MessageCircle, 
   Mail, 
   UserPlus, 
   Clock, 
@@ -124,6 +124,7 @@ export function WorkspaceInvitesPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [createdInvite, setCreatedInvite] = useState<CreateInviteResult | null>(null);
 
   // Fetch existing users for autocomplete
   const { data: existingUsers = [] } = useQuery({
@@ -161,12 +162,18 @@ export function WorkspaceInvitesPanel() {
     const inviteEmail = selectedUser?.email || email.trim();
     if (!inviteEmail) return;
 
-    await createInvite.mutateAsync({ email: inviteEmail, role });
-    setEmail('');
-    setRole('member');
-    setSelectedUser(null);
-    setSearchQuery('');
-    setIsDialogOpen(false);
+    try {
+      const resultado = await createInvite.mutateAsync({ email: inviteEmail, role });
+      setEmail('');
+      setRole('member');
+      setSelectedUser(null);
+      setSearchQuery('');
+      setIsDialogOpen(false);
+      // O resultado fica na tela até a pessoa fechar: mostra se o e-mail saiu e dá o link.
+      setCreatedInvite(resultado);
+    } catch {
+      // O toast de erro já foi mostrado pelo próprio hook; o formulário continua aberto.
+    }
   };
 
   const handleRevokeInvite = async (inviteId: string) => {
@@ -187,10 +194,23 @@ export function WorkspaceInvitesPanel() {
     setSearchQuery('');
   };
 
-  const copyInviteLink = (token: string) => {
-    const link = `${window.location.origin}/invite/${token}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Link copiado!');
+  const copiarLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copiado!');
+    } catch {
+      // Navegador sem permissão de área de transferência: mostra o link para copiar à mão.
+      window.prompt('Copie o link do convite:', link);
+    }
+  };
+
+  const copyInviteLink = (token: string) => copiarLink(`${window.location.origin}/invite/${token}`);
+
+  const enviarPorWhatsApp = (emailConvidado: string, link: string) => {
+    const texto =
+      `Oi! Você foi convidado(a) para o Flowalt${currentWorkspace?.name ? ` (${currentWorkspace.name})` : ''}. ` +
+      `Crie sua conta pelo link abaixo, usando exatamente o e-mail ${emailConvidado}:\n${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener,noreferrer');
   };
 
   const getInitials = (name: string | null, email: string) => {
@@ -524,8 +544,21 @@ export function WorkspaceInvitesPanel() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => copyInviteLink(invite.token)}
+                        aria-label="Copiar link do convite"
                       >
                         <Copy className="h-4 w-4" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() =>
+                          enviarPorWhatsApp(invite.email, `${window.location.origin}/invite/${invite.token}`)
+                        }
+                        aria-label="Enviar convite por WhatsApp"
+                      >
+                        <MessageCircle className="h-4 w-4" />
                       </Button>
 
 
@@ -618,6 +651,67 @@ export function WorkspaceInvitesPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!createdInvite} onOpenChange={(aberto) => !aberto && setCreatedInvite(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convite criado</DialogTitle>
+            <DialogDescription className="break-all">Para {createdInvite?.email}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {createdInvite?.emailSent ? (
+              <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                E-mail enviado. Peça para a pessoa olhar também a caixa de spam.
+              </div>
+            ) : (
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+              >
+                O e-mail <strong>não foi enviado</strong>
+                {createdInvite?.emailError ? ` (${createdInvite.emailError})` : ''}. O convite está criado: envie o
+                link abaixo pelo WhatsApp.
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="link-convite">Link do convite</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="link-convite"
+                  readOnly
+                  value={createdInvite?.inviteUrl ?? ''}
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Copiar link do convite"
+                  onClick={() => createdInvite && copiarLink(createdInvite.inviteUrl)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => createdInvite && enviarPorWhatsApp(createdInvite.email, createdInvite.inviteUrl)}
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Enviar por WhatsApp
+            </Button>
+            <Button type="button" onClick={() => setCreatedInvite(null)}>
+              Concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

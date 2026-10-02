@@ -521,23 +521,26 @@ async function sendEmail(
     ? rawSender
     : `Flowalt <${rawSender}>`;
   logger.info("Attempting to send email", { from: sender, to, replyTo });
-  let response = await trySend(sender);
-
-  if (response.status === 403) {
-    const errorText = await response.clone().text();
-    if (errorText.includes("not verified") && sender !== "Flowalt <onboarding@resend.dev>") {
-      logger.warn("Custom domain not verified, falling back to default sender", {
-        failedEmail: sender,
-      });
-      response = await trySend("Flowalt <onboarding@resend.dev>");
-    }
-  }
-
+  const response = await trySend(sender);
 
   if (!response.ok) {
     const error = await response.text();
-    logger.error("Resend API error", { status: response.status, error });
-    throw new Error(`Resend API error: ${error}`);
+    logger.error("Resend API error", { status: response.status, error, from: sender });
+
+    // Sem "plano B" de remetente: o remetente de teste da Resend (onboarding@resend.dev)
+    // so entrega para o dono da conta, entao nunca funciona com funcionario de verdade e
+    // apenas escondia o motivo real da falha. Aqui o erro sai explicado.
+    let motivo = "Falha ao enviar o e-mail.";
+    if (response.status === 401 || /API key is invalid|missing_api_key/i.test(error)) {
+      motivo = "A chave do provedor de e-mail (Resend) e invalida ou expirou.";
+    } else if (response.status === 403 && /not verified|testing emails|domain/i.test(error)) {
+      motivo = "O dominio de envio nao esta verificado no provedor de e-mail (Resend).";
+    } else if (response.status === 422) {
+      motivo = "O endereco de e-mail do destinatario nao e valido.";
+    } else if (response.status === 429) {
+      motivo = "Limite de envios do provedor de e-mail atingido. Tente em alguns minutos.";
+    }
+    throw new Error(motivo);
   }
 
   return response.json();

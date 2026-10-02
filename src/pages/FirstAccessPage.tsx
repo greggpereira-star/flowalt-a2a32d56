@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { lerConvitePendente } from '@/lib/invites/pendingInvite';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,7 +98,7 @@ export default function FirstAccessPage() {
 
     // Se temos um token de convite pendente no sessionStorage, redireciona para a página do convite
     // Isso garante que após o login o usuário seja levado de volta ao convite mesmo que tenha caído aqui.
-    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    const pendingToken = lerConvitePendente()?.token;
     if (pendingToken) {
       navigate(`/invite/${pendingToken}`);
     }
