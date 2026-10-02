@@ -46,6 +46,16 @@ import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
 import { CARD_STATUS_LABELS } from '@/lib/cards/cardStatusLabels';
 import { useStatusLabel } from '@/hooks/useStatusLabel';
+import {
+  avaliarCards,
+  cargaPorPessoa,
+  proximosPrazos,
+  resumir,
+  resumirEtapas,
+  type CoordCard,
+  type EtapaConfig,
+} from '@/lib/coordination/coordMetrics';
+import { AtencaoAgora, KpisCoordenacao, PainelEquipe, PainelEtapas, PainelPrazos } from '@/components/coordination/v2/Painel';
 
 const CoordinationPage: React.FC = () => {
   const rotuloStatus = useStatusLabel();
@@ -103,93 +113,41 @@ const CoordinationPage: React.FC = () => {
   // a tela mostra um card sem responsavel. O Gantt ja tinha esbarrado nisso.
   const { data: cardMemberAssignments = [], isLoading: assignmentsLoading } = useCardMemberAssignments({ includeInactive: true });
 
-  // Calculate bottlenecks with space and owner info
-  const bottlenecks = useMemo(() => {
-    if (!cards) return { overdue: [], blocked: [], stale: [], overloaded: [] };
+  // Configuração das etapas do fluxo (SLA e limite de WIP de cada uma).
+  const { data: etapas = [] } = useQuery({
+    queryKey: ['coordination-stages', currentWorkspace?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workflow_stages')
+        .select('slug, name, sort_order, is_final, wip_limit, wip_limit_per_person, sla_warning_hours, sla_critical_hours, workflows!inner(workspace_id)')
+        .eq('workflows.workspace_id', currentWorkspace!.id);
+      if (error) throw error;
+      return (data ?? []) as unknown as EtapaConfig[];
+    },
+    enabled: !!currentWorkspace?.id,
+    staleTime: 5 * 60_000,
+  });
 
-    const now = new Date();
+  const nomes = useMemo(() => new Map(memberCapacity.map(m => [m.id, m.name] as [string, string])), [memberCapacity]);
 
-    // Helper to build bottleneck item with space/owner
-    const buildItem = (c: typeof cards[0], detail: string, severity: 'low' | 'medium' | 'high' | 'critical'): BottleneckItem => ({
-      id: c.id,
-      title: c.title,
-      detail,
-      severity,
-      spaceId: c.space?.id || c.space_id,
-      spaceName: c.space?.name,
-      spaceColor: c.space?.color || undefined,
-      ownerId: c.owner?.id || c.owner_id || undefined,
-      ownerName: c.owner?.full_name || undefined,
-      ownerAvatar: c.owner?.avatar_url || undefined,
-    });
-
-    // Overdue cards
-    const overdue: BottleneckItem[] = cards
-      .filter(c => c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved')
-      .map(c => {
-        const daysOverdue = differenceInDays(now, new Date(c.due_date!));
-        const severity = (daysOverdue > 7 ? 'critical' : daysOverdue > 3 ? 'high' : 'medium') as 'critical' | 'high' | 'medium';
-        return buildItem(c, `${daysOverdue} dias de atraso`, severity);
-      })
-      .sort((a, b) => {
-        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        return severityOrder[a.severity] - severityOrder[b.severity];
-      });
-
-    // Blocked cards (cards with dependencies that aren't done)
-    const blocked: BottleneckItem[] = cards
-      .filter(c => {
-        const cardDeps = dependencies.filter(d => d.dependent_card_id === c.id);
-        if (cardDeps.length === 0) return false;
-        
-        return cardDeps.some(dep => {
-          const blockingCard = cards.find(bc => bc.id === dep.blocking_card_id);
-          return blockingCard && blockingCard.status !== 'delivered';
-        });
-      })
-      .map(c => buildItem(c, 'Aguardando dependência', 'medium'));
-
-    // Stale cards (in progress for too long without updates)
-    const stale: BottleneckItem[] = cards
-      .filter(c => {
-        if (c.status !== 'in_progress') return false;
-        const hoursInProgress = differenceInHours(now, new Date(c.updated_at));
-        return hoursInProgress > 48; // More than 48 hours without update
-      })
-      .map(c => {
-        const hoursStale = differenceInHours(now, new Date(c.updated_at));
-        const daysStale = Math.floor(hoursStale / 24);
-        const severity = (daysStale > 5 ? 'high' : 'medium') as 'high' | 'medium';
-        return buildItem(c, `${daysStale} dias sem atualização`, severity);
-      });
-
-    // Overloaded members (these don't have space/owner - they're people)
-    const overloaded: BottleneckItem[] = memberCapacity
-      .filter(m => m.allocated_hours > 40)
-      .map(m => ({
-        id: m.id,
-        title: m.name,
-        detail: `${m.allocated_hours}h alocadas / ${m.active_cards} cards`,
-        severity: (m.allocated_hours > 60 ? 'critical' : 'high') as 'critical' | 'high',
-      }));
-
-    return { overdue, blocked, stale, overloaded };
-  }, [cards, dependencies, memberCapacity]);
-
-  // Calculate summary metrics
-  const metrics = useMemo(() => {
-    if (!cards) return { total: 0, inProgress: 0, overdue: 0, onTrack: 0 };
-
-    const now = new Date();
-    const total = cards.length;
-    const inProgress = cards.filter(c => c.status === 'in_progress').length;
-    const overdue = cards.filter(c => 
-      c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved'
-    ).length;
-    const onTrack = total - overdue;
-
-    return { total, inProgress, overdue, onTrack };
-  }, [cards]);
+  // Avaliação única de cada card aberto: atraso, SLA da etapa, parado, sem responsável, sem prazo.
+  const painel = useMemo(() => {
+    const agora = new Date();
+    const avaliados = avaliarCards(
+      (cards ?? []) as unknown as CoordCard[],
+      cardMemberAssignments.map(a => ({ card_id: a.card_id, user_id: a.user_id })),
+      etapas,
+      agora,
+      new Set(memberCapacity.map(m => m.id))
+    );
+    return {
+      avaliados,
+      resumo: resumir(avaliados, agora),
+      etapas: resumirEtapas(avaliados, etapas, agora),
+      carga: cargaPorPessoa(avaliados, agora),
+      proximos: proximosPrazos(avaliados, agora, 30),
+    };
+  }, [cards, cardMemberAssignments, etapas, memberCapacity]);
 
   // Generate capacity data for Gantt chart in required format
   const ganttCapacityData = useMemo(() => {
@@ -282,69 +240,37 @@ const CoordinationPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
-                <BarChart3 className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                Total de Cards
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{metrics.total}</p>
-            </CardContent>
-          </Card>
+        <KpisCoordenacao resumo={painel.resumo} />
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
-                <Clock className="h-4 w-4 shrink-0 mt-0.5 text-yellow-500" />
-                {rotuloStatus('in_progress')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{metrics.inProgress}</p>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="atencao" className="space-y-4">
+          <TabsList className="h-auto flex-wrap justify-start">
+            <TabsTrigger value="atencao">Atenção agora</TabsTrigger>
+            <TabsTrigger value="etapas">Etapas</TabsTrigger>
+            <TabsTrigger value="equipe">Equipe</TabsTrigger>
+            <TabsTrigger value="prazos">Prazos</TabsTrigger>
+            <TabsTrigger value="avancado">Avançado</TabsTrigger>
+          </TabsList>
 
-          <Card className={metrics.overdue > 0 ? 'border-destructive/50' : ''}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-                Atrasados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-2xl font-bold ${metrics.overdue > 0 ? 'text-destructive' : ''}`}>
-                {metrics.overdue}
-              </p>
-            </CardContent>
-          </Card>
+          <TabsContent value="atencao">
+            <AtencaoAgora avaliados={painel.avaliados} nomes={nomes} onCardClick={setSelectedCardId} />
+          </TabsContent>
+          <TabsContent value="etapas">
+            <PainelEtapas etapas={painel.etapas} />
+          </TabsContent>
+          <TabsContent value="equipe">
+            <PainelEquipe carga={painel.carga} nomes={nomes} />
+          </TabsContent>
+          <TabsContent value="prazos">
+            <PainelPrazos proximos={painel.proximos} nomes={nomes} onCardClick={setSelectedCardId} />
+          </TabsContent>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-start gap-2 leading-tight">
-                <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-green-500" />
-                No Prazo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-green-600">{metrics.onTrack}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="bottlenecks" className="space-y-4">
+          <TabsContent value="avancado" className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Ferramentas de planejamento. Dependências, sprints e caminho crítico só mostram dados depois de cadastrados.
+            </p>
+        <Tabs defaultValue="bottleneck-detector" className="space-y-4">
           <TabsList className="flex h-auto p-3 bg-gradient-to-b from-muted/50 to-muted/30 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm w-full overflow-x-auto">
             <div className="flex gap-2 min-w-max mx-auto">
-              <TabsTrigger 
-                value="bottlenecks" 
-                className="flex flex-col items-center gap-1.5 px-4 py-3 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-              >
-                <AlertTriangle className="h-5 w-5 shrink-0" />
-                <span className="text-xs font-medium whitespace-nowrap">Gargalos</span>
-              </TabsTrigger>
               <TabsTrigger 
                 value="bottleneck-detector" 
                 className="flex flex-col items-center gap-1.5 px-4 py-3 h-auto rounded-lg bg-muted/50 hover:bg-muted/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
@@ -418,50 +344,6 @@ const CoordinationPage: React.FC = () => {
             </div>
           </TabsList>
 
-          <TabsContent value="bottlenecks" className="space-y-4">
-            {bottlenecks.overdue.length === 0 && 
-             bottlenecks.blocked.length === 0 && 
-             bottlenecks.stale.length === 0 &&
-             bottlenecks.overloaded.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <TrendingUp className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                  <p className="text-lg font-medium">Tudo em ordem!</p>
-                  <p className="text-muted-foreground">
-                    Não há gargalos identificados no momento.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <BottleneckCard
-                  title="Cards Atrasados"
-                  type="overdue"
-                  items={bottlenecks.overdue}
-                  onCardClick={setSelectedCardId}
-                />
-                <BottleneckCard
-                  title="Cards Bloqueados"
-                  type="blocked"
-                  items={bottlenecks.blocked}
-                  onCardClick={setSelectedCardId}
-                />
-                <BottleneckCard
-                  title="Cards Estagnados"
-                  type="stale"
-                  items={bottlenecks.stale}
-                  onCardClick={setSelectedCardId}
-                />
-                <BottleneckCard
-                  title="Membros Sobrecarregados"
-                  type="overloaded"
-                  items={bottlenecks.overloaded}
-                  icon={<Users className="h-5 w-5 text-yellow-500" />}
-                />
-              </div>
-            )}
-          </TabsContent>
-
           <TabsContent value="bottleneck-detector">
             <BottleneckDetector
               cards={cards || []}
@@ -531,6 +413,8 @@ const CoordinationPage: React.FC = () => {
 
           <TabsContent value="clients">
             <ClientMetricsPanel />
+          </TabsContent>
+        </Tabs>
           </TabsContent>
         </Tabs>
       </div>
