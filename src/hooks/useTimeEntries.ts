@@ -59,7 +59,38 @@ export const useRunningTimer = (cardId: string | undefined) => {
       return data as TimeEntry | null;
     },
     enabled: !!cardId && !!user?.id,
-    refetchInterval: 1000, // Refetch every second for running timer
+    // O relógio na tela anda localmente (ver InlineTimerWidget); consultar o banco a cada
+    // segundo, por card aberto, só gerava carga. Iniciar/parar já invalidam esta consulta.
+    refetchInterval: 30000,
+  });
+};
+
+// Cronômetro ativo da pessoa no workspace (um só por pessoa), com o título do card.
+// Uma consulta compartilhada: serve ao indicador do topo e ao atalho dos cards do Kanban.
+export const useMyRunningTimer = () => {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['my_running_timer', currentWorkspace?.id, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !currentWorkspace?.id) return null;
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('id, card_id, started_at, cards(title)')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('user_id', user.id)
+        .eq('is_running', true)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as { id: string; card_id: string; started_at: string; cards: { title: string } | null } | null;
+    },
+    enabled: !!user?.id && !!currentWorkspace?.id,
+    refetchInterval: 60000,
   });
 };
 
@@ -80,16 +111,9 @@ export const useStartTimer = () => {
     }) => {
       if (!user?.id || !currentWorkspace?.id) throw new Error('Not authenticated');
 
-      // First stop any running timers for this user on this card
-      await supabase
-        .from('time_entries')
-        .update({ 
-          is_running: false,
-          ended_at: new Date().toISOString(),
-        })
-        .eq('card_id', card_id)
-        .eq('user_id', user.id)
-        .eq('is_running', true);
+      // Encerrar o cronômetro anterior (de qualquer card) é feito no banco, pelo gatilho
+      // trg_time_entry_one_running, que também grava a duração. Antes este update só
+      // marcava is_running=false e a duração do cronômetro anterior se perdia.
 
       const { data, error } = await supabase
         .from('time_entries')
@@ -110,7 +134,9 @@ export const useStartTimer = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', data.card_id] });
-      queryClient.invalidateQueries({ queryKey: ['running_timer', data.card_id] });
+      queryClient.invalidateQueries({ queryKey: ['running_timer'] });
+      queryClient.invalidateQueries({ queryKey: ['my_running_timer'] });
+      queryClient.invalidateQueries({ queryKey: ['card', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['card-history', data.card_id] });
     },
   });
@@ -195,6 +221,7 @@ export const useStopTimer = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['running_timer', data.card_id] });
+      queryClient.invalidateQueries({ queryKey: ['my_running_timer'] });
       queryClient.invalidateQueries({ queryKey: ['card', data.card_id] });
       queryClient.invalidateQueries({ queryKey: ['card-history', data.card_id] });
     },

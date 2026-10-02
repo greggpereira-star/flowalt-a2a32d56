@@ -18,8 +18,11 @@ import {
   Trash2, 
   AlertTriangle,
   Lock,
-  Layers
+  Layers,
+  Play,
+  Square,
 } from 'lucide-react';
+import { useMyRunningTimer, useStartTimer, useStopTimer } from '@/hooks/useTimeEntries';
 import { statusConfig } from './CardBadges';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +58,10 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
   const { canDeleteCards } = usePermissions();
   const { user } = useAuth();
   const { data: spaces } = useDuplicationSpaces();
+  const { data: meuCronometro } = useMyRunningTimer();
+  const iniciarCronometro = useStartTimer();
+  const pararCronometro = useStopTimer();
+  const cronometroNesteCard = meuCronometro?.card_id === card.id;
   const otherSpaces = (spaces || []).filter((s) => s.id !== card.space_id);
   
   const isCardCreator = card.created_by === user?.id;
@@ -84,6 +91,20 @@ export const CardQuickActions: React.FC<CardQuickActionsProps> = ({
         className="w-48"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Cronômetro direto do card: antes só existia dentro do card aberto. */}
+        <DropdownMenuItem
+          onClick={() =>
+            cronometroNesteCard && meuCronometro
+              ? pararCronometro.mutate({ id: meuCronometro.id, card_id: card.id })
+              : iniciarCronometro.mutate({ card_id: card.id })
+          }
+          disabled={iniciarCronometro.isPending || pararCronometro.isPending}
+        >
+          {cronometroNesteCard ? <Square className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+          {cronometroNesteCard ? 'Parar cronômetro' : 'Iniciar cronômetro'}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
         {/* Status change submenu */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

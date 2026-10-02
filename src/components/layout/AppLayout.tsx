@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
+import { GlobalTimerChip } from '@/components/time/GlobalTimerChip';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
@@ -120,6 +121,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
             </div>
           </div>
           <div className="flex items-center gap-2 px-4 shrink-0">
+            <GlobalTimerChip />
             <div className="hidden md:flex items-center gap-2">
               <DeferredMount delay={2200}>
                 <Suspense fallback={null}>
