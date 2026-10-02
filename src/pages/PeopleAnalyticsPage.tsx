@@ -1,15 +1,18 @@
 import React, { useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Helmet } from 'react-helmet';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LEVEL_CONFIGS } from '@/hooks/useUserLevel';
+import { Switch } from '@/components/ui/switch';
+import { formatDistanceToNow } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -59,16 +62,25 @@ interface MemberStats {
   name: string;
   avatar_url: string | null;
   role_label: string;
+  participa: boolean;
   cards_completed: number;
   cards_open: number;
   total_hours: number;
   avg_completion_time: number;
-  total_score: number;
+  dias_ativos: number;
+  comentarios: number;
+  movimentacoes: number;
+  ultima_atividade: string | null;
+  pts_entrega: number;
+  pts_constancia: number;
+  pts_colaboracao: number;
+  pts_horas: number;
+  score: number;
+  total_score: number; // XP vitalício
   level: number;
   level_name: string;
   level_icon: string;
   level_progress: number;
-  next_level_score: number;
   badges: number;
 }
 
@@ -153,52 +165,41 @@ export default function PeopleAnalyticsPage() {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Tempo registrado: pela data em que o trabalho começou, e o cronômetro ainda rodando
-  // conta o tempo decorrido até agora.
-  const { data: timeEntries, isLoading: timeLoading } = useQuery({
-    queryKey: ['time-entries-analytics', currentWorkspace?.id],
+  // Ranking e XP calculados no banco a partir de atividade real (entregas, constância,
+  // colaboração, horas). Ver função get_people_activity.
+  const { data: activity, isLoading: activityLoading } = useQuery({
+    queryKey: ['people-activity', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data } = await supabase
-        .from('time_entries')
-        .select('id, user_id, duration_seconds, started_at, is_running')
-        .eq('workspace_id', currentWorkspace.id)
-        .gte('started_at', startDate.toISOString());
-      return data ?? [];
+      const { data, error } = await (supabase as any).rpc('get_people_activity', {
+        p_workspace_id: currentWorkspace.id,
+        p_days: 30,
+      });
+      if (error) throw error;
+      return (data ?? []) as any[];
     },
     enabled: !!currentWorkspace?.id,
   });
 
-  // Gamificação real: pontos, nível e medalhas.
-  const { data: userLevels, isLoading: levelsLoading } = useQuery({
-    queryKey: ['user-levels-analytics', currentWorkspace?.id],
-    queryFn: async () => {
-      if (!currentWorkspace?.id) return [];
-      const { data } = await supabase
-        .from('user_levels')
-        .select('user_id, current_level, level_name, total_score, next_level_score')
-        .eq('workspace_id', currentWorkspace.id);
-      return data ?? [];
-    },
-    enabled: !!currentWorkspace?.id,
-  });
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const souAdmin = !!roles?.some(r => r.user_id === user?.id && (r.role === 'owner' || r.role === 'admin'));
 
-  const { data: badges } = useQuery({
-    queryKey: ['user-badges-analytics', currentWorkspace?.id],
-    queryFn: async () => {
-      if (!currentWorkspace?.id) return [];
-      const { data } = await supabase
-        .from('user_badges')
-        .select('user_id, badge_type')
-        .eq('workspace_id', currentWorkspace.id);
-      return data ?? [];
+  const alternarParticipacao = useMutation({
+    mutationFn: async ({ userId, incluir }: { userId: string; incluir: boolean }) => {
+      const { error } = await (supabase as any)
+        .from('people_ranking_participation')
+        .upsert(
+          { workspace_id: currentWorkspace!.id, user_id: userId, included: incluir, updated_at: new Date().toISOString() },
+          { onConflict: 'workspace_id,user_id' }
+        );
+      if (error) throw error;
     },
-    enabled: !!currentWorkspace?.id,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['people-activity', currentWorkspace?.id] }),
   });
 
   const memberStats = useMemo<MemberStats[]>(() => {
-    if (!members || !cards || !timeEntries) return [];
-    const agora = Date.now();
+    if (!members || !cards || !activity) return [];
 
     return members.map((member) => {
       const perfil = profiles?.find(p => p.id === member.user_id);
@@ -207,52 +208,55 @@ export default function PeopleAnalyticsPage() {
       const rotuloPapel = member.function_title
         || (papel === 'owner' ? 'Proprietário' : papel === 'admin' ? 'Administrador' : 'Membro');
 
+      const a = activity.find(x => x.user_id === member.user_id);
       const dele = cards.filter(c => (c.card_members ?? []).some((cm: any) => cm.user_id === member.user_id));
-      const concluidos = dele.filter(c =>
-        STATUS_CONCLUIDO.includes(c.status) || (c.status === 'archived' && c.completed_at)
-      ).filter(c => c.completed_at && new Date(c.completed_at) >= startDate);
       const abertos = dele.filter(c => !STATUS_ENCERRADO.includes(c.status));
-
-      const segundos = timeEntries
-        .filter(t => t.user_id === member.user_id)
-        .reduce((acc, t) => {
-          if (t.is_running) return acc + Math.max(0, (agora - new Date(t.started_at).getTime()) / 1000);
-          return acc + (t.duration_seconds || 0);
-        }, 0);
-
-      const nivel = userLevels?.find(l => l.user_id === member.user_id);
-      const totalScore = nivel?.total_score ?? 0;
-      const levelNum = nivel?.current_level ?? 1;
-      const cfg = LEVEL_CONFIGS.find(c => c.level === levelNum) ?? LEVEL_CONFIGS[0];
-      const faixa = (nivel?.next_level_score ?? cfg.maxScore + 1) - cfg.minScore;
-      const progresso = faixa > 0 ? Math.min(100, Math.max(0, ((totalScore - cfg.minScore) / faixa) * 100)) : 0;
-
-      const comTempo = concluidos.filter(c => c.completed_at && c.created_at);
+      const concluidos = dele.filter(c =>
+        STATUS_ENCERRADO.includes(c.status) && c.completed_at && new Date(c.completed_at) >= startDate
+      );
+      const comTempo = concluidos.filter(c => c.created_at);
       const mediaHoras = comTempo.length > 0
         ? comTempo.reduce((acc, c) =>
             acc + (new Date(c.completed_at).getTime() - new Date(c.created_at).getTime()) / 3600000, 0
           ) / comTempo.length
         : 0;
 
+      const xp = a?.xp ?? 0;
+      const levelNum = a?.nivel ?? 1;
+      const cfg = LEVEL_CONFIGS.find(c => c.level === levelNum) ?? LEVEL_CONFIGS[0];
+      const faixa = (a?.proximo_nivel_xp ?? cfg.maxScore + 1) - cfg.minScore;
+      const progresso = faixa > 0 ? Math.min(100, Math.max(0, ((xp - cfg.minScore) / faixa) * 100)) : 0;
+
       return {
         user_id: member.user_id,
         name: nome,
         avatar_url: perfil?.avatar_url ?? null,
         role_label: rotuloPapel,
-        cards_completed: concluidos.length,
+        participa: a?.participa ?? true,
+        cards_completed: a?.entregas ?? 0,
         cards_open: abertos.length,
-        total_hours: Math.round(segundos / 3600 * 10) / 10,
+        total_hours: Number(a?.horas ?? 0),
         avg_completion_time: Math.round(mediaHoras * 10) / 10,
-        total_score: totalScore,
+        dias_ativos: a?.dias_ativos ?? 0,
+        comentarios: a?.comentarios ?? 0,
+        movimentacoes: a?.movimentacoes ?? 0,
+        ultima_atividade: a?.ultima_atividade ?? null,
+        pts_entrega: Number(a?.pts_entrega ?? 0),
+        pts_constancia: Number(a?.pts_constancia ?? 0),
+        pts_colaboracao: Number(a?.pts_colaboracao ?? 0),
+        pts_horas: Number(a?.pts_horas ?? 0),
+        score: Number(a?.score ?? 0),
+        total_score: xp,
         level: levelNum,
-        level_name: nivel?.level_name || cfg.name,
+        level_name: a?.nivel_nome || cfg.name,
         level_icon: cfg.icon,
         level_progress: progresso,
-        next_level_score: nivel?.next_level_score ?? cfg.maxScore + 1,
-        badges: (badges ?? []).filter(b => b.user_id === member.user_id).length,
+        badges: a?.medalhas ?? 0,
       };
-    }).sort((a, b) => b.total_score - a.total_score || b.cards_completed - a.cards_completed);
-  }, [members, cards, timeEntries, userLevels, badges, profiles, roles]);
+    }).sort((a, b) =>
+      Number(b.participa) - Number(a.participa) || b.score - a.score || b.cards_completed - a.cards_completed
+    );
+  }, [members, cards, activity, profiles, roles]);
 
   // Weekly productivity trend
   const weeklyTrend = useMemo(() => {
@@ -289,30 +293,38 @@ export default function PeopleAnalyticsPage() {
     return Object.entries(contagem).map(([name, value]) => ({ name, value }));
   }, [memberStats]);
 
-  // Overall stats
+  // Overall stats (só quem participa do ranking)
   const overallStats = useMemo(() => {
-    const totalCompleted = memberStats.reduce((acc, m) => acc + m.cards_completed, 0);
-    const totalHours = memberStats.reduce((acc, m) => acc + m.total_hours, 0);
-    const totalScore = memberStats.reduce((acc, m) => acc + m.total_score, 0);
-    const totalBadges = memberStats.reduce((acc, m) => acc + m.badges, 0);
-    const topPerformer = memberStats[0]?.total_score > 0 ? memberStats[0] : undefined;
+    const equipe = memberStats.filter(m => m.participa);
+    const totalCompleted = equipe.reduce((acc, m) => acc + m.cards_completed, 0);
+    const totalHours = Math.round(equipe.reduce((acc, m) => acc + m.total_hours, 0) * 10) / 10;
+    const avgScore = equipe.length > 0
+      ? Math.round(equipe.reduce((acc, m) => acc + m.score, 0) / equipe.length)
+      : 0;
+    const totalBadges = equipe.reduce((acc, m) => acc + m.badges, 0);
+    const topPerformer = equipe[0]?.score > 0 ? equipe[0] : undefined;
 
-    return { totalCompleted, totalHours, totalScore, totalBadges, topPerformer };
+    return { totalCompleted, totalHours, avgScore, totalBadges, topPerformer, equipe };
   }, [memberStats]);
 
   // Export to CSV
   const exportToCSV = () => {
-    const headers = ['Nome', 'Cargo', 'Nível', 'Pontos', 'Medalhas', 'Cards Concluídos (30 dias)', 'Cards em Aberto', 'Horas Registradas (30 dias)', 'Tempo Médio Conclusão (h)'];
-    const rows = memberStats.map(m => [
+    const headers = ['Posição', 'Nome', 'Cargo', 'Score (30 dias)', 'Entrega', 'Constância', 'Colaboração', 'Horas', 'Dias ativos', 'Nível', 'XP', 'Cards Concluídos (30 dias)', 'Cards em Aberto', 'Horas Registradas (30 dias)'];
+    const rows = overallStats.equipe.map((m, i) => [
+      i + 1,
       m.name,
       m.role_label,
+      m.score,
+      m.pts_entrega,
+      m.pts_constancia,
+      m.pts_colaboracao,
+      m.pts_horas,
+      m.dias_ativos,
       `${m.level} - ${m.level_name}`,
       m.total_score,
-      m.badges,
       m.cards_completed,
       m.cards_open,
       m.total_hours,
-      m.avg_completion_time,
     ]);
 
     // BOM para o Excel abrir os acentos corretamente.
@@ -330,18 +342,21 @@ export default function PeopleAnalyticsPage() {
       generatedAt: new Date().toISOString(),
       period: '30 days',
       summary: {
-        totalMembers: memberStats.length,
+        totalMembers: overallStats.equipe.length,
         totalCardsCompleted: overallStats.totalCompleted,
         totalHoursWorked: overallStats.totalHours,
-        totalScore: overallStats.totalScore,
+        avgScore: overallStats.avgScore,
         totalBadges: overallStats.totalBadges,
       },
-      members: memberStats.map(m => ({
+      members: overallStats.equipe.map(m => ({
         name: m.name,
         role: m.role_label,
+        score30d: m.score,
+        scoreBreakdown: { entrega: m.pts_entrega, constancia: m.pts_constancia, colaboracao: m.pts_colaboracao, horas: m.pts_horas },
+        activeDays: m.dias_ativos,
         level: m.level,
         levelName: m.level_name,
-        score: m.total_score,
+        xp: m.total_score,
         badges: m.badges,
         cardsCompleted: m.cards_completed,
         cardsOpen: m.cards_open,
@@ -359,7 +374,7 @@ export default function PeopleAnalyticsPage() {
     link.click();
   };
 
-  const isLoading = membersLoading || cardsLoading || timeLoading || levelsLoading;
+  const isLoading = membersLoading || cardsLoading || activityLoading;
 
   if (isLoading) {
     return (
@@ -420,8 +435,8 @@ export default function PeopleAnalyticsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{memberStats.length}</div>
-              <p className="text-xs text-muted-foreground">no workspace</p>
+              <div className="text-2xl font-bold">{overallStats.equipe.length}</div>
+              <p className="text-xs text-muted-foreground">na equipe operacional</p>
             </CardContent>
           </Card>
 
@@ -449,12 +464,12 @@ export default function PeopleAnalyticsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pontos da Equipe</CardTitle>
+              <CardTitle className="text-sm font-medium">Score Médio da Equipe</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{overallStats.totalScore.toLocaleString('pt-BR')}</div>
-              <p className="text-xs text-muted-foreground">{overallStats.totalBadges} medalhas conquistadas</p>
+              <div className="text-2xl font-bold">{overallStats.avgScore}<span className="text-base text-muted-foreground">/100</span></div>
+              <Progress value={overallStats.avgScore} className="mt-2" />
             </CardContent>
           </Card>
         </div>
@@ -484,7 +499,7 @@ export default function PeopleAnalyticsPage() {
                     <Award className="h-6 w-6 text-primary" />
                     <div>
                       <CardTitle className="text-lg">Destaque da Equipe</CardTitle>
-                      <CardDescription>Maior pontuação na gamificação</CardDescription>
+                      <CardDescription>Maior score de atividade nos últimos 30 dias</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -506,10 +521,10 @@ export default function PeopleAnalyticsPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       <Badge variant="default" className="text-lg px-3 py-1">
-                        {overallStats.topPerformer.total_score.toLocaleString('pt-BR')} pts
+                        {overallStats.topPerformer.score}/100
                       </Badge>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {overallStats.topPerformer.cards_completed} concluídos · {overallStats.topPerformer.badges} medalhas
+                        {overallStats.topPerformer.cards_completed} concluídos · {overallStats.topPerformer.dias_ativos} dias ativos
                       </p>
                     </div>
                   </div>
@@ -525,49 +540,73 @@ export default function PeopleAnalyticsPage() {
                   Ranking da Equipe
                 </CardTitle>
                 <CardDescription>
-                  Classificação pela pontuação da gamificação (pontos, nível e medalhas); entregas contam os cards em que a pessoa é responsável, nos últimos 30 dias
+                  Score de 0 a 100 nos últimos 30 dias: entregas 50%, constância 20%, colaboração 20% e horas 10%. O XP e o nível acumulam a atividade de todo o período.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {memberStats.map((member, index) => (
-                    <div key={member.user_id} className="flex items-center gap-2 sm:gap-4">
+                  {memberStats.map((member) => {
+                    const posicao = member.participa ? overallStats.equipe.indexOf(member) + 1 : null;
+                    return (
+                    <div key={member.user_id} className={`flex items-center gap-2 sm:gap-4 ${member.participa ? '' : 'opacity-60'}`}>
                       <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-muted font-bold text-sm">
-                        {index + 1}
+                        {posicao ?? '–'}
                       </div>
                       <Avatar>
                         <AvatarImage src={member.avatar_url ?? undefined} alt={member.name} />
                         <AvatarFallback>{iniciais(member.name)}</AvatarFallback>
                       </Avatar>
-                      {/* min-w-0 deixa o nome truncar em vez de empurrar a
-                          barra de progresso para fora da tela. */}
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{member.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{member.role_label}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {member.role_label}
+                          {member.ultima_atividade && (
+                            <> · ativo {formatDistanceToNow(new Date(member.ultima_atividade), { addSuffix: true, locale: ptBR })}</>
+                          )}
+                        </p>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                           <span>{member.cards_completed} concluídos</span>
                           <span>{member.cards_open} em aberto</span>
-                          <span>{member.total_hours}h registradas</span>
+                          <span>{member.dias_ativos} dias ativos</span>
+                          <span>{member.comentarios} comentários</span>
                           <span className="inline-flex items-center gap-1">
                             <Medal className="h-3 w-3" />
                             {member.badges}
                           </span>
                         </div>
+                        {member.participa && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            Entrega {member.pts_entrega}/50 · Constância {member.pts_constancia}/20 · Colaboração {member.pts_colaboracao}/20 · Horas {member.pts_horas}/10
+                          </p>
+                        )}
                       </div>
                       <div className="shrink-0 text-right">
-                        <p className="text-sm font-medium tabular-nums">
+                        {member.participa ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <Progress value={member.score} className="w-12 sm:w-20" />
+                            <span className="w-14 text-sm font-semibold tabular-nums">{member.score}/100</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">fora do ranking</span>
+                        )}
+                        <p className="mt-1 text-xs tabular-nums text-muted-foreground">
                           {member.level_icon} Nível {member.level}
-                          <span className="hidden sm:inline"> · {member.level_name}</span>
+                          <span className="hidden sm:inline"> · {member.level_name}</span> · {member.total_score.toLocaleString('pt-BR')} XP
                         </p>
-                        <div className="mt-1 flex items-center justify-end gap-2">
-                          <Progress value={member.level_progress} className="w-12 sm:w-20" />
-                          <span className="w-16 text-xs tabular-nums text-muted-foreground">
-                            {member.total_score.toLocaleString('pt-BR')} pts
-                          </span>
-                        </div>
+                        {souAdmin && (
+                          <label className="mt-1 flex items-center justify-end gap-2 text-[11px] text-muted-foreground">
+                            No ranking
+                            <Switch
+                              checked={member.participa}
+                              disabled={alternarParticipacao.isPending}
+                              onCheckedChange={(v) => alternarParticipacao.mutate({ userId: member.user_id, incluir: v })}
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   {memberStats.length === 0 && (
                     <p className="text-center text-muted-foreground py-8">
                       Nenhum membro ativo encontrado
@@ -657,7 +696,7 @@ export default function PeopleAnalyticsPage() {
                     <span className="text-muted-foreground">Média de cards/membro</span>
                     <span className="font-bold">
                       {memberStats.length > 0 
-                        ? Math.round(overallStats.totalCompleted / memberStats.length * 10) / 10
+                        ? Math.round(overallStats.totalCompleted / Math.max(1, overallStats.equipe.length) * 10) / 10
                         : 0}
                     </span>
                   </div>
@@ -665,7 +704,7 @@ export default function PeopleAnalyticsPage() {
                     <span className="text-muted-foreground">Média de horas/membro</span>
                     <span className="font-bold">
                       {memberStats.length > 0 
-                        ? Math.round(overallStats.totalHours / memberStats.length * 10) / 10
+                        ? Math.round(overallStats.totalHours / Math.max(1, overallStats.equipe.length) * 10) / 10
                         : 0}h
                     </span>
                   </div>
@@ -673,14 +712,14 @@ export default function PeopleAnalyticsPage() {
                     <span className="text-muted-foreground">Tempo médio de conclusão</span>
                     <span className="font-bold">
                       {memberStats.length > 0 
-                        ? Math.round(memberStats.reduce((a, m) => a + m.avg_completion_time, 0) / memberStats.length * 10) / 10
+                        ? Math.round(overallStats.equipe.reduce((a, m) => a + m.avg_completion_time, 0) / Math.max(1, overallStats.equipe.length) * 10) / 10
                         : 0}h
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Membros no nível 3 ou acima</span>
+                    <span className="text-muted-foreground">Membros com score de 70 ou mais</span>
                     <span className="font-bold">
-                      {memberStats.filter(m => m.level >= 3).length}
+                      {overallStats.equipe.filter(m => m.score >= 70).length}
                     </span>
                   </div>
                 </CardContent>
