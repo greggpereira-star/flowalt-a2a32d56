@@ -1,16 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -21,13 +16,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
+import { useFolders } from '@/hooks/useFolders';
+import { useFolderViews } from '@/hooks/useSocialMediaTemplates';
+import { useIsAdmin } from '@/hooks/useFolderPermissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useMyRunningTimer } from '@/hooks/useTimeEntries';
@@ -36,78 +35,175 @@ import { SpaceTreeNav } from '@/components/spaces/SpaceTreeNav';
 import { FlowaltLogo } from '@/components/brand/FlowaltLogo';
 import { cn } from '@/lib/utils';
 import {
+  BarChart3,
+  Briefcase,
   Building2,
   Calculator,
   Calendar,
   CalendarPlus,
   CheckSquare,
   ChevronDown,
-  ChevronRight,
   Clock,
   DollarSign,
   FileText,
+  Folder,
   LayoutDashboard,
   Lightbulb,
+  Lock,
   LogOut,
   MoreHorizontal,
+  Palette,
   PieChart,
   Plug,
   Plus,
   Search,
   Settings,
+  Settings2,
   Share2,
+  Target,
   Timer,
   TrendingUp,
   Trophy,
   UserCircle,
   Users,
+  Video,
   Zap,
-  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 
 /**
  * Menu lateral novo (beta, só para quem está em EMAILS_BETA).
  *
- * Mantém as mesmas telas, permissões e árvore de espaços do menu atual (reaproveita
- * SpaceTreeNav); muda a organização: o que se usa todo dia no topo, espaços logo abaixo e
- * as áreas de gestão agrupadas e recolhidas. "Conversas" e "Aprovações" entram quando
- * essas telas existirem; não há itens que levem a páginas ainda inexistentes.
+ * Mesmas telas, permissões e dados do menu atual. A navegação diária dos espaços é desenhada
+ * aqui (espaço, pasta, visão), e a administração (criar pasta, criar/editar/excluir visão,
+ * salvar modelo) continua na árvore antiga, aberta pelo botão de engrenagem de cada espaço
+ * para quem é administrador. "Conversas" e "Aprovações" entram quando essas telas existirem.
  */
+
+const ENCERRADOS = '(delivered,approved,archived)';
+
+const iconesDeEspaco: Record<string, LucideIcon> = {
+  palette: Palette,
+  video: Video,
+  'share-2': Share2,
+  target: Target,
+  briefcase: Briefcase,
+  folder: Folder,
+};
 
 interface Item {
   icon: LucideIcon;
   label: string;
   path: string;
+  contagem?: number;
 }
 
-const classeItem =
-  'h-9 rounded-lg px-3 text-[13.5px] font-medium text-sidebar-foreground/80 ' +
-  'data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-semibold';
-
-const classeRotulo = 'px-3 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground/80';
-
-function lerGrupo(chave: string, padrao: boolean) {
+// ---------------------------------------------------------------------------
+// estado recolhido/aberto lembrado no navegador
+// ---------------------------------------------------------------------------
+function lerFlag(chave: string, padrao: boolean) {
   try {
-    const bruto = window.localStorage.getItem(`flowalt_menu_${chave}`);
-    return bruto === null ? padrao : bruto === '1';
+    const v = window.localStorage.getItem(`flowalt_menu_${chave}`);
+    return v === null ? padrao : v === '1';
   } catch {
     return padrao;
   }
 }
 
-function useGrupoRecolhivel(chave: string, abertoPorPadrao: boolean, forcarAberto: boolean) {
-  const [aberto, setAberto] = useState(() => lerGrupo(chave, abertoPorPadrao));
-  const efetivo = aberto || forcarAberto;
-  const alternar = (valor: boolean) => {
+function useFlag(chave: string, padrao: boolean) {
+  const [aberto, setAberto] = useState(() => lerFlag(chave, padrao));
+  const definir = (valor: boolean) => {
     setAberto(valor);
     try {
       window.localStorage.setItem(`flowalt_menu_${chave}`, valor ? '1' : '0');
     } catch {
-      /* ignora: o grupo só não lembra o estado */
+      /* ignora: só não lembra o estado */
     }
   };
-  return { aberto: efetivo, alternar };
+  return [aberto, definir] as const;
+}
+
+// ---------------------------------------------------------------------------
+// contadores
+// ---------------------------------------------------------------------------
+function useContagens() {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+
+  const porEspaco = useQuery({
+    queryKey: ['menu-contagem-espacos', wsId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('card_spaces')
+        .select('space_id, cards!inner(status, workspace_id)')
+        .eq('cards.workspace_id', wsId!)
+        .not('cards.status', 'in', ENCERRADOS);
+      const mapa = new Map<string, number>();
+      (data ?? []).forEach((l: any) => mapa.set(l.space_id, (mapa.get(l.space_id) ?? 0) + 1));
+      return mapa;
+    },
+    enabled: !!wsId,
+    staleTime: 60_000,
+  });
+
+  const meus = useQuery({
+    queryKey: ['menu-contagem-meus', wsId, user?.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('card_members')
+        .select('card_id, cards!inner(status, workspace_id)', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .eq('cards.workspace_id', wsId!)
+        .not('cards.status', 'in', ENCERRADOS);
+      return count ?? 0;
+    },
+    enabled: !!wsId && !!user?.id,
+    staleTime: 60_000,
+  });
+
+  return { porEspaco: porEspaco.data, meus: meus.data ?? 0 };
+}
+
+// ---------------------------------------------------------------------------
+// peças visuais
+// ---------------------------------------------------------------------------
+const classeLinha =
+  'group/linha flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[13.5px] font-semibold ' +
+  'text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground';
+const classeAtiva = 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary';
+
+function Contador({ valor, destaque }: { valor?: number; destaque?: boolean }) {
+  if (!valor) return null;
+  return (
+    <span
+      className={cn(
+        'ml-auto min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums leading-5',
+        destaque ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+      )}
+    >
+      {valor}
+    </span>
+  );
+}
+
+function LinhaItem({ item, ativo }: { item: Item; ativo: boolean }) {
+  return (
+    <Link to={item.path} className={cn(classeLinha, ativo && classeAtiva)} aria-current={ativo ? 'page' : undefined}>
+      <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+      <span className="truncate">{item.label}</span>
+      <Contador valor={item.contagem} />
+    </Link>
+  );
+}
+
+function Rotulo({ children, acao }: { children: React.ReactNode; acao?: React.ReactNode }) {
+  return (
+    <div className="mb-1 mt-5 flex items-center px-3">
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/80">{children}</span>
+      <span className="ml-auto">{acao}</span>
+    </div>
+  );
 }
 
 function formatarTempo(segundos: number) {
@@ -133,24 +229,200 @@ function CronometroAtivo() {
     <Link
       to="/time"
       title="Cronômetro em andamento"
-      className="mb-2 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary"
+      className="mb-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary"
     >
-      <Timer className="h-3.5 w-3.5 shrink-0" />
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+      </span>
       <span className="min-w-0 flex-1 truncate">{timer.cards?.title || 'Card'}</span>
       <span className="font-mono tabular-nums">{formatarTempo(decorrido)}</span>
     </Link>
   );
 }
 
+// ---------------------------------------------------------------------------
+// espaços: espaço > pasta > visão (uma pasta com uma só visão abre direto)
+// ---------------------------------------------------------------------------
+function PastaItem({
+  pasta,
+  espacoId,
+  visaoAtual,
+  noEspacoAtivo,
+  usuarioId,
+}: {
+  pasta: { id: string; name: string; color: string | null; owner_id: string | null; is_personal?: boolean };
+  espacoId: string;
+  visaoAtual: string | null;
+  noEspacoAtivo: boolean;
+  usuarioId?: string;
+}) {
+  const { data: visoes, isLoading } = useFolderViews(pasta.id);
+  const restrita = !!pasta.is_personal && !!pasta.owner_id && pasta.owner_id !== usuarioId;
+  const contemAtiva = noEspacoAtivo && !!visoes?.some(v => v.id === visaoAtual);
+  const [aberta, definirAberta] = useFlag(`pasta_${pasta.id}`, false);
+
+  const classeSub =
+    'flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-foreground/65 ' +
+    'transition-colors hover:bg-foreground/[0.04] hover:text-foreground';
+
+  if (restrita) {
+    return (
+      <div className={cn(classeSub, 'cursor-not-allowed opacity-60')} title="Pasta pessoal de outro usuário">
+        <Lock className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{pasta.name}</span>
+      </div>
+    );
+  }
+
+  if (isLoading) return <Skeleton className="h-9 w-full rounded-lg" />;
+
+  const lista = visoes ?? [];
+
+  // Pasta com uma única visão: um clique vai direto para ela.
+  if (lista.length === 1) {
+    const visao = lista[0];
+    const ativa = noEspacoAtivo && visaoAtual === visao.id;
+    return (
+      <Link
+        to={`/space/${espacoId}?view=${visao.id}`}
+        className={cn(classeSub, ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary')}
+        title={`${pasta.name} · ${visao.name}`}
+      >
+        <span className="truncate">{pasta.name}</span>
+      </Link>
+    );
+  }
+
+  const aberto = aberta || contemAtiva;
+  return (
+    <div>
+      <button
+        onClick={() => definirAberta(!aberto)}
+        className={cn(classeSub, contemAtiva && 'text-primary')}
+        aria-expanded={aberto}
+        title={pasta.name}
+      >
+        <span className="truncate">{pasta.name}</span>
+        <ChevronDown className={cn('ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
+      </button>
+      {aberto && (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border/70 pl-2">
+          {lista.map(v => {
+            const ativa = noEspacoAtivo && visaoAtual === v.id;
+            return (
+              <Link
+                key={v.id}
+                to={`/space/${espacoId}?view=${v.id}`}
+                className={cn(
+                  'flex h-8 items-center rounded-lg px-3 text-[12.5px] font-medium text-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
+                  ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
+                )}
+              >
+                <span className="truncate">{v.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EspacoItem({
+  espaco,
+  contagem,
+  ehAdmin,
+  aoGerenciar,
+}: {
+  espaco: { id: string; name: string; color?: string; icon?: string };
+  contagem?: number;
+  ehAdmin: boolean;
+  aoGerenciar: () => void;
+}) {
+  const location = useLocation();
+  const { user } = useAuth();
+  const visaoAtual = new URLSearchParams(location.search).get('view');
+  const noEspacoAtivo = location.pathname === `/space/${espaco.id}`;
+  const [aberto, definirAberto] = useFlag(`espaco_${espaco.id}`, false);
+  const mostrar = aberto || noEspacoAtivo;
+  const { data: pastas, isLoading } = useFolders(mostrar ? espaco.id : undefined);
+  const Icone = iconesDeEspaco[espaco.icon ?? 'folder'] ?? Folder;
+  const cor = espaco.color || 'hsl(var(--primary))';
+
+  return (
+    <div>
+      <div className={cn(classeLinha, 'pr-2', noEspacoAtivo && 'text-foreground')}>
+        <button
+          onClick={() => definirAberto(!mostrar)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-expanded={mostrar}
+          aria-label={`${mostrar ? 'Recolher' : 'Expandir'} ${espaco.name}`}
+        >
+          <span
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `${cor}22`, color: cor }}
+          >
+            <Icone className="h-3.5 w-3.5" strokeWidth={2.1} />
+          </span>
+          <span className="truncate">{espaco.name}</span>
+        </button>
+        {ehAdmin && (
+          <button
+            onClick={aoGerenciar}
+            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground group-hover/linha:flex"
+            title="Gerenciar pastas e visões"
+            aria-label={`Gerenciar ${espaco.name}`}
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <Contador valor={contagem} />
+        <button onClick={() => definirAberto(!mostrar)} tabIndex={-1} aria-hidden="true" className="flex h-6 w-5 items-center justify-center">
+          <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', mostrar && 'rotate-180')} />
+        </button>
+      </div>
+
+      {mostrar && (
+        <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5">
+          {isLoading ? (
+            <>
+              <Skeleton className="h-9 w-full rounded-lg" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+            </>
+          ) : pastas && pastas.length > 0 ? (
+            pastas.map(p => (
+              <PastaItem
+                key={p.id}
+                pasta={p}
+                espacoId={espaco.id}
+                visaoAtual={visaoAtual}
+                noEspacoAtivo={noEspacoAtivo}
+                usuarioId={user?.id}
+              />
+            ))
+          ) : (
+            <p className="px-3 py-1.5 text-xs text-muted-foreground">Nenhuma pasta ainda</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 export const AppSidebarV2: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
-  const { data: spaces, isLoading: spacesLoading } = useSpaces();
+  const { data: spaces, isLoading: carregandoEspacos } = useSpaces();
   const { isAdmin, isCoordinator } = usePermissions();
+  const ehAdminDePastas = useIsAdmin();
   const { has } = useEntitlementRegistry();
   const beta = useNewUiBeta();
+  const { porEspaco, meus } = useContagens();
+  const [gerenciando, setGerenciando] = useState<{ id: string; name: string; color?: string; icon?: string; type?: string } | null>(null);
 
   const temAcessoIntegracoes = isAdmin || isCoordinator;
   const temSocial = has('social_publish');
@@ -158,7 +430,7 @@ export const AppSidebarV2: React.FC = () => {
   const principais: Item[] = [
     { icon: LayoutDashboard, label: 'Início', path: '/' },
     { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'Meu trabalho', path: '/tasks' },
+    { icon: CheckSquare, label: 'Meu trabalho', path: '/tasks', contagem: meus },
     { icon: Calendar, label: 'Agenda', path: '/calendar' },
     { icon: Building2, label: 'Clientes', path: '/clients' },
   ];
@@ -183,80 +455,86 @@ export const AppSidebarV2: React.FC = () => {
 
   const noCaminho = (itens: Item[]) =>
     itens.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
-  const grupoGestao = useGrupoRecolhivel('gestao', false, noCaminho(gestao));
-  const grupoMais = useGrupoRecolhivel('mais', false, noCaminho(mais));
+  const [gestaoAberta, definirGestao] = useFlag('gestao', false);
+  const [maisAberto, definirMais] = useFlag('mais', false);
 
-  const espacosVisiveis = spaces?.slice(0, 10) ?? [];
-  const espacosOcultos = Math.max((spaces?.length ?? 0) - espacosVisiveis.length, 0);
+  const espacos = spaces?.slice(0, 12) ?? [];
+  const espacosOcultos = Math.max((spaces?.length ?? 0) - espacos.length, 0);
 
-  const iniciais =
-    user?.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ||
-    user?.email?.[0].toUpperCase() ||
-    'U';
+  const iniciais = useMemo(
+    () =>
+      user?.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ||
+      user?.email?.[0].toUpperCase() ||
+      'U',
+    [user]
+  );
 
   const sair = async () => {
     await signOut();
     navigate('/auth', { replace: true });
   };
 
-  const abrirBusca = () => window.dispatchEvent(new Event('flowalt:abrir-busca'));
-
-  const renderItem = (item: Item) => (
-    <SidebarMenuItem key={item.path}>
-      <SidebarMenuButton asChild isActive={location.pathname === item.path} className={classeItem}>
-        <Link to={item.path}>
-          <item.icon className="h-4 w-4" />
-          <span>{item.label}</span>
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-
   const renderGrupo = (
     titulo: string,
-    icone: LucideIcon,
+    Icone: LucideIcon,
     itens: Item[],
-    estado: { aberto: boolean; alternar: (v: boolean) => void }
+    aberto: boolean,
+    definir: (v: boolean) => void
   ) => {
-    const Icone = icone;
+    const visivel = aberto || noCaminho(itens);
     return (
-      <SidebarGroup className="py-1">
-        <Collapsible open={estado.aberto} onOpenChange={estado.alternar}>
-          <CollapsibleTrigger asChild>
-            <button
-              className={cn(classeItem, 'flex w-full items-center gap-2 hover:bg-sidebar-accent/60')}
-              aria-label={`${estado.aberto ? 'Recolher' : 'Expandir'} ${titulo}`}
-            >
-              <Icone className="h-4 w-4" />
-              <span className="flex-1 text-left">{titulo}</span>
-              {estado.aberto ? (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenu className="mt-1 gap-0.5 pl-3">{itens.map(renderItem)}</SidebarMenu>
-          </CollapsibleContent>
-        </Collapsible>
-      </SidebarGroup>
+      <div>
+        <button
+          onClick={() => definir(!visivel)}
+          className={cn(classeLinha, noCaminho(itens) && 'text-primary')}
+          aria-expanded={visivel}
+          aria-label={`${visivel ? 'Recolher' : 'Expandir'} ${titulo}`}
+        >
+          <Icone className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+          <span className="flex-1 text-left">{titulo}</span>
+          <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', visivel && 'rotate-180')} />
+        </button>
+        {visivel && (
+          <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5">
+            {itens.map(item => {
+              const ativo = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium text-foreground/65 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
+                    ativo && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
   return (
     <Sidebar className="border-r border-sidebar-border" data-tour="sidebar">
-      <SidebarHeader className="gap-3 p-4 pb-2">
-        <div className="flex items-center">
+      <SidebarHeader className="gap-3 px-4 pb-3 pt-5">
+        <div className="flex items-center px-1">
           <FlowaltLogo size={30} wordmarkClassName="text-[1.05rem]" />
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-10 w-full justify-between px-3" data-tour="workspace-selector">
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-                  <Building2 className="h-3.5 w-3.5 text-primary" />
+            <Button
+              variant="outline"
+              className="h-11 w-full justify-between rounded-xl bg-card px-3 shadow-sm"
+              data-tour="workspace-selector"
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Building2 className="h-4 w-4 text-primary" />
                 </div>
                 <span className="truncate text-sm font-semibold">{currentWorkspace?.name || 'Selecionar Workspace'}</span>
               </div>
@@ -288,41 +566,41 @@ export const AppSidebarV2: React.FC = () => {
         </DropdownMenu>
 
         <button
-          onClick={abrirBusca}
-          className="flex h-9 w-full items-center gap-2 rounded-lg bg-muted/60 px-3 text-[13px] text-muted-foreground transition-colors hover:bg-muted"
+          onClick={() => window.dispatchEvent(new Event('flowalt:abrir-busca'))}
+          className="flex h-10 w-full items-center gap-2.5 rounded-xl bg-muted/70 px-3.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted"
           aria-label="Abrir busca (Command K)"
         >
-          <Search className="h-3.5 w-3.5" />
+          <Search className="h-4 w-4" />
           <span className="flex-1 text-left">Buscar…</span>
-          <kbd className="rounded border bg-background px-1.5 py-0.5 text-[10px] font-bold">⌘K</kbd>
+          <kbd className="rounded-md border bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">⌘K</kbd>
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="h-9 w-full gap-1.5 font-semibold" aria-label="Criar novo">
-              <Plus className="h-4 w-4" /> Novo
+            <Button className="h-10 w-full gap-1.5 rounded-xl text-[13.5px] font-bold shadow-sm" aria-label="Criar novo">
+              <Plus className="h-4 w-4" strokeWidth={2.5} /> Novo
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-60">
+          <DropdownMenuContent align="start" className="w-64 rounded-xl p-1.5">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Criar</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate('/tasks?new=quick')}>
-              <Zap className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="rounded-lg py-2" onClick={() => navigate('/tasks?new=quick')}>
+              <Zap className="mr-3 h-4 w-4" />
               <div>
-                <p className="text-sm">Card rápido</p>
+                <p className="text-sm font-medium">Card rápido</p>
                 <p className="text-xs text-muted-foreground">Sem briefing nem checklist</p>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/tasks?new=briefed')}>
-              <FileText className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="rounded-lg py-2" onClick={() => navigate('/tasks?new=briefed')}>
+              <FileText className="mr-3 h-4 w-4" />
               <div>
-                <p className="text-sm">Demanda com briefing</p>
+                <p className="text-sm font-medium">Demanda com briefing</p>
                 <p className="text-xs text-muted-foreground">Com validações e etapas</p>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/calendar?new=1')}>
-              <CalendarPlus className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="rounded-lg py-2" onClick={() => navigate('/calendar?new=1')}>
+              <CalendarPlus className="mr-3 h-4 w-4" />
               <div>
-                <p className="text-sm">Agendar evento</p>
+                <p className="text-sm font-medium">Agendar evento</p>
                 <p className="text-xs text-muted-foreground">Reunião, gravação ou prazo</p>
               </div>
             </DropdownMenuItem>
@@ -330,64 +608,77 @@ export const AppSidebarV2: React.FC = () => {
         </DropdownMenu>
       </SidebarHeader>
 
-      <SidebarContent className="gap-1 px-2">
-        <SidebarGroup className="py-1">
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">{principais.map(renderItem)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="gap-0 overflow-hidden px-3 pb-2">
+        {/* A área com nav e espaços rola; Gestão e Mais ficam fixos logo acima do rodapé. */}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+        <nav className="space-y-0.5" aria-label="Principal">
+          {principais.map(item => (
+            <LinhaItem key={item.path} item={item} ativo={location.pathname === item.path} />
+          ))}
+        </nav>
 
-        <SidebarGroup className="py-1" data-tour="spaces-menu">
-          <SidebarGroupLabel className={classeRotulo}>Espaços</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {spacesLoading ? (
-                <>
-                  <Skeleton className="mb-1 h-9 w-full" />
-                  <Skeleton className="mb-1 h-9 w-full" />
-                  <Skeleton className="h-9 w-full" />
-                </>
-              ) : espacosVisiveis.length > 0 ? (
-                <>
-                  {espacosVisiveis.map(space => (
-                    <SidebarMenuItem key={space.id}>
-                      <SpaceTreeNav
-                        spaceId={space.id}
-                        spaceName={space.name}
-                        spaceColor={space.color}
-                        spaceIcon={space.icon}
-                        spaceType={space.type}
-                      />
-                    </SidebarMenuItem>
-                  ))}
-                  {espacosOcultos > 0 && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild className={classeItem}>
-                        <Link to="/settings?tab=spaces">
-                          <Plus className="h-4 w-4" />
-                          <span>Ver mais {espacosOcultos}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                </>
-              ) : (
-                <p className="px-3 py-1 text-xs text-muted-foreground">Nenhum espaço</p>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <div data-tour="spaces-menu">
+          <Rotulo
+            acao={
+              ehAdminDePastas && (
+                <Link
+                  to="/settings?tab=spaces"
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+                  title="Gerenciar espaços"
+                  aria-label="Gerenciar espaços"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Link>
+              )
+            }
+          >
+            Espaços
+          </Rotulo>
+          <div className="space-y-0.5">
+            {carregandoEspacos ? (
+              <>
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </>
+            ) : espacos.length > 0 ? (
+              <>
+                {espacos.map(espaco => (
+                  <EspacoItem
+                    key={espaco.id}
+                    espaco={espaco}
+                    contagem={porEspaco?.get(espaco.id)}
+                    ehAdmin={ehAdminDePastas}
+                    aoGerenciar={() => setGerenciando(espaco)}
+                  />
+                ))}
+                {espacosOcultos > 0 && (
+                  <Link to="/settings?tab=spaces" className={classeLinha}>
+                    <Plus className="h-[18px] w-[18px]" />
+                    <span>Ver mais {espacosOcultos}</span>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <p className="px-3 py-1 text-xs text-muted-foreground">Nenhum espaço</p>
+            )}
+          </div>
+        </div>
 
-        <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, grupoGestao)}</div>
-        {renderGrupo('Mais', MoreHorizontal, mais, grupoMais)}
+        </div>
+
+        <div className="mt-2 max-h-[45%] shrink-0 space-y-0.5 overflow-y-auto border-t border-border/70 pt-3 [scrollbar-width:thin]">
+          <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, gestaoAberta, definirGestao)}</div>
+          {renderGrupo('Mais', MoreHorizontal, mais, maisAberto, definirMais)}
+        </div>
       </SidebarContent>
 
-      <SidebarFooter className="p-3" data-tour="user-menu">
+      <SidebarFooter className="px-3 pb-4 pt-2" data-tour="user-menu">
         <CronometroAtivo />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-auto w-full justify-start gap-2 px-2 py-2">
-              <Avatar className="h-8 w-8 flex-shrink-0">
+            <Button variant="ghost" className="h-auto w-full justify-start gap-2.5 rounded-xl px-2 py-2">
+              <Avatar className="h-9 w-9 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">{iniciais}</AvatarFallback>
               </Avatar>
@@ -400,7 +691,7 @@ export const AppSidebarV2: React.FC = () => {
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64 rounded-xl">
             <DropdownMenuItem asChild>
               <Link to="/settings" className="flex items-center">
                 <Settings className="mr-2 h-4 w-4" />
@@ -427,6 +718,24 @@ export const AppSidebarV2: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
+
+      {/* Administração do espaço: a árvore completa de antes (criar pasta/visão, editar, excluir, modelo). */}
+      <Dialog open={!!gerenciando} onOpenChange={aberto => !aberto && setGerenciando(null)}>
+        <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar {gerenciando?.name}</DialogTitle>
+          </DialogHeader>
+          {gerenciando && (
+            <SpaceTreeNav
+              spaceId={gerenciando.id}
+              spaceName={gerenciando.name}
+              spaceColor={gerenciando.color}
+              spaceIcon={gerenciando.icon}
+              spaceType={gerenciando.type}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 };
