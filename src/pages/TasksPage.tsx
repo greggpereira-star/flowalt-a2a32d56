@@ -30,6 +30,9 @@ import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import type { Card as CardType } from '@/hooks/useCards';
 import { CARD_STATUS_LABELS, getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 import { useStatusLabel } from '@/hooks/useStatusLabel';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { cn } from '@/lib/utils';
+import { differenceInCalendarDays } from 'date-fns';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'bg-muted text-muted-foreground',
@@ -44,6 +47,8 @@ const STATUS_COLORS: Record<string, string> = {
 const TasksPage: React.FC = () => {
   const rotuloStatus = useStatusLabel();
   usePageTracking('cards');
+  // Visual novo (opção beta pessoal); a lógica e as consultas abaixo são as mesmas nos dois visuais.
+  const { inicio: novo } = useNewUiBeta();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,7 +168,7 @@ const TasksPage: React.FC = () => {
 
   if (isLoading) {
     return (
-    <div className="p-6 space-y-6">
+    <div className={cn('p-6 space-y-6', novo && 'mx-auto max-w-[1180px] px-8 py-8')}>
 
           <Skeleton className="h-8 w-48" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -232,6 +237,156 @@ const TasksPage: React.FC = () => {
       </div>
     );
   };
+
+
+  const prazoRotulo = (due: string | null) => {
+    if (!due) return null;
+    const d = new Date(due);
+    const dias = differenceInCalendarDays(d, new Date());
+    if (dias < 0) return { texto: `venceu há ${-dias} d`, tom: 'atrasado' as const };
+    if (dias === 0) return { texto: 'hoje', tom: 'hoje' as const };
+    if (dias === 1) return { texto: 'amanhã', tom: 'normal' as const };
+    return { texto: format(d, "dd 'de' MMM", { locale: ptBR }), tom: 'normal' as const };
+  };
+
+  const linhaNova = (card: typeof filteredCards[0]) => {
+    const prazo = prazoRotulo(card.due_date);
+    const cliente = (card.client as unknown as { name: string } | null)?.name;
+    const espaco = (card.space as unknown as { name: string } | null)?.name;
+    return (
+      <button
+        key={card.id}
+        type="button"
+        onClick={() => setSelectedCardId(card.id)}
+        className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-muted/40"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14.5px] font-semibold tracking-tight">{card.title}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted-foreground">
+            {cliente && (
+              <>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                <span className="truncate">{cliente}</span>
+              </>
+            )}
+            {cliente && espaco && <span>·</span>}
+            {espaco && <span className="truncate">{espaco}</span>}
+          </p>
+        </div>
+        {card.actual_hours && card.actual_hours > 0 ? (
+          <span className="hidden shrink-0 items-center gap-1 text-[12px] text-muted-foreground sm:inline-flex">
+            <Clock className="h-3 w-3" />
+            {card.actual_hours.toFixed(1)}h
+          </span>
+        ) : null}
+        {prazo && (
+          <span
+            className={cn(
+              'shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold',
+              prazo.tom === 'atrasado' && 'bg-destructive/10 text-destructive',
+              prazo.tom === 'hoje' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+              prazo.tom === 'normal' && 'bg-muted text-muted-foreground'
+            )}
+          >
+            {prazo.texto}
+          </span>
+        )}
+        <Badge className={cn('shrink-0 rounded-full', STATUS_COLORS[card.status])}>{getCardStatusLabel(card.status)}</Badge>
+        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      </button>
+    );
+  };
+
+  const secaoNova = (titulo: string, cards: typeof filteredCards, cor: string) => {
+    if (cards.length === 0) return null;
+    return (
+      <section key={titulo} className="space-y-2.5">
+        <h3 className="flex items-center gap-2 px-1 text-[13px] font-bold tracking-tight">
+          <span className={cn('h-2 w-2 rounded-full', cor)} />
+          {titulo}
+          <span className="font-semibold text-muted-foreground">{cards.length}</span>
+        </h3>
+        <div className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          {cards.map(linhaNova)}
+        </div>
+      </section>
+    );
+  };
+
+  const tiles = [
+    { rotulo: 'Total', valor: totalTasks, sub: 'Tarefas ativas', Icone: FileText, tom: 'text-primary bg-primary/10', alerta: false },
+    { rotulo: 'Atrasadas', valor: overdueTasks, sub: 'Precisam de atenção', Icone: AlertTriangle, tom: 'text-destructive bg-destructive/10', alerta: overdueTasks > 0 },
+    { rotulo: 'Hoje', valor: todayTasks, sub: 'Para entregar hoje', Icone: Calendar, tom: 'text-amber-600 bg-amber-500/10', alerta: false },
+    { rotulo: rotuloStatus('in_progress'), valor: inProgressTasks, sub: 'Em andamento', Icone: Play, tom: 'text-emerald-600 bg-emerald-500/10', alerta: false },
+  ];
+
+  if (novo) {
+    return (
+      <>
+        <div className="mx-auto max-w-[1180px] space-y-7 px-4 py-6 sm:px-8 sm:py-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">Meu trabalho</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Cards onde você é responsável ou membro, por ordem de prazo.</p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar tarefas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-10 w-full rounded-xl border-border/60 bg-card pl-10 shadow-sm sm:w-72"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {tiles.map(({ rotulo, valor, sub, Icone, tom, alerta }) => (
+              <div
+                key={rotulo}
+                className={cn('rounded-2xl border border-border/60 bg-card p-5 shadow-sm', alerta && 'border-destructive/40')}
+              >
+                <div className="flex items-center gap-2.5 text-[13px] font-semibold text-muted-foreground">
+                  <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg', tom)}>
+                    <Icone className="h-4 w-4" />
+                  </span>
+                  {rotulo}
+                </div>
+                <p className={cn('mt-3 text-[32px] font-extrabold leading-none tracking-tight', alerta && 'text-destructive')}>{valor}</p>
+                <p className="mt-1.5 text-[12.5px] text-muted-foreground">{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {filteredCards.length > 0 ? (
+            <div className="space-y-6">
+              {secaoNova('Atrasadas', categorizedCards.overdue, 'bg-destructive')}
+              {secaoNova('Para hoje', categorizedCards.today, 'bg-amber-500')}
+              {secaoNova('Para amanhã', categorizedCards.tomorrow, 'bg-primary')}
+              {secaoNova('Esta semana', categorizedCards.thisWeek, 'bg-primary/60')}
+              {secaoNova('Próximas', categorizedCards.later, 'bg-muted-foreground/50')}
+              {secaoNova('Sem prazo', categorizedCards.noDueDate, 'bg-muted-foreground/30')}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+              <EmptyState
+                icon={<CheckSquare className="h-8 w-8" />}
+                title="Nenhuma tarefa encontrada"
+                description={searchQuery ? 'Nenhuma tarefa corresponde à sua busca.' : 'Você não tem tarefas ativas no momento.'}
+                tip="Tarefas aparecem aqui quando você é designado como responsável ou membro."
+              />
+            </div>
+          )}
+        </div>
+
+        <CardDetailSheet
+          cardId={selectedCardId || undefined}
+          open={!!selectedCardId}
+          onOpenChange={(open) => !open && setSelectedCardId(null)}
+        />
+      </>
+    );
+  }
 
   return (
     <>
