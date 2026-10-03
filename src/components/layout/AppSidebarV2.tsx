@@ -500,7 +500,8 @@ export const AppSidebarV2: React.FC = () => {
     Icone: LucideIcon,
     itens: Item[],
     aberto: boolean,
-    definir: (v: boolean) => void
+    definir: (v: boolean) => void,
+    tom: 'primario' | 'neutro'
   ) => {
     const visivel = aberto;
     return (
@@ -511,7 +512,14 @@ export const AppSidebarV2: React.FC = () => {
           aria-expanded={visivel}
           aria-label={`${visivel ? 'Recolher' : 'Expandir'} ${titulo}`}
         >
-          <Icone className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+          <span
+            className={cn(
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg',
+              tom === 'primario' ? 'bg-primary/10 text-primary' : 'bg-foreground/[0.07] text-foreground/60'
+            )}
+          >
+            <Icone className="h-3.5 w-3.5" strokeWidth={2.1} />
+          </span>
           <span className="flex-1 text-left">{titulo}</span>
           <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', visivel && 'rotate-180')} />
         </button>
@@ -524,11 +532,10 @@ export const AppSidebarV2: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium text-foreground/65 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
+                    'flex h-9 items-center rounded-lg px-3 text-[13px] font-medium text-foreground/65 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
                     ativo && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
                   )}
                 >
-                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
                   <span className="truncate">{item.label}</span>
                 </Link>
               );
@@ -631,7 +638,7 @@ export const AppSidebarV2: React.FC = () => {
 
       <SidebarContent className="gap-0 overflow-hidden px-3 pb-2">
         {/* A área com nav e espaços rola; Gestão e Mais ficam fixos logo acima do rodapé. */}
-        <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <nav className="space-y-0.5" aria-label="Principal">
           {principais.map(item => (
             <LinhaItem key={item.path} item={item} ativo={location.pathname === item.path} />
@@ -688,9 +695,11 @@ export const AppSidebarV2: React.FC = () => {
 
         </div>
 
-        <div className="mt-2 max-h-[45%] shrink-0 space-y-0.5 overflow-y-auto border-t border-border/70 pt-3 [scrollbar-width:thin]">
-          <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, gestaoAberta, definirGestao)}</div>
-          {renderGrupo('Mais', MoreHorizontal, mais, maisAberto, definirMais)}
+        {/* Sem linha divisória: um esmaecido discreto indica que a lista continua rolando. */}
+        <div className="pointer-events-none -mt-5 h-5 shrink-0 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
+        <div className="max-h-[45%] shrink-0 space-y-0.5 overflow-y-auto pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, gestaoAberta, definirGestao, 'primario')}</div>
+          {renderGrupo('Mais', MoreHorizontal, mais, maisAberto, definirMais, 'neutro')}
         </div>
       </SidebarContent>
 
