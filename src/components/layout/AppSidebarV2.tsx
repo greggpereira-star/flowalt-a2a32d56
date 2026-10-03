@@ -261,6 +261,11 @@ function PastaItem({
   const restrita = !!pasta.is_personal && !!pasta.owner_id && pasta.owner_id !== usuarioId;
   const contemAtiva = noEspacoAtivo && !!visoes?.some(v => v.id === visaoAtual);
   const [aberta, definirAberta] = useFlag(`pasta_${pasta.id}`, false);
+  // Abre sozinha quando a pessoa entra numa visão desta pasta; depois o clique recolhe normalmente.
+  useEffect(() => {
+    if (contemAtiva) definirAberta(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contemAtiva]);
 
   const classeSub =
     'flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-foreground/65 ' +
@@ -294,7 +299,7 @@ function PastaItem({
     );
   }
 
-  const aberto = aberta || contemAtiva;
+  const aberto = aberta;
   return (
     <div>
       <button
@@ -345,7 +350,12 @@ function EspacoItem({
   const visaoAtual = new URLSearchParams(location.search).get('view');
   const noEspacoAtivo = location.pathname === `/space/${espaco.id}`;
   const [aberto, definirAberto] = useFlag(`espaco_${espaco.id}`, false);
-  const mostrar = aberto || noEspacoAtivo;
+  // Abre sozinho quando a pessoa entra neste espaço; depois o clique recolhe normalmente.
+  useEffect(() => {
+    if (noEspacoAtivo) definirAberto(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noEspacoAtivo]);
+  const mostrar = aberto;
   const { data: pastas, isLoading } = useFolders(mostrar ? espaco.id : undefined);
   const Icone = iconesDeEspaco[espaco.icon ?? 'folder'] ?? Folder;
   const cor = espaco.color || 'hsl(var(--primary))';
@@ -457,6 +467,17 @@ export const AppSidebarV2: React.FC = () => {
     itens.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
   const [gestaoAberta, definirGestao] = useFlag('gestao', false);
   const [maisAberto, definirMais] = useFlag('mais', false);
+  const emGestao = noCaminho(gestao);
+  const emMais = noCaminho(mais);
+  // Abrem sozinhos ao entrar numa das telas do grupo; depois o clique recolhe normalmente.
+  useEffect(() => {
+    if (emGestao) definirGestao(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emGestao]);
+  useEffect(() => {
+    if (emMais) definirMais(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emMais]);
 
   const espacos = spaces?.slice(0, 12) ?? [];
   const espacosOcultos = Math.max((spaces?.length ?? 0) - espacos.length, 0);
@@ -481,7 +502,7 @@ export const AppSidebarV2: React.FC = () => {
     aberto: boolean,
     definir: (v: boolean) => void
   ) => {
-    const visivel = aberto || noCaminho(itens);
+    const visivel = aberto;
     return (
       <div>
         <button

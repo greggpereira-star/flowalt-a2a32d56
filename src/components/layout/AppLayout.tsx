@@ -100,7 +100,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
   return (
     <AppLayoutContext.Provider value={true}>
-    <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
+    <SidebarProvider
+      className={cn(isSpaceRoute && 'h-svh overflow-hidden')}
+      // O menu novo usa uma coluna mais larga (18,5 rem em vez de 16 rem) para não ficar apertado.
+      style={beta.menu ? ({ '--sidebar-width': '18.5rem' } as React.CSSProperties) : undefined}
+    >
       {beta.menu ? <AppSidebarV2 /> : <AppSidebar />}
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
         {/* Over Limit Banner - Global */}
