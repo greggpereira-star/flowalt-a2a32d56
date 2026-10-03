@@ -12,7 +12,9 @@ import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers, Timer } from 
 import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { useCardIndicators } from '@/hooks/useCardIndicators';
-import { MessageSquare, CheckCircle2 } from 'lucide-react';
+import { useEtapasSla } from '@/hooks/useEtapasSla';
+import { useMyRunningTimer } from '@/hooks/useTimeEntries';
+import { MessageSquare, CheckCircle2, Hourglass, UserX, FileWarning, Moon } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -54,6 +56,61 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const { respiro } = useNewUiBeta();
   const { data: indicadores } = useCardIndicators(respiro);
   const ind = indicadores?.get(card.id);
+  const { data: etapasSla } = useEtapasSla(respiro);
+  const { data: meuCronometro } = useMyRunningTimer();
+
+  // Selos por exceção (só no visual novo): o card saudável fica limpo, e um selo só aparece quando
+  // algo precisa de atenção. No máximo 2 por card, na ordem de importância abaixo.
+  const excecoes: { chave: string; texto: string; titulo: string; tom: 'cr' | 'w' | 'g' | 'n'; icone: React.ReactNode }[] = [];
+  if (respiro && !['delivered', 'approved', 'archived'].includes(card.status)) {
+    const agora = Date.now();
+
+    if (meuCronometro?.card_id === card.id) {
+      excecoes.push({ chave: 'timer', texto: 'Cronômetro rodando', titulo: 'Você está com o cronômetro ligado neste card', tom: 'g', icone: <Timer className="h-3 w-3" /> });
+    }
+
+    const etapa = card.current_stage ? etapasSla?.get(card.current_stage) : undefined;
+    if (etapa && card.stage_entered_at) {
+      const horas = (agora - new Date(card.stage_entered_at).getTime()) / 3_600_000;
+      const dias = Math.floor(horas / 24);
+      if (etapa.sla_critical_hours && horas >= etapa.sla_critical_hours) {
+        excecoes.push({
+          chave: 'sla',
+          texto: `${dias} d em ${etapa.name} · limite ${Math.round(etapa.sla_critical_hours / 24)} d`,
+          titulo: `Está há ${dias} dias na etapa ${etapa.name}; o limite crítico é de ${Math.round(etapa.sla_critical_hours / 24)} dias`,
+          tom: 'cr',
+          icone: <Hourglass className="h-3 w-3" />,
+        });
+      } else if (etapa.sla_warning_hours && horas >= etapa.sla_warning_hours) {
+        excecoes.push({
+          chave: 'sla',
+          texto: `${dias} d em ${etapa.name} · alerta ${Math.max(1, Math.round(etapa.sla_warning_hours / 24))} d`,
+          titulo: `Está há ${dias} dias na etapa ${etapa.name}; o alerta é a partir de ${Math.max(1, Math.round(etapa.sla_warning_hours / 24))} dia(s)`,
+          tom: 'w',
+          icone: <Hourglass className="h-3 w-3" />,
+        });
+      }
+    }
+
+    if (assignees.length === 0) {
+      excecoes.push({ chave: 'resp', texto: 'Sem responsável', titulo: 'Nenhuma pessoa responsável por este card', tom: 'w', icone: <UserX className="h-3 w-3" /> });
+    }
+
+    // O briefing só é exigido a partir de Em Produção; antes disso é esperado que esteja pendente.
+    const emEtapaDeBriefing =
+      ['em_producao', 'revisao', 'aprovacao'].includes(card.current_stage ?? '') ||
+      ['in_progress', 'review'].includes(card.status);
+    if (card.card_type !== 'quick' && !card.briefing_completed && emEtapaDeBriefing) {
+      excecoes.push({ chave: 'briefing', texto: 'Briefing pendente', titulo: 'O briefing deste card ainda não foi concluído', tom: 'w', icone: <FileWarning className="h-3 w-3" /> });
+    }
+
+    const diasParado = Math.floor((agora - new Date(card.updated_at).getTime()) / 86_400_000);
+    if (diasParado > 14) {
+      excecoes.push({ chave: 'parado', texto: `parado há ${diasParado} d`, titulo: `Sem nenhuma alteração há ${diasParado} dias`, tom: 'n', icone: <Moon className="h-3 w-3" /> });
+    }
+  }
+  const excecoesVisiveis = excecoes.slice(0, 2);
+  const excecoesOcultas = excecoes.length - excecoesVisiveis.length;
   const { data: allSpaces } = useSpaces();
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved';
@@ -148,9 +205,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <h3 className="line-clamp-2 text-[13.5px] font-semibold leading-snug transition-colors group-hover:text-primary">
               {card.title}
             </h3>
-            <p className="mt-1 truncate text-xs font-medium text-muted-foreground">
-              {clientName || 'Não faturável'}
-            </p>
+            {clientName ? (
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: clientColor || 'hsl(var(--muted-foreground))' }} />
+                <span className="truncate">{clientName}</span>
+                <span className="ml-auto shrink-0 rounded-md bg-green-500/10 px-1.5 text-[10.5px] font-bold text-green-700 dark:text-green-400" title="Card faturável (tem cliente)">
+                  $
+                </span>
+              </p>
+            ) : (
+              <p className="mt-1 text-xs font-medium text-muted-foreground/80">Não faturável</p>
+            )}
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-1">
             <CardRiskIndicators card={card} />
@@ -169,7 +234,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   )}
                 >
                   <Calendar className="h-3 w-3" />
-                  {format(dueDate, 'dd/MM')} · {format(dueDate, 'HH:mm')}
+                  {isOverdue
+                    ? `${format(dueDate, 'dd/MM')} · venceu há ${Math.max(1, Math.floor((Date.now() - dueDate.getTime()) / 86_400_000))} d`
+                    : `${format(dueDate, 'dd/MM')} · ${format(dueDate, 'HH:mm')}`}
                 </span>
               )}
               {card.actual_hours > 0 && (
@@ -179,6 +246,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 </span>
               )}
             </div>
+
+            {excecoesVisiveis.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {excecoesVisiveis.map(e => (
+                  <span
+                    key={e.chave}
+                    title={e.titulo}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+                      e.tom === 'cr' && 'border-destructive/25 bg-destructive/10 text-destructive',
+                      e.tom === 'w' && 'border-amber-300/60 bg-amber-100/70 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+                      e.tom === 'g' && 'border-green-300/60 bg-green-100/70 text-green-800 dark:bg-green-500/15 dark:text-green-300',
+                      e.tom === 'n' && 'border-border/60 bg-muted/40 text-muted-foreground'
+                    )}
+                  >
+                    {e.icone}
+                    {e.texto}
+                  </span>
+                ))}
+                {excecoesOcultas > 0 && (
+                  <span
+                    className="text-[11px] font-semibold text-muted-foreground"
+                    title={excecoes.slice(2).map(e => e.texto).join(' · ')}
+                  >
+                    +{excecoesOcultas}
+                  </span>
+                )}
+              </div>
+            )}
 
             {ind && ind.total > 0 && (
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
