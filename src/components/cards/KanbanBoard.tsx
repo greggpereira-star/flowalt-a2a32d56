@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { CardPeekHost } from './CardPeek';
 import { useUpdateCard, useDeleteCard, useCreateCard, useMirrorCardToSpace } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useCardDependencies } from '@/hooks/useDependencies';
@@ -807,8 +808,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     );
   }
 
+  // Informações do card que a visualização rápida também mostra (cliente e responsáveis).
+  const infoDoCard = (card: Card) => {
+    const clientInfo = card.client_id ? clientMap.get(card.client_id) : undefined;
+    const assignedIds = cardMembersMap.get(card.id) || [];
+    const assignees: Assignee[] =
+      assignedIds.length > 0
+        ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
+        : card.owner_id && memberMap.has(card.owner_id)
+          ? [memberMap.get(card.owner_id)!]
+          : [];
+    return { clientName: clientInfo?.name, assignees };
+  };
+
   return (
     <>
+      {respiro && <CardPeekHost cards={cards} infoDe={infoDoCard} aoAbrirCard={card => onCardClick(card)} />}
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}

@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Check, CalendarClock, Link2, Play, Square, UserPlus } from 'lucide-react';
+import { ArrowRight, Check, CalendarClock, Eye, Link2, Play, Square, UserPlus } from 'lucide-react';
+import { abrirPeek } from '@/lib/cardPeek';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ function AtalhoCronometro({ card }: { card: Card }) {
       className={cn(botao, rodandoAqui && 'bg-green-500/10 text-green-700 hover:bg-green-500/15 hover:text-green-700 dark:text-green-400')}
       disabled={ocupado}
       title={rodandoAqui ? 'Parar o cronômetro' : 'Iniciar o cronômetro neste card'}
+      aria-label={rodandoAqui ? 'Parar o cronômetro' : 'Iniciar o cronômetro neste card'}
       onClick={() =>
         rodandoAqui && meu
           ? parar.mutate({ id: meu.id, card_id: card.id })
@@ -56,7 +58,8 @@ function AtalhoCronometro({ card }: { card: Card }) {
       }
     >
       {rodandoAqui ? <Square className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-      {rodandoAqui ? 'Parar' : 'Iniciar'}
+      {/* Só o ícone quando parado, para a barra caber com o botão Avançar; "Parar" fica escrito. */}
+      {rodandoAqui && 'Parar'}
     </button>
   );
 }
@@ -216,6 +219,9 @@ export function CardHoverActions({ card, proximoRotulo, aoAvancar, aoMudarAberto
       <AtalhoCronometro card={card} />
       <AtalhoAtribuir card={card} aoMudarAberto={aoMudarAberto} />
       <AtalhoPrazo card={card} aoMudarAberto={aoMudarAberto} />
+      <button className={botao} title="Visualização rápida (Espaço)" onClick={() => abrirPeek(card.id)}>
+        <Eye className="h-3.5 w-3.5" />
+      </button>
       <button className={botao} title="Copiar o link do card" onClick={copiarLink}>
         <Link2 className="h-3.5 w-3.5" />
       </button>

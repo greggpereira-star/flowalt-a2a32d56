@@ -14,6 +14,7 @@ import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { useCardIndicators } from '@/hooks/useCardIndicators';
 import { useEtapasSla } from '@/hooks/useEtapasSla';
 import { CardHoverActions } from './CardHoverActions';
+import { peekHover } from '@/lib/cardPeek';
 import { useMyRunningTimer } from '@/hooks/useTimeEntries';
 import { MessageSquare, CheckCircle2, Hourglass, UserX, FileWarning, Moon } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
@@ -147,6 +148,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         isBlocked && 'border-purple-500/50'
       )}
       onClick={onClick}
+      onMouseEnter={respiro ? () => peekHover.definir(card.id) : undefined}
+      onMouseLeave={respiro ? () => peekHover.sair(card.id) : undefined}
     >
       {/* Client indicator bar */}
       {clientColor && (
