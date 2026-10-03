@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,28 +17,33 @@ function initials(name: string): string {
 }
 
 interface RecentActivityWidgetProps {
+  /** Visual novo da Início (opção beta). */
+  novo?: boolean;
   items: HomeActivityItem[];
   isLoading?: boolean;
 }
 
-export function RecentActivityWidget({ items, isLoading }: RecentActivityWidgetProps) {
+export function RecentActivityWidget({ items, isLoading, novo }: RecentActivityWidgetProps) {
   const navigate = useNavigate();
 
   return (
     <section
       aria-labelledby="recent-activity-title"
-      className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.03)]"
+      className={cn(
+        'flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.03)]',
+        novo && 'border-border/60 bg-card p-5 shadow-sm'
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2
             id="recent-activity-title"
-            className="flex items-center gap-2 text-base font-semibold text-slate-900"
+            className={cn('flex items-center gap-2.5 text-base font-semibold text-slate-900', novo && 'text-[15px] font-bold tracking-tight text-foreground')}
           >
-            <Activity className="h-[18px] w-[18px] text-slate-400" strokeWidth={1.75} />
+            <Activity className={cn('h-[18px] w-[18px] text-slate-400', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} strokeWidth={1.75} />
             Atividade Recente
           </h2>
-          <p className="mt-0.5 text-sm text-slate-500">Últimas movimentações do workspace</p>
+          <p className={cn('mt-0.5 text-sm text-slate-500', novo && 'text-[13px] text-muted-foreground')}>Últimas movimentações do workspace</p>
         </div>
 
         <Button variant="ghost" size="sm" onClick={() => navigate('/activity')}>

@@ -14,20 +14,23 @@ const SEVERITY_CONFIG: Record<
   success: { icon: CheckCircle2, className: 'text-emerald-600', srLabel: 'Tudo certo:' },
 };
 
-export function DailyInsights({ insights }: { insights: HomeInsight[] }) {
+export function DailyInsights({ insights, novo }: { insights: HomeInsight[]; novo?: boolean }) {
   if (insights.length === 0) return null;
 
   return (
     <section
       aria-labelledby="daily-insights-title"
-      className="rounded-2xl border border-slate-200/80 bg-white px-6 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]"
+      className={cn(
+        'rounded-2xl border border-slate-200/80 bg-white px-6 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]',
+        novo && 'border-border/60 bg-card px-5 shadow-sm'
+      )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
         <h2
           id="daily-insights-title"
-          className="flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-900"
+          className={cn('flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-900', novo && 'gap-2.5 text-[15px] font-bold tracking-tight text-foreground')}
         >
-          <Lightbulb className="h-4 w-4 text-amber-500" strokeWidth={1.75} />
+          <Lightbulb className={cn('h-4 w-4 text-amber-500', novo && 'h-7 w-7 rounded-lg bg-amber-500/10 p-1.5')} strokeWidth={1.75} />
           Insights do dia
         </h2>
 

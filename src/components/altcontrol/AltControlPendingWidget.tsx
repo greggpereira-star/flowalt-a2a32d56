@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +14,13 @@ import { ptBR } from 'date-fns/locale';
 
 interface AltControlPendingWidgetProps {
   variant?: 'approver' | 'seller' | 'combined';
+  /** Visual novo da Início (opção beta). */
+  novo?: boolean;
 }
 
 export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = ({ 
-  variant = 'combined' 
+  variant = 'combined',
+  novo,
 }) => {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
@@ -111,15 +115,15 @@ export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = (
 
   if (!hasPendingItems) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+      <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+        <CardHeader className={cn(novo && 'p-5 pb-3')}>
+          <CardTitle className={cn('flex items-center gap-2', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+            <Calculator className={cn('h-5 w-5', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} />
             AltControl
           </CardTitle>
           <CardDescription>Propostas e aprovações comerciais</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={cn(novo && 'p-5 pt-0')}>
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <div className="mb-3 rounded-full bg-muted p-3">
               <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
@@ -137,11 +141,11 @@ export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = (
   }
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader className="pb-3">
+    <Card className={cn('border-primary/20', novo && 'rounded-2xl shadow-sm')}>
+      <CardHeader className={cn('pb-3', novo && 'p-5 pb-3')}>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className={cn('flex items-center gap-2', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+            <Calculator className={cn('h-5 w-5 text-primary', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5')} />
             AltControl
           </CardTitle>
           {hasPendingItems && (
@@ -152,7 +156,7 @@ export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = (
         </div>
         <CardDescription>Propostas e aprovações comerciais</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={cn('space-y-4', novo && 'p-5 pt-0')}>
         {/* Aprovações pendentes (para aprovadores) */}
         {hasApprovalsPending && (
           <div>

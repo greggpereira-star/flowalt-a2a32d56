@@ -9,6 +9,8 @@ import { useEventParticipantsBatch } from '@/hooks/agenda/useEventParticipantsBa
 import type { HomeAgendaEvent } from '@/lib/home/home-types';
 
 interface TodayAgendaProps {
+  /** Visual novo da Início (opção beta). */
+  novo?: boolean;
   events: HomeAgendaEvent[];
   isLoading?: boolean;
   error?: unknown;
@@ -36,7 +38,7 @@ function isOnline(location: string | null): boolean {
   return /http|meet|zoom|teams|online/i.test(location);
 }
 
-export function TodayAgenda({ events, isLoading, error, onRetry }: TodayAgendaProps) {
+export function TodayAgenda({ events, isLoading, error, onRetry, novo }: TodayAgendaProps) {
   const navigate = useNavigate();
   // Uma consulta para todos os eventos da lista, nao uma por card.
   const { data: participantsByEvent } = useEventParticipantsBatch(events.map((e) => e.id));
@@ -45,18 +47,21 @@ export function TodayAgenda({ events, isLoading, error, onRetry }: TodayAgendaPr
   return (
     <section
       aria-labelledby="today-agenda-title"
-      className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.03)]"
+      className={cn(
+        'flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.03)]',
+        novo && 'border-border/60 bg-card p-5 shadow-sm'
+      )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2
             id="today-agenda-title"
-            className="flex items-center gap-2 text-base font-semibold text-slate-900"
+            className={cn('flex items-center gap-2.5 text-base font-semibold text-slate-900', novo && 'text-[15px] font-bold tracking-tight text-foreground')}
           >
-            <CalendarDays className="h-[18px] w-[18px] text-slate-400" strokeWidth={1.75} />
+            <CalendarDays className={cn('h-[18px] w-[18px] text-slate-400', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} strokeWidth={1.75} />
             Agenda de Hoje
           </h2>
-          <p className="mt-0.5 text-sm capitalize text-slate-500">{today}</p>
+          <p className={cn('mt-0.5 text-sm capitalize text-slate-500', novo && 'text-[13px] text-muted-foreground')}>{today}</p>
         </div>
 
         <div className="flex gap-2">

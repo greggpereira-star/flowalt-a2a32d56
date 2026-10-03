@@ -260,10 +260,10 @@ export function InicioNovo({
             )}
           </Cartao>
 
-          <TodayAgenda events={home.agenda} isLoading={home.isLoading.agenda} error={home.errors.agenda} onRetry={home.refetchAll} />
+          <TodayAgenda novo events={home.agenda} isLoading={home.isLoading.agenda} error={home.errors.agenda} onRetry={home.refetchAll} />
         </section>
 
-        <DailyInsights insights={home.insights} />
+        <DailyInsights novo insights={home.insights} />
 
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
           {canViewCoordination && (
@@ -295,13 +295,13 @@ export function InicioNovo({
               </p>
             </Cartao>
           )}
-          <MyTasksWidget tasks={home.priorityTasks} isLoading={home.isLoading.tasks} />
-          <ClientHealthWidget />
+          <MyTasksWidget novo tasks={home.priorityTasks} isLoading={home.isLoading.tasks} />
+          <ClientHealthWidget novo />
         </section>
 
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <AltControlPendingWidget />
-          <RecentActivityWidget items={atividade.data ?? []} isLoading={atividade.isLoading} />
+          <AltControlPendingWidget novo />
+          <RecentActivityWidget novo items={atividade.data ?? []} isLoading={atividade.isLoading} />
         </section>
       </div>
 

@@ -39,7 +39,7 @@ const financialStateConfig: Record<ClientFinancialState, { label: string; color:
   loss: { label: 'Prejuízo', color: 'text-red-800', bgColor: 'bg-red-200 dark:bg-red-900/50' },
 };
 
-export const ClientHealthWidget: React.FC = () => {
+export const ClientHealthWidget: React.FC<{ novo?: boolean }> = ({ novo }) => {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
 
@@ -94,11 +94,11 @@ export const ClientHealthWidget: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card className="min-w-0">
-        <CardHeader className="pb-3">
+      <Card className={cn('min-w-0', novo && 'rounded-2xl border-border/60 shadow-sm')}>
+        <CardHeader className={cn('pb-3', novo && 'p-5 pb-3')}>
           <Skeleton className="h-5 w-32" />
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className={cn('space-y-3', novo && 'p-5 pt-0')}>
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-14" />
           ))}
@@ -124,11 +124,11 @@ export const ClientHealthWidget: React.FC = () => {
     : 0;
 
   return (
-    <Card className="min-w-0">
-      <CardHeader className="pb-3">
+    <Card className={cn('min-w-0', novo && 'rounded-2xl border-border/60 shadow-sm')}>
+      <CardHeader className={cn('pb-3', novo && 'p-5 pb-3')}>
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="min-w-0 text-base font-medium flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
+          <CardTitle className={cn('min-w-0 text-base font-medium flex items-center gap-2', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+            <Activity className={cn('h-4 w-4 text-primary', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5')} />
             Saúde dos Clientes
           </CardTitle>
           <Button 
@@ -142,7 +142,7 @@ export const ClientHealthWidget: React.FC = () => {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={cn('space-y-4', novo && 'p-5 pt-0')}>
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
