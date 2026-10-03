@@ -10,6 +10,7 @@ import { CardAssignees, type Assignee } from './CardAssignees';
 import { VisibilityIcon } from '@/components/governance';
 import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -48,6 +49,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onDelete,
   showQuickActions = true,
 }) => {
+  const { respiro } = useNewUiBeta();
   const { data: allSpaces } = useSpaces();
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved';
@@ -135,7 +137,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         />
       </div>
 
-      <CardHeader className={cn("p-3 pb-2 pr-12", clientColor && "pt-4")}>
+      <CardHeader className={cn(respiro ? "p-4 pb-3 pr-12" : "p-3 pb-2 pr-12", clientColor && (respiro ? "pt-5" : "pt-4"))}>
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
             {card.title}
@@ -143,7 +145,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <UrgencyBadge urgency={card.urgency} />
         </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-2">
+      <CardContent className={cn("pt-0", respiro ? "p-4 pt-0 space-y-3" : "p-3 pt-0 space-y-2")}>
         {/* Client Badge or Non-billable indicator */}
         {clientName ? (
           <Badge 

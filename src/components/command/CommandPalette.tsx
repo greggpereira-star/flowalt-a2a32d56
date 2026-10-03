@@ -88,8 +88,15 @@ export function CommandPalette() {
       }
     };
 
+    // O botão de busca do menu novo dispara este evento (mesma paleta do atalho).
+    const abrir = () => setOpen(true);
+
     document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    window.addEventListener('flowalt:abrir-busca', abrir);
+    return () => {
+      document.removeEventListener('keydown', down);
+      window.removeEventListener('flowalt:abrir-busca', abrir);
+    };
   }, []);
 
   const handleSelect = useCallback((action: () => void | Promise<void>) => {

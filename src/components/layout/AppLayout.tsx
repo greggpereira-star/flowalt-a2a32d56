@@ -1,6 +1,8 @@
 import React, { createContext, lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { AppSidebarV2 } from './AppSidebarV2';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Separator } from '@/components/ui/separator';
 import { useLocation, useParams } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
@@ -88,6 +90,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
   // Enable realtime notifications
   useRealtimeNotifications();
+  const beta = useNewUiBeta();
 
   // If a parent already rendered AppLayout (ProtectedLayout does), just render children.
   // Avoids duplicated sidebar, header, breadcrumb and the extra top spacing.
@@ -98,7 +101,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
   return (
     <AppLayoutContext.Provider value={true}>
     <SidebarProvider className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
-      <AppSidebar />
+      {beta.menu ? <AppSidebarV2 /> : <AppSidebar />}
       <SidebarInset className={cn(isSpaceRoute && 'h-svh overflow-hidden')}>
         {/* Over Limit Banner - Global */}
         <DeferredMount delay={2200}>

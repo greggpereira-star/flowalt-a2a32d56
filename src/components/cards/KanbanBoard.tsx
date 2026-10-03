@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { useUpdateCard, useDeleteCard, useCreateCard, useMirrorCardToSpace } from '@/hooks/useCards';
 import { useChecklists } from '@/hooks/useChecklists';
 import { useCardDependencies } from '@/hooks/useDependencies';
@@ -62,14 +63,16 @@ const DroppableColumn: React.FC<{
   id: string; 
   children: React.ReactNode;
   isOver: boolean;
-}> = ({ id, children, isOver }) => {
+  respiro?: boolean;
+}> = ({ id, children, isOver, respiro = false }) => {
   const { setNodeRef } = useDroppable({ id });
   
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'flex-1 p-2 space-y-2 min-h-[100px] transition-colors duration-200 rounded-b-lg overflow-y-auto',
+        'flex-1 min-h-[100px] transition-colors duration-200 rounded-b-lg overflow-y-auto',
+        respiro ? 'p-3 space-y-3' : 'p-2 space-y-2',
         isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
       )}
     >
@@ -169,6 +172,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { respiro } = useNewUiBeta();
   const { currentRole, currentWorkspace } = useWorkspace();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
@@ -800,7 +804,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-3 h-full min-w-max pb-4">
+        <div className={cn('flex h-full min-w-max pb-4', respiro ? 'gap-5' : 'gap-3')}>
           {visibleStatuses.map((status) => {
             const config = statusConfig[status];
             const columnCards = groupedCards[status] || [];
@@ -810,14 +814,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <div
                 key={status}
                 className={cn(
-                  'flex-shrink-0 w-72 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
+                  'flex-shrink-0 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
+                  respiro ? 'w-80' : 'w-72',
                   isDropTarget
                     ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
                     : 'border-border/30'
                 )}
               >
                 {/* Column Header */}
-                <div className="p-3 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10">
+                <div className={cn('flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10', respiro ? 'px-4 py-3.5' : 'p-3')}>
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
@@ -871,7 +876,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 </div>
 
                 {/* Column Cards - Droppable Area */}
-                <DroppableColumn id={status} isOver={isDropTarget}>
+                <DroppableColumn id={status} isOver={isDropTarget} respiro={respiro}>
                   {columnCards.length === 0 ? (
                     <div 
                       className={cn(

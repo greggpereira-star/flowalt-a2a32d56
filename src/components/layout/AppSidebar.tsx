@@ -15,8 +15,10 @@ import {
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -28,6 +30,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { SpaceTreeNav } from '@/components/spaces/SpaceTreeNav';
 import {
   LayoutDashboard,
@@ -96,6 +99,7 @@ export const AppSidebar: React.FC = () => {
   const { data: spaces, isLoading: spacesLoading } = useSpaces();
   const { isAdmin, isCoordinator } = usePermissions();
   const { has } = useEntitlementRegistry();
+  const beta = useNewUiBeta();
   
   // Permission check: Owner, Admin, or Coordinator can access integrations
   const hasIntegrationAccess = isAdmin || isCoordinator;
@@ -279,6 +283,18 @@ export const AppSidebar: React.FC = () => {
                 Configurações
               </Link>
             </DropdownMenuItem>
+            {beta.podeUsar && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Visual em teste (só para você)</DropdownMenuLabel>
+                <DropdownMenuCheckboxItem checked={beta.menu} onCheckedChange={(v) => beta.definir({ menu: !!v })}>
+                  Menu novo
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.respiro} onCheckedChange={(v) => beta.definir({ respiro: !!v })}>
+                  Mais respiro no Kanban
+                </DropdownMenuCheckboxItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
