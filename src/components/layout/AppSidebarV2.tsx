@@ -546,6 +546,14 @@ export const AppSidebarV2: React.FC = () => {
     );
   };
 
+  const algumAberto = gestaoAberta || maisAberto;
+  const grupos = (
+    <>
+      <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, gestaoAberta, definirGestao, 'primario')}</div>
+      {renderGrupo('Mais', MoreHorizontal, mais, maisAberto, definirMais, 'neutro')}
+    </>
+  );
+
   return (
     <Sidebar className="border-r border-sidebar-border" data-tour="sidebar">
       <SidebarHeader className="gap-3 px-4 pb-3 pt-5">
@@ -638,7 +646,7 @@ export const AppSidebarV2: React.FC = () => {
 
       <SidebarContent className="gap-0 overflow-hidden px-3 pb-2">
         {/* A área com nav e espaços rola; Gestão e Mais ficam fixos logo acima do rodapé. */}
-        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <nav className="space-y-0.5" aria-label="Principal">
           {principais.map(item => (
             <LinhaItem key={item.path} item={item} ativo={location.pathname === item.path} />
@@ -693,14 +701,13 @@ export const AppSidebarV2: React.FC = () => {
           </div>
         </div>
 
+
+          {/* Gestão e Mais abertos rolam junto com o menu, sem ficar presos por cima da lista. */}
+          {algumAberto && <div className="mt-4 space-y-0.5 pb-2">{grupos}</div>}
         </div>
 
-        {/* Sem linha divisória: um esmaecido discreto indica que a lista continua rolando. */}
-        <div className="pointer-events-none -mt-5 h-5 shrink-0 bg-gradient-to-t from-sidebar to-transparent" aria-hidden="true" />
-        <div className="max-h-[45%] shrink-0 space-y-0.5 overflow-y-auto pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div data-tour="management-menu">{renderGrupo('Gestão', BarChart3, gestao, gestaoAberta, definirGestao, 'primario')}</div>
-          {renderGrupo('Mais', MoreHorizontal, mais, maisAberto, definirMais, 'neutro')}
-        </div>
+        {/* Recolhidos, ficam fixos no rodapé do menu, com respiro em relação à lista. */}
+        {!algumAberto && <div className="mt-3 shrink-0 space-y-0.5 pb-1">{grupos}</div>}
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-4 pt-2" data-tour="user-menu">
