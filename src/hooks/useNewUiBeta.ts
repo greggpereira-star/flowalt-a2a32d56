@@ -17,9 +17,12 @@ export interface EstadoBeta {
   menu: boolean;
   respiro: boolean;
   inicio: boolean;
+  meutrabalho: boolean;
+  agenda: boolean;
+  clientes: boolean;
 }
 
-const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false };
+const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false, meutrabalho: false, agenda: false, clientes: false };
 const EVENTO = 'flowalt:ui-beta';
 const chave = (userId?: string) => `flowalt_ui_beta_${userId ?? 'anon'}`;
 
@@ -54,7 +57,17 @@ export function useNewUiBeta() {
     if (!podeUsar || !bruto) return PADRAO;
     try {
       const lido = JSON.parse(bruto) as Partial<EstadoBeta>;
-      return { menu: !!lido.menu, respiro: !!lido.respiro, inicio: !!lido.inicio };
+      // Telas que ganharam interruptor próprio depois (Meu trabalho, Agenda, Clientes) herdam o
+      // valor da Início enquanto a pessoa não escolher; assim nada some de quem já tinha ligado.
+      const heranca = !!lido.inicio;
+      return {
+        menu: !!lido.menu,
+        respiro: !!lido.respiro,
+        inicio: !!lido.inicio,
+        meutrabalho: lido.meutrabalho ?? heranca,
+        agenda: lido.agenda ?? heranca,
+        clientes: lido.clientes ?? heranca,
+      };
     } catch {
       return PADRAO;
     }
@@ -74,5 +87,14 @@ export function useNewUiBeta() {
     [podeUsar, estado, user?.id]
   );
 
-  return { podeUsar, menu: estado.menu, respiro: estado.respiro, inicio: estado.inicio, definir };
+  return {
+    podeUsar,
+    menu: estado.menu,
+    respiro: estado.respiro,
+    inicio: estado.inicio,
+    meutrabalho: estado.meutrabalho,
+    agenda: estado.agenda,
+    clientes: estado.clientes,
+    definir,
+  };
 }

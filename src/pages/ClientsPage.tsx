@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { CreateClientDialog } from '@/components/clients/CreateClientDialog';
 import { ClientCardSheet } from '@/components/clients/ClientCardSheet';
+import { ClientesNovo } from '@/components/clients/ClientesNovo';
 
 const statusConfig: Record<ClientStatus, { label: string; icon: React.ElementType; color: string }> = {
   active: { label: 'Clientes Ativos', icon: CheckCircle, color: 'text-green-500' },
@@ -47,7 +48,7 @@ const ClientCardItem: React.FC<{
   onClick: () => void;
   health?: ClientHealth;
 }> = ({ client, onClick, health }) => {
-  const { inicio: novo } = useNewUiBeta();
+  const { clientes: novo } = useNewUiBeta();
   // Score e estado vêm do cálculo ao vivo. A coluna client_cards.health_score
   // não é usada aqui: ela tem DEFAULT 100 e só era reescrita quando alguém
   // abria o relatório do cliente, então mostrava "saudável" para quem nunca
@@ -171,7 +172,7 @@ const ClientsGrid: React.FC<{
 
 export const ClientsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { inicio: novo } = useNewUiBeta();
+  const { clientes: novo } = useNewUiBeta();
   const { clientId } = useParams<{ clientId?: string }>();
   const [activeTab, setActiveTab] = useState<ClientStatus>('active');
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,6 +203,9 @@ export const ClientsPage: React.FC = () => {
   return (
     <>
       <div className="flex-1 overflow-auto">
+        {novo ? (
+          <ClientesNovo onAbrir={handleClientClick} onNovo={() => setIsCreateOpen(true)} />
+        ) : (
         <div className={cn('p-4 sm:p-6 space-y-6', novo && 'mx-auto max-w-[1180px] space-y-7 px-4 py-6 sm:px-8 sm:py-8')}>
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -319,6 +323,7 @@ export const ClientsPage: React.FC = () => {
             </div>
           </Tabs>
         </div>
+        )}
       </div>
 
       {/* Create Dialog */}

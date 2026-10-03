@@ -1,0 +1,399 @@
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { differenceInCalendarDays, format, isPast, isToday } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { AlertTriangle, ArrowUpDown, Building2, CalendarClock, Plus, Search } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useClientCardsByStatus, type ClientCard, type ClientStatus } from '@/hooks/useClientCards';
+import { useClientsHealth, type ClientHealth } from '@/hooks/useClientsHealth';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { ehAberto } from '@/lib/coordination/coordMetrics';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+
+/**
+ * Tela Clientes com visual novo (opção beta). Mesmos dados da tela antiga:
+ * lista por status (useClientCardsByStatus) e saúde calculada ao vivo (useClientsHealth).
+ * A novidade é a carteira em si: por cliente, quantos cards estão abertos, quantos estão
+ * atrasados e qual é a próxima entrega, para o gestor saber de quem cuidar primeiro.
+ */
+
+interface CardDoCliente {
+  id: string;
+  client_id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+}
+
+interface Carteira {
+  abertos: number;
+  atrasados: number;
+  proxima: { titulo: string; prazo: Date } | null;
+}
+
+type Filtro = 'todos' | 'atraso' | 'atencao' | 'saudavel';
+type Ordem = 'atencao' | 'nome' | 'score';
+
+const STATUS: { chave: ClientStatus; rotulo: string }[] = [
+  { chave: 'active', rotulo: 'Ativos' },
+  { chave: 'paused', rotulo: 'Pausados' },
+  { chave: 'closed', rotulo: 'Encerrados' },
+];
+
+const ESTADO: Record<string, { rotulo: string; classe: string }> = {
+  healthy: { rotulo: 'Saudável', classe: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
+  attention: { rotulo: 'Atenção', classe: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' },
+  critical: { rotulo: 'Crítico', classe: 'bg-red-500/10 text-red-600 dark:text-red-400' },
+  loss: { rotulo: 'Prejuízo', classe: 'bg-red-500/15 text-red-700 dark:text-red-400' },
+};
+
+const SEM_CARTEIRA: Carteira = { abertos: 0, atrasados: 0, proxima: null };
+
+const corDoScore = (s?: number) =>
+  s === undefined ? 'hsl(var(--muted-foreground))' : s >= 80 ? '#10b981' : s >= 60 ? '#f59e0b' : s >= 40 ? '#f97316' : '#ef4444';
+
+function useCarteira() {
+  const { currentWorkspace } = useWorkspace();
+  return useQuery({
+    queryKey: ['clientes-carteira', currentWorkspace?.id],
+    enabled: !!currentWorkspace?.id,
+    queryFn: async (): Promise<Map<string, Carteira>> => {
+      const { data, error } = await supabase
+        .from('cards')
+        .select('id, client_id, title, status, due_date')
+        .eq('workspace_id', currentWorkspace!.id)
+        .not('client_id', 'is', null);
+      if (error) throw error;
+
+      const mapa = new Map<string, Carteira>();
+      for (const c of (data ?? []) as CardDoCliente[]) {
+        if (!ehAberto(c)) continue;
+        const item = mapa.get(c.client_id) ?? { abertos: 0, atrasados: 0, proxima: null };
+        item.abertos += 1;
+        if (c.due_date) {
+          const prazo = new Date(c.due_date);
+          if (isPast(prazo) && !isToday(prazo)) item.atrasados += 1;
+          else if (!item.proxima || prazo < item.proxima.prazo) item.proxima = { titulo: c.title, prazo };
+        }
+        mapa.set(c.client_id, item);
+      }
+      return mapa;
+    },
+  });
+}
+
+function Anel({ score }: { score?: number }) {
+  const r = 20;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score ?? 0));
+  return (
+    <div className="relative h-14 w-14 shrink-0" title={score === undefined ? 'Saúde ainda não calculada' : `Saúde do cliente: ${score}`}>
+      <svg viewBox="0 0 48 48" className="h-14 w-14 -rotate-90">
+        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4.5" className="stroke-muted" />
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          fill="none"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          stroke={corDoScore(score)}
+          strokeDasharray={c}
+          strokeDashoffset={c - (c * pct) / 100}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold tracking-tight">{score ?? '—'}</span>
+    </div>
+  );
+}
+
+function rotuloPrazo(prazo: Date) {
+  const dias = differenceInCalendarDays(prazo, new Date());
+  if (dias === 0) return 'hoje';
+  if (dias === 1) return 'amanhã';
+  return format(prazo, "dd 'de' MMM", { locale: ptBR });
+}
+
+function CartaoCliente({
+  cliente,
+  carteira,
+  saude,
+  responsavel,
+  onAbrir,
+}: {
+  cliente: ClientCard;
+  carteira: Carteira;
+  saude?: ClientHealth;
+  responsavel?: { nome: string; foto?: string | null };
+  onAbrir: () => void;
+}) {
+  const estado = saude ? ESTADO[saude.financialState] : null;
+  const atrasado = carteira.atrasados > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      className={cn(
+        'group flex flex-col rounded-2xl border bg-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+        atrasado ? 'border-red-500/30' : 'border-border/60'
+      )}
+    >
+      <div className="flex items-start gap-3.5">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-lg font-bold text-white"
+          style={{ backgroundColor: cliente.color || '#6366f1' }}
+        >
+          {cliente.logo_url ? (
+            <img src={cliente.logo_url} alt={cliente.name} className="h-full w-full object-cover" />
+          ) : (
+            cliente.name.charAt(0).toUpperCase()
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[15px] font-bold tracking-tight transition-colors group-hover:text-primary">{cliente.name}</h3>
+          <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{cliente.segment || 'Sem segmento'}</p>
+          {estado && (
+            <span className={cn('mt-2 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold', estado.classe)}>{estado.rotulo}</span>
+          )}
+        </div>
+        <Anel score={saude?.healthScore} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-muted/50 px-3 py-2">
+          <p className="text-[11px] font-semibold text-muted-foreground">Cards abertos</p>
+          <p className="text-xl font-extrabold leading-tight tracking-tight">{carteira.abertos}</p>
+        </div>
+        <div className={cn('rounded-xl px-3 py-2', atrasado ? 'bg-red-500/10' : 'bg-muted/50')}>
+          <p className={cn('text-[11px] font-semibold', atrasado ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>Atrasados</p>
+          <p className={cn('text-xl font-extrabold leading-tight tracking-tight', atrasado && 'text-red-600 dark:text-red-400')}>{carteira.atrasados}</p>
+        </div>
+      </div>
+
+      <div className="mt-3.5 flex min-h-[20px] items-center gap-2 text-[12.5px] text-muted-foreground">
+        <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+        {carteira.proxima ? (
+          <span className="truncate">
+            Próxima entrega: <span className="font-semibold text-foreground">{carteira.proxima.titulo}</span> · {rotuloPrazo(carteira.proxima.prazo)}
+          </span>
+        ) : (
+          <span>{carteira.abertos > 0 ? 'Nenhum card aberto com prazo' : 'Sem cards abertos'}</span>
+        )}
+      </div>
+
+      {responsavel && (
+        <div className="mt-3.5 flex items-center gap-2 border-t border-border/50 pt-3 text-[12px] text-muted-foreground">
+          <Avatar className="h-5 w-5">
+            {responsavel.foto && <AvatarImage src={responsavel.foto} />}
+            <AvatarFallback className="bg-muted text-[9px] font-semibold">{responsavel.nome.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <span className="truncate">Responsável: {responsavel.nome}</span>
+        </div>
+      )}
+    </button>
+  );
+}
+
+export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => void; onNovo: () => void }) {
+  const [status, setStatus] = useState<ClientStatus>('active');
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<Filtro>('todos');
+  const [ordem, setOrdem] = useState<Ordem>('atencao');
+
+  const ativos = useClientCardsByStatus('active');
+  const pausados = useClientCardsByStatus('paused');
+  const encerrados = useClientCardsByStatus('closed');
+  const { data: saude } = useClientsHealth();
+  const { data: carteira, isLoading: carregandoCarteira } = useCarteira();
+  const { data: membros } = useWorkspaceMembers();
+
+  const porStatus = { active: ativos, paused: pausados, closed: encerrados };
+  const lista = porStatus[status].data ?? [];
+  const carregando = porStatus[status].isLoading || carregandoCarteira;
+
+  const responsavelDe = (id: string | null) => {
+    if (!id) return undefined;
+    const m = membros?.find((x) => x.user_id === id);
+    if (!m) return undefined;
+    return { nome: m.profile?.full_name || m.profile?.email || 'Membro', foto: (m.profile as { avatar_url?: string | null } | undefined)?.avatar_url };
+  };
+
+  const cart = (id: string) => carteira?.get(id) ?? SEM_CARTEIRA;
+
+  const buscados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return lista.filter((c) => !q || c.name.toLowerCase().includes(q) || c.segment?.toLowerCase().includes(q));
+  }, [lista, busca]);
+
+  const comAtraso = (c: ClientCard) => cart(c.id).atrasados > 0;
+  const emAtencao = (c: ClientCard) => {
+    const e = saude?.get(c.id)?.financialState;
+    return e === 'attention' || e === 'critical' || e === 'loss';
+  };
+  const saudavel = (c: ClientCard) => saude?.get(c.id)?.financialState === 'healthy';
+
+  const contagem = {
+    todos: buscados.length,
+    atraso: buscados.filter(comAtraso).length,
+    atencao: buscados.filter(emAtencao).length,
+    saudavel: buscados.filter(saudavel).length,
+  };
+
+  const visiveis = useMemo(() => {
+    const base = buscados.filter((c) =>
+      filtro === 'atraso' ? comAtraso(c) : filtro === 'atencao' ? emAtencao(c) : filtro === 'saudavel' ? saudavel(c) : true
+    );
+    const scoreDe = (c: ClientCard) => saude?.get(c.id)?.healthScore ?? 101;
+    return [...base].sort((a, b) => {
+      if (ordem === 'nome') return a.name.localeCompare(b.name, 'pt-BR');
+      if (ordem === 'score') return scoreDe(a) - scoreDe(b);
+      // Atenção primeiro: mais atrasados no topo; empate pela saúde mais baixa.
+      return cart(b.id).atrasados - cart(a.id).atrasados || scoreDe(a) - scoreDe(b) || a.name.localeCompare(b.name, 'pt-BR');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buscados, filtro, ordem, saude, carteira]);
+
+  const totalAbertos = lista.reduce((n, c) => n + cart(c.id).abertos, 0);
+  const totalAtrasados = lista.reduce((n, c) => n + cart(c.id).atrasados, 0);
+  const clientesComAtraso = lista.filter(comAtraso).length;
+  const scores = lista.map((c) => saude?.get(c.id)?.healthScore).filter((s): s is number => s !== undefined);
+  const scoreMedio = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
+
+  const kpis = [
+    { rotulo: status === 'active' ? 'Clientes ativos' : status === 'paused' ? 'Clientes pausados' : 'Clientes encerrados', valor: lista.length, sub: 'na carteira', alerta: false },
+    { rotulo: 'Cards abertos', valor: totalAbertos, sub: 'somando todos os clientes', alerta: false },
+    { rotulo: 'Cards atrasados', valor: totalAtrasados, sub: clientesComAtraso ? `em ${clientesComAtraso} cliente${clientesComAtraso > 1 ? 's' : ''}` : 'nenhum atraso', alerta: totalAtrasados > 0 },
+    { rotulo: 'Saúde média', valor: scoreMedio ?? '—', sub: scores.length ? `${scores.length} cliente${scores.length > 1 ? 's' : ''} medido${scores.length > 1 ? 's' : ''}` : 'sem medição', alerta: false },
+  ];
+
+  const pilulas: { chave: Filtro; rotulo: string }[] = [
+    { chave: 'todos', rotulo: 'Todos' },
+    { chave: 'atraso', rotulo: 'Com atraso' },
+    { chave: 'atencao', rotulo: 'Precisam de atenção' },
+    { chave: 'saudavel', rotulo: 'Saudáveis' },
+  ];
+
+  return (
+    <div className="mx-auto max-w-[1180px] space-y-6 px-4 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">Clientes</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Quem precisa de você agora, com prazo e saúde de cada conta.</p>
+        </div>
+        <Button onClick={onNovo} className="h-10 w-full rounded-xl px-4 font-bold shadow-sm sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Novo cliente
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <div key={k.rotulo} className={cn('rounded-2xl border bg-card p-5 shadow-sm', k.alerta ? 'border-red-500/30' : 'border-border/60')}>
+            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
+              {k.alerta && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+              {k.rotulo}
+            </p>
+            <p className={cn('mt-2.5 text-[32px] font-extrabold leading-none tracking-tight', k.alerta && 'text-red-600 dark:text-red-400')}>{k.valor}</p>
+            <p className="mt-1.5 text-[12.5px] text-muted-foreground">{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex w-full gap-1 rounded-xl border border-border/60 bg-card p-1 shadow-sm lg:w-auto">
+            {STATUS.map((s) => (
+              <button
+                key={s.chave}
+                type="button"
+                onClick={() => setStatus(s.chave)}
+                className={cn(
+                  'flex-1 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors lg:flex-none',
+                  status === s.chave ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
+                )}
+              >
+                {s.rotulo}
+                <span className={cn('ml-1.5 text-[12px]', status === s.chave ? 'opacity-80' : 'opacity-60')}>{(porStatus[s.chave].data ?? []).length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2.5">
+            <div className="relative flex-1 lg:w-72 lg:flex-none">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente ou segmento..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="h-10 rounded-xl border-border/60 bg-card pl-10 shadow-sm"
+              />
+            </div>
+            <label className="relative">
+              <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <select
+                value={ordem}
+                onChange={(e) => setOrdem(e.target.value as Ordem)}
+                aria-label="Ordenar clientes"
+                className="h-10 cursor-pointer appearance-none rounded-xl border border-border/60 bg-card pl-9 pr-3 text-[13px] font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="atencao">Atenção primeiro</option>
+                <option value="score">Menor saúde</option>
+                <option value="nome">Nome (A–Z)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {pilulas.map((p) => (
+            <button
+              key={p.chave}
+              type="button"
+              onClick={() => setFiltro(p.chave)}
+              className={cn(
+                'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors',
+                filtro === p.chave ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card text-muted-foreground hover:bg-muted'
+              )}
+            >
+              {p.rotulo} <span className="opacity-70">{contagem[p.chave]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {carregando ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-60 rounded-2xl" />
+          ))}
+        </div>
+      ) : visiveis.length === 0 ? (
+        <div className="flex flex-col items-center rounded-2xl border border-border/60 bg-card py-14 text-center shadow-sm">
+          <Building2 className="mb-3 h-10 w-10 text-muted-foreground/50" />
+          <h3 className="font-semibold">Nenhum cliente encontrado</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {busca || filtro !== 'todos' ? 'Tente outra busca ou outro filtro.' : 'Adicione o primeiro cliente.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {visiveis.map((c) => (
+            <CartaoCliente
+              key={c.id}
+              cliente={c}
+              carteira={cart(c.id)}
+              saude={saude?.get(c.id)}
+              responsavel={responsavelDe(c.responsible_user_id)}
+              onAbrir={() => onAbrir(c.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

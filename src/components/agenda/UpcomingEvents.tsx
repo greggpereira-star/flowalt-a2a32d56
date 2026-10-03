@@ -27,7 +27,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({
   onEventClick,
   limit = 5,
 }) => {
-  const { inicio: novo } = useNewUiBeta();
+  const { agenda: novo } = useNewUiBeta();
   const startDate = startOfDay(new Date());
   const endDate = endOfDay(addDays(new Date(), 14)); // Next 2 weeks
 

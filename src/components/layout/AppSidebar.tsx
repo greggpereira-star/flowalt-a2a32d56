@@ -294,7 +294,16 @@ export const AppSidebar: React.FC = () => {
                   Kanban com visual novo
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem checked={beta.inicio} onCheckedChange={(v) => beta.definir({ inicio: !!v })}>
-                  Início e Meu trabalho com visual novo
+                  Início com visual novo
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.meutrabalho} onCheckedChange={(v) => beta.definir({ meutrabalho: !!v })}>
+                  Meu trabalho com visual novo
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.agenda} onCheckedChange={(v) => beta.definir({ agenda: !!v })}>
+                  Agenda com visual novo
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.clientes} onCheckedChange={(v) => beta.definir({ clientes: !!v })}>
+                  Clientes com visual novo
                 </DropdownMenuCheckboxItem>
               </>
             )}

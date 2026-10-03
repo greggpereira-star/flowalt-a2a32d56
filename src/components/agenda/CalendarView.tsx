@@ -96,7 +96,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   // Visual novo (opção beta pessoal): só muda classes; dados e comportamento são os mesmos.
-  const { inicio: novo } = useNewUiBeta();
+  const { agenda: novo } = useNewUiBeta();
   const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

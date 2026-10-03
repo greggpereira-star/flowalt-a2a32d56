@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 const AgendaPage: React.FC = () => {
   usePageTracking('calendar');
-  const { inicio: novo } = useNewUiBeta();
+  const { agenda: novo } = useNewUiBeta();
   
   return (
     <AppLayout>

@@ -48,7 +48,7 @@ const TasksPage: React.FC = () => {
   const rotuloStatus = useStatusLabel();
   usePageTracking('cards');
   // Visual novo (opção beta pessoal); a lógica e as consultas abaixo são as mesmas nos dois visuais.
-  const { inicio: novo } = useNewUiBeta();
+  const { meutrabalho: novo } = useNewUiBeta();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
