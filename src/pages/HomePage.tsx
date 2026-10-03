@@ -15,6 +15,8 @@ import { useRecentActivity } from '@/hooks/home/useRecentActivity';
 import { AltControlPendingWidget } from '@/components/altcontrol/AltControlPendingWidget';
 import { BirthdayBanner } from '@/components/notices/BirthdayBanner';
 import { HolidayBanner } from '@/components/notices/HolidayBanner';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { InicioNovo } from '@/components/home/InicioNovo';
 
 /**
  * Home V2 — painel operacional do dia.
@@ -44,6 +46,7 @@ export default function HomePage() {
   } = useHomeDashboard();
 
   const activity = useRecentActivity(5);
+  const { inicio } = useNewUiBeta();
 
   const firstName =
     (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] ??
@@ -52,6 +55,14 @@ export default function HomePage() {
 
   return (
     <AppLayout>
+      {inicio ? (
+        <InicioNovo
+          firstName={firstName}
+          workspaceName={currentWorkspace?.name}
+          home={{ agenda, insights, priorityTasks, isLoading, errors, refetchAll }}
+          atividade={{ data: activity.data, isLoading: activity.isLoading }}
+        />
+      ) : (
       <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 pt-6 sm:px-6 lg:px-7">
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -106,6 +117,7 @@ export default function HomePage() {
           </section>
         </div>
       </div>
+      )}
     </AppLayout>
   );
 }

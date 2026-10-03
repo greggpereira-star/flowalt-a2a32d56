@@ -16,9 +16,10 @@ export const EMAILS_BETA = ['gregg.pereira@gmail.com'];
 export interface EstadoBeta {
   menu: boolean;
   respiro: boolean;
+  inicio: boolean;
 }
 
-const PADRAO: EstadoBeta = { menu: false, respiro: false };
+const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false };
 const EVENTO = 'flowalt:ui-beta';
 const chave = (userId?: string) => `flowalt_ui_beta_${userId ?? 'anon'}`;
 
@@ -53,7 +54,7 @@ export function useNewUiBeta() {
     if (!podeUsar || !bruto) return PADRAO;
     try {
       const lido = JSON.parse(bruto) as Partial<EstadoBeta>;
-      return { menu: !!lido.menu, respiro: !!lido.respiro };
+      return { menu: !!lido.menu, respiro: !!lido.respiro, inicio: !!lido.inicio };
     } catch {
       return PADRAO;
     }
@@ -73,5 +74,5 @@ export function useNewUiBeta() {
     [podeUsar, estado, user?.id]
   );
 
-  return { podeUsar, menu: estado.menu, respiro: estado.respiro, definir };
+  return { podeUsar, menu: estado.menu, respiro: estado.respiro, inicio: estado.inicio, definir };
 }

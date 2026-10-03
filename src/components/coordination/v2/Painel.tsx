@@ -16,7 +16,7 @@ import type {
 
 const nomeDe = (nomes: Map<string, string>, id: string) => nomes.get(id) ?? 'Ex-membro';
 
-function rotuloProblema(p: Problema): { texto: string; grave: boolean } {
+export function rotuloProblema(p: Problema): { texto: string; grave: boolean } {
   switch (p.tipo) {
     case 'atrasado':
       return { texto: `${p.dias} ${p.dias === 1 ? 'dia' : 'dias'} de atraso`, grave: true };
