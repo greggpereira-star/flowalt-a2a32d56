@@ -736,7 +736,7 @@ export const AppSidebarV2: React.FC = () => {
                   Menu novo
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem checked={beta.respiro} onCheckedChange={v => beta.definir({ respiro: !!v })}>
-                  Mais respiro no Kanban
+                  Kanban com visual novo
                 </DropdownMenuCheckboxItem>
               </>
             )}

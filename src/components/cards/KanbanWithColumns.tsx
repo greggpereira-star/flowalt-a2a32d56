@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { KanbanBoard } from './KanbanBoard';
 import { KanbanColumnsEditor } from './KanbanColumnsEditor';
@@ -29,6 +31,7 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
   // Rolagem horizontal: saber se ha colunas escondidas de cada lado.
   const scrollRef = useRef<HTMLDivElement>(null);
   const [bordas, setBordas] = useState({ esquerda: false, direita: false });
+  const { respiro } = useNewUiBeta();
 
   const atualizarBordas = useCallback(() => {
     const el = scrollRef.current;
@@ -93,7 +96,7 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/30 flex-wrap">
+      <div className={cn('flex items-center justify-end gap-2 border-b flex-wrap', respiro ? 'border-border/60 bg-transparent px-6 py-3' : 'bg-muted/30 px-4 py-2')}>
         {(bordas.esquerda || bordas.direita) && (
           <div className="mr-auto flex items-center gap-1" role="group" aria-label="Navegar pelas colunas">
             <Button
@@ -155,7 +158,7 @@ export const KanbanWithColumns: React.FC<KanbanWithColumnsProps> = ({
 
       {/* Kanban Board */}
       <div className="relative flex-1 min-h-0">
-        <div ref={scrollRef} className="kanban-scroll h-full overflow-x-auto overflow-y-hidden p-4">
+        <div ref={scrollRef} className={cn('kanban-scroll h-full overflow-x-auto overflow-y-hidden', respiro ? 'px-6 py-5' : 'p-4')}>
           <KanbanBoard
             cards={cards}
             onCardClick={onCardClick}

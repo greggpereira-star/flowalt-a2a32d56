@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -191,6 +192,7 @@ const SpacePage: React.FC = () => {
   }, []);
 
   const [view, setView] = useState<ViewType>('kanban');
+  const { respiro: visualNovo } = useNewUiBeta();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [createCardOpen, setCreateCardOpen] = useState(false);
@@ -392,11 +394,35 @@ const SpacePage: React.FC = () => {
 
 
         {/* Fixed Header - Always visible */}
-        <div className="flex-shrink-0 border-b border-border bg-background">
-          <div className="px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className={cn('flex-shrink-0 border-b bg-background', visualNovo ? 'border-border/60' : 'border-border')}>
+          <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3', visualNovo ? 'px-6 pb-4 pt-5' : 'px-4 py-2.5')}>
             {/* Row 1 on mobile: breadcrumb + view switcher/add button share a line; becomes 3 separate flex items on sm+ via `contents` */}
             <div className="flex items-center justify-between gap-2 sm:contents">
-              {/* Left: View name with breadcrumb */}
+              {visualNovo ? (
+                <div className="min-w-0 sm:order-1 sm:flex-shrink-0">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: space.color }} />
+                    <span className="truncate">{space.name}</span>
+                    {viewLoading && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <h1 className="truncate text-xl font-bold tracking-tight sm:text-[22px]">
+                      {activeView ? activeView.name : space.name}
+                    </h1>
+                    {activeView && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={handleClearView}
+                        title="Ver todos os cards"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
               <div className="flex items-center gap-2 min-w-0 sm:order-1 sm:flex-shrink-0">
                 <div
                   className="w-2 h-2 rounded-full flex-shrink-0"
@@ -428,6 +454,7 @@ const SpacePage: React.FC = () => {
                 )}
                 {viewLoading && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
               </div>
+              )}
 
               {/* Right: View Switcher + Add Button */}
               <div className="flex items-center gap-2 shrink-0 sm:order-3">
@@ -465,7 +492,7 @@ const SpacePage: React.FC = () => {
                 {/* Add Button */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="default" className="h-9 gap-2 px-3 sm:px-4">
+                    <Button size="default" className={cn('h-9 gap-2 px-3 sm:px-4', visualNovo && 'h-10 rounded-xl px-4 font-semibold shadow-sm')}>
                       <Plus className="h-4 w-4" />
                       <span className="hidden sm:inline">Adicionar</span>
                     </Button>
@@ -497,7 +524,7 @@ const SpacePage: React.FC = () => {
                   placeholder="Buscar... (/)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9 w-full text-sm bg-muted/50 border-0 focus-visible:ring-1"
+                  className={cn('pl-9 h-9 w-full text-sm bg-muted/50 border-0 focus-visible:ring-1', visualNovo && 'h-10 rounded-xl bg-muted/60')}
                 />
               </div>
               <FiltersToolbar

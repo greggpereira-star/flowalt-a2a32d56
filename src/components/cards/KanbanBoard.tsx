@@ -815,18 +815,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 key={status}
                 className={cn(
                   'flex-shrink-0 h-full bg-muted/30 rounded-xl flex flex-col border transition-all duration-200 overflow-hidden',
-                  respiro ? 'w-80' : 'w-72',
+                  respiro ? 'w-80 rounded-2xl bg-muted/25' : 'w-72',
                   isDropTarget
                     ? 'border-primary/50 bg-primary/5 shadow-lg shadow-primary/10'
-                    : 'border-border/30'
+                    : respiro ? 'border-transparent' : 'border-border/30'
                 )}
               >
                 {/* Column Header */}
-                <div className={cn('flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10', respiro ? 'px-4 py-3.5' : 'p-3')}>
+                <div className={cn('flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10', respiro ? 'border-b-0 bg-transparent px-4 py-3.5 backdrop-blur-none' : 'p-3')}>
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
-                        'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
+                        respiro ? 'h-2 w-2 rounded-full' : 'w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-background',
                         status === 'backlog' && 'bg-status-backlog ring-status-backlog/30',
                         
                         status === 'todo' && 'bg-status-todo ring-status-todo/30',

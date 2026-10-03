@@ -11,6 +11,8 @@ import { VisibilityIcon } from '@/components/governance';
 import { Calendar, Clock, Building2, BanknoteIcon, Share2, Layers, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { useCardIndicators } from '@/hooks/useCardIndicators';
+import { MessageSquare, CheckCircle2 } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -50,6 +52,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   showQuickActions = true,
 }) => {
   const { respiro } = useNewUiBeta();
+  const { data: indicadores } = useCardIndicators(respiro);
+  const ind = indicadores?.get(card.id);
   const { data: allSpaces } = useSpaces();
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate) && card.status !== 'delivered' && card.status !== 'approved';
@@ -71,6 +75,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     <CardUI
       className={cn(
         'cursor-pointer transition-all hover:shadow-md group relative',
+        respiro && 'rounded-xl border-border/60 bg-card shadow-sm hover:border-border hover:shadow-md',
         isDragging && 'shadow-lg ring-2 ring-primary/50 rotate-2',
         isOverdue && 'border-destructive/50',
         isBlocked && 'border-purple-500/50'
@@ -137,6 +142,74 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         />
       </div>
 
+      {respiro ? (
+        <>
+          <CardHeader className={cn('p-4 pb-2 pr-14', clientColor && 'pt-5')}>
+            <h3 className="line-clamp-2 text-[13.5px] font-semibold leading-snug transition-colors group-hover:text-primary">
+              {card.title}
+            </h3>
+            <p className="mt-1 truncate text-xs font-medium text-muted-foreground">
+              {clientName || 'Não faturável'}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-1">
+            <CardRiskIndicators card={card} />
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <UrgencyBadge urgency={card.urgency} />
+              {dueDate && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+                    isOverdue
+                      ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                      : isToday(dueDate)
+                        ? 'border-orange-200 bg-orange-50 text-orange-700'
+                        : 'border-border/60 bg-muted/40 text-muted-foreground'
+                  )}
+                >
+                  <Calendar className="h-3 w-3" />
+                  {format(dueDate, 'dd/MM')} · {format(dueDate, 'HH:mm')}
+                </span>
+              )}
+              {card.actual_hours > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  <Timer className="h-3 w-3" />
+                  {card.actual_hours.toFixed(1)}h
+                </span>
+              )}
+            </div>
+
+            {ind && ind.total > 0 && (
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn('h-full rounded-full', ind.feitos === ind.total ? 'bg-green-500' : 'bg-primary/70')}
+                  style={{ width: `${Math.round((ind.feitos / ind.total) * 100)}%` }}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-0.5">
+              <CardAssignees assignees={assignees} maxVisible={3} size="sm" />
+              <div className="flex items-center gap-3 text-[11px] font-semibold text-muted-foreground">
+                {ind && ind.total > 0 && (
+                  <span className="inline-flex items-center gap-1" title="Itens do checklist concluídos">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {ind.feitos}/{ind.total}
+                  </span>
+                )}
+                {ind && ind.comentarios > 0 && (
+                  <span className="inline-flex items-center gap-1" title="Comentários">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    {ind.comentarios}
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </>
+      ) : (
+        <>
       <CardHeader className={cn(respiro ? "p-4 pb-3 pr-12" : "p-3 pb-2 pr-12", clientColor && (respiro ? "pt-5" : "pt-4"))}>
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
@@ -216,6 +289,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <CardAssignees assignees={assignees} maxVisible={2} size="sm" />
         </div>
       </CardContent>
+        </>
+      )}
     </CardUI>
   );
 };
