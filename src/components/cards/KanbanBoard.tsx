@@ -173,6 +173,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { respiro } = useNewUiBeta();
+
+  // Próxima coluna visível do quadro, para o atalho "Avançar" do visual novo.
+  const proximoDe = (status: CardStatus): CardStatus | undefined => {
+    const i = visibleStatuses.indexOf(status);
+    return i >= 0 && i < visibleStatuses.length - 1 ? visibleStatuses[i + 1] : undefined;
+  };
+  const rotuloDoProximo = (status: CardStatus): string | undefined => {
+    const prox = proximoDe(status);
+    return prox ? columnLabels?.[prox] || statusConfig[prox].label : undefined;
+  };
   const { currentRole, currentWorkspace } = useWorkspace();
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
@@ -753,6 +763,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
                       onDuplicate={(targetSpaceId, mode) => handleDuplicate(card, targetSpaceId, mode)}
                       onDelete={() => handleDelete(card)}
+                      proximoStatus={proximoDe(card.status)}
+                      proximoRotulo={rotuloDoProximo(card.status)}
                     />
                   </div>
                 );
@@ -923,6 +935,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
                                 onDuplicate={(targetSpaceId, mode) => handleDuplicate(card, targetSpaceId, mode)}
                                 onDelete={() => handleDelete(card)}
+                                proximoStatus={proximoDe(card.status)}
+                                proximoRotulo={rotuloDoProximo(card.status)}
                               />
                             </div>
                           </CardContextMenu>

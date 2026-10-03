@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { useCardIndicators } from '@/hooks/useCardIndicators';
 import { useEtapasSla } from '@/hooks/useEtapasSla';
+import { CardHoverActions } from './CardHoverActions';
 import { useMyRunningTimer } from '@/hooks/useTimeEntries';
 import { MessageSquare, CheckCircle2, Hourglass, UserX, FileWarning, Moon } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
@@ -36,6 +37,9 @@ interface TaskCardProps {
   onDuplicate?: (targetSpaceId?: string, mode?: 'mirror' | 'copy') => void;
   onDelete?: () => void;
   showQuickActions?: boolean;
+  /** Próxima coluna do quadro (para o atalho "Avançar" do visual novo). */
+  proximoStatus?: CardStatus;
+  proximoRotulo?: string;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -52,7 +56,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onDuplicate,
   onDelete,
   showQuickActions = true,
+  proximoStatus,
+  proximoRotulo,
 }) => {
+  const [menuAberto, setMenuAberto] = React.useState(false);
   const { respiro } = useNewUiBeta();
   const { data: indicadores } = useCardIndicators(respiro);
   const ind = indicadores?.get(card.id);
@@ -109,6 +116,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       excecoes.push({ chave: 'parado', texto: `parado há ${diasParado} d`, titulo: `Sem nenhuma alteração há ${diasParado} dias`, tom: 'n', icone: <Moon className="h-3 w-3" /> });
     }
   }
+  // Atalhos do mouse: valem para cards ainda em andamento (não entregues nem arquivados).
+  const podeAtalhos = respiro && !['delivered', 'archived'].includes(card.status);
   const excecoesVisiveis = excecoes.slice(0, 2);
   const excecoesOcultas = excecoes.length - excecoesVisiveis.length;
   const { data: allSpaces } = useSpaces();
@@ -285,7 +294,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-0.5">
+            <div className="relative pt-0.5">
+            <div
+              className={cn(
+                'flex items-center justify-between transition-opacity',
+                podeAtalhos && 'group-hover:opacity-0 group-focus-within:opacity-0',
+                podeAtalhos && menuAberto && 'opacity-0'
+              )}
+            >
               <CardAssignees assignees={assignees} maxVisible={3} size="sm" />
               <div className="flex items-center gap-3 text-[11px] font-semibold text-muted-foreground">
                 {ind && ind.total > 0 && (
@@ -301,6 +317,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   </span>
                 )}
               </div>
+            </div>
+            {podeAtalhos && (
+              <CardHoverActions
+                card={card}
+                proximoRotulo={proximoRotulo}
+                aoAvancar={proximoStatus && onStatusChange ? () => onStatusChange(proximoStatus) : undefined}
+                aoMudarAberto={setMenuAberto}
+                forcado={menuAberto}
+              />
+            )}
             </div>
           </CardContent>
         </>
