@@ -25,6 +25,7 @@ import {
   Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { CreateClientDialog } from '@/components/clients/CreateClientDialog';
 import { ClientCardSheet } from '@/components/clients/ClientCardSheet';
 
@@ -46,6 +47,7 @@ const ClientCardItem: React.FC<{
   onClick: () => void;
   health?: ClientHealth;
 }> = ({ client, onClick, health }) => {
+  const { inicio: novo } = useNewUiBeta();
   // Score e estado vêm do cálculo ao vivo. A coluna client_cards.health_score
   // não é usada aqui: ela tem DEFAULT 100 e só era reescrita quando alguém
   // abria o relatório do cliente, então mostrava "saudável" para quem nunca
@@ -56,18 +58,21 @@ const ClientCardItem: React.FC<{
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
+      className={cn(
+        'cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group',
+        novo && 'rounded-2xl border-border/60 shadow-sm hover:-translate-y-0.5'
+      )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
+      <CardContent className={cn('p-4', novo && 'p-5')}>
         <div className="flex items-start gap-3">
           {/* Avatar/Logo */}
           <div 
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg shrink-0"
+            className={cn('w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg shrink-0', novo && 'h-12 w-12 rounded-xl')}
             style={{ backgroundColor: client.color || '#6366f1' }}
           >
             {client.logo_url ? (
-              <img src={client.logo_url} alt={client.name} className="w-full h-full object-cover rounded-lg" />
+              <img src={client.logo_url} alt={client.name} className={cn('w-full h-full object-cover rounded-lg', novo && 'rounded-xl')} />
             ) : (
               client.name.charAt(0).toUpperCase()
             )}
@@ -76,11 +81,11 @@ const ClientCardItem: React.FC<{
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+              <h3 className={cn('font-semibold text-foreground truncate group-hover:text-primary transition-colors', novo && 'text-[15px] font-bold tracking-tight')}>
                 {client.name}
               </h3>
               {stateConfig && (
-                <Badge variant="outline" className={cn('text-xs', stateConfig.color, stateConfig.bgColor)}>
+                <Badge variant="outline" className={cn('text-xs', stateConfig.color, stateConfig.bgColor, novo && 'shrink-0 rounded-full border-0 px-2.5 font-bold')}>
                   {stateConfig.label}
                 </Badge>
               )}
@@ -92,7 +97,7 @@ const ClientCardItem: React.FC<{
             
             {/* Health Score */}
             <div className="flex items-center gap-2 mt-2">
-              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className={cn('flex-1 h-1.5 bg-muted rounded-full overflow-hidden', novo && 'h-2')}>
                 <div
                   className={cn(
                     'h-full rounded-full transition-all',
@@ -166,6 +171,7 @@ const ClientsGrid: React.FC<{
 
 export const ClientsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { inicio: novo } = useNewUiBeta();
   const { clientId } = useParams<{ clientId?: string }>();
   const [activeTab, setActiveTab] = useState<ClientStatus>('active');
   const [searchQuery, setSearchQuery] = useState('');
@@ -196,19 +202,19 @@ export const ClientsPage: React.FC = () => {
   return (
     <>
       <div className="flex-1 overflow-auto">
-        <div className="p-4 sm:p-6 space-y-6">
+        <div className={cn('p-4 sm:p-6 space-y-6', novo && 'mx-auto max-w-[1180px] space-y-7 px-4 py-6 sm:px-8 sm:py-8')}>
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Building2 className="h-7 w-7 text-primary" />
+              <h1 className={cn('text-2xl font-bold text-foreground flex items-center gap-2', novo && 'text-[28px] font-extrabold leading-tight tracking-tight')}>
+                <Building2 className={cn('h-7 w-7 text-primary', novo && 'hidden')} />
                 Clientes
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className={cn('text-muted-foreground mt-1', novo && 'text-sm')}>
                 Centro de resultado com P&L por cliente
               </p>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+            <Button onClick={() => setIsCreateOpen(true)} className={cn('w-full sm:w-auto', novo && 'h-10 rounded-xl px-4 font-bold shadow-sm')}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Cliente
             </Button>
@@ -216,53 +222,53 @@ export const ClientsPage: React.FC = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
+            <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+              <CardContent className={cn('p-4', novo && 'p-5')}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Users className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.total}</p>
+                    <p className={cn('text-2xl font-bold', novo && 'text-[28px] font-extrabold leading-none tracking-tight')}>{stats.total}</p>
                     <p className="text-sm text-muted-foreground">Total</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+              <CardContent className={cn('p-4', novo && 'p-5')}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-green-100">
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.active}</p>
+                    <p className={cn('text-2xl font-bold', novo && 'text-[28px] font-extrabold leading-none tracking-tight')}>{stats.active}</p>
                     <p className="text-sm text-muted-foreground">Ativos</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+              <CardContent className={cn('p-4', novo && 'p-5')}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-amber-100">
                     <PauseCircle className="h-5 w-5 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.paused}</p>
+                    <p className={cn('text-2xl font-bold', novo && 'text-[28px] font-extrabold leading-none tracking-tight')}>{stats.paused}</p>
                     <p className="text-sm text-muted-foreground">Pausados</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+              <CardContent className={cn('p-4', novo && 'p-5')}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-red-100">
                     <XCircle className="h-5 w-5 text-red-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stats.closed}</p>
+                    <p className={cn('text-2xl font-bold', novo && 'text-[28px] font-extrabold leading-none tracking-tight')}>{stats.closed}</p>
                     <p className="text-sm text-muted-foreground">Encerrados</p>
                   </div>
                 </div>
@@ -278,14 +284,14 @@ export const ClientsPage: React.FC = () => {
                 placeholder="Buscar clientes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className={cn('pl-9', novo && 'h-10 rounded-xl border-border/60 bg-card pl-10 shadow-sm')}
               />
             </div>
           </div>
 
           {/* Tabs Content */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ClientStatus)}>
-            <TabsList className="w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide no-scrollbar">
+            <TabsList className={cn('w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide no-scrollbar', novo && 'h-11 rounded-xl border border-border/60 bg-card p-1 shadow-sm')}>
               {Object.entries(statusConfig).map(([key, config]) => {
                 const Icon = config.icon;
                 const count = key === 'active' ? stats.active : key === 'paused' ? stats.paused : stats.closed;
