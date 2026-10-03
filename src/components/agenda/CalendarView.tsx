@@ -47,6 +47,7 @@ import { getEventTypeStyle } from '@/lib/agenda/eventTypes';
 import { useEventParticipantsBatch } from '@/hooks/agenda/useEventParticipantsBatch';
 import { EventTypeLegend } from '@/components/agenda/EventTypeLegend';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import {
   useEvents,
   useCreateEvent,
@@ -94,6 +95,8 @@ interface CalendarViewProps {
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
+  // Visual novo (opção beta pessoal): só muda classes; dados e comportamento são os mesmos.
+  const { inicio: novo } = useNewUiBeta();
   const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -456,10 +459,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className={cn('flex flex-col h-full gap-4', novo && 'gap-5')}>
       {/* Header / Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border">
+        <div className={cn('flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border', novo && 'rounded-xl border-border/60 bg-card p-1 shadow-sm')}>
           <Button
             variant="ghost"
             size="icon"
@@ -468,8 +471,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="px-3 py-1 bg-background rounded-md border shadow-sm flex items-center justify-center min-w-[140px]">
-            <h2 className="text-sm font-semibold capitalize tracking-tight">
+          <div className={cn('px-3 py-1 bg-background rounded-md border shadow-sm flex items-center justify-center min-w-[140px]', novo && 'min-w-[170px] border-0 bg-transparent shadow-none')}>
+            <h2 className={cn('text-sm font-semibold capitalize tracking-tight', novo && 'text-[15px] font-extrabold')}>
               {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
             </h2>
           </div>
@@ -498,7 +501,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
             resetForm();
             setDialogOpen(true);
           }}
-          className="shadow-lg shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className={cn('shadow-lg shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]', novo && 'h-10 rounded-xl px-4 font-bold shadow-sm')}
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Evento
@@ -513,13 +516,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
       </div>
 
       {/* Calendar Grid Container */}
-      <div className="flex-1 bg-background border rounded-xl overflow-hidden flex flex-col shadow-sm">
+      <div className={cn('flex-1 bg-background border rounded-xl overflow-hidden flex flex-col shadow-sm', novo && 'rounded-2xl border-border/60 bg-card')}>
         {/* Week Days Header */}
-        <div className="grid grid-cols-7 border-b bg-muted/20 backdrop-blur-sm shrink-0">
+        <div className={cn('grid grid-cols-7 border-b bg-muted/20 backdrop-blur-sm shrink-0', novo && 'border-border/60 bg-transparent')}>
           {weekDays.map(day => (
             <div
               key={day}
-              className="py-3 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 border-r last:border-r-0"
+              className={cn('py-3 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 border-r last:border-r-0', novo && 'border-r-0 text-[12px] font-semibold normal-case tracking-normal')}
             >
               {day}
             </div>
@@ -527,7 +530,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
         </div>
 
         {/* Calendar Days - Scrollable */}
-        <div className="grid grid-cols-7 flex-1 overflow-auto divide-x divide-y border-b">
+        <div className={cn('grid grid-cols-7 flex-1 overflow-auto divide-x divide-y border-b', novo && 'divide-border/50 border-b-0')}>
           {calendarDays.map((day, index) => {
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayEvents = eventsByDay.get(dateKey) || [];
@@ -544,8 +547,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   isMobile ? 'min-h-[52px] p-1' : 'min-h-[120px]',
                   !isCurrentMonth ? 'bg-muted/[0.15] opacity-40' : 'bg-background hover:bg-muted/10',
                   // Highlight days with events (dark-mode friendly)
-                  hasEvents && !isPastDay && 'bg-primary/[0.06] dark:bg-primary/10 ring-1 ring-inset ring-primary/20 dark:ring-primary/30',
-                  hasEvents && isPastDay && 'bg-muted/30 dark:bg-muted/20 ring-1 ring-inset ring-border/60',
+                  // Visual novo: sem moldura nos dias com evento (os blocos de cor já avisam); só o dia de hoje ganha fundo.
+                  !novo && hasEvents && !isPastDay && 'bg-primary/[0.06] dark:bg-primary/10 ring-1 ring-inset ring-primary/20 dark:ring-primary/30',
+                  !novo && hasEvents && isPastDay && 'bg-muted/30 dark:bg-muted/20 ring-1 ring-inset ring-border/60',
+                  novo && isCurrentDay && 'bg-primary/[0.05]',
                   'cursor-pointer border-t-0 border-l-0'
                 )}
                 onClick={() => handleDayCellClick(day, hasEvents)}
@@ -565,7 +570,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                   >
                     {format(day, 'd')}
                   </div>
-                  {hasEvents && (
+                  {hasEvents && !novo && (
                     <div
                       className={cn(
                         'h-1.5 rounded-full',
@@ -600,6 +605,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
                         key={event.id}
                         className={cn(
                           'text-[10px] px-1.5 py-1 rounded-md font-medium truncate flex flex-col gap-0.5 border transition-colors cursor-pointer',
+                          novo && 'rounded-lg px-2 py-1.5 text-[11px]',
                           // O card inteiro carrega a cor do tipo: num mes cheio
                           // o olho varre blocos de cor, nao pontos de 6px.
                           getEventTypeStyle((event as Event).event_type).tile,

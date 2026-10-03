@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useMyEvents, type Event, type EventType } from '@/hooks/useEvents';
 import { format, parseISO, isToday, isTomorrow, startOfDay, endOfDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 
 const EVENT_TYPE_CONFIG: Record<EventType, { label: string; icon: React.ElementType; color: string }> = {
   meeting: { label: 'Reunião', icon: Users, color: 'bg-blue-500' },
@@ -26,6 +27,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({
   onEventClick,
   limit = 5,
 }) => {
+  const { inicio: novo } = useNewUiBeta();
   const startDate = startOfDay(new Date());
   const endDate = endOfDay(addDays(new Date(), 14)); // Next 2 weeks
 
@@ -67,15 +69,15 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
+    <Card className={cn(novo && 'rounded-2xl border-border/60 shadow-sm')}>
+      <CardHeader className={cn('pb-3', novo && 'p-5 pb-3')}>
+        <CardTitle className={cn('text-base flex items-center gap-2', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+          <Calendar className={cn('h-4 w-4', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} />
           Próximos Eventos
         </CardTitle>
         <CardDescription>Seus compromissos dos próximos dias</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn(novo && 'p-5 pt-0')}>
         {events?.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -100,7 +102,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({
                         return (
                           <div
                             key={event.id}
-                            className="flex items-center gap-4 p-3 rounded-xl border bg-card/50 hover:bg-accent/40 transition-all cursor-pointer group shadow-sm hover:shadow-md hover:translate-x-1"
+                            className={cn('flex items-center gap-4 p-3 rounded-xl border bg-card/50 hover:bg-accent/40 transition-all cursor-pointer group shadow-sm hover:shadow-md hover:translate-x-1', novo && 'border-border/60 bg-card shadow-none hover:translate-x-0 hover:shadow-none hover:bg-muted/40')}
                             onClick={() => onEventClick?.(event)}
                           >
                             <div
