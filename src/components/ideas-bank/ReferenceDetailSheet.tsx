@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { STATUS_ANALISE, useMudarStatusAnalise, type StatusAnalise } from '@/hooks/useIdeaFeed';
+import { AnalysisPanel } from './AnalysisPanel';
 import { incorporacaoDe, ROTULO_PLATAFORMA, type Plataforma } from '@/lib/ideas/embed';
 
 interface Props {
@@ -27,6 +28,8 @@ interface Props {
 export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open, onOpenChange, onCreateCard }) => {
   const { remove, toggleFavorite } = useIdeaReferences(boardId);
   const mudarStatus = useMudarStatusAnalise();
+  const [aba, setAba] = useState<'detalhes' | 'analise'>('detalhes');
+  useEffect(() => { setAba('detalhes'); }, [reference?.id]);
   const [statusLocal, setStatusLocal] = useState<StatusAnalise>('para_analisar');
   useEffect(() => {
     setStatusLocal(((reference?.review_status as StatusAnalise) ?? 'para_analisar'));
@@ -52,7 +55,7 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0">
+      <SheetContent className={cn('w-full overflow-y-auto p-0 sm:max-w-xl', aba === 'analise' && 'sm:max-w-2xl')}>
         <div className="p-6 pb-4">
           <SheetHeader className="mb-4">
             <div className="flex items-start justify-between gap-3">
@@ -70,6 +73,28 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
             </div>
           </SheetHeader>
 
+          <div className="mb-4 flex w-fit gap-1 rounded-xl border border-border/60 bg-card p-1" role="tablist" aria-label="Seções da referência">
+            {([['detalhes', 'Detalhes'], ['analise', 'Análise e roteiros']] as const).map(([chave, rotulo]) => (
+              <button
+                key={chave}
+                type="button"
+                role="tab"
+                aria-selected={aba === chave}
+                onClick={() => setAba(chave)}
+                className={cn(
+                  'rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                  aba === chave ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {rotulo}
+              </button>
+            ))}
+          </div>
+
+          {aba === 'analise' ? (
+            <AnalysisPanel reference={reference} onCriarCard={onCreateCard} />
+          ) : (
+          <>
           <div className="mb-4" role="group" aria-label="Status da análise">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
             <div className="flex flex-wrap gap-1.5">
@@ -227,6 +252,8 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
               <Trash2 className="h-4 w-4 mr-2" />Excluir
             </Button>
           </div>
+          </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

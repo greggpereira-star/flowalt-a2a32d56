@@ -19,6 +19,12 @@ export interface IdeaReference {
   source_url: string | null;
   platform: string | null;
   review_status: string;
+  transcript: string | null;
+  transcript_status: string | null;
+  transcript_source: string | null;
+  transcript_error: string | null;
+  analysis: any | null;
+  analysis_at: string | null;
   external_id: string | null;
   author_name: string | null;
   author_url: string | null;
