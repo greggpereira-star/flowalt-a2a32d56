@@ -65,6 +65,8 @@ import {
 } from "lucide-react";
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useAccessLogging } from '@/hooks/useAccessLogging';
+import { useSkinNovo } from "@/components/ui/skin-novo";
+import { cn } from "@/lib/utils";
 
 type TabItem = { value: string; label: string; Icon: React.ElementType; salaries?: boolean };
 
@@ -121,6 +123,7 @@ const TabFallback = () => (
 );
 
 export default function FinancialPage() {
+  const novo = useSkinNovo();
   usePageTracking('financial');
   const { logFinancialAccess } = useAccessLogging();
   const { openModal } = useGlobalModal();
@@ -131,6 +134,9 @@ export default function FinancialPage() {
 
   const visibleTabs = ALL_TABS.filter((t) => !t.salaries || canViewSalaries);
   const activeTabItem = ALL_TABS.find((t) => t.value === activeTab) ?? ALL_TABS[0];
+  // Visual novo: os grupos que já existem viram a navegação de cima, e só os itens do grupo ativo aparecem embaixo.
+  const grupoAtivo = TAB_GROUPS.find((g) => g.items.some((i) => i.value === activeTab)) ?? TAB_GROUPS[0];
+  const itensDoGrupo = grupoAtivo.items.filter((t) => !t.salaries || canViewSalaries);
 
 
   useEffect(() => {
@@ -231,6 +237,42 @@ export default function FinancialPage() {
                     </Select>
                   </div>
 
+                  {novo ? (
+                    <div className="mt-8 hidden md:block">
+                      <div className="flex items-center gap-8 border-b border-border/60" role="presentation">
+                        {TAB_GROUPS.filter((g) => g.items.some((t) => !t.salaries || canViewSalaries)).map((g) => {
+                          const ativo = g.label === grupoAtivo.label;
+                          const primeiro = g.items.find((t) => !t.salaries || canViewSalaries);
+                          return (
+                            <button
+                              key={g.label}
+                              type="button"
+                              onClick={() => primeiro && !ativo && setActiveTab(primeiro.value)}
+                              className={cn(
+                                "-mb-px border-b-2 pb-3 text-[14px] font-semibold transition-colors",
+                                ativo ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {g.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <TabsList className="tablist-limpo mt-5 flex h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
+                        {itensDoGrupo.map((t) => (
+                          <TabsTrigger
+                            key={t.value}
+                            value={t.value}
+                            className="gap-2 rounded-full border-0 bg-transparent px-4 py-2 text-[13px] font-medium text-muted-foreground shadow-none hover:bg-muted hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none"
+                          >
+                            <t.Icon className="h-4 w-4" />
+                            <span>{t.label}</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
+                  ) : (
+                    <>
                   {/* Desktop: pílulas geradas a partir da mesma config */}
                   <TabsList
                     variant="wrap"
@@ -255,6 +297,9 @@ export default function FinancialPage() {
                       </span>
                     </div>
                   </div>
+
+                    </>
+                  )}
 
                   {/* Content Area */}
                   <div className="pt-5 sm:pt-8 pb-8 px-0">

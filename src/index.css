@@ -1192,3 +1192,9 @@
 .gestao-novo .max-w-6xl {
   max-width: 1240px;
 }
+.gestao-novo [role="tablist"].tablist-limpo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
