@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInCalendarDays, format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, ArrowUpDown, Building2, Plus, Search } from 'lucide-react';
+import { AlertTriangle, Building2, Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useClientCardsByStatus, type ClientCard, type ClientStatus } from '@/hooks/useClientCards';
@@ -11,7 +11,6 @@ import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { ehAberto } from '@/lib/coordination/coordMetrics';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -284,64 +283,60 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
         ))}
       </div>
 
-      <div className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex w-full gap-1 rounded-xl border border-border/60 bg-card p-1 shadow-sm lg:w-auto">
-            {STATUS.map((s) => (
-              <button
-                key={s.chave}
-                type="button"
-                onClick={() => setStatus(s.chave)}
-                className={cn(
-                  'flex-1 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors lg:flex-none',
-                  status === s.chave ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {s.rotulo}
-                <span className={cn('ml-1.5 text-[12px]', status === s.chave ? 'opacity-80' : 'opacity-60')}>{(porStatus[s.chave].data ?? []).length}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2.5">
-            <div className="relative flex-1 lg:w-72 lg:flex-none">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente ou segmento..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="h-10 rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-              />
-            </div>
-            <label className="relative">
-              <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <select
-                value={ordem}
-                onChange={(e) => setOrdem(e.target.value as Ordem)}
-                aria-label="Ordenar clientes"
-                className="h-10 cursor-pointer appearance-none rounded-xl border border-border/60 bg-card pl-9 pr-3 text-[13px] font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="atencao">Atenção primeiro</option>
-                <option value="score">Menor saúde</option>
-                <option value="nome">Nome (A–Z)</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {pilulas.map((p) => (
+      <div className="flex flex-col gap-3 border-b border-border/60 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex gap-6">
+          {STATUS.map((s) => (
             <button
-              key={p.chave}
+              key={s.chave}
               type="button"
-              onClick={() => setFiltro(p.chave)}
+              onClick={() => setStatus(s.chave)}
               className={cn(
-                'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors',
-                filtro === p.chave ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card text-muted-foreground hover:bg-muted'
+                '-mb-px shrink-0 border-b-2 pb-3 text-[14px] font-semibold transition-colors',
+                status === s.chave ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
-              {p.rotulo} <span className="opacity-70">{contagem[p.chave]}</span>
+              {s.rotulo}
+              <span className="ml-1.5 text-[12.5px] font-medium text-muted-foreground">{(porStatus[s.chave].data ?? []).length}</span>
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-1 pb-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar"
+              aria-label="Buscar cliente"
+              className="h-8 w-32 rounded-lg bg-transparent pl-8 pr-2 text-[13px] outline-none transition-all placeholder:text-muted-foreground hover:bg-muted/60 focus:w-52 focus:bg-muted/60"
+            />
+          </div>
+          <select
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value as Filtro)}
+            aria-label="Filtrar clientes"
+            className={cn(
+              'h-8 cursor-pointer rounded-lg bg-transparent px-2 text-[13px] font-medium outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
+              filtro === 'todos' ? 'text-muted-foreground' : 'text-foreground'
+            )}
+          >
+            {pilulas.map((p) => (
+              <option key={p.chave} value={p.chave}>
+                {p.chave === 'todos' ? 'Todos os clientes' : `${p.rotulo} (${contagem[p.chave]})`}
+              </option>
+            ))}
+          </select>
+          <select
+            value={ordem}
+            onChange={(e) => setOrdem(e.target.value as Ordem)}
+            aria-label="Ordenar clientes"
+            className="h-8 cursor-pointer rounded-lg bg-transparent px-2 text-[13px] font-medium text-muted-foreground outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
+          >
+            <option value="atencao">Atenção primeiro</option>
+            <option value="score">Menor saúde</option>
+            <option value="nome">Nome (A–Z)</option>
+          </select>
         </div>
       </div>
 
