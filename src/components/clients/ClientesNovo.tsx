@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInCalendarDays, format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, ArrowUpDown, Building2, CalendarClock, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Building2, Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useClientCardsByStatus, type ClientCard, type ClientStatus } from '@/hooks/useClientCards';
@@ -87,27 +87,14 @@ function useCarteira() {
   });
 }
 
-function Anel({ score }: { score?: number }) {
-  const r = 20;
-  const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, score ?? 0));
+function Saude({ score, estado }: { score?: number; estado: string | null }) {
   return (
-    <div className="relative h-14 w-14 shrink-0" title={score === undefined ? 'Saúde ainda não calculada' : `Saúde do cliente: ${score}`}>
-      <svg viewBox="0 0 48 48" className="h-14 w-14 -rotate-90">
-        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4.5" className="stroke-muted" />
-        <circle
-          cx="24"
-          cy="24"
-          r={r}
-          fill="none"
-          strokeWidth="4.5"
-          strokeLinecap="round"
-          stroke={corDoScore(score)}
-          strokeDasharray={c}
-          strokeDashoffset={c - (c * pct) / 100}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold tracking-tight">{score ?? '—'}</span>
+    <div
+      className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-semibold tabular-nums text-muted-foreground"
+      title={score === undefined ? 'Saúde ainda não calculada' : `Saúde do cliente: ${score}${estado ? ` · ${estado}` : ''}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: corDoScore(score) }} />
+      {score ?? '—'}
     </div>
   );
 }
@@ -132,21 +119,18 @@ function CartaoCliente({
   responsavel?: { nome: string; foto?: string | null };
   onAbrir: () => void;
 }) {
-  const estado = saude ? ESTADO[saude.financialState] : null;
+  const estado = saude ? ESTADO[saude.financialState]?.rotulo ?? null : null;
   const atrasado = carteira.atrasados > 0;
 
   return (
     <button
       type="button"
       onClick={onAbrir}
-      className={cn(
-        'group flex flex-col rounded-2xl border bg-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
-        atrasado ? 'border-red-500/30' : 'border-border/60'
-      )}
+      className="group flex min-h-[148px] flex-col rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:border-foreground/20 hover:bg-muted/20"
     >
-      <div className="flex items-start gap-3.5">
+      <div className="flex items-center gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-lg font-bold text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[14px] font-bold text-white"
           style={{ backgroundColor: cliente.color || '#6366f1' }}
         >
           {cliente.logo_url ? (
@@ -156,46 +140,41 @@ function CartaoCliente({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[15px] font-bold tracking-tight transition-colors group-hover:text-primary">{cliente.name}</h3>
-          <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{cliente.segment || 'Sem segmento'}</p>
-          {estado && (
-            <span className={cn('mt-2 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold', estado.classe)}>{estado.rotulo}</span>
-          )}
+          <h3 className="truncate text-[14.5px] font-semibold tracking-tight">{cliente.name}</h3>
+          <p className="truncate text-[12px] text-muted-foreground">{cliente.segment || 'Sem segmento'}</p>
         </div>
-        <Anel score={saude?.healthScore} />
+        <Saude score={saude?.healthScore} estado={estado} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-muted/50 px-3 py-2">
-          <p className="text-[11px] font-semibold text-muted-foreground">Cards abertos</p>
-          <p className="text-xl font-extrabold leading-tight tracking-tight">{carteira.abertos}</p>
-        </div>
-        <div className={cn('rounded-xl px-3 py-2', atrasado ? 'bg-red-500/10' : 'bg-muted/50')}>
-          <p className={cn('text-[11px] font-semibold', atrasado ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>Atrasados</p>
-          <p className={cn('text-xl font-extrabold leading-tight tracking-tight', atrasado && 'text-red-600 dark:text-red-400')}>{carteira.atrasados}</p>
-        </div>
-      </div>
-
-      <div className="mt-3.5 flex min-h-[20px] items-center gap-2 text-[12.5px] text-muted-foreground">
-        <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-        {carteira.proxima ? (
-          <span className="truncate">
-            Próxima entrega: <span className="font-semibold text-foreground">{carteira.proxima.titulo}</span> · {rotuloPrazo(carteira.proxima.prazo)}
-          </span>
-        ) : (
-          <span>{carteira.abertos > 0 ? 'Nenhum card aberto com prazo' : 'Sem cards abertos'}</span>
+      <p className="mt-5 text-[13px] text-muted-foreground">
+        <span className="font-semibold text-foreground">{carteira.abertos}</span> {carteira.abertos === 1 ? 'card aberto' : 'cards abertos'}
+        {atrasado && (
+          <>
+            <span className="mx-1.5 opacity-40">·</span>
+            <span className="font-semibold text-red-600 dark:text-red-400">
+              {carteira.atrasados} {carteira.atrasados === 1 ? 'atrasado' : 'atrasados'}
+            </span>
+          </>
         )}
-      </div>
+      </p>
 
-      {responsavel && (
-        <div className="mt-3.5 flex items-center gap-2 border-t border-border/50 pt-3 text-[12px] text-muted-foreground">
-          <Avatar className="h-5 w-5">
+      <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+        <p className="min-w-0 truncate text-[12px] text-muted-foreground/80">
+          {carteira.proxima ? (
+            <>
+              Próxima: {carteira.proxima.titulo} · {rotuloPrazo(carteira.proxima.prazo)}
+            </>
+          ) : (
+            'Sem entrega marcada'
+          )}
+        </p>
+        {responsavel && (
+          <Avatar className="h-5 w-5 shrink-0" title={`Responsável: ${responsavel.nome}`}>
             {responsavel.foto && <AvatarImage src={responsavel.foto} />}
             <AvatarFallback className="bg-muted text-[9px] font-semibold">{responsavel.nome.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <span className="truncate">Responsável: {responsavel.nome}</span>
-        </div>
-      )}
+        )}
+      </div>
     </button>
   );
 }
@@ -369,7 +348,7 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
       {carregando ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-60 rounded-2xl" />
+            <Skeleton key={i} className="h-[148px] rounded-2xl" />
           ))}
         </div>
       ) : visiveis.length === 0 ? (
