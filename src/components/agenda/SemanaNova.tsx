@@ -220,7 +220,11 @@ export function SemanaNova({
             </Button>
           </div>
           <h2 className="px-1 text-[17px] font-extrabold tracking-tight">{tituloSemana}</h2>
-          <Button variant="ghost" size="sm" className="h-8 rounded-lg px-2.5 text-[13px] font-semibold text-muted-foreground" onClick={() => onMudarData(new Date())}>
+          <Button variant="ghost" size="sm" className="h-8 rounded-lg px-2.5 text-[13px] font-semibold text-muted-foreground" onClick={() => {
+              const hoje = new Date();
+              onMudarData(hoje);
+              setDiaSel(hoje);
+            }}>
             Hoje
           </Button>
         </div>
