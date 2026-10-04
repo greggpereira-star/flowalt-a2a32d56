@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { IdeaReference } from '@/hooks/useIdeaReferences';
 
 export interface AnaliseCriativo {
@@ -37,6 +40,22 @@ export interface RoteiroSalvo {
   created_at: string;
 }
 
+export interface PedidoIA {
+  id: string;
+  reference_id: string;
+  kind: 'analise' | 'roteiros';
+  client_id: string | null;
+  options: Partial<OpcoesRoteiro> | null;
+  status: 'pendente' | 'processando' | 'pronto' | 'erro';
+  error: string | null;
+  result: { lacunas_do_briefing?: string[] } | null;
+  requested_by: string;
+  created_at: string;
+  finished_at: string | null;
+}
+
+export const pedidoAberto = (p: PedidoIA) => p.status === 'pendente' || p.status === 'processando';
+
 export interface OpcoesRoteiro {
   quantidade: number;
   duracao_segundos: number;
@@ -58,13 +77,19 @@ async function mensagemDoErro(error: any): Promise<string> {
 
 /** A referência, atualizada sozinha enquanto a transcrição roda em segundo plano. */
 export function useReferenciaAoVivo(inicial: IdeaReference | null) {
+  const qcAoVivo = useQueryClient();
   return useQuery({
     queryKey: ['idea-reference', inicial?.id],
     enabled: !!inicial?.id,
     initialData: inicial ?? undefined,
     staleTime: 0,
     refetchIntervalInBackground: true,
-    refetchInterval: (q) => ((q.state.data as IdeaReference | undefined)?.transcript_status === 'processando' ? 4000 : false),
+    refetchInterval: (q) => {
+      if ((q.state.data as IdeaReference | undefined)?.transcript_status === 'processando') return 4000;
+      // Enquanto há pedido ao agente em aberto, a referência é reconsultada para mostrar o resultado quando chegar.
+      const pedidos = qcAoVivo.getQueryData<PedidoIA[]>(['idea-requests', inicial?.id]);
+      return pedidos?.some(pedidoAberto) ? 8000 : false;
+    },
     queryFn: async () => {
       const { data, error } = await (supabase as any).from('idea_references').select('*').eq('id', inicial!.id).single();
       if (error) throw error;
@@ -76,6 +101,8 @@ export function useReferenciaAoVivo(inicial: IdeaReference | null) {
 export function useIdeaAnalysis(referenceId: string) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   const recarregar = () => {
     qc.invalidateQueries({ queryKey: ['idea-reference', referenceId] });
@@ -160,5 +187,65 @@ export function useIdeaAnalysis(referenceId: string) {
     onError: (e: any) => toast({ title: 'Não foi possível excluir', description: e.message, variant: 'destructive' }),
   });
 
-  return { salvarTranscricao, transcrever, analisar, gerarRoteiros, roteiros, apagarRoteiro };
+  // ---------- Fila do agente de copy (plano B: sem API paga) ----------
+  const pedidos = useQuery({
+    queryKey: ['idea-requests', referenceId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('idea_requests')
+        .select('*')
+        .eq('reference_id', referenceId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data || []) as PedidoIA[];
+    },
+    refetchInterval: (q) => ((q.state.data as PedidoIA[] | undefined)?.some(pedidoAberto) ? 8000 : false),
+    refetchIntervalInBackground: true,
+  });
+
+  // Quando um pedido termina, atualiza análise e roteiros na tela.
+  const concluidos = (pedidos.data ?? []).filter(p => p.status === 'pronto').map(p => p.id).join(',');
+  useEffect(() => {
+    if (!concluidos) return;
+    qc.invalidateQueries({ queryKey: ['idea-reference', referenceId] });
+    qc.invalidateQueries({ queryKey: ['idea-scripts', referenceId] });
+    qc.invalidateQueries({ queryKey: ['idea-feed'] });
+    qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [concluidos]);
+
+  const criarPedido = useMutation({
+    mutationFn: async (p: { kind: 'analise' | 'roteiros'; clientId?: string; opcoes?: OpcoesRoteiro }) => {
+      if (!currentWorkspace?.id || !user?.id) throw new Error('Sessão ausente');
+      const { error } = await (supabase as any).from('idea_requests').insert({
+        workspace_id: currentWorkspace.id,
+        reference_id: referenceId,
+        kind: p.kind,
+        client_id: p.clientId ?? null,
+        options: p.opcoes ?? null,
+        requested_by: user.id,
+      });
+      if (error) {
+        if (error.code === '23505') throw new Error('Já existe um pedido igual na fila.');
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-requests', referenceId] });
+      toast({ title: 'Pedido enviado ao agente de copy', description: 'O resultado aparece aqui quando ele processar a fila.' });
+    },
+    onError: (e: any) => toast({ title: 'Não foi possível pedir', description: e.message, variant: 'destructive' }),
+  });
+
+  const cancelarPedido = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('idea_requests').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-requests', referenceId] }),
+    onError: (e: any) => toast({ title: 'Não foi possível cancelar', description: e.message, variant: 'destructive' }),
+  });
+
+  return { salvarTranscricao, transcrever, analisar, gerarRoteiros, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido };
 }

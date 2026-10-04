@@ -14,6 +14,39 @@ import { cn } from '@/lib/utils';
  * cliente; sem eles o roteiro sai genérico, e o agente avisa isso na resposta.
  */
 
+/**
+ * Os campos do briefing no cadastro do cliente podem estar em texto puro (antigos) ou em JSON do
+ * editor de texto formatado (`{"type":"doc",...}`), inclusive um documento vazio. Aqui tudo vira
+ * texto puro para exibir, contar e enviar ao agente.
+ */
+function extrairTexto(n: any): string {
+  if (!n) return '';
+  if (n.type === 'text') return n.text ?? '';
+  const filhos: string[] = (n.content ?? []).map(extrairTexto);
+  switch (n.type) {
+    case 'doc': return filhos.join('\n').replace(/\n{3,}/g, '\n\n');
+    case 'bulletList': return (n.content ?? []).map((li: any) => `- ${extrairTexto(li).trim()}`).join('\n');
+    case 'orderedList': return (n.content ?? []).map((li: any, i: number) => `${i + 1}. ${extrairTexto(li).trim()}`).join('\n');
+    case 'listItem': return filhos.join('\n');
+    case 'hardBreak': return '\n';
+    case 'mention': return `@${n.attrs?.label ?? n.attrs?.id ?? ''}`;
+    default: return filhos.join('');
+  }
+}
+
+export function textoPlano(v: unknown): string {
+  if (v == null) return '';
+  const s = String(v).trim();
+  if (!s) return '';
+  if (s.startsWith('{') && s.includes('"type"')) {
+    try {
+      const doc = JSON.parse(s);
+      if (doc?.type === 'doc') return extrairTexto(doc).trim();
+    } catch { /* não era JSON: segue como texto */ }
+  }
+  return s;
+}
+
 type Chave =
   | 'about_client' | 'products_services' | 'target_audience' | 'objectives' | 'positioning'
   | 'relationship_tone' | 'language_style' | 'language_restrictions' | 'competitors';
@@ -30,7 +63,7 @@ export const CAMPOS_BRIEFING: { chave: Chave; rotulo: string; dica: string; esse
   { chave: 'competitors', rotulo: 'Concorrentes', dica: 'Quem disputa o mesmo público (para não parecer igual).', essencial: false },
 ];
 
-const preenchido = (c: ClientCard, k: Chave) => !!(c[k] as string | null | undefined)?.toString().trim();
+const preenchido = (c: ClientCard, k: Chave) => !!textoPlano(c[k]);
 
 export function completudeBriefing(c: ClientCard) {
   const essenciais = CAMPOS_BRIEFING.filter(f => f.essencial);
@@ -51,17 +84,21 @@ export function BriefingCliente({ cliente }: { cliente: ClientCard }) {
   // Recarrega o formulário quando troca o cliente ou quando o cadastro é atualizado.
   useEffect(() => {
     const ini: Record<string, string> = {};
-    CAMPOS_BRIEFING.forEach(f => { ini[f.chave] = ((cliente[f.chave] as string | null) ?? '').toString(); });
+    CAMPOS_BRIEFING.forEach(f => { ini[f.chave] = textoPlano(cliente[f.chave]); });
     setValores(ini);
     setAberto(completudeBriefing(cliente).preenchidos < total);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cliente.id]);
 
-  const mudou = CAMPOS_BRIEFING.some(f => (valores[f.chave] ?? '') !== (((cliente[f.chave] as string | null) ?? '').toString()));
+  const mudou = CAMPOS_BRIEFING.some(f => (valores[f.chave] ?? '').trim() !== textoPlano(cliente[f.chave]));
 
   const salvar = () => {
+    // Só grava o que a pessoa mudou aqui: campos intocados mantêm a formatação original do cadastro.
     const patch: Record<string, string | null> = {};
-    CAMPOS_BRIEFING.forEach(f => { patch[f.chave] = (valores[f.chave] ?? '').trim() || null; });
+    CAMPOS_BRIEFING.forEach(f => {
+      const novo = (valores[f.chave] ?? '').trim();
+      if (novo !== textoPlano(cliente[f.chave])) patch[f.chave] = novo || null;
+    });
     atualizar.mutate({ id: cliente.id, ...(patch as Partial<ClientCard>) });
   };
 

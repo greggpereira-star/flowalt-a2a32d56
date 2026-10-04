@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useClientCardsByStatus } from '@/hooks/useClientCards';
 import type { IdeaReference } from '@/hooks/useIdeaReferences';
 import {
-  useIdeaAnalysis, useReferenciaAoVivo,
-  type AnaliseCriativo, type OpcoesRoteiro, type RoteiroGerado, type RoteiroSalvo,
+  useIdeaAnalysis, useReferenciaAoVivo, pedidoAberto,
+  type AnaliseCriativo, type OpcoesRoteiro, type PedidoIA, type RoteiroGerado, type RoteiroSalvo,
 } from './useIdeaAnalysis';
 import { BriefingCliente, completudeBriefing } from './BriefingCliente';
 import { cn } from '@/lib/utils';
@@ -217,12 +217,11 @@ export function AnalysisPanel({
 }: { reference: IdeaReference; onCriarCard: (ref: IdeaReference) => void }) {
   const { data: viva } = useReferenciaAoVivo(reference);
   const ref = viva ?? reference;
-  const { salvarTranscricao, transcrever, analisar, gerarRoteiros, roteiros, apagarRoteiro } = useIdeaAnalysis(ref.id);
+  const { salvarTranscricao, transcrever, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido } = useIdeaAnalysis(ref.id);
 
   const [texto, setTexto] = useState(ref.transcript ?? '');
   const [clientId, setClientId] = useState('');
   const [opcoes, setOpcoes] = useState<OpcoesRoteiro>({ quantidade: 3, duracao_segundos: 30, objetivo: '', formato: 'Reels / TikTok', instrucoes: '' });
-  const [lacunas, setLacunas] = useState<string[]>([]);
 
   // Mantém o texto da transcrição sincronizado quando ela termina em segundo plano.
   useEffect(() => { setTexto(ref.transcript ?? ''); }, [ref.id, ref.transcript]);
@@ -240,11 +239,15 @@ export function AnalysisPanel({
   const transcricaoMudou = texto.trim() !== (ref.transcript ?? '').trim();
   const completude = cliente ? completudeBriefing(cliente) : null;
 
-  const gerar = () => {
-    if (!clientId) return;
-    setLacunas([]);
-    gerarRoteiros.mutate({ clientId, opcoes }, { onSuccess: d => setLacunas(d.lacunas_do_briefing ?? []) });
-  };
+  const listaPedidos = pedidos.data ?? [];
+  const pedidoAnalise = listaPedidos.find(x => x.kind === 'analise' && pedidoAberto(x));
+  const pedidoRoteiro = listaPedidos.find(x => x.kind === 'roteiros' && x.client_id === clientId && pedidoAberto(x));
+  const ultimoErro = listaPedidos.find(x => x.status === 'erro');
+  // Lacunas apontadas pelo agente no último lote de roteiros deste cliente.
+  const lacunas = listaPedidos.find(x => x.kind === 'roteiros' && x.client_id === clientId && x.status === 'pronto')?.result?.lacunas_do_briefing ?? [];
+
+  const pedirAnalise = () => criarPedido.mutate({ kind: 'analise' });
+  const pedirRoteiros = () => { if (clientId) criarPedido.mutate({ kind: 'roteiros', clientId, opcoes }); };
 
   const criarCardDoRoteiro = (r: RoteiroSalvo) => {
     const c = r.content;
@@ -304,17 +307,24 @@ export function AnalysisPanel({
       <Secao
         titulo="2 · Análise do criativo"
         acao={
-          <Button size="sm" variant={analise ? 'outline' : 'default'} onClick={() => analisar.mutate()} disabled={!temTexto || analisar.isPending}>
-            {analisar.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-            {analise ? 'Analisar de novo' : 'Analisar'}
+          <Button size="sm" variant={analise ? 'outline' : 'default'} onClick={pedirAnalise} disabled={!temTexto || !!pedidoAnalise || criarPedido.isPending}>
+            {pedidoAnalise ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+            {pedidoAnalise ? (pedidoAnalise.status === 'processando' ? 'Agente analisando…' : 'Na fila do agente') : analise ? 'Pedir nova análise' : 'Pedir análise'}
           </Button>
         }
       >
-        {analisar.isPending && <p className="text-sm text-muted-foreground">Lendo a copy e a estrutura… leva até um minuto.</p>}
-        {analise ? <VisaoAnalise a={analise} /> : !analisar.isPending && (
+        {pedidoAnalise && (
+          <p className="rounded-lg bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
+            Pedido {pedidoAnalise.status === 'processando' ? 'em andamento' : 'na fila'}. O agente de copy processa a fila em ciclos; quando terminar, a análise aparece aqui sozinha.
+            {pedidoAnalise.status === 'pendente' && (
+              <button type="button" className="ml-2 font-semibold underline" onClick={() => cancelarPedido.mutate(pedidoAnalise.id)}>Cancelar pedido</button>
+            )}
+          </p>
+        )}
+        {analise ? <VisaoAnalise a={analise} /> : !pedidoAnalise && (
           <p className="text-sm text-muted-foreground">
             {ref.transcript?.trim()
-              ? 'Clique em Analisar para ver o gancho, a estrutura, os gatilhos e o tom.'
+              ? 'Peça a análise para ver o gancho, a estrutura, os gatilhos e o tom. O agente de copy responde aqui.'
               : 'Sem a transcrição, a análise só consegue ler o título e a legenda. Cole a transcrição para uma leitura completa.'}
           </p>
         )}
@@ -327,7 +337,7 @@ export function AnalysisPanel({
           <select
             id="ar-cliente"
             value={clientId}
-            onChange={e => { setClientId(e.target.value); setLacunas([]); }}
+            onChange={e => setClientId(e.target.value)}
             className="h-9 w-full rounded-lg border border-border/60 bg-background px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Escolha o cliente…</option>
@@ -372,11 +382,27 @@ export function AnalysisPanel({
               </p>
             )}
 
-            <Button onClick={gerar} disabled={gerarRoteiros.isPending || !temTexto} className="w-full">
-              {gerarRoteiros.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Wand2 className="mr-2 h-4 w-4" aria-hidden="true" />}
-              {gerarRoteiros.isPending ? 'Escrevendo os roteiros…' : `Gerar ${opcoes.quantidade} roteiro${opcoes.quantidade > 1 ? 's' : ''} para ${cliente.name}`}
+            <Button onClick={pedirRoteiros} disabled={!!pedidoRoteiro || criarPedido.isPending || !temTexto} className="w-full">
+              {pedidoRoteiro ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Wand2 className="mr-2 h-4 w-4" aria-hidden="true" />}
+              {pedidoRoteiro
+                ? (pedidoRoteiro.status === 'processando' ? 'O agente está escrevendo…' : 'Pedido na fila do agente')
+                : `Pedir ${opcoes.quantidade} roteiro${opcoes.quantidade > 1 ? 's' : ''} para ${cliente.name}`}
             </Button>
-            {gerarRoteiros.isPending && <p className="text-center text-xs text-muted-foreground">Pode levar de 30 a 90 segundos.</p>}
+            {pedidoRoteiro ? (
+              <p className="text-center text-xs text-muted-foreground">
+                O agente de copy processa a fila em ciclos; os roteiros aparecem abaixo quando ficarem prontos.
+                {pedidoRoteiro.status === 'pendente' && (
+                  <button type="button" className="ml-2 font-semibold underline" onClick={() => cancelarPedido.mutate(pedidoRoteiro.id)}>Cancelar pedido</button>
+                )}
+              </p>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">O pedido vai para a fila do agente de copy; o resultado não é instantâneo.</p>
+            )}
+            {ultimoErro && !pedidoRoteiro && !pedidoAnalise && (
+              <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-700 dark:text-red-400">
+                O último pedido não deu certo: {ultimoErro.error ?? 'erro sem detalhe'}. Você pode pedir de novo.
+              </p>
+            )}
 
             {lacunas.length > 0 && (
               <div className="rounded-lg border border-dashed border-border p-2.5 text-xs text-muted-foreground">
