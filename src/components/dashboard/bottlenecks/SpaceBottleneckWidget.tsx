@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { GitBranch, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -23,6 +24,7 @@ interface SpaceBottleneckWidgetProps {
  */
 export function SpaceBottleneckWidget({ espacos, isLoading }: SpaceBottleneckWidgetProps) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
 
   const ordenados = [...espacos].sort((a, b) => b.overdueCards - a.overdueCards);
   const maior = ordenados[0]?.overdueCards ?? 0;
@@ -34,13 +36,13 @@ export function SpaceBottleneckWidget({ espacos, isLoading }: SpaceBottleneckWid
     : 0;
 
   return (
-    <section className="flex min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 sm:p-5">
+    <section className={cn('flex min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'rounded-2xl p-5 shadow-sm')}>
       <header className="mb-3 min-w-0">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <h2 className={cn('flex items-center gap-2 text-sm font-semibold', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+          <GitBranch className={cn('h-4 w-4 shrink-0 text-muted-foreground', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} aria-hidden="true" />
           <span className="truncate">Gargalos por Espaço</span>
         </h2>
-        <p className="text-xs text-muted-foreground">Espaços com mais cards atrasados</p>
+        <p className={cn('text-xs text-muted-foreground', novo && 'ml-[38px] text-[12.5px]')}>Espaços com mais cards atrasados</p>
       </header>
 
       {isLoading ? (
@@ -71,7 +73,7 @@ export function SpaceBottleneckWidget({ espacos, isLoading }: SpaceBottleneckWid
                           className="flex w-full items-center gap-2 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <span className="w-28 shrink-0 truncate text-xs sm:w-32">{e.spaceName}</span>
-                          <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+                          <span className={cn('h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted', novo && 'h-2')}>
                             <span
                               className={cn(
                                 'block h-full rounded-full transition-all',

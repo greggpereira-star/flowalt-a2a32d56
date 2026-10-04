@@ -305,6 +305,9 @@ export const AppSidebar: React.FC = () => {
                 <DropdownMenuCheckboxItem checked={beta.clientes} onCheckedChange={(v) => beta.definir({ clientes: !!v })}>
                   Clientes com visual novo
                 </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.dashboard} onCheckedChange={(v) => beta.definir({ dashboard: !!v })}>
+                  Dashboard com visual novo
+                </DropdownMenuCheckboxItem>
               </>
             )}
             <DropdownMenuSeparator />

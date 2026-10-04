@@ -6,6 +6,7 @@ import {
   AlertTriangle, Clock, Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,19 +37,20 @@ interface TodayFocusPanelProps {
 export function TodayFocusPanel({
   agora, prioridade, agenda, entregas, alertas, isLoading,
 }: TodayFocusPanelProps) {
+  const { dashboard: novo } = useNewUiBeta();
   return (
-    <section className="rounded-xl border border-border/60 bg-card p-4 sm:p-5">
-      <header className="mb-4 flex items-center gap-2">
-        <CalendarCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+    <section className={cn('rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'border-0 bg-transparent p-0 sm:p-0')}>
+      <header className={cn('mb-4 flex items-center gap-2', novo && 'mb-3 gap-2.5')}>
+        <CalendarCheck className={cn('h-4 w-4 shrink-0 text-primary', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5')} aria-hidden="true" />
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">
+          <h2 className={cn('text-sm font-semibold', novo && 'text-[15px] font-bold tracking-tight')}>
             Hoje, {format(agora, "d 'de' MMMM", { locale: ptBR })}
           </h2>
           <p className="text-xs text-muted-foreground">Seu foco para hoje</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div className={cn('grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4', novo && 'items-stretch')}>
         <AreaPrioridade prioridade={prioridade} isLoading={isLoading} />
         <AreaAgenda agenda={agenda} agora={agora} isLoading={isLoading} />
         <AreaEntregas entregas={entregas} isLoading={isLoading} />
@@ -62,9 +64,10 @@ function Coluna({ titulo, cta, href, children }: {
   titulo: string; cta?: string; href?: string; children: React.ReactNode;
 }) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
   return (
-    <div className="flex min-w-0 flex-col">
-      <h3 className="mb-2 text-xs font-medium text-muted-foreground">{titulo}</h3>
+    <div className={cn('flex min-w-0 flex-col', novo && 'rounded-2xl border border-border/60 bg-card p-5 shadow-sm')}>
+      <h3 className={cn('mb-2 text-xs font-medium text-muted-foreground', novo && 'mb-3 text-[13px] font-bold text-foreground')}>{titulo}</h3>
       <div className="flex-1 space-y-2">{children}</div>
       {cta && href && (
         <button
@@ -96,13 +99,14 @@ const COR_SEVERIDADE = {
 
 function AreaPrioridade({ prioridade, isLoading }: { prioridade: OperationalAlert; isLoading?: boolean }) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
   const Icone = ICONE_SEVERIDADE[prioridade.severity];
 
   if (isLoading) return <ColunaSkeleton titulo="Priorize o que importa" />;
 
   return (
     <Coluna titulo="Priorize o que importa">
-      <div className="rounded-lg bg-muted/40 p-3">
+      <div className={cn('rounded-lg bg-muted/40 p-3', novo && 'rounded-xl bg-muted/50')}>
         <div className="flex items-start gap-2">
           <Icone className={cn('mt-0.5 h-4 w-4 shrink-0', COR_SEVERIDADE[prioridade.severity])} aria-hidden="true" />
           {/* Só a descrição: o título do card repetia o nome da coluna. */}
@@ -178,6 +182,7 @@ function AreaAgenda({ agenda, agora, isLoading }: {
 }
 
 function AreaEntregas({ entregas, isLoading }: { entregas: DashboardDelivery[]; isLoading?: boolean }) {
+  const { dashboard: novo } = useNewUiBeta();
   if (isLoading) return <ColunaSkeleton titulo="Próximas Entregas" />;
 
   if (entregas.length === 0) {
@@ -191,7 +196,7 @@ function AreaEntregas({ entregas, isLoading }: { entregas: DashboardDelivery[]; 
   return (
     <Coluna titulo="Próximas Entregas" cta="Ver todas entregas" href="/tasks?filter=due-soon">
       {entregas.map(e => (
-        <div key={e.cardId} className="flex items-start gap-2 rounded-lg border border-border/50 p-2">
+        <div key={e.cardId} className={cn('flex items-start gap-2 rounded-lg border border-border/50 p-2', novo && 'rounded-xl border-0 bg-muted/40 p-2.5')}>
           <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{e.title}</p>
@@ -213,6 +218,7 @@ function AreaEntregas({ entregas, isLoading }: { entregas: DashboardDelivery[]; 
 
 function AreaAlertas({ alertas, isLoading }: { alertas: OperationalAlert[]; isLoading?: boolean }) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
   if (isLoading) return <ColunaSkeleton titulo="Alertas Imediatos" />;
 
   return (
@@ -227,6 +233,7 @@ function AreaAlertas({ alertas, isLoading }: { alertas: OperationalAlert[]; isLo
             onClick={() => a.route && navigate(a.route)}
             className={cn(
               'flex w-full items-start gap-2 rounded-lg border border-border/50 p-2 text-left',
+              novo && 'rounded-xl border-0 bg-muted/40 p-2.5',
               a.route && 'transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             )}
           >
@@ -243,9 +250,10 @@ function AreaAlertas({ alertas, isLoading }: { alertas: OperationalAlert[]; isLo
 }
 
 function ColunaSkeleton({ titulo }: { titulo: string }) {
+  const { dashboard: novo } = useNewUiBeta();
   return (
-    <div className="flex min-w-0 flex-col">
-      <h3 className="mb-2 text-xs font-medium text-muted-foreground">{titulo}</h3>
+    <div className={cn('flex min-w-0 flex-col', novo && 'rounded-2xl border border-border/60 bg-card p-5 shadow-sm')}>
+      <h3 className={cn('mb-2 text-xs font-medium text-muted-foreground', novo && 'mb-3 text-[13px] font-bold text-foreground')}>{titulo}</h3>
       <div className="space-y-2">
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-8 w-3/4" />

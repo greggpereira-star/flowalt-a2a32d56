@@ -7,6 +7,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useDashboardFilters, OPCOES_PERIODO } from '@/hooks/dashboard/useDashboardFilters';
@@ -35,6 +37,7 @@ import type { DashboardAgendaEvent } from '@/lib/dashboard/dashboard-types';
  */
 export default function DashboardV2() {
   const { currentWorkspace } = useWorkspace();
+  const { dashboard: novo } = useNewUiBeta();
   // Quem executa vê o próprio trabalho; quem coordena vê onde o time trava.
   // Gargalo e saúde de cliente são leitura de gestão, não de execução.
   const permissoes = usePermissions();
@@ -93,11 +96,11 @@ export default function DashboardV2() {
 
   return (
     <AppLayout>
-      <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
+      <div className={cn('space-y-4 p-4 sm:space-y-6 sm:p-6', novo && 'mx-auto max-w-[1240px] space-y-6 px-4 py-6 sm:space-y-7 sm:px-8 sm:py-8')}>
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-            <p className="truncate text-sm text-muted-foreground">
+            <h1 className={cn('text-2xl font-semibold tracking-tight', novo && 'text-[28px] font-extrabold leading-tight')}>Dashboard</h1>
+            <p className={cn('truncate text-sm text-muted-foreground', novo && 'mt-1')}>
               Visão geral do workspace {currentWorkspace?.name ?? ''}
             </p>
           </div>
@@ -105,7 +108,7 @@ export default function DashboardV2() {
           <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
                   <Layers className="h-4 w-4" aria-hidden="true" />
                   <span className="max-w-[9rem] truncate">
                     {espacoAtual?.name ?? 'Todos os espaços'}
@@ -133,7 +136,7 @@ export default function DashboardV2() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
                   <CalendarRange className="h-4 w-4" aria-hidden="true" />
                   {period.label}
                 </Button>
@@ -179,7 +182,7 @@ export default function DashboardV2() {
           isLoading={dados.isLoading}
         />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={cn('grid grid-cols-1 gap-4 lg:grid-cols-2', novo && 'gap-5')}>
           <HoursPerDayChart dados={dados.hoursByDay} isLoading={dados.isLoading} />
           <StatusDistributionChart
             dados={dados.statusDistribution}
@@ -188,8 +191,8 @@ export default function DashboardV2() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {permissoes.canViewClientFinancials && <ClientHealthWidget />}
+        <div className={cn('grid grid-cols-1 gap-4 lg:grid-cols-3', novo && 'gap-5')}>
+          {permissoes.canViewClientFinancials && <ClientHealthWidget novo={novo} />}
           <OverdueCardsWidget cards={dados.overdueCards} isLoading={dados.isLoading} />
           {permissoes.canViewCoordination && !spaceId && (
             <SpaceBottleneckWidget espacos={dados.bottlenecks} isLoading={dados.isLoading} />

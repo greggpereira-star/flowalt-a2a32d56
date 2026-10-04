@@ -6,6 +6,8 @@ import {
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, PieChart as PieIcon, Lightbulb } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
 import type { CardStatus } from '@/lib/supabase';
@@ -24,6 +26,7 @@ const COR_STATUS: Record<string, string> = {
 export function HoursPerDayChart({ dados, isLoading }: {
   dados: { dia: string; horas: number }[]; isLoading?: boolean;
 }) {
+  const { dashboard: novo } = useNewUiBeta();
   const serie = useMemo(
     () => dados.map(d => ({ ...d, label: format(parseISO(d.dia), 'EEE', { locale: ptBR }) })),
     [dados],
@@ -32,13 +35,13 @@ export function HoursPerDayChart({ dados, isLoading }: {
   const total = serie.reduce((s, d) => s + d.horas, 0);
 
   return (
-    <section className="min-w-0 rounded-xl border border-border/60 bg-card p-4 sm:p-5">
+    <section className={cn('min-w-0 rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'rounded-2xl p-5 shadow-sm')}>
       <header className="mb-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <Clock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <h2 className={cn('flex items-center gap-2 text-sm font-semibold', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+          <Clock className={cn('h-4 w-4 shrink-0 text-muted-foreground', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} aria-hidden="true" />
           Horas por Dia
         </h2>
-        <p className="text-xs text-muted-foreground">Tempo registrado no período</p>
+        <p className={cn('text-xs text-muted-foreground', novo && 'ml-[38px] text-[12.5px]')}>Tempo registrado no período</p>
       </header>
 
       {isLoading ? (
@@ -53,7 +56,7 @@ export function HoursPerDayChart({ dados, isLoading }: {
       ) : (
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={serie} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />
+            <CartesianGrid strokeDasharray={novo ? '0' : '3 3'} vertical={false} className={novo ? 'stroke-border/30' : 'stroke-border/40'} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
             <YAxis tickLine={false} axisLine={false} fontSize={11} width={32} />
             <ReTooltip
@@ -61,7 +64,7 @@ export function HoursPerDayChart({ dados, isLoading }: {
               contentStyle={{ borderRadius: 10, fontSize: 12, border: '1px solid hsl(var(--border))' }}
               formatter={(v: number) => [`${v.toFixed(1)}h`, 'Registradas']}
             />
-            <Bar dataKey="horas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={36} />
+            <Bar dataKey="horas" fill="hsl(var(--primary))" radius={novo ? [6, 6, 0, 0] : [4, 4, 0, 0]} maxBarSize={novo ? 28 : 36} />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -74,6 +77,7 @@ export function StatusDistributionChart({ dados, total, isLoading }: {
   total: number;
   isLoading?: boolean;
 }) {
+  const { dashboard: novo } = useNewUiBeta();
   const serie = dados.map(d => ({
     ...d,
     label: getCardStatusLabel(d.status),
@@ -83,13 +87,13 @@ export function StatusDistributionChart({ dados, total, isLoading }: {
   const maior = serie[0];
 
   return (
-    <section className="min-w-0 rounded-xl border border-border/60 bg-card p-4 sm:p-5">
+    <section className={cn('min-w-0 rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'rounded-2xl p-5 shadow-sm')}>
       <header className="mb-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <PieIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <h2 className={cn('flex items-center gap-2 text-sm font-semibold', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+          <PieIcon className={cn('h-4 w-4 shrink-0 text-muted-foreground', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} aria-hidden="true" />
           Distribuição por Status
         </h2>
-        <p className="text-xs text-muted-foreground">Cards agrupados por etapa</p>
+        <p className={cn('text-xs text-muted-foreground', novo && 'ml-[38px] text-[12.5px]')}>Cards agrupados por etapa</p>
       </header>
 
       {isLoading ? (

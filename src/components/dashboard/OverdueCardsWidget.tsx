@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
@@ -23,12 +25,13 @@ interface OverdueCardsWidgetProps {
  */
 export function OverdueCardsWidget({ cards, isLoading, limite = 5 }: OverdueCardsWidgetProps) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
 
   return (
-    <section className="flex min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 sm:p-5">
+    <section className={cn('flex min-w-0 flex-col rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'rounded-2xl p-5 shadow-sm')}>
       <header className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+        <h2 className={cn('flex min-w-0 items-center gap-2 text-sm font-semibold', novo && 'gap-2.5 text-[15px] font-bold tracking-tight')}>
+          <AlertTriangle className={cn('h-4 w-4 shrink-0 text-destructive', novo && 'h-7 w-7 rounded-lg bg-destructive/10 p-1.5')} aria-hidden="true" />
           <span className="truncate">Cards Atrasados</span>
         </h2>
         {cards.length > 0 && (
@@ -61,7 +64,7 @@ export function OverdueCardsWidget({ cards, isLoading, limite = 5 }: OverdueCard
               <button
                 type="button"
                 onClick={() => navigate(`/tasks?card=${card.cardId}`)}
-                className="flex w-full items-start justify-between gap-2 rounded-lg border border-border/50 p-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn('flex w-full items-start justify-between gap-2 rounded-lg border border-border/50 p-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', novo && 'rounded-xl border-0 bg-muted/40 p-3 hover:bg-muted/70')}
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm">{card.title}</span>

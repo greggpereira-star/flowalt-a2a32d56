@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DashboardDelta } from '@/lib/dashboard/dashboard-types';
 
@@ -37,10 +38,11 @@ export function DashboardKpiCard({
   label, value, caption, icon: Icon, delta, footer, tone = 'neutral', href, isLoading,
 }: DashboardKpiCardProps) {
   const navigate = useNavigate();
+  const { dashboard: novo } = useNewUiBeta();
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5">
+      <div className={cn('rounded-xl border border-border/60 bg-card p-4 sm:p-5', novo && 'rounded-2xl p-5')}>
         <Skeleton className="h-4 w-24" />
         <Skeleton className="mt-3 h-8 w-16" />
         <Skeleton className="mt-2 h-3 w-20" />
@@ -54,10 +56,11 @@ export function DashboardKpiCard({
   const conteudo = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 text-xs font-medium text-muted-foreground">{label}</span>
+        <span className={cn('min-w-0 text-xs font-medium text-muted-foreground', novo && 'text-[13px] font-semibold')}>{label}</span>
         <span
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+            novo && 'h-7 w-7',
             alerta ? 'bg-destructive/10 text-destructive'
               : tone === 'success' ? 'bg-emerald-500/10 text-emerald-600'
               : 'bg-muted text-muted-foreground',
@@ -69,15 +72,16 @@ export function DashboardKpiCard({
 
       <p className={cn(
         'mt-2 text-2xl font-semibold tabular-nums tracking-tight',
+        novo && 'mt-3 text-[32px] font-extrabold leading-none',
         alerta && 'text-destructive',
       )}>
         {value}
       </p>
 
-      {caption && <p className="mt-0.5 text-xs text-muted-foreground">{caption}</p>}
+      {caption && <p className={cn('mt-0.5 text-xs text-muted-foreground', novo && 'mt-1.5 text-[12.5px]')}>{caption}</p>}
 
       {(delta || footer) && (
-        <div className="mt-3 border-t border-border/50 pt-2 text-xs">
+        <div className={cn('mt-3 border-t border-border/50 pt-2 text-xs', novo && 'mt-3.5 border-0 pt-0')}>
           {delta ? <DeltaLinha delta={delta} /> : footer}
         </div>
       )}
@@ -86,6 +90,7 @@ export function DashboardKpiCard({
 
   const classes = cn(
     'rounded-xl border bg-card p-4 sm:p-5 text-left transition-colors',
+    novo && 'rounded-2xl p-5 shadow-sm',
     alerta ? 'border-destructive/30' : 'border-border/60',
     clicavel && 'hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   );
