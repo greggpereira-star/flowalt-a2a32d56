@@ -37,7 +37,7 @@ const FileIconFor = ({ f }: { f: File }) => {
 };
 
 export const AddReferenceDialog: React.FC<Props> = ({ open, onOpenChange, boardId }) => {
-  const { create, uploadFile } = useIdeaReferences(boardId);
+  const { create, uploadFile, addLink } = useIdeaReferences(boardId);
   const { fetchPreview, loading: previewing, data: preview, reset } = useLinkPreview();
   const { toast } = useToast();
 
@@ -167,18 +167,11 @@ export const AddReferenceDialog: React.FC<Props> = ({ open, onOpenChange, boardI
             } else {
               p = await fetchPreview(u).catch(() => null);
             }
-            await create.mutateAsync({
-              board_id: boardId,
-              type: 'link',
-              title: urls.length === 1 && title.trim()
-                ? title.trim()
-                : (p?.title || p?.domain || u),
-              description: urls.length === 1
-                ? (description.trim() || p?.description || null)
-                : (p?.description || null),
-              source_url: u,
-              thumbnail_url: p?.image || null,
+            await addLink(u, {
+              preview: p as any,
               tags: tags.split(',').map(s => s.trim()).filter(Boolean),
+              title: urls.length === 1 ? title : undefined,
+              description: urls.length === 1 ? description : undefined,
             });
             ok++;
           } catch (e: any) {

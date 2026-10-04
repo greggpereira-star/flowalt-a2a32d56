@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
+import type { LinkPreview } from '@/hooks/useLinkPreview';
 
 export type IdeaReferenceType =
   | 'image' | 'video' | 'link' | 'file' | 'document' | 'text'
@@ -16,6 +17,10 @@ export interface IdeaReference {
   title: string;
   description: string | null;
   source_url: string | null;
+  platform: string | null;
+  external_id: string | null;
+  author_name: string | null;
+  author_url: string | null;
   thumbnail_url: string | null;
   media_url: string | null;
   file_url: string | null;
@@ -180,5 +185,75 @@ export function useIdeaReferences(boardId?: string) {
     return { path, signedUrl: signed?.signedUrl || '' };
   }
 
-  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile, bulkMove, bulkDelete, bulkFavorite };
+  /**
+   * Salva um link como referência. Para TikTok, Instagram e YouTube guarda o vídeo para
+   * incorporação (tipo "vídeo" com plataforma/autor) e uma cópia da miniatura no nosso
+   * armazenamento, porque o endereço de imagem da rede expira. Qualquer outro link segue
+   * como "link" com o preview de sempre. Se o preview falhar, o link é salvo mesmo assim.
+   */
+  async function addLink(
+    url: string,
+    opts?: { tags?: string[]; title?: string; description?: string; preview?: LinkPreview | null },
+  ): Promise<IdeaReference> {
+    if (!boardId) throw new Error('Pasta ausente');
+    let p: LinkPreview | null = opts?.preview ?? null;
+    if (!p) {
+      try {
+        const { data, error } = await supabase.functions.invoke('link-preview', { body: { url } });
+        if (!error && data && !(data as any).error) p = data as LinkPreview;
+      } catch {
+        p = null;
+      }
+    }
+
+    const rede = p?.platform ?? null;
+    let miniatura: string | null = p?.image ?? null;
+
+    if (rede) {
+      miniatura = null;
+      if (p?.image_base64 && workspaceId) {
+        try {
+          const bytes = Uint8Array.from(atob(p.image_base64), c => c.charCodeAt(0));
+          const tipo = p.image_type || 'image/jpeg';
+          const ext = tipo.split('/')[1]?.split(';')[0] || 'jpg';
+          const path = `${workspaceId}/${boardId}/${crypto.randomUUID()}-miniatura.${ext}`;
+          const { error } = await supabase.storage
+            .from('idea-references')
+            .upload(path, new Blob([bytes], { type: tipo }), { cacheControl: '3600', upsert: false });
+          if (!error) {
+            const { data: signed } = await supabase.storage
+              .from('idea-references')
+              .createSignedUrl(path, 60 * 60 * 24 * 365);
+            miniatura = signed?.signedUrl || null;
+          }
+        } catch {
+          miniatura = null;
+        }
+      }
+    }
+
+    const legenda = (p?.title || '').trim();
+    const rotuloRede = rede ? { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube' }[rede] : '';
+    const tituloAuto = legenda
+      ? (legenda.length > 120 ? `${legenda.slice(0, 117)}…` : legenda)
+      : rede
+        ? `${rotuloRede}${p?.author_name ? ` · ${p.author_name}` : ''}`
+        : (p?.domain || url);
+
+    return create.mutateAsync({
+      board_id: boardId,
+      type: rede ? 'video' : 'link',
+      title: opts?.title?.trim() || tituloAuto,
+      description: opts?.description?.trim() || (rede && legenda.length > 120 ? legenda : p?.description) || null,
+      source_url: p?.url || url,
+      thumbnail_url: miniatura,
+      platform: rede,
+      external_id: p?.external_id ?? null,
+      author_name: p?.author_name ?? null,
+      author_url: p?.author_url ?? null,
+      tags: opts?.tags ?? [],
+    });
+  }
+
+  return { ...list, references: list.data || [], create, update, remove, toggleFavorite, uploadFile, addLink, bulkMove, bulkDelete, bulkFavorite };
 }

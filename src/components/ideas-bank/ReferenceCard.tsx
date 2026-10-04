@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useDraggable } from '@dnd-kit/core';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSkinNovo } from '@/components/ui/skin-novo';
+import { ROTULO_PLATAFORMA, type Plataforma } from '@/lib/ideas/embed';
 
 interface Props {
   reference: IdeaReference;
@@ -29,6 +30,7 @@ export const ReferenceCard: React.FC<Props> = ({
   selectMode, selected, onToggleSelect, draggable, pendingFavorite,
 }) => {
   const meta = getTypeMeta(reference.type);
+  const rede = (reference.platform as Plataforma | null) ?? null;
   const Icon = meta.icon;
   const img = reference.thumbnail_url || reference.media_url;
 
@@ -99,7 +101,23 @@ export const ReferenceCard: React.FC<Props> = ({
         </div>
       )}
 
-      {img ? (
+      {rede ? (
+        // Vídeo de rede social: só a miniatura guardada, com o símbolo de play; o player abre no detalhe.
+        <div className="relative bg-muted/40">
+          {img ? (
+            <img src={img} alt={reference.title} className="block w-full" loading="lazy" />
+          ) : (
+            <div className="flex aspect-[9/16] max-h-64 w-full items-center justify-center">
+              <Icon className="h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
+            </div>
+          )}
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
+              <svg viewBox="0 0 24 24" className="ml-0.5 h-5 w-5 fill-current" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </span>
+        </div>
+      ) : img ? (
         reference.type === 'video' ? (
           <video src={img} className="w-full" muted aria-label={reference.title} />
         ) : (
@@ -115,7 +133,7 @@ export const ReferenceCard: React.FC<Props> = ({
       {!selectMode && (
         <div className="absolute top-2 left-2">
           <Badge variant="secondary" className="backdrop-blur bg-background/80 text-xs">
-            <Icon className="h-3 w-3 mr-1" aria-hidden="true" />{meta.label}
+            <Icon className="h-3 w-3 mr-1" aria-hidden="true" />{rede ? ROTULO_PLATAFORMA[rede] : meta.label}
           </Badge>
         </div>
       )}
@@ -147,6 +165,9 @@ export const ReferenceCard: React.FC<Props> = ({
       {!selectMode && (
         <div className={cn('p-2.5 border-t bg-card', novo && 'border-t-0 p-3')}>
           <p className="text-sm font-medium line-clamp-1">{reference.title}</p>
+          {reference.author_name && (
+            <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{reference.author_name}</p>
+          )}
           {reference.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {reference.tags.slice(0, 3).map(t => (

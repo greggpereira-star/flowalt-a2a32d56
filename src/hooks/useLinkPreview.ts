@@ -7,6 +7,13 @@ export interface LinkPreview {
   image?: string;
   domain?: string;
   url: string;
+  platform?: 'tiktok' | 'instagram' | 'youtube';
+  external_id?: string;
+  author_name?: string;
+  author_url?: string;
+  /** Miniatura em base64 (redes sociais), para guardarmos uma cópia no nosso armazenamento. */
+  image_base64?: string;
+  image_type?: string;
 }
 
 export function useLinkPreview() {

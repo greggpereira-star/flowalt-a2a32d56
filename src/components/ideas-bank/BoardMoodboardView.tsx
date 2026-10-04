@@ -36,7 +36,7 @@ interface Props {
 export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
   const { data: board } = useIdeaBoard(boardId);
   const { boards } = useIdeaBoards();
-  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite, create, uploadFile } = useIdeaReferences(boardId);
+  const { references, isLoading, toggleFavorite, bulkMove, bulkDelete, bulkFavorite, create, uploadFile, addLink } = useIdeaReferences(boardId);
   const { toast } = useToast();
 
   const [q, setQ] = useState('');
@@ -131,17 +131,11 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
 
   const quickAddLink = useCallback(async (url: string) => {
     try {
-      await create.mutateAsync({
-        board_id: boardId,
-        type: 'link',
-        title: url,
-        source_url: url,
-        tags: [],
-      });
+      await addLink(url);
     } catch (e: any) {
       toast({ title: 'Falha ao adicionar link', description: e.message, variant: 'destructive' });
     }
-  }, [boardId, create, toast]);
+  }, [addLink, toast]);
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {

@@ -12,6 +12,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { incorporacaoDe, ROTULO_PLATAFORMA, type Plataforma } from '@/lib/ideas/embed';
 
 interface Props {
   reference: IdeaReference | null;
@@ -62,7 +63,42 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
             </div>
           </SheetHeader>
 
-          {img && (
+          {(() => {
+            const emb = incorporacaoDe(reference);
+            if (!emb) return null;
+            return (
+              <div className="mb-4">
+                <iframe
+                  src={emb.src}
+                  title={reference.title}
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  className={emb.formato === 'vertical'
+                    ? 'mx-auto block w-full max-w-[420px] rounded-lg border-0 bg-muted/30'
+                    : 'block aspect-video w-full rounded-lg border-0 bg-muted/30'}
+                  style={emb.formato === 'vertical' ? { height: 'min(74vh, 740px)' } : undefined}
+                />
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Vídeo exibido pelo player oficial de {ROTULO_PLATAFORMA[reference.platform as Plataforma]}. Se o criador apagar a publicação, ele deixa de tocar; o título e a miniatura continuam salvos aqui.
+                </p>
+              </div>
+            );
+          })()}
+
+          {reference.author_name && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              Por{' '}
+              {reference.author_url ? (
+                <a href={reference.author_url} target="_blank" rel="noreferrer" className="font-medium text-foreground hover:underline">
+                  {reference.author_name}
+                </a>
+              ) : (
+                <span className="font-medium text-foreground">{reference.author_name}</span>
+              )}
+            </p>
+          )}
+
+          {img && !reference.platform && (
             reference.type === 'video' ? (
               <video src={img} controls className="w-full rounded-lg mb-4" />
             ) : (
