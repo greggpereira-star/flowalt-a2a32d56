@@ -1,0 +1,18 @@
+services:
+  flowalt-whisper:
+    build: .
+    container_name: flowalt-whisper
+    restart: unless-stopped
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-medium}
+      WHISPER_THREADS: "4"
+    volumes:
+      - whisper-models:/models
+    cpus: 4
+    mem_limit: 5g
+    networks: [supabase_default]
+volumes:
+  whisper-models:
+networks:
+  supabase_default:
+    external: true
