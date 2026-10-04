@@ -66,7 +66,7 @@ const TasksPage: React.FC = () => {
         .select(`
           *,
           space:spaces(name),
-          client:clients(name)
+          client:client_cards(name)
         `)
         .eq('workspace_id', currentWorkspace.id)
         .eq('owner_id', user.id)
@@ -83,7 +83,7 @@ const TasksPage: React.FC = () => {
           card:cards(
             *,
             space:spaces(name),
-            client:clients(name)
+            client:client_cards(name)
           )
         `)
         .eq('user_id', user.id);
@@ -258,10 +258,10 @@ const TasksPage: React.FC = () => {
         key={card.id}
         type="button"
         onClick={() => setSelectedCardId(card.id)}
-        className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-muted/40"
+        className="group flex w-full flex-col items-start gap-2.5 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
       >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14.5px] font-semibold tracking-tight">{card.title}</p>
+        <div className="w-full min-w-0 flex-1">
+          <p className="line-clamp-2 text-[14.5px] font-semibold leading-snug tracking-tight sm:truncate">{card.title}</p>
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted-foreground">
             {cliente && (
               <>
@@ -273,26 +273,28 @@ const TasksPage: React.FC = () => {
             {espaco && <span className="truncate">{espaco}</span>}
           </p>
         </div>
-        {card.actual_hours && card.actual_hours > 0 ? (
-          <span className="hidden shrink-0 items-center gap-1 text-[12px] text-muted-foreground sm:inline-flex">
-            <Clock className="h-3 w-3" />
-            {card.actual_hours.toFixed(1)}h
-          </span>
-        ) : null}
-        {prazo && (
-          <span
-            className={cn(
-              'shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold',
-              prazo.tom === 'atrasado' && 'bg-destructive/10 text-destructive',
-              prazo.tom === 'hoje' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-              prazo.tom === 'normal' && 'bg-muted text-muted-foreground'
-            )}
-          >
-            {prazo.texto}
-          </span>
-        )}
-        <Badge className={cn('shrink-0 rounded-full', STATUS_COLORS[card.status])}>{getCardStatusLabel(card.status)}</Badge>
-        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {card.actual_hours && card.actual_hours > 0 ? (
+            <span className="hidden shrink-0 items-center gap-1 text-[12px] text-muted-foreground sm:inline-flex">
+              <Clock className="h-3 w-3" />
+              {card.actual_hours.toFixed(1)}h
+            </span>
+          ) : null}
+          {prazo && (
+            <span
+              className={cn(
+                'shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold',
+                prazo.tom === 'atrasado' && 'bg-destructive/10 text-destructive',
+                prazo.tom === 'hoje' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                prazo.tom === 'normal' && 'bg-muted text-muted-foreground'
+              )}
+            >
+              {prazo.texto}
+            </span>
+          )}
+          <Badge className={cn('shrink-0 rounded-full', STATUS_COLORS[card.status])}>{getCardStatusLabel(card.status)}</Badge>
+          <ArrowRight className="hidden h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
+        </div>
       </button>
     );
   };
@@ -323,7 +325,7 @@ const TasksPage: React.FC = () => {
   if (novo) {
     return (
       <>
-        <div className="mx-auto max-w-[1180px] space-y-7 px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto max-w-[1180px] space-y-7 px-4 pb-28 pt-6 sm:px-8 sm:py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">Meu trabalho</h1>
