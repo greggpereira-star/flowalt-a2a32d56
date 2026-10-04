@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Check, FolderPlus, ImagePlus, MessageSquarePlus, X, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IdeaBoard } from '@/hooks/useIdeaBoards';
+import { useSkinNovo } from '@/components/ui/skin-novo';
 
 interface Props {
   boards: IdeaBoard[];
@@ -17,6 +18,7 @@ interface Props {
 export const OnboardingChecklist: React.FC<Props> = ({
   boards, hasCreatedCard, onCreateFolder, onOpenFirstBoard, onHowItWorks, onDismiss,
 }) => {
+  const novo = useSkinNovo();
   const hasFolder = boards.length > 0;
   const hasReference = useMemo(
     () => boards.some(b => (b.reference_count ?? 0) > 0),
@@ -59,7 +61,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
   return (
     <section
       aria-labelledby="ib-checklist-title"
-      className="relative rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-5"
+      className={cn('relative rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-5', novo && 'border-border/60 bg-card bg-none p-5')}
     >
       <button
         onClick={onDismiss}
@@ -94,6 +96,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
               key={it.key}
               className={cn(
                 'flex items-start gap-3 rounded-xl border bg-background/60 p-3 transition-colors',
+                novo && 'border-0 bg-muted/40',
                 it.done && 'opacity-70'
               )}
             >

@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Search, Lightbulb, Sparkles, FolderPlus, HelpCircle } from 'lucide-react';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 interface Props {
   folderId?: string | null;
@@ -18,6 +20,7 @@ interface Props {
 const CHECKLIST_KEY = 'ideas-bank:checklist-dismissed';
 
 export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) => {
+  const novo = useSkinNovo();
   const { boards, isLoading } = useIdeaBoards({ folderId });
   const { data: cardLinksCount = 0 } = useIdeaCardLinksCount();
   const [q, setQ] = useState('');
@@ -64,12 +67,12 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="border-b bg-background sticky top-0 z-10">
-        <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
-            <h1 className="font-semibold text-lg">Banco de Ideias</h1>
-            <span className="text-xs text-muted-foreground hidden sm:inline">· Central criativa</span>
+      <header className={cn('border-b bg-background sticky top-0 z-10', novo && 'static border-0 bg-transparent')}>
+        <div className={cn('p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3', novo && 'mx-auto w-full max-w-[1240px] gap-4 px-4 pb-2 pt-6 sm:items-end sm:px-8 sm:pt-8')}>
+          <div className={cn('flex items-center gap-2', novo && 'flex-wrap')}>
+            <Sparkles className={cn('h-5 w-5 text-primary', novo && 'hidden')} aria-hidden="true" />
+            <h1 className={cn('font-semibold text-lg', novo && 'text-[28px] font-extrabold leading-tight tracking-tight')}>Banco de Ideias</h1>
+            <span className={cn('text-xs text-muted-foreground hidden sm:inline', novo && 'text-sm')}>· Central criativa</span>
             <Button
               variant="ghost" size="sm"
               className="h-7 text-xs text-muted-foreground"
@@ -89,17 +92,17 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
                 ref={searchRef}
                 value={q} onChange={e => setQ(e.target.value)}
                 placeholder="Buscar pasta..."
-                className="pl-8 h-9"
+                className={cn('pl-8 h-9', novo && 'h-10 rounded-xl border-border/60 bg-card pl-9 shadow-sm')}
               />
             </div>
-            <Button onClick={() => setCreating(true)} size="sm" aria-keyshortcuts="N">
+            <Button onClick={() => setCreating(true)} size="sm" aria-keyshortcuts="N" className={cn(novo && 'h-10 rounded-xl px-4 font-bold shadow-sm')}>
               <Plus className="h-4 w-4 mr-2" aria-hidden="true" />Nova pasta
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+      <div className={cn('flex-1 overflow-auto p-4 space-y-4', novo && 'mx-auto w-full max-w-[1240px] space-y-6 px-4 pb-10 pt-4 sm:px-8')}>
         {/* Onboarding checklist */}
         {!checklistDismissed && !isLoading && (
           <OnboardingChecklist
@@ -141,13 +144,13 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
           <ul
             role="list"
             aria-label="Pastas do Banco de Ideias"
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 list-none p-0"
+            className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 list-none p-0', novo && 'gap-5')}
           >
             <li>
               <button
                 onClick={() => setCreating(true)}
                 aria-label="Criar nova pasta"
-                className="group w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                className={cn('group w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary', novo && 'h-full border border-dashed border-border/80 bg-transparent hover:border-foreground/30 hover:bg-muted/30 hover:text-foreground')}
               >
                 <div className="h-12 w-12 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
                   <Plus className="h-6 w-6" aria-hidden="true" />

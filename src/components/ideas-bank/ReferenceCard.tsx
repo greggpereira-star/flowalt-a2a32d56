@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useDraggable } from '@dnd-kit/core';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useSkinNovo } from '@/components/ui/skin-novo';
 
 interface Props {
   reference: IdeaReference;
@@ -56,6 +57,7 @@ export const ReferenceCard: React.FC<Props> = ({
 
   const ariaLabel = `${meta.label}: ${reference.title}${selectMode ? (selected ? ' (selecionada)' : '') : ''}`;
 
+  const novo = useSkinNovo();
   return (
     <article
       ref={setNodeRef}
@@ -67,6 +69,7 @@ export const ReferenceCard: React.FC<Props> = ({
       aria-pressed={selectMode ? !!selected : undefined}
       className={cn(
         'group relative break-inside-avoid mb-4 rounded-xl overflow-hidden border bg-card hover:shadow-lg transition-all cursor-pointer',
+        novo && 'mb-5 rounded-2xl border-border/60 hover:border-foreground/20 hover:shadow-none',
         selected && 'ring-2 ring-primary ring-offset-1',
         isDragging && 'opacity-40',
       )}
@@ -142,7 +145,7 @@ export const ReferenceCard: React.FC<Props> = ({
 
       {/* Title strip — always visible for clarity */}
       {!selectMode && (
-        <div className="p-2.5 border-t bg-card">
+        <div className={cn('p-2.5 border-t bg-card', novo && 'border-t-0 p-3')}>
           <p className="text-sm font-medium line-clamp-1">{reference.title}</p>
           {reference.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">

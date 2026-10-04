@@ -22,6 +22,7 @@ import {
   FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSkinNovo } from '@/components/ui/skin-novo';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, useSensor, useSensors, useDroppable,
@@ -191,14 +192,15 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     files.forEach(quickAddFile);
   };
 
+  const novo = useSkinNovo();
   return (
     <TooltipProvider delayDuration={200}>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
       <div className="h-full flex flex-col">
         {/* Header */}
-        <header className="border-b bg-background sticky top-0 z-10">
-          <div className="p-4">
+        <header className={cn('border-b bg-background sticky top-0 z-10', novo && 'static border-0 bg-transparent')}>
+          <div className={cn('p-4', novo && 'mx-auto w-full max-w-[1400px] px-4 pb-2 pt-6 sm:px-8 sm:pt-8')}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-2 min-w-0 flex-1">
                 {onBack && (
@@ -212,7 +214,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="font-semibold text-lg truncate">{board?.name || 'Moodboard'}</h1>
+                    <h1 className={cn('font-semibold text-lg truncate', novo && 'text-[26px] font-extrabold tracking-tight')}>{board?.name || 'Moodboard'}</h1>
                     {board?.is_public && (
                       <Badge variant="secondary" className="text-[10px]">
                         <Share2 className="h-3 w-3 mr-1" aria-hidden="true" />Público
@@ -478,6 +480,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
         <div
           className={cn(
             'flex-1 overflow-auto p-4 relative',
+            novo && 'mx-auto w-full max-w-[1400px] px-4 pb-10 pt-3 sm:px-8',
             fileDragOver && 'bg-primary/5'
           )}
           onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}
@@ -495,7 +498,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
 
           {/* Quick tip */}
           {!isLoading && (
-            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+            <div className={cn('mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2', novo && 'mb-5 rounded-xl border-0 bg-muted/40 px-4 py-2.5')}>
               <span className="flex items-center gap-1.5 font-medium text-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />Atalhos rápidos:
               </span>

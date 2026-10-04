@@ -7,6 +7,8 @@ import { IdeaBoard, useIdeaBoards } from '@/hooks/useIdeaBoards';
 import { MoreHorizontal, Archive, Trash2, Layers, Lightbulb } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 interface Props {
   board: IdeaBoard;
@@ -14,6 +16,7 @@ interface Props {
 }
 
 export const BoardCard: React.FC<Props> = ({ board, onOpen }) => {
+  const novo = useSkinNovo();
   const { archive, remove } = useIdeaBoards();
   const thumbs = board.preview_thumbs || [];
   const cover = board.cover_url || thumbs[0];
@@ -21,10 +24,10 @@ export const BoardCard: React.FC<Props> = ({ board, onOpen }) => {
   return (
     <div
       onClick={onOpen}
-      className="group rounded-2xl overflow-hidden border bg-card hover:shadow-md transition-all cursor-pointer flex flex-col"
+      className={cn('group rounded-2xl overflow-hidden border bg-card hover:shadow-md transition-all cursor-pointer flex flex-col', novo && 'border-border/60 p-2 hover:border-foreground/20 hover:shadow-none')}
     >
       {/* Cover: collage of up to 4 thumbs or single cover */}
-      <div className="aspect-[4/3] relative bg-muted/40">
+      <div className={cn('aspect-[4/3] relative bg-muted/40', novo && 'overflow-hidden rounded-xl')}>
         {cover ? (
           thumbs.length >= 4 ? (
             <div className="grid grid-cols-2 grid-rows-2 h-full gap-0.5">
@@ -67,10 +70,10 @@ export const BoardCard: React.FC<Props> = ({ board, onOpen }) => {
         </div>
       </div>
 
-      <div className="p-3 flex-1">
+      <div className={cn('p-3 flex-1', novo && 'px-2 pb-2 pt-3')}>
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-sm line-clamp-1">{board.name}</h3>
-          {board.category && <Badge variant="outline" className="text-[10px]">{board.category}</Badge>}
+          <h3 className={cn('font-semibold text-sm line-clamp-1', novo && 'text-[14.5px] tracking-tight')}>{board.name}</h3>
+          {board.category && <Badge variant="outline" className={cn('text-[10px]', novo && 'shrink-0 rounded-full border-0 bg-muted px-2 font-semibold text-muted-foreground')}>{board.category}</Badge>}
         </div>
         {board.description && (
           <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{board.description}</p>

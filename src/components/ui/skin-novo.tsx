@@ -32,3 +32,8 @@ export function TempoSkin({ children }: { children: React.ReactNode }) {
   const { tempo } = useNewUiBeta();
   return <Skin ativo={tempo}>{children}</Skin>;
 }
+
+export function IdeiasSkin({ children }: { children: React.ReactNode }) {
+  const { ideias } = useNewUiBeta();
+  return <Skin ativo={ideias}>{children}</Skin>;
+}
