@@ -65,13 +65,19 @@ async function oembed(plataforma: NonNullable<Preview['platform']>, url: string)
       : plataforma === 'instagram'
         ? `https://graph.facebook.com/v21.0/instagram_oembed?url=${encodeURIComponent(url)}`
         : `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`;
-  try {
-    const r = await fetch(endpoint, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch {
-    return null;
+  // A oEmbed do TikTok falha de forma intermitente (503 ou conexão caída, cerca de metade das
+  // chamadas em teste), então tenta de novo antes de desistir. Erros definitivos (404/400) não repetem.
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    try {
+      const r = await fetch(endpoint, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
+      if (r.ok) return await r.json();
+      if (r.status === 400 || r.status === 404) return null;
+    } catch {
+      /* tenta de novo */
+    }
+    await new Promise((res) => setTimeout(res, 700 * (tentativa + 1)));
   }
+  return null;
 }
 
 function idDoYoutube(u: URL): string | undefined {

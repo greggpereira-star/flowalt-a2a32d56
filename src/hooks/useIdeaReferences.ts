@@ -18,6 +18,7 @@ export interface IdeaReference {
   description: string | null;
   source_url: string | null;
   platform: string | null;
+  review_status: string;
   external_id: string | null;
   author_name: string | null;
   author_url: string | null;
@@ -86,6 +87,8 @@ export function useIdeaReferences(boardId?: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
       qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
       toast({ title: 'Referência adicionada' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
@@ -96,7 +99,11 @@ export function useIdeaReferences(boardId?: string) {
       const { error } = await (supabase as any).from('idea_references').update(patch).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
+    },
     // Sem onError a falha era invisível: o sheet não fechava e nada era dito.
     onError: (e: any) => toast({ title: 'Erro ao salvar', description: e.message, variant: 'destructive' }),
   });
@@ -109,7 +116,11 @@ export function useIdeaReferences(boardId?: string) {
         .eq('id', ref.id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
+    },
     // A estrela simplesmente não mudava de estado, sem explicação.
     onError: (e: any) => toast({ title: 'Erro ao favoritar', description: e.message, variant: 'destructive' }),
   });
@@ -122,6 +133,8 @@ export function useIdeaReferences(boardId?: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
       qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
       toast({ title: 'Referência excluída' });
     },
     onError: (e: any) => toast({ title: 'Erro ao excluir', description: e.message, variant: 'destructive' }),
@@ -154,6 +167,8 @@ export function useIdeaReferences(boardId?: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
       qc.invalidateQueries({ queryKey: ['idea-boards', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
       toast({ title: 'Referências excluídas' });
     },
   });
@@ -167,7 +182,11 @@ export function useIdeaReferences(boardId?: string) {
         .in('id', ids);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['idea-references', boardId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['idea-references', boardId] });
+      qc.invalidateQueries({ queryKey: ['idea-feed'] });
+      qc.invalidateQueries({ queryKey: ['idea-feed-totais'] });
+    },
   });
 
   async function uploadFile(file: File, boardIdArg: string): Promise<{ path: string; signedUrl: string }> {

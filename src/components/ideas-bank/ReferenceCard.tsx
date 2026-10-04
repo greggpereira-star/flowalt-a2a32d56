@@ -23,11 +23,13 @@ interface Props {
   onToggleSelect?: () => void;
   draggable?: boolean;
   pendingFavorite?: boolean;
+  /** Conteúdo extra no rodapé do cartão (usado pelo feed: status, pasta e quem salvou). */
+  extra?: React.ReactNode;
 }
 
 export const ReferenceCard: React.FC<Props> = ({
   reference, onClick, onCreateCard, onFavorite, onMove,
-  selectMode, selected, onToggleSelect, draggable, pendingFavorite,
+  selectMode, selected, onToggleSelect, draggable, pendingFavorite, extra,
 }) => {
   const meta = getTypeMeta(reference.type);
   const rede = (reference.platform as Plataforma | null) ?? null;
@@ -168,6 +170,7 @@ export const ReferenceCard: React.FC<Props> = ({
           {reference.author_name && (
             <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{reference.author_name}</p>
           )}
+          {extra}
           {reference.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {reference.tags.slice(0, 3).map(t => (

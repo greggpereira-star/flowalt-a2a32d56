@@ -12,6 +12,8 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { STATUS_ANALISE, useMudarStatusAnalise, type StatusAnalise } from '@/hooks/useIdeaFeed';
 import { incorporacaoDe, ROTULO_PLATAFORMA, type Plataforma } from '@/lib/ideas/embed';
 
 interface Props {
@@ -24,6 +26,11 @@ interface Props {
 
 export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open, onOpenChange, onCreateCard }) => {
   const { remove, toggleFavorite } = useIdeaReferences(boardId);
+  const mudarStatus = useMudarStatusAnalise();
+  const [statusLocal, setStatusLocal] = useState<StatusAnalise>('para_analisar');
+  useEffect(() => {
+    setStatusLocal(((reference?.review_status as StatusAnalise) ?? 'para_analisar'));
+  }, [reference?.id, reference?.review_status]);
 
   const { data: linkedCards } = useQuery({
     queryKey: ['idea-card-links', reference?.id],
@@ -62,6 +69,29 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
               </Button>
             </div>
           </SheetHeader>
+
+          <div className="mb-4" role="group" aria-label="Status da análise">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_ANALISE.map(st => (
+                <button
+                  key={st.value}
+                  type="button"
+                  aria-pressed={statusLocal === st.value}
+                  onClick={() => {
+                    setStatusLocal(st.value);
+                    mudarStatus.mutate({ id: reference.id, status: st.value });
+                  }}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+                    statusLocal === st.value ? 'border-foreground bg-foreground text-background' : 'border-border/60 text-muted-foreground hover:bg-muted'
+                  )}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {(() => {
             const emb = incorporacaoDe(reference);

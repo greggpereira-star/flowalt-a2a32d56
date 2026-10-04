@@ -5,6 +5,7 @@ import { BoardCard } from './BoardCard';
 import { CreateBoardDialog } from './CreateBoardDialog';
 import { HowItWorksDialog } from './HowItWorksDialog';
 import { OnboardingChecklist } from './OnboardingChecklist';
+import { IdeasFeedView } from './IdeasFeedView';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +26,13 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
   const { data: cardLinksCount = 0 } = useIdeaCardLinksCount();
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState(false);
+  const [vista, setVista] = useState<'pastas' | 'feed'>(() => {
+    try { return localStorage.getItem('ideas-bank:vista') === 'feed' ? 'feed' : 'pastas'; } catch { return 'pastas'; }
+  });
+  const escolherVista = (v: 'pastas' | 'feed') => {
+    setVista(v);
+    try { localStorage.setItem('ideas-bank:vista', v); } catch { /* sem armazenamento: vale só nesta sessão */ }
+  };
   const [howOpen, setHowOpen] = useState(false);
   const [checklistDismissed, setChecklistDismissed] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -84,6 +92,7 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            {vista === 'pastas' && (
             <div className="relative flex-1 sm:flex-initial sm:w-64">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <label htmlFor="ib-search" className="sr-only">Buscar pasta</label>
@@ -95,6 +104,7 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
                 className={cn('pl-8 h-9', novo && 'h-10 rounded-xl border-border/60 bg-card pl-9 shadow-sm')}
               />
             </div>
+            )}
             <Button onClick={() => setCreating(true)} size="sm" aria-keyshortcuts="N" className={cn(novo && 'h-10 rounded-xl px-4 font-bold shadow-sm')}>
               <Plus className="h-4 w-4 mr-2" aria-hidden="true" />Nova pasta
             </Button>
@@ -103,6 +113,29 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
       </header>
 
       <div className={cn('flex-1 overflow-auto p-4 space-y-4', novo && 'mx-auto w-full max-w-[1240px] space-y-6 px-4 pb-10 pt-4 sm:px-8')}>
+        {/* Pastas | Feed */}
+        <div className="flex w-fit gap-1 rounded-xl border border-border/60 bg-card p-1" role="tablist" aria-label="Visão do Banco de Ideias">
+          {([['pastas', 'Pastas'], ['feed', 'Feed']] as const).map(([chave, rotulo]) => (
+            <button
+              key={chave}
+              type="button"
+              role="tab"
+              aria-selected={vista === chave}
+              onClick={() => escolherVista(chave)}
+              className={cn(
+                'rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-colors',
+                vista === chave ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+
+        {vista === 'feed' ? (
+          <IdeasFeedView onOpenBoard={onOpenBoard} />
+        ) : (
+        <>
         {/* Onboarding checklist */}
         {!checklistDismissed && !isLoading && (
           <OnboardingChecklist
@@ -164,6 +197,8 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
               </li>
             ))}
           </ul>
+        )}
+        </>
         )}
       </div>
 
