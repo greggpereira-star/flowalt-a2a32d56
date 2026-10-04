@@ -12,6 +12,7 @@ Comandos:
   gravar-analise-ref <ref> <arq>   grava a análise direto na referência (usado antes de um pedido de roteiros)
   gravar-roteiros <pedido> <arq>   grava os roteiros (JSON) e conclui o pedido de roteiros
   erro <pedido> <mensagem>         marca o pedido com erro
+  limpar-quadros <ref>             apaga os quadros temporários do vídeo (depois de vistos)
   reabrir-travados [minutos]       processando há mais de N min (padrão 30) volta a pendente
 """
 import json
@@ -103,6 +104,12 @@ def validar_analise(a):
         exigir(e, ["etapa", "trecho", "funcao"], f"análise.estrutura[{i}]")
     for i, g in enumerate(a["gatilhos"]):
         exigir(g, ["nome", "evidencia"], f"análise.gatilhos[{i}]")
+    # "edicao" é opcional (só existe quando o vídeo foi medido e os quadros foram vistos)
+    if a.get("edicao") is not None:
+        exigir(a["edicao"], ["ritmo", "estrutura_visual", "texto_na_tela", "enquadramento", "gancho_visual", "audio_e_trilha", "o_que_replicar", "limitacoes"], "análise.edicao")
+        exigir(a["edicao"]["texto_na_tela"], ["estilo", "exemplos", "quando_aparece"], "análise.edicao.texto_na_tela")
+        for i, e in enumerate(a["edicao"]["estrutura_visual"]):
+            exigir(e, ["tempo", "plano", "o_que_aparece"], f"análise.edicao.estrutura_visual[{i}]")
 
 
 def validar_roteiros(d):
@@ -113,6 +120,8 @@ def validar_roteiros(d):
         exigir(r, ["titulo", "abordagem", "gancho", "cenas", "cta", "legenda", "hashtags", "por_que_funciona_para_o_cliente"], f"roteiros[{i}]")
         for j, c in enumerate(r["cenas"]):
             exigir(c, ["tempo", "fala", "visual"], f"roteiros[{i}].cenas[{j}]")
+        if r.get("direcao_de_edicao") is not None:
+            exigir(r["direcao_de_edicao"], ["ritmo", "texto_na_tela", "planos", "audio"], f"roteiros[{i}].direcao_de_edicao")
 
 
 def pedido(id_: str):
@@ -129,7 +138,7 @@ def cmd_listar(todos: bool):
       select r.id, r.kind, r.status, r.options, r.created_at, r.requested_by, p.full_name as solicitante,
         json_build_object('id', ref.id, 'titulo', ref.title, 'descricao', ref.description, 'plataforma', ref.platform,
           'autor', ref.author_name, 'tipo', ref.type, 'tags', ref.tags, 'transcricao', ref.transcript,
-          'analise', ref.analysis) as referencia,
+          'analise', ref.analysis, 'edicao', ref.edit_metrics) as referencia,
         case when r.client_id is null then null else json_build_object('id', c.id, 'nome', c.name, 'segmento', c.segment,
           'sobre', c.about_client, 'produtos_servicos', c.products_services, 'publico_alvo', c.target_audience,
           'objetivos', c.objectives, 'desafios', c.challenges, 'concorrentes', c.competitors,
@@ -203,6 +212,15 @@ def cmd_gravar_roteiros(id_: str, arq: str):
     print(f"{len(linhas)} roteiro(s) gravado(s); pedido concluído")
 
 
+def cmd_limpar_quadros(ref_id: str):
+    """Apaga os quadros temporários de uma referência (depois que o agente já os viu)."""
+    uuid_ou_sair(ref_id)
+    import shutil
+    pasta = f"/opt/flowalt-whisper/frames/{ref_id}"
+    shutil.rmtree(pasta, ignore_errors=True)
+    print("quadros apagados")
+
+
 def cmd_erro(id_: str, msg: str):
     uuid_ou_sair(id_)
     psql(f"update idea_requests set status='erro', finished_at=now(), error={lit(msg[:400])} where id='{id_}';")
@@ -231,6 +249,8 @@ def main():
         cmd_gravar_analise_ref(a[1], a[2])
     elif c == "gravar-roteiros" and len(a) == 3:
         cmd_gravar_roteiros(a[1], a[2])
+    elif c == "limpar-quadros" and len(a) == 2:
+        cmd_limpar_quadros(a[1])
     elif c == "erro" and len(a) >= 3:
         cmd_erro(a[1], " ".join(a[2:]))
     elif c == "reabrir-travados":

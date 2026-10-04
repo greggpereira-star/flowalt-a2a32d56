@@ -25,6 +25,10 @@ export interface IdeaReference {
   transcript_error: string | null;
   analysis: any | null;
   analysis_at: string | null;
+  edit_metrics: MetricasEdicao | null;
+  edit_metrics_status: string | null;
+  edit_metrics_error: string | null;
+  edit_metrics_at: string | null;
   external_id: string | null;
   author_name: string | null;
   author_url: string | null;
@@ -45,6 +49,28 @@ export interface IdeaReference {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+}
+
+export interface MetricasEdicao {
+  duracao_s: number;
+  largura: number;
+  altura: number;
+  orientacao: 'vertical' | 'horizontal' | 'quadrado';
+  fps: number;
+  codec?: string;
+  tem_audio: boolean;
+  cortes: {
+    quantidade: number;
+    tempos: number[];
+    cortes_por_10s: number;
+    plano_medio_s: number;
+    plano_mais_curto_s: number;
+    plano_mais_longo_s: number;
+    cortes_nos_primeiros_3s: number;
+  };
+  atividade_visual: { media: number; por_segundo: number[]; segundos_mais_ativos: number[]; segundos_mais_parados: number[] };
+  audio: { silencios: { inicio: number; fim: number }[]; tempo_em_silencio_s: number; proporcao_com_som: number };
+  quadros: { tempo: number; arquivo: string }[];
 }
 
 export type IdeaReferenceInput = Omit<

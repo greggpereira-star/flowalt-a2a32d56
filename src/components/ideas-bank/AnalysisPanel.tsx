@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, Copy, FileAudio, Loader2, MessageSquarePlus, Sparkles, Trash2, Wand2 } from 'lucide-react';
+import { Check, ChevronDown, Clapperboard, Copy, FileAudio, Loader2, MessageSquarePlus, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useClientCardsByStatus } from '@/hooks/useClientCards';
-import type { IdeaReference } from '@/hooks/useIdeaReferences';
+import type { IdeaReference, MetricasEdicao } from '@/hooks/useIdeaReferences';
 import {
   useIdeaAnalysis, useReferenciaAoVivo, pedidoAberto,
   type AnaliseCriativo, type OpcoesRoteiro, type PedidoIA, type RoteiroGerado, type RoteiroSalvo,
@@ -115,11 +115,100 @@ function VisaoAnalise({ a }: { a: AnaliseCriativo }) {
         </div>
       </div>
 
+      {a.edicao && (
+        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Edição do vídeo</p>
+          <p>{a.edicao.ritmo}</p>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Estrutura visual</p>
+            <ol className="space-y-1.5">
+              {a.edicao.estrutura_visual.map((e, i) => (
+                <li key={i} className="grid grid-cols-[64px_1fr] gap-2">
+                  <span className="pt-0.5 text-[11px] font-bold tabular-nums text-muted-foreground">{e.tempo}</span>
+                  <div><span className="font-semibold">{e.plano}.</span> <span className="text-muted-foreground">{e.o_que_aparece}</span></div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg bg-background/60 p-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Texto na tela</p>
+              <p className="mt-0.5 text-[13px]">{a.edicao.texto_na_tela.estilo}</p>
+              {a.edicao.texto_na_tela.exemplos.length > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">Ex.: {a.edicao.texto_na_tela.exemplos.map(x => `“${x}”`).join(' · ')}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">{a.edicao.texto_na_tela.quando_aparece}</p>
+            </div>
+            <div className="rounded-lg bg-background/60 p-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Enquadramento e gancho visual</p>
+              <p className="mt-0.5 text-[13px]">{a.edicao.enquadramento}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{a.edicao.gancho_visual}</p>
+            </div>
+          </div>
+          <p className="text-[13px]"><span className="font-semibold">Áudio:</span> {a.edicao.audio_e_trilha}</p>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Replicar na edição</p>
+            <Lista itens={a.edicao.o_que_replicar} />
+          </div>
+          <p className="text-xs text-muted-foreground"><span className="font-semibold">Limites:</span> {a.edicao.limitacoes}</p>
+        </div>
+      )}
+
       {a.limitacoes && (
         <p className="rounded-lg border border-dashed border-border p-2.5 text-xs text-muted-foreground">
           <span className="font-semibold">Limites desta análise:</span> {a.limitacoes}
         </p>
       )}
+    </div>
+  );
+}
+
+function fmtSeg(s: number) {
+  const m = Math.floor(s / 60);
+  const r = Math.round(s % 60);
+  return m > 0 ? `${m}min ${String(r).padStart(2, '0')}s` : `${Math.round(s * 10) / 10}s`;
+}
+
+function VisaoMetricas({ m }: { m: MetricasEdicao }) {
+  const ativ = m.atividade_visual.por_segundo;
+  const maior = Math.max(...ativ, 0.01);
+  const ativos = new Set(m.atividade_visual.segundos_mais_ativos);
+  const blocos: [string, string, string?][] = [
+    ['Duração', fmtSeg(m.duracao_s)],
+    ['Formato', `${m.largura}×${m.altura}`, `${m.orientacao} · ${m.fps} fps`],
+    ['Cortes secos', String(m.cortes.quantidade), m.cortes.quantidade > 0 ? `1 a cada ${fmtSeg(m.cortes.plano_medio_s)}` : 'tomada contínua'],
+    ['Atividade visual', String(m.atividade_visual.media), 'média (0 = imagem parada)'],
+    ['Áudio', m.tem_audio ? `${Math.round(m.audio.proporcao_com_som * 100)}% com som` : 'sem áudio', m.audio.silencios.length ? `${m.audio.silencios.length} pausa(s)` : 'sem pausas longas'],
+  ];
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {blocos.map(([r, v, sub]) => (
+          <div key={r} className="rounded-lg bg-muted/40 p-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{r}</p>
+            <p className="mt-0.5 text-[15px] font-bold tracking-tight">{v}</p>
+            {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+          </div>
+        ))}
+      </div>
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Atividade visual por segundo</p>
+        <div className="flex h-14 items-end gap-px" role="img" aria-label="Atividade visual de cada segundo do vídeo">
+          {ativ.map((v, i) => (
+            <div
+              key={i}
+              title={`${i}s · ${v}`}
+              className={cn('min-w-[2px] flex-1 rounded-t-sm', ativos.has(i) ? 'bg-primary' : 'bg-primary/30')}
+              style={{ height: `${Math.max((v / maior) * 100, 4)}%` }}
+            />
+          ))}
+        </div>
+        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground"><span>0s</span><span>{fmtSeg(m.duracao_s)}</span></div>
+      </div>
+      <p className="rounded-lg border border-dashed border-border p-2.5 text-xs text-muted-foreground">
+        Corte seco é a troca brusca de cena. Em vídeo gravado de uma vez, com a câmera em movimento, a mudança de enquadramento aparece na atividade visual (barras mais altas), não nos cortes.
+        Texto na tela, enquadramento e estilo não saem destas medidas: a análise do agente lê os quadros do vídeo.
+      </p>
     </div>
   );
 }
@@ -135,6 +224,7 @@ function textoDoRoteiro(r: RoteiroGerado) {
     '',
     `CTA: ${r.cta}`,
     '',
+    ...(r.direcao_de_edicao ? [`DIREÇÃO DE EDIÇÃO\nRitmo: ${r.direcao_de_edicao.ritmo}\nTexto na tela: ${r.direcao_de_edicao.texto_na_tela}\nPlanos: ${r.direcao_de_edicao.planos}\nÁudio: ${r.direcao_de_edicao.audio}${r.direcao_de_edicao.observacoes ? `\nObs.: ${r.direcao_de_edicao.observacoes}` : ''}`, ''] : []),
     `Legenda: ${r.legenda}`,
     r.hashtags?.length ? `Hashtags: ${r.hashtags.join(' ')}` : '',
   ].filter(l => l !== undefined).join('\n');
@@ -190,6 +280,16 @@ function CartaoRoteiro({
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">CTA</p>
             <p className="mt-0.5">{c.cta}</p>
           </div>
+          {c.direcao_de_edicao && (
+            <div className="space-y-1 rounded-lg border border-border/60 p-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Direção de edição</p>
+              <p><span className="font-semibold">Ritmo:</span> {c.direcao_de_edicao.ritmo}</p>
+              <p><span className="font-semibold">Texto na tela:</span> {c.direcao_de_edicao.texto_na_tela}</p>
+              <p><span className="font-semibold">Planos:</span> {c.direcao_de_edicao.planos}</p>
+              <p><span className="font-semibold">Áudio:</span> {c.direcao_de_edicao.audio}</p>
+              {c.direcao_de_edicao.observacoes && <p className="text-xs text-muted-foreground">{c.direcao_de_edicao.observacoes}</p>}
+            </div>
+          )}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Legenda</p>
             <p className="mt-0.5 whitespace-pre-wrap">{c.legenda}</p>
@@ -217,7 +317,7 @@ export function AnalysisPanel({
 }: { reference: IdeaReference; onCriarCard: (ref: IdeaReference) => void }) {
   const { data: viva } = useReferenciaAoVivo(reference);
   const ref = viva ?? reference;
-  const { salvarTranscricao, transcrever, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido } = useIdeaAnalysis(ref.id);
+  const { salvarTranscricao, transcrever, medirEdicao, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido } = useIdeaAnalysis(ref.id);
 
   const [texto, setTexto] = useState(ref.transcript ?? '');
   const [clientId, setClientId] = useState('');
@@ -234,6 +334,8 @@ export function AnalysisPanel({
 
   const temArquivo = !!(ref.media_url || ref.file_url) && (ref.type === 'video' || /\.(mp4|mov|m4a|mp3|wav|webm|ogg|aac|mkv)$/i.test(ref.file_name ?? ''));
   const processando = ref.transcript_status === 'processando';
+  const editando = ref.edit_metrics_status === 'processando';
+  const temVideoArquivo = !!(ref.media_url || ref.file_url) && (ref.type === 'video' || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(ref.file_name ?? '')) && !ref.platform;
   const analise = ref.analysis as AnaliseCriativo | null;
   const temTexto = !!ref.transcript?.trim() || !!ref.title?.trim() || !!ref.description?.trim();
   const transcricaoMudou = texto.trim() !== (ref.transcript ?? '').trim();
@@ -302,6 +404,36 @@ export function AnalysisPanel({
         </div>
         {processando && <p className="text-xs text-muted-foreground">Isso roda na nossa VPS e leva alguns segundos por minuto de vídeo. Pode continuar usando o sistema.</p>}
       </Secao>
+
+      {/* Edição do vídeo (medições automáticas) */}
+      {temVideoArquivo && (
+        <Secao
+          titulo="Edição do vídeo"
+          acao={ref.edit_metrics_status && (
+            <span className={cn(
+              'rounded-full px-2.5 py-0.5 text-[11px] font-bold',
+              ref.edit_metrics_status === 'pronta' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+              ref.edit_metrics_status === 'processando' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+              ref.edit_metrics_status === 'erro' && 'bg-red-500/10 text-red-600 dark:text-red-400',
+            )}>
+              {ref.edit_metrics_status === 'pronta' ? 'Medida' : ref.edit_metrics_status === 'processando' ? 'Medindo…' : 'Falha na medição'}
+            </span>
+          )}
+        >
+          {ref.edit_metrics_status === 'erro' && ref.edit_metrics_error && (
+            <p className="text-xs text-red-600 dark:text-red-400">{ref.edit_metrics_error}</p>
+          )}
+          {ref.edit_metrics ? <VisaoMetricas m={ref.edit_metrics} /> : !editando && (
+            <p className="text-sm text-muted-foreground">Mede duração, formato, cortes, ritmo e movimento da imagem. Roda na nossa VPS, sem custo por uso.</p>
+          )}
+          <Button size="sm" variant={ref.edit_metrics ? 'outline' : 'default'} onClick={() => medirEdicao.mutate()} disabled={editando || medirEdicao.isPending}>
+            {editando || medirEdicao.isPending
+              ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              : <Clapperboard className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+            {ref.edit_metrics ? 'Medir de novo' : 'Medir a edição'}
+          </Button>
+        </Secao>
+      )}
 
       {/* 2. Análise */}
       <Secao

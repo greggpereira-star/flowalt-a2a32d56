@@ -16,6 +16,17 @@ export interface AnaliseCriativo {
   o_que_replicar: string[];
   o_que_evitar: string[];
   limitacoes: string;
+  /** Presente quando o vídeo foi medido e os quadros foram vistos pelo agente. */
+  edicao?: {
+    ritmo: string;
+    estrutura_visual: { tempo: string; plano: string; o_que_aparece: string }[];
+    texto_na_tela: { estilo: string; exemplos: string[]; quando_aparece: string };
+    enquadramento: string;
+    gancho_visual: string;
+    audio_e_trilha: string;
+    o_que_replicar: string[];
+    limitacoes: string;
+  };
 }
 
 export interface RoteiroGerado {
@@ -27,6 +38,7 @@ export interface RoteiroGerado {
   legenda: string;
   hashtags: string[];
   por_que_funciona_para_o_cliente: string;
+  direcao_de_edicao?: { ritmo: string; texto_na_tela: string; planos: string; audio: string; observacoes?: string };
 }
 
 export interface RoteiroSalvo {
@@ -85,7 +97,8 @@ export function useReferenciaAoVivo(inicial: IdeaReference | null) {
     staleTime: 0,
     refetchIntervalInBackground: true,
     refetchInterval: (q) => {
-      if ((q.state.data as IdeaReference | undefined)?.transcript_status === 'processando') return 4000;
+      const d = q.state.data as IdeaReference | undefined;
+      if (d?.transcript_status === 'processando' || d?.edit_metrics_status === 'processando') return 4000;
       // Enquanto há pedido ao agente em aberto, a referência é reconsultada para mostrar o resultado quando chegar.
       const pedidos = qcAoVivo.getQueryData<PedidoIA[]>(['idea-requests', inicial?.id]);
       return pedidos?.some(pedidoAberto) ? 8000 : false;
@@ -138,6 +151,15 @@ export function useIdeaAnalysis(referenceId: string) {
     },
     onSuccess: recarregar,
     onError: (e: any) => toast({ title: 'Não foi possível transcrever', description: e.message, variant: 'destructive' }),
+  });
+
+  const medirEdicao = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke('idea-measure', { body: { reference_id: referenceId } });
+      if (error) throw new Error(await mensagemDoErro(error));
+    },
+    onSuccess: recarregar,
+    onError: (e: any) => toast({ title: 'Não foi possível medir a edição', description: e.message, variant: 'destructive' }),
   });
 
   const analisar = useMutation({
@@ -247,5 +269,5 @@ export function useIdeaAnalysis(referenceId: string) {
     onError: (e: any) => toast({ title: 'Não foi possível cancelar', description: e.message, variant: 'destructive' }),
   });
 
-  return { salvarTranscricao, transcrever, analisar, gerarRoteiros, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido };
+  return { salvarTranscricao, transcrever, medirEdicao, analisar, gerarRoteiros, roteiros, apagarRoteiro, pedidos, criarPedido, cancelarPedido };
 }
