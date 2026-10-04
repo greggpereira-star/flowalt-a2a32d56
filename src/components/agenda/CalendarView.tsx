@@ -48,6 +48,7 @@ import { useEventParticipantsBatch } from '@/hooks/agenda/useEventParticipantsBa
 import { EventTypeLegend } from '@/components/agenda/EventTypeLegend';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { SemanaNova } from '@/components/agenda/SemanaNova';
 import {
   useEvents,
   useCreateEvent,
@@ -98,6 +99,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   // Visual novo (opção beta pessoal): só muda classes; dados e comportamento são os mesmos.
   const { agenda: novo } = useNewUiBeta();
   const isMobile = useIsMobile();
+  // Visual novo no desktop abre na semana (grade de horas + painel do dia); o mês continua disponível.
+  const [vista, setVista] = useState<'semana' | 'mes'>('semana');
+  const usaSemana = novo && !isMobile && vista === 'semana';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
@@ -458,8 +462,52 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+  const seletorDeVista = (
+    <div className="flex rounded-xl border border-border/60 bg-card p-0.5">
+      {(['semana', 'mes'] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => setVista(v)}
+          className={cn(
+            'rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors',
+            vista === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {v === 'semana' ? 'Semana' : 'Mês'}
+        </button>
+      ))}
+    </div>
+  );
+
+  const abrirNovoEm = (dia: Date, hora?: number) => {
+    resetForm();
+    handleDateClick(dia);
+    if (hora !== undefined) {
+      const ini = String(hora).padStart(2, '0');
+      const fim = String(Math.min(hora + 1, 23)).padStart(2, '0');
+      setFormData((f) => ({ ...f, start_time: `${ini}:00`, end_time: hora >= 23 ? '23:59' : `${fim}:00` }));
+    }
+  };
+
+  const spacesPorId = new Map((spaces ?? []).map((sp) => [sp.id, { name: sp.name, color: sp.color }]));
+
   return (
     <div className={cn('flex flex-col h-full gap-4', novo && 'gap-5')}>
+      {usaSemana ? (
+        <SemanaNova
+          dataFoco={currentDate}
+          onMudarData={setCurrentDate}
+          porDia={eventsByDay}
+          participantes={participantsByEvent}
+          espacos={spacesPorId}
+          carregando={isLoading}
+          onNovo={abrirNovoEm}
+          onAbrirEvento={handleEventClick}
+          seletorDeVista={seletorDeVista}
+        />
+      ) : (
+        <>
       {/* Header / Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className={cn('flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border', novo && 'rounded-xl border-border/60 bg-card p-1 shadow-sm')}>
@@ -495,6 +543,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           </Button>
         </div>
 
+        {novo && !isMobile && <div className="sm:ml-4 sm:mr-auto">{seletorDeVista}</div>}
         <Button 
           size="sm" 
           onClick={() => {
@@ -644,6 +693,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           })}
         </div>
       </div>
+
+        </>
+      )}
 
       {/* Day Details (mobile: lista de eventos do dia tocado) */}
       <Dialog open={!!dayDetailsDate} onOpenChange={(open) => !open && setDayDetailsDate(null)}>
