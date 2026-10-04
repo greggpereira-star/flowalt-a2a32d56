@@ -56,8 +56,11 @@ import {
   type EtapaConfig,
 } from '@/lib/coordination/coordMetrics';
 import { AtencaoAgora, KpisCoordenacao, PainelEquipe, PainelEtapas, PainelPrazos } from '@/components/coordination/v2/Painel';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 const CoordinationPage: React.FC = () => {
+  const novo = useSkinNovo();
   const rotuloStatus = useStatusLabel();
   usePageTracking('coordination');
   const { currentWorkspace } = useWorkspace();
@@ -214,7 +217,7 @@ const CoordinationPage: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 space-y-6">
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
           <Skeleton className="h-8 w-64" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
@@ -228,7 +231,7 @@ const CoordinationPage: React.FC = () => {
   return (
     <PermissionGuard permission="canViewCoordination">
       <AppLayout>
-        <div className="p-6 space-y-6">
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

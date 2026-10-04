@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { GestaoSkin } from "@/components/ui/skin-novo";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -167,22 +168,22 @@ const App = () => (
                   <Route path="/dashboard-v2" element={<DashboardV2 />} />
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/time" element={<TimePage />} />
-                  <Route path="/coordination" element={<CoordinationPage />} />
+                  <Route path="/coordination" element={<GestaoSkin><CoordinationPage /></GestaoSkin>} />
                   <Route path="/calendar" element={<AgendaPage />} />
-                  <Route path="/financial" element={<FinancialPage />} />
-                  <Route path="/partners" element={<PartnersPage />} />
+                  <Route path="/financial" element={<GestaoSkin><FinancialPage /></GestaoSkin>} />
+                  <Route path="/partners" element={<GestaoSkin><PartnersPage /></GestaoSkin>} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/integrations" element={<IntegrationsPage />} />
-                  <Route path="/gamification" element={<GamificationPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/people-analytics" element={<PeopleAnalyticsPage />} />
+                  <Route path="/gamification" element={<GestaoSkin><GamificationPage /></GestaoSkin>} />
+                  <Route path="/analytics" element={<GestaoSkin><AnalyticsPage /></GestaoSkin>} />
+                  <Route path="/people-analytics" element={<GestaoSkin><PeopleAnalyticsPage /></GestaoSkin>} />
                   <Route path="/clients" element={<ClientsPage />} />
                   <Route path="/clients/:clientId" element={<ClientsPage />} />
                   <Route path="/space/:spaceId" element={<SpacePage />} />
                   <Route path="/marketing" element={<MarketingPage />} />
                   <Route path="/birthdays" element={<BirthdaysPage />} />
                   <Route path="/ideas" element={<IdeasBankPage />} />
-                  <Route path="/altcontrol/*" element={<AltControlPage />} />
+                  <Route path="/altcontrol/*" element={<GestaoSkin><AltControlPage /></GestaoSkin>} />
                   <Route path="/altcontrol/proposals/new" element={<NewProposalPage />} />
                   <Route path="/altcontrol/proposals/generator" element={<ProposalGeneratorPage />} />
                   <Route path="/altcontrol/proposals/generator/:docId" element={<ProposalGeneratorPage />} />

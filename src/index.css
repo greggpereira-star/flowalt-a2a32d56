@@ -1157,3 +1157,38 @@
     scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--muted));
   }
 }
+
+/* Visual novo das telas do grupo Gestão (opção beta): só vale dentro de <GestaoSkin>. */
+.gestao-novo h1 {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.gestao-novo h1 > svg {
+  display: none;
+}
+.gestao-novo [role="tablist"] {
+  height: auto;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border) / 0.6);
+  background: hsl(var(--card));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.gestao-novo [role="tab"] {
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+.gestao-novo [role="tab"][data-state="active"] {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  box-shadow: none;
+}
+.gestao-novo .container {
+  max-width: 1240px;
+}
+.gestao-novo .max-w-6xl {
+  max-width: 1240px;
+}

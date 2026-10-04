@@ -45,10 +45,13 @@ import { useWorkspaceMembers, useMemberCapacity } from "@/hooks/useWorkspaceMemb
 import { useCollaborators } from "@/hooks/useCollaborators";
 import { ExecutiveRiskPanel } from "@/components/partners/ExecutiveRiskPanel";
 import { ExecutiveAssetsPanel } from "@/components/partners/ExecutiveAssetsPanel";
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"];
 
 export default function PartnersPage() {
+  const novo = useSkinNovo();
   usePageTracking('partners');
   const { logPartnersAccess } = useAccessLogging();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -215,7 +218,7 @@ export default function PartnersPage() {
       </Helmet>
 
       <AppLayout>
-        <div className="p-6 space-y-6">
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>

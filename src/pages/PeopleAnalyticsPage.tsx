@@ -49,6 +49,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -100,6 +102,7 @@ function csvCelula(valor: string | number) {
 }
 
 export default function PeopleAnalyticsPage() {
+  const novo = useSkinNovo();
   usePageTracking('people_analytics');
   const { currentWorkspace } = useWorkspace();
   const startDate = subDays(new Date(), 30);
@@ -386,7 +389,7 @@ export default function PeopleAnalyticsPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 space-y-6">
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
           <Skeleton className="h-8 w-64" />
           <div className="grid gap-4 md:grid-cols-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}
@@ -402,7 +405,7 @@ export default function PeopleAnalyticsPage() {
         <title>People Analytics - Flowalt</title>
       </Helmet>
 
-      <div className="p-6 space-y-6">
+      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

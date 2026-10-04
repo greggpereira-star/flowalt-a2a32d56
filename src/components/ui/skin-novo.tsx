@@ -1,0 +1,25 @@
+import * as React from 'react';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+
+/**
+ * "Skin" do visual novo para as telas do grupo Gestão (opção beta pessoal).
+ *
+ * Em vez de editar cada tela, o grupo é embrulhado em <GestaoSkin>: quando a opção está ligada,
+ * os componentes Card passam a usar o desenho novo (cantos mais arredondados, borda fina, título
+ * em negrito) e o CSS `.gestao-novo` ajusta títulos de página e abas. Desligada, este componente
+ * devolve os filhos sem nenhuma alteração.
+ */
+const SkinNovoContext = React.createContext(false);
+
+export const useSkinNovo = () => React.useContext(SkinNovoContext);
+
+export function GestaoSkin({ children }: { children: React.ReactNode }) {
+  const { gestao } = useNewUiBeta();
+  if (!gestao) return <>{children}</>;
+  return (
+    <SkinNovoContext.Provider value={true}>
+      {/* display: contents mantém o layout exatamente como estava; só o CSS descendente passa a valer. */}
+      <div className="gestao-novo contents">{children}</div>
+    </SkinNovoContext.Provider>
+  );
+}
