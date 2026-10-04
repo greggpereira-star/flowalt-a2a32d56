@@ -34,6 +34,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, differenceInSeconds } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
@@ -44,6 +46,7 @@ const formatDuration = (seconds: number): string => {
 
 const TimePage: React.FC = () => {
   usePageTracking('time_tracking');
+  const novo = useSkinNovo();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('my-time');
@@ -191,7 +194,7 @@ const TimePage: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 space-y-6">
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
           <Skeleton className="h-8 w-48" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24" />)}
@@ -204,7 +207,7 @@ const TimePage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6">
+      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -226,7 +229,7 @@ const TimePage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{totalWeeklyHours.toFixed(1)}h</p>
+              <p className={cn('text-2xl font-bold', novo && 'text-[32px] font-extrabold leading-none')}>{totalWeeklyHours.toFixed(1)}h</p>
               <p className="text-xs text-muted-foreground">{weeklyData.filter(d => d.entries > 0).length} dias trabalhados</p>
             </CardContent>
           </Card>
@@ -239,7 +242,7 @@ const TimePage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{totalEntries}</p>
+              <p className={cn('text-2xl font-bold', novo && 'text-[32px] font-extrabold leading-none')}>{totalEntries}</p>
               <p className="text-xs text-muted-foreground">Total de entradas</p>
             </CardContent>
           </Card>
@@ -252,7 +255,7 @@ const TimePage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{runningTimers?.length || 0}</p>
+              <p className={cn('text-2xl font-bold', novo && 'text-[32px] font-extrabold leading-none')}>{runningTimers?.length || 0}</p>
               <p className="text-xs text-muted-foreground">No workspace</p>
             </CardContent>
           </Card>
@@ -271,7 +274,7 @@ const TimePage: React.FC = () => {
             <CardContent>
               {myRunningTimer ? (
                 <>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className={cn('text-2xl font-bold text-green-600', novo && 'text-[32px] font-extrabold leading-none')}>
                     {formatDuration(differenceInSeconds(new Date(), new Date(myRunningTimer.started_at)))}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -280,7 +283,7 @@ const TimePage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-muted-foreground">--:--</p>
+                  <p className={cn('text-2xl font-bold text-muted-foreground', novo && 'text-[32px] font-extrabold leading-none')}>--:--</p>
                   <p className="text-xs text-muted-foreground">Nenhum timer ativo</p>
                 </>
               )}
@@ -321,7 +324,7 @@ const TimePage: React.FC = () => {
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weeklyData}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <CartesianGrid strokeDasharray={novo ? '0' : '3 3'} vertical={!novo} className={novo ? 'stroke-border/30' : 'stroke-border'} />
                         <XAxis
                           dataKey="day"
                           className="text-xs fill-muted-foreground"
@@ -351,7 +354,8 @@ const TimePage: React.FC = () => {
                         <Bar
                           dataKey="hours"
                           fill="hsl(var(--primary))"
-                          radius={[4, 4, 0, 0]}
+                          radius={novo ? [8, 8, 0, 0] : [4, 4, 0, 0]}
+                          maxBarSize={novo ? 32 : undefined}
                         />
                       </BarChart>
                     </ResponsiveContainer>
@@ -366,13 +370,13 @@ const TimePage: React.FC = () => {
                   <CardDescription>Suas entradas de tempo recentes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64">
+                  <ScrollArea className={cn('h-64', novo && '[&_[data-radix-scroll-area-viewport]>div]:!block')}>
                     {myTimeEntries && myTimeEntries.length > 0 ? (
                       <div className="space-y-2">
                         {myTimeEntries.slice(0, 10).map((entry) => (
                           <div
                             key={entry.id}
-                            className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                            className={cn('flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors', novo && 'rounded-xl border-0 bg-muted/40 hover:bg-muted/70')}
                           >
                             <div className="min-w-0 flex-1">
                               <p className="font-medium truncate">
@@ -424,7 +428,7 @@ const TimePage: React.FC = () => {
                       return (
                         <div
                           key={timer.id}
-                          className="flex items-center gap-4 p-4 rounded-lg border bg-green-500/5 border-green-500/20"
+                          className={cn('flex items-center gap-4 p-4 rounded-lg border bg-green-500/5 border-green-500/20', novo && 'rounded-xl border-0 bg-emerald-500/10')}
                         >
                           <Avatar>
                             <AvatarImage src={profile?.avatar_url} />
@@ -481,7 +485,7 @@ const TimePage: React.FC = () => {
                     {teamLeaderboard.map((member, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-4 p-3 rounded-lg border bg-card"
+                        className={cn('flex items-center gap-4 p-3 rounded-lg border bg-card', novo && 'rounded-xl border-0 bg-muted/40 p-3.5')}
                       >
                         <span className="text-lg font-bold text-muted-foreground w-6">
                           {index + 1}º
@@ -492,6 +496,14 @@ const TimePage: React.FC = () => {
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-medium">{member.name}</p>
+                          {novo && (
+                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-primary"
+                                style={{ width: `${(member.hours / (teamLeaderboard[0]?.hours || 1)) * 100}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
                         <Badge variant="secondary" className="text-base">
                           {member.hours.toFixed(1)}h

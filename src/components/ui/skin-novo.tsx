@@ -13,13 +13,22 @@ const SkinNovoContext = React.createContext(false);
 
 export const useSkinNovo = () => React.useContext(SkinNovoContext);
 
-export function GestaoSkin({ children }: { children: React.ReactNode }) {
-  const { gestao } = useNewUiBeta();
-  if (!gestao) return <>{children}</>;
+function Skin({ ativo, children }: { ativo: boolean; children: React.ReactNode }) {
+  if (!ativo) return <>{children}</>;
   return (
     <SkinNovoContext.Provider value={true}>
       {/* display: contents mantém o layout exatamente como estava; só o CSS descendente passa a valer. */}
       <div className="gestao-novo contents">{children}</div>
     </SkinNovoContext.Provider>
   );
+}
+
+export function GestaoSkin({ children }: { children: React.ReactNode }) {
+  const { gestao } = useNewUiBeta();
+  return <Skin ativo={gestao}>{children}</Skin>;
+}
+
+export function TempoSkin({ children }: { children: React.ReactNode }) {
+  const { tempo } = useNewUiBeta();
+  return <Skin ativo={tempo}>{children}</Skin>;
 }

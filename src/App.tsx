@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { GestaoSkin } from "@/components/ui/skin-novo";
+import { GestaoSkin, TempoSkin } from "@/components/ui/skin-novo";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -167,7 +167,7 @@ const App = () => (
                   <Route path="/dashboard-legacy" element={<Dashboard />} />
                   <Route path="/dashboard-v2" element={<DashboardV2 />} />
                   <Route path="/tasks" element={<TasksPage />} />
-                  <Route path="/time" element={<TimePage />} />
+                  <Route path="/time" element={<TempoSkin><TimePage /></TempoSkin>} />
                   <Route path="/coordination" element={<GestaoSkin><CoordinationPage /></GestaoSkin>} />
                   <Route path="/calendar" element={<AgendaPage />} />
                   <Route path="/financial" element={<GestaoSkin><FinancialPage /></GestaoSkin>} />

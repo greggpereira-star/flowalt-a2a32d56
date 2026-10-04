@@ -22,9 +22,10 @@ export interface EstadoBeta {
   clientes: boolean;
   dashboard: boolean;
   gestao: boolean;
+  tempo: boolean;
 }
 
-const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false, meutrabalho: false, agenda: false, clientes: false, dashboard: false, gestao: false };
+const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false, meutrabalho: false, agenda: false, clientes: false, dashboard: false, gestao: false, tempo: false };
 const EVENTO = 'flowalt:ui-beta';
 const chave = (userId?: string) => `flowalt_ui_beta_${userId ?? 'anon'}`;
 
@@ -71,6 +72,7 @@ export function useNewUiBeta() {
         clientes: lido.clientes ?? heranca,
         dashboard: lido.dashboard ?? heranca,
         gestao: lido.gestao ?? heranca,
+        tempo: lido.tempo ?? heranca,
       };
     } catch {
       return PADRAO;
@@ -101,6 +103,7 @@ export function useNewUiBeta() {
     clientes: estado.clientes,
     dashboard: estado.dashboard,
     gestao: estado.gestao,
+    tempo: estado.tempo,
     definir,
   };
 }
