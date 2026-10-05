@@ -17,6 +17,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,9 +34,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useSpaces } from '@/hooks/useSpaces';
-import { useFolders } from '@/hooks/useFolders';
+import { useDeleteFolder, useFolders } from '@/hooks/useFolders';
 import { useFolderViews } from '@/hooks/useSocialMediaTemplates';
-import { useIsAdmin } from '@/hooks/useFolderPermissions';
+import { useFolderPermissions, useIsAdmin } from '@/hooks/useFolderPermissions';
+import { useToast } from '@/hooks/use-toast';
+import { CreateViewDialog } from '@/components/social-media/CreateViewDialog';
+import { EditFolderDialog } from '@/components/spaces/EditFolderDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { useMyRunningTimer } from '@/hooks/useTimeEntries';
@@ -52,6 +65,8 @@ import {
   Lock,
   LogOut,
   MoreHorizontal,
+  Pencil,
+  Trash2,
   Palette,
   PieChart,
   Plug,
@@ -250,13 +265,23 @@ function PastaItem({
   visaoAtual,
   noEspacoAtivo,
   usuarioId,
+  ehAdmin,
+  tipoEspaco,
 }: {
   pasta: { id: string; name: string; color: string | null; owner_id: string | null; is_personal?: boolean };
   espacoId: string;
   visaoAtual: string | null;
   noEspacoAtivo: boolean;
   usuarioId?: string;
+  ehAdmin: boolean;
+  tipoEspaco?: string;
 }) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const excluirPasta = useDeleteFolder();
+  // Quem administra o workspace pode tudo; os demais dependem da permissão da pasta (consulta só para eles).
+  const permissoes = useFolderPermissions(ehAdmin ? undefined : pasta.id, pasta.owner_id);
+  const [dialogo, definirDialogo] = useState<null | 'view' | 'editar' | 'excluir'>(null);
   const { data: visoes, isLoading } = useFolderViews(pasta.id);
   const restrita = !!pasta.is_personal && !!pasta.owner_id && pasta.owner_id !== usuarioId;
   const contemAtiva = noEspacoAtivo && !!visoes?.some(v => v.id === visaoAtual);
@@ -270,6 +295,100 @@ function PastaItem({
   const classeSub =
     'flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-foreground/65 ' +
     'transition-colors hover:bg-foreground/[0.04] hover:text-foreground';
+
+  const podeGerenciar = !restrita && (ehAdmin || permissoes.canManageViews);
+  const podeExcluir = ehAdmin || permissoes.canDelete;
+
+  // Menu "⋯" da pasta: discreto, aparece ao passar o mouse (no celular fica sempre visível).
+  const menuDaPasta = (posicao: string) =>
+    podeGerenciar ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Ações da pasta ${pasta.name}`}
+            onClick={e => e.stopPropagation()}
+            className={cn(
+              'absolute top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-opacity',
+              'hover:bg-foreground/[0.07] hover:text-foreground focus-visible:opacity-100',
+              'data-[state=open]:bg-foreground/[0.07] data-[state=open]:text-foreground data-[state=open]:opacity-100',
+              'md:opacity-0 md:group-hover/pasta:opacity-100',
+              posicao
+            )}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="start" sideOffset={10} className="w-48 rounded-xl border-border/60 p-1.5 shadow-lg">
+          <DropdownMenuItem onClick={() => definirDialogo('view')} className="h-9 gap-2.5 rounded-lg px-2.5 text-[13px] font-medium">
+            <Plus className="h-4 w-4 text-muted-foreground" />
+            Nova view
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => definirDialogo('editar')} className="h-9 gap-2.5 rounded-lg px-2.5 text-[13px] font-medium">
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+            Editar pasta
+          </DropdownMenuItem>
+          {podeExcluir && (
+            <>
+              <DropdownMenuSeparator className="my-1.5" />
+              <DropdownMenuItem
+                onClick={() => definirDialogo('excluir')}
+                className="h-9 gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir pasta
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null;
+
+  const dialogos = (
+    <>
+      {dialogo === 'view' && (
+        <CreateViewDialog
+          open
+          onOpenChange={aberto => !aberto && definirDialogo(null)}
+          folderId={pasta.id}
+          spaceType={tipoEspaco ?? ''}
+          onSuccess={viewId => navigate(`/space/${espacoId}?view=${viewId}`)}
+        />
+      )}
+      {dialogo === 'editar' && (
+        <EditFolderDialog open onOpenChange={aberto => !aberto && definirDialogo(null)} folder={{ id: pasta.id, name: pasta.name }} />
+      )}
+      {dialogo === 'excluir' && (
+        <AlertDialog open onOpenChange={aberto => !aberto && definirDialogo(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir pasta "{pasta.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Todos os cards e views dentro desta pasta serão arquivados e o histórico de alterações será registrado para auditoria.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  try {
+                    await excluirPasta.mutateAsync({ id: pasta.id, spaceId: espacoId });
+                    toast({ title: 'Pasta excluída', description: 'A pasta foi excluída com sucesso.' });
+                  } catch {
+                    toast({ title: 'Erro ao excluir pasta', description: 'Você não tem permissão para excluir esta pasta.', variant: 'destructive' });
+                  }
+                  definirDialogo(null);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir permanentemente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
+  );
 
   if (restrita) {
     return (
@@ -289,28 +408,36 @@ function PastaItem({
     const visao = lista[0];
     const ativa = noEspacoAtivo && visaoAtual === visao.id;
     return (
-      <Link
-        to={`/space/${espacoId}?view=${visao.id}`}
-        className={cn(classeSub, ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary')}
-        title={`${pasta.name} · ${visao.name}`}
-      >
-        <span className="truncate">{pasta.name}</span>
-      </Link>
+      <div className="group/pasta relative">
+        <Link
+          to={`/space/${espacoId}?view=${visao.id}`}
+          className={cn(classeSub, podeGerenciar && 'pr-9', ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary')}
+          title={`${pasta.name} · ${visao.name}`}
+        >
+          <span className="truncate">{pasta.name}</span>
+        </Link>
+        {menuDaPasta('right-1.5')}
+        {dialogos}
+      </div>
     );
   }
 
   const aberto = aberta;
   return (
     <div>
-      <button
-        onClick={() => definirAberta(!aberto)}
-        className={cn(classeSub, contemAtiva && 'text-primary')}
-        aria-expanded={aberto}
-        title={pasta.name}
-      >
-        <span className="truncate">{pasta.name}</span>
-        <ChevronDown className={cn('ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
-      </button>
+      <div className="group/pasta relative">
+        <button
+          onClick={() => definirAberta(!aberto)}
+          className={cn(classeSub, podeGerenciar && 'pr-14', contemAtiva && 'text-primary')}
+          aria-expanded={aberto}
+          title={pasta.name}
+        >
+          <span className="truncate">{pasta.name}</span>
+          <ChevronDown className={cn('ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
+        </button>
+        {menuDaPasta('right-8')}
+        {dialogos}
+      </div>
       {aberto && (
         <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border/70 pl-2">
           {lista.map(v => {
@@ -340,7 +467,7 @@ function EspacoItem({
   ehAdmin,
   aoGerenciar,
 }: {
-  espaco: { id: string; name: string; color?: string; icon?: string };
+  espaco: { id: string; name: string; color?: string; icon?: string; type?: string };
   contagem?: number;
   ehAdmin: boolean;
   aoGerenciar: () => void;
@@ -409,6 +536,8 @@ function EspacoItem({
                 visaoAtual={visaoAtual}
                 noEspacoAtivo={noEspacoAtivo}
                 usuarioId={user?.id}
+                ehAdmin={ehAdmin}
+                tipoEspaco={espaco.type}
               />
             ))
           ) : (
