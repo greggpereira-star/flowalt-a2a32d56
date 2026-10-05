@@ -134,7 +134,7 @@ export const ClientHealthWidget: React.FC<{ novo?: boolean }> = ({ novo }) => {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="shrink-0 text-xs"
+            className={cn('shrink-0 text-xs', novo && 'h-8 px-2 text-[13px] font-semibold text-primary hover:bg-primary/10 hover:text-primary')}
             onClick={() => navigate('/clients')}
           >
             Ver todos

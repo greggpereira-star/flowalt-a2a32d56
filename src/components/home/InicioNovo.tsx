@@ -220,8 +220,8 @@ export function InicioNovo({
               </div>
             ) : (
               <ul className="space-y-2">
-                {fila.slice(0, 5).map(item => (
-                  <li key={item.card.id}>
+                {fila.slice(0, 5).map((item, posicao) => (
+                  <li key={item.card.id} className={cn(posicao >= 3 && 'max-sm:hidden')}>
                     <button
                       onClick={() => setCardAberto(item.card.id)}
                       className="w-full rounded-xl border border-border/60 p-3 text-left transition-colors hover:bg-muted/50"
@@ -242,6 +242,7 @@ export function InicioNovo({
                               key={i}
                               className={cn(
                                 'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                i >= 2 && 'max-sm:hidden',
                                 r.grave ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
                               )}
                             >
@@ -253,8 +254,25 @@ export function InicioNovo({
                     </button>
                   </li>
                 ))}
+                {fila.length > 3 && (
+                  <li className="pt-1 text-center sm:hidden">
+                    <Link
+                      to={canViewCoordination ? '/coordination' : '/tasks'}
+                      className="inline-flex h-10 items-center rounded-xl px-4 text-[13px] font-semibold text-primary hover:bg-primary/10"
+                    >
+                      Ver mais {fila.length - 3} ›
+                    </Link>
+                  </li>
+                )}
                 {fila.length > 5 && (
-                  <li className="pt-1 text-center text-xs font-semibold text-muted-foreground">e mais {fila.length - 5}</li>
+                  <li className="hidden pt-1 text-center sm:block">
+                    <Link
+                      to={canViewCoordination ? '/coordination' : '/tasks'}
+                      className="inline-flex h-9 items-center rounded-xl px-4 text-[13px] font-semibold text-primary hover:bg-primary/10"
+                    >
+                      Ver mais {fila.length - 5} ›
+                    </Link>
+                  </li>
                 )}
               </ul>
             )}

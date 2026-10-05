@@ -96,11 +96,11 @@ export function TodayAgenda({ events, isLoading, error, onRetry, novo }: TodayAg
         )}
 
         {!isLoading && !error && events.length === 0 && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
+          <div className={cn('flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center', novo && 'max-sm:py-5')}>
+            <span className={cn('flex h-11 w-11 items-center justify-center rounded-full bg-slate-100', novo && 'max-sm:hidden')}>
               <CalendarDays className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
             </span>
-            <p className="mt-3 text-sm font-medium text-slate-900">Tudo calmo por aqui</p>
+            <p className={cn('mt-3 text-sm font-medium text-slate-900', novo && 'max-sm:mt-0')}>Tudo calmo por aqui</p>
             <p className="mt-1 text-sm text-slate-500">
               Nenhum compromisso agendado para hoje.
             </p>

@@ -124,8 +124,8 @@ export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = (
           <CardDescription>Propostas e aprovações comerciais</CardDescription>
         </CardHeader>
         <CardContent className={cn(novo && 'p-5 pt-0')}>
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="mb-3 rounded-full bg-muted p-3">
+          <div className={cn('flex flex-col items-center justify-center py-6 text-center', novo && 'max-sm:py-2')}>
+            <div className={cn('mb-3 rounded-full bg-muted p-3', novo && 'max-sm:hidden')}>
               <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="mb-1 text-sm font-medium">Tudo em dia!</p>
