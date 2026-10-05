@@ -218,9 +218,9 @@ export default function PartnersPage() {
       </Helmet>
 
       <AppLayout>
-        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 sm:px-8 sm:py-8')}>
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold">Painel dos Sócios</h1>
               <p className="text-muted-foreground">Visão executiva</p>

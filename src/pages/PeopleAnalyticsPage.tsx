@@ -389,7 +389,7 @@ export default function PeopleAnalyticsPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 sm:px-8 sm:py-8')}>
           <Skeleton className="h-8 w-64" />
           <div className="grid gap-4 md:grid-cols-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}
@@ -405,9 +405,9 @@ export default function PeopleAnalyticsPage() {
         <title>People Analytics - Flowalt</title>
       </Helmet>
 
-      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
+      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 sm:px-8 sm:py-8')}>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Users className="h-6 w-6" />

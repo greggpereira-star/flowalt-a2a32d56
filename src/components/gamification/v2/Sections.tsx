@@ -73,8 +73,8 @@ export function CartaoVoce({ eu, jogadores, rotuloPeriodo }: { eu: Jogador | nul
     <Card className="overflow-hidden border-primary/30">
       <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-4">
-          <Foto j={eu} className="h-16 w-16 ring-2 ring-primary/50" />
-          <div className="min-w-0 flex-1">
+          <Foto j={eu} className="h-12 w-12 ring-2 ring-primary/50 sm:h-16 sm:w-16" />
+          <div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0">
             <p className="text-sm text-muted-foreground">Seu desempenho · {rotuloPeriodo}</p>
             <p className="truncate text-xl font-bold">{eu.name}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -89,7 +89,7 @@ export function CartaoVoce({ eu, jogadores, rotuloPeriodo }: { eu: Jogador | nul
               )}
             </div>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             {eu.participa ? (
               <>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Posição</p>
