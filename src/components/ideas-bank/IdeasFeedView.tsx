@@ -114,20 +114,20 @@ export function IdeasFeedView({ onOpenBoard }: { onOpenBoard: (id: string) => vo
   ];
 
   const selectClasse =
-    'h-9 cursor-pointer rounded-lg border border-border/60 bg-card px-2.5 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'h-9 w-full min-w-0 cursor-pointer sm:w-auto rounded-lg border border-border/60 bg-card px-2.5 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
         {/* Atalhos de status */}
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
           {atalhosStatus.map(a => (
             <button
               key={a.chave}
               type="button"
               onClick={() => mudar({ status: a.chave })}
               className={cn(
-                'rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
                 f.status === a.chave
                   ? 'border-foreground bg-foreground text-background'
                   : 'border-border/60 bg-card text-muted-foreground hover:bg-muted'
@@ -139,8 +139,8 @@ export function IdeasFeedView({ onOpenBoard }: { onOpenBoard: (id: string) => vo
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+        <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+          <div className="relative col-span-2 min-w-0 sm:min-w-[200px] sm:flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <label htmlFor="ib-feed-busca" className="sr-only">Buscar no feed</label>
             <input
@@ -184,7 +184,7 @@ export function IdeasFeedView({ onOpenBoard }: { onOpenBoard: (id: string) => vo
             onClick={() => mudar({ favoritas: !f.favoritas })}
             aria-pressed={f.favoritas}
             className={cn(
-              'inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition-colors',
+              'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition-colors',
               f.favoritas ? 'border-amber-400/50 bg-amber-400/10 text-amber-700 dark:text-amber-400' : 'border-border/60 bg-card text-muted-foreground hover:bg-muted'
             )}
           >

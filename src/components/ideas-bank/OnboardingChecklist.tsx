@@ -61,7 +61,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
   return (
     <section
       aria-labelledby="ib-checklist-title"
-      className={cn('relative rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-5', novo && 'border-border/60 bg-card bg-none p-5')}
+      className={cn('relative rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-5', novo && 'border-border/60 bg-card bg-none p-4 sm:p-5')}
     >
       <button
         onClick={onDismiss}
@@ -80,7 +80,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
             {completed} de {total} passos concluídos
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onHowItWorks} className="flex-shrink-0">
+        <Button variant="ghost" size="sm" onClick={onHowItWorks} className="hidden flex-shrink-0 sm:inline-flex">
           <HelpCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
           <span>Como funciona</span>
         </Button>
@@ -95,7 +95,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
             <li
               key={it.key}
               className={cn(
-                'flex items-start gap-3 rounded-xl border bg-background/60 p-3 transition-colors',
+                'flex flex-wrap items-start gap-3 rounded-xl border bg-background/60 p-3 transition-colors sm:flex-nowrap',
                 novo && 'border-0 bg-muted/40',
                 it.done && 'opacity-70'
               )}
@@ -116,7 +116,7 @@ export const OnboardingChecklist: React.FC<Props> = ({
                 <p className="text-xs text-muted-foreground leading-snug">{it.desc}</p>
               </div>
               {it.action.show && (
-                <Button size="sm" variant="outline" onClick={it.action.onClick} className="flex-shrink-0">
+                <Button size="sm" variant="outline" onClick={it.action.onClick} className="ml-10 flex-shrink-0 sm:ml-0">
                   {it.action.label}
                 </Button>
               )}

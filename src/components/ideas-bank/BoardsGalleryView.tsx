@@ -112,7 +112,7 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
         </div>
       </header>
 
-      <div className={cn('flex-1 overflow-auto p-4 space-y-4', novo && 'mx-auto w-full max-w-[1240px] space-y-6 px-4 pb-10 pt-4 sm:px-8')}>
+      <div className={cn('flex-1 overflow-auto p-4 space-y-4', novo && 'mx-auto w-full max-w-[1240px] space-y-6 px-4 pb-28 pt-4 sm:px-8 sm:pb-10')}>
         {/* Pastas | Feed */}
         <div className="flex w-fit gap-1 rounded-xl border border-border/60 bg-card p-1" role="tablist" aria-label="Visão do Banco de Ideias">
           {([['pastas', 'Pastas'], ['feed', 'Feed']] as const).map(([chave, rotulo]) => (
@@ -177,7 +177,7 @@ export const BoardsGalleryView: React.FC<Props> = ({ folderId, onOpenBoard }) =>
           <ul
             role="list"
             aria-label="Pastas do Banco de Ideias"
-            className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 list-none p-0', novo && 'gap-5')}
+            className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 list-none p-0 [&>li]:min-w-0', novo && 'gap-3 sm:gap-5')}
           >
             <li>
               <button

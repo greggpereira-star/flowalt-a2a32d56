@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,8 @@ export const BoardCard: React.FC<Props> = ({ board, onOpen }) => {
   const novo = useSkinNovo();
   const { archive, remove } = useIdeaBoards();
   const thumbs = board.preview_thumbs || [];
-  const cover = board.cover_url || thumbs[0];
+  const [capaQuebrada, setCapaQuebrada] = useState(false);
+  const cover = capaQuebrada ? undefined : (board.cover_url || thumbs[0]);
 
   return (
     <div
@@ -36,7 +38,7 @@ export const BoardCard: React.FC<Props> = ({ board, onOpen }) => {
               ))}
             </div>
           ) : (
-            <img src={cover} alt={board.name} className="w-full h-full object-cover" loading="lazy" />
+            <img src={cover} alt={board.name} className="w-full h-full object-cover" loading="lazy" onError={() => setCapaQuebrada(true)} />
           )
         ) : (
           <div className="flex items-center justify-center h-full">

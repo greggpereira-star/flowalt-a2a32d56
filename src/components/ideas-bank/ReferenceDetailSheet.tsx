@@ -30,7 +30,7 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
   const mudarStatus = useMudarStatusAnalise();
   const [aba, setAba] = useState<'detalhes' | 'analise'>('detalhes');
   useEffect(() => { setAba('detalhes'); }, [reference?.id]);
-  const [statusLocal, setStatusLocal] = useState<StatusAnalise>('para_analisar');
+  const [statusLocal, setStatusLocal] = useState<StatusAnalise>((reference?.review_status as StatusAnalise) ?? 'para_analisar');
   useEffect(() => {
     setStatusLocal(((reference?.review_status as StatusAnalise) ?? 'para_analisar'));
   }, [reference?.id, reference?.review_status]);
