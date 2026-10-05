@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Cake, Eye, Users, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { useSkinNovo } from '@/components/ui/skin-novo';
 
 interface BirthdayFormData {
   birth_date: string;
@@ -15,6 +16,7 @@ interface BirthdayFormData {
 }
 
 export const BirthdaySettings: React.FC = () => {
+  const novo = useSkinNovo();
   const { birthday, isLoading, saveBirthday } = useUserBirthday();
   const { currentWorkspace } = useWorkspace();
 
@@ -82,12 +84,13 @@ export const BirthdaySettings: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Cake className="h-5 w-5 text-pink-500" />
+          <Cake className={novo ? "h-7 w-7 rounded-lg bg-pink-500/10 p-1.5 text-pink-500" : "h-5 w-5 text-pink-500"} />
           Meu Aniversário
         </CardTitle>
         <CardDescription>
-          Configure sua data de aniversário e quem pode ver. 
-          Não exibimos sua idade — apenas o dia da comemoração.
+          {novo
+            ? 'Mostramos só o dia e o mês, nunca a idade. Você escolhe quem vê.'
+            : 'Configure sua data de aniversário e quem pode ver. Não exibimos sua idade — apenas o dia da comemoração.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,11 +101,13 @@ export const BirthdaySettings: React.FC = () => {
               id="birth_date"
               type="date"
               {...register('birth_date', { required: true })}
-              className="max-w-xs"
+              className={novo ? "h-11 max-w-xs rounded-xl" : "max-w-xs"}
             />
-            <p className="text-xs text-muted-foreground">
-              Usamos apenas o dia e mês para o aviso de aniversário.
-            </p>
+            {!novo && (
+              <p className="text-xs text-muted-foreground">
+                Usamos apenas o dia e mês para o aviso de aniversário.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -115,24 +120,30 @@ export const BirthdaySettings: React.FC = () => {
                     key={option.value}
                     type="button"
                     onClick={() => setValue('visibility', option.value as 'public' | 'team' | 'private')}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`p-4 ${novo ? 'rounded-xl border max-sm:flex max-sm:items-center max-sm:gap-3 max-sm:p-3.5' : 'rounded-lg border-2'} text-left transition-all ${
                       visibility === option.value
-                        ? 'border-primary bg-primary/5'
+                        ? `border-primary bg-primary/5 ${novo ? 'ring-1 ring-primary/40' : ''}`
                         : 'border-border hover:border-muted-foreground/30'
                     }`}
                   >
-                    <Icon className={`h-5 w-5 mb-2 ${
+                    <Icon className={`h-5 w-5 mb-2 ${novo ? 'max-sm:mb-0 max-sm:shrink-0' : ''} ${
                       visibility === option.value ? 'text-primary' : 'text-muted-foreground'
                     }`} />
-                    <p className="font-medium text-sm">{option.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{option.label}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
+                    </div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <Button type="submit" disabled={saveBirthday.isPending || !currentWorkspace?.id || !birthDate}>
+          <Button
+            type="submit"
+            disabled={saveBirthday.isPending || !currentWorkspace?.id || !birthDate}
+            className={novo ? 'h-10 w-full rounded-xl px-6 font-semibold sm:w-auto' : undefined}
+          >
             {saveBirthday.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
         </form>

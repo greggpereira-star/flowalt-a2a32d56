@@ -10,11 +10,16 @@ import { ImageCropper } from '@/components/ui/image-cropper';
 import { Camera, Loader2, User, Crop, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { BirthdaySettings } from '@/components/notices/BirthdaySettings';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Building2 } from 'lucide-react';
 
 export const ProfileSettings: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const novo = useSkinNovo();
+  const { currentWorkspace } = useWorkspace();
   
   const [cropperOpen, setCropperOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
@@ -144,6 +149,23 @@ export const ProfileSettings: React.FC = () => {
     .toUpperCase()
     .slice(0, 2) || user?.email?.[0].toUpperCase() || 'U';
 
+  const cropper = tempImageSrc ? (
+    <ImageCropper
+      open={cropperOpen}
+      onOpenChange={(open) => {
+        setCropperOpen(open);
+        if (!open && tempImageSrc) {
+          URL.revokeObjectURL(tempImageSrc);
+          setTempImageSrc(null);
+        }
+      }}
+      imageSrc={tempImageSrc}
+      onCropComplete={handleCropComplete}
+      aspectRatio={1}
+      suggestedSize={{ width: 400, height: 400 }}
+    />
+  ) : null;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -152,6 +174,54 @@ export const ProfileSettings: React.FC = () => {
             <div className="h-48 animate-pulse bg-muted rounded-lg" />
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (novo) {
+    return (
+      <div className="space-y-5">
+        {/* Cartão de identidade: foto, nome e e-mail juntos, sem repetir o que já está no título da tela */}
+        <Card>
+          <div className="flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:p-7 sm:text-left">
+            <div className="relative shrink-0">
+              <Avatar className="h-28 w-28 ring-4 ring-primary/10">
+                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/10 text-2xl text-primary">{userInitials}</AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                aria-label="Alterar foto de perfil"
+                className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-md transition-transform hover:scale-105 disabled:opacity-60"
+              >
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-[22px] font-extrabold leading-tight tracking-tight">{profile?.full_name || 'Nome não informado'}</h2>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{profile?.email || user?.email}</p>
+              {currentWorkspace?.name && (
+                <span className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{currentWorkspace.name}</span>
+                </span>
+              )}
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground sm:justify-start">
+                <Crop className="hidden h-3 w-3 shrink-0 sm:block" />
+                Toque na câmera para trocar a foto (quadrada, 400×400 px). Você pode recortar antes de salvar.
+              </p>
+            </div>
+
+          </div>
+        </Card>
+
+        <BirthdaySettings />
+
+        {cropper}
       </div>
     );
   }
@@ -254,22 +324,7 @@ export const ProfileSettings: React.FC = () => {
       <BirthdaySettings />
 
       {/* Image Cropper Dialog */}
-      {tempImageSrc && (
-        <ImageCropper
-          open={cropperOpen}
-          onOpenChange={(open) => {
-            setCropperOpen(open);
-            if (!open && tempImageSrc) {
-              URL.revokeObjectURL(tempImageSrc);
-              setTempImageSrc(null);
-            }
-          }}
-          imageSrc={tempImageSrc}
-          onCropComplete={handleCropComplete}
-          aspectRatio={1}
-          suggestedSize={{ width: 400, height: 400 }}
-        />
-      )}
+      {cropper}
     </div>
   );
 };
