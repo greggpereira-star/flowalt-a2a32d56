@@ -194,7 +194,7 @@ const TimePage: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
+        <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 sm:px-8 sm:py-8')}>
           <Skeleton className="h-8 w-48" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24" />)}
@@ -207,7 +207,7 @@ const TimePage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-8 py-8')}>
+      <div className={cn('p-6 space-y-6', novo && 'mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 sm:px-8 sm:py-8')}>
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -327,6 +327,8 @@ const TimePage: React.FC = () => {
                         <CartesianGrid strokeDasharray={novo ? '0' : '3 3'} vertical={!novo} className={novo ? 'stroke-border/30' : 'stroke-border'} />
                         <XAxis
                           dataKey="day"
+                          interval={0}
+                          tickFormatter={(v: string) => (novo ? String(v).replace('.', '').slice(0, 3) : v)}
                           className="text-xs fill-muted-foreground"
                           tickLine={false}
                           axisLine={false}

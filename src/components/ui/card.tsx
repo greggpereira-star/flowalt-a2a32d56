@@ -30,7 +30,7 @@ Card.displayName = "Card";
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
     const novo = useSkinNovo();
-    return <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", novo && "p-5 pb-3", className)} {...props} />;
+    return <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", novo && "p-4 pb-3 sm:p-5 sm:pb-3", className)} {...props} />;
   },
 );
 CardHeader.displayName = "CardHeader";
@@ -54,7 +54,7 @@ CardDescription.displayName = "CardDescription";
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
     const novo = useSkinNovo();
-    return <div ref={ref} className={cn("p-6 pt-0", novo && "p-5 pt-0", className)} {...props} />;
+    return <div ref={ref} className={cn("p-6 pt-0", novo && "p-4 pt-0 sm:p-5 sm:pt-0", className)} {...props} />;
   },
 );
 CardContent.displayName = "CardContent";
