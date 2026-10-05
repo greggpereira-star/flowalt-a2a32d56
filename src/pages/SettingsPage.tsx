@@ -24,6 +24,8 @@ import { HolidayCelebrationDemo } from '@/components/notices/HolidayCelebrationD
 import { NoticesManager } from '@/components/notices/NoticesManager';
 import { ProfileSettings } from '@/components/settings/ProfileSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSkinNovo } from '@/components/ui/skin-novo';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -113,6 +115,7 @@ export default function SettingsPage() {
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { canManageWorkspace, canViewSettings, isAdmin, isCoordinator, isSuperAdmin } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
+  const novo = useSkinNovo();
 
   // Check if user has basic settings access - but only after workspace context is ready
   // When workspace is loading, permissions will be false, so we need to wait
@@ -146,6 +149,65 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTab, searchParams]);
 
+  const mudarAba = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    });
+  };
+
+  // Visual novo: as seções ficam agrupadas por assunto em vez de uma grade única de abas.
+  type ItemConfig = { valor: string; rotulo: string; icone: React.ComponentType<{ className?: string }> };
+  const gruposConfig: { titulo: string; itens: ItemConfig[] }[] = [
+    {
+      titulo: 'Minha conta',
+      itens: [
+        { valor: 'profile', rotulo: 'Perfil', icone: User },
+        { valor: 'onboarding', rotulo: 'Tour', icone: Sparkles },
+        { valor: 'push', rotulo: 'Push', icone: Bell },
+        { valor: 'email-notifications', rotulo: 'E-mails', icone: Mail },
+        { valor: 'celebrations', rotulo: 'Celebrações', icone: PartyPopper },
+      ],
+    },
+    ...(canManageWorkspace
+      ? [{
+          titulo: 'Equipe',
+          itens: [
+            { valor: 'members', rotulo: 'Membros', icone: Users },
+            { valor: 'invites', rotulo: 'Convites', icone: UserPlus },
+            { valor: 'governance', rotulo: 'Governança', icone: Shield },
+            { valor: 'space-access', rotulo: 'Acessos', icone: FolderKanban },
+            { valor: 'spaces', rotulo: 'Espaços', icone: FolderKanban },
+          ],
+        }]
+      : []),
+    {
+      titulo: 'Operação',
+      itens: [
+        { valor: 'workflow', rotulo: 'Workflow', icone: GitBranch },
+        { valor: 'automations', rotulo: 'Automações', icone: Zap },
+        { valor: 'templates', rotulo: 'Templates', icone: FileStack },
+        ...(canManageWorkspace ? [{ valor: 'notices', rotulo: 'Avisos', icone: Megaphone }] : []),
+      ],
+    },
+    ...(canManageWorkspace
+      ? [{
+          titulo: 'Sistema',
+          itens: [
+            { valor: 'billing', rotulo: 'Plano', icone: CreditCard },
+            { valor: 'usage', rotulo: 'Uso', icone: PieChart },
+            { valor: 'backup', rotulo: 'Backup', icone: Archive },
+            { valor: 'health', rotulo: 'Health', icone: HeartPulse },
+            { valor: 'system', rotulo: 'Sistema', icone: Monitor },
+            { valor: 'qa-checklist', rotulo: 'QA', icone: ClipboardCheck },
+          ],
+        }]
+      : []),
+    ...(isSuperAdmin ? [{ titulo: 'Plataforma', itens: [{ valor: 'super-admin', rotulo: 'Admin', icone: Crown }] }] : []),
+  ];
+
   // If user doesn't have access, show unauthorized message
   if (!hasAccess) {
     return (
@@ -164,8 +226,8 @@ export default function SettingsPage() {
         <title>Configurações do Workspace</title>
       </Helmet>
       
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="mb-6">
+      <div className={cn('container mx-auto p-6 max-w-6xl', novo && 'px-4 pb-28 pt-6 sm:px-8 sm:py-8 sm:pb-10')}>
+        <div className={cn('mb-6', novo && 'mb-8')}>
           <h1 className="text-2xl font-bold">Configurações do Workspace</h1>
           <p className="text-muted-foreground">
             Gerencie membros, governança, espaços e configurações operacionais
@@ -174,16 +236,56 @@ export default function SettingsPage() {
 
         <Tabs
           value={activeTab}
-          onValueChange={(tab) => {
-            setActiveTab(tab);
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev);
-              next.set('tab', tab);
-              return next;
-            });
-          }}
-          className="space-y-8"
+          onValueChange={mudarAba}
+          className={cn('space-y-8', novo && 'flex flex-col gap-5 space-y-0 lg:flex-row lg:items-start lg:gap-10')}
         >
+          {novo && (
+            <>
+              {/* Celular e tablet: lista suspensa agrupada */}
+              <div className="lg:hidden">
+                <label htmlFor="config-secao" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Seção
+                </label>
+                <select
+                  id="config-secao"
+                  value={activeTab}
+                  onChange={(e) => mudarAba(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {gruposConfig.map((g) => (
+                    <optgroup key={g.titulo} label={g.titulo}>
+                      {g.itens.map((i) => (
+                        <option key={i.valor} value={i.valor}>{i.rotulo}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              {/* Desktop: navegação lateral por assunto */}
+              <TabsList className="tablist-limpo hidden h-auto w-60 shrink-0 flex-col items-stretch justify-start gap-0 bg-transparent p-0 lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {gruposConfig.map((g, idx) => (
+                  <div key={g.titulo} className={cn(idx > 0 && 'mt-5')}>
+                    <p className="mb-1 px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/80">{g.titulo}</p>
+                    <div className="space-y-0.5">
+                      {g.itens.map((i) => (
+                        <TabsTrigger
+                          key={i.valor}
+                          value={i.valor}
+                          className="h-10 w-full justify-start gap-2.5 rounded-xl px-3 text-[13.5px] font-semibold text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground data-[state=active]:!bg-primary/10 data-[state=active]:!text-primary"
+                        >
+                          <i.icone className="h-[18px] w-[18px] shrink-0" />
+                          <span className="truncate">{i.rotulo}</span>
+                        </TabsTrigger>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </TabsList>
+            </>
+          )}
+
+          {!novo && (
           <div className="flex justify-center px-4 md:px-8 lg:px-12">
             <TabsList className="grid grid-cols-4 sm:grid-cols-8 gap-1 h-auto p-3 bg-muted/50 rounded-xl max-w-4xl w-full">
               {/* User Profile - Always visible */}
@@ -297,6 +399,10 @@ export default function SettingsPage() {
               )}
             </TabsList>
           </div>
+          )}
+
+          {/* Painéis: no visual novo ocupam a coluna da direita */}
+          <div className={novo ? 'min-w-0 flex-1 [&>*]:!mt-0' : 'contents [&>*]:mt-8'}>
 
           {/* User Profile */}
           <TabsContent value="profile">
@@ -372,6 +478,7 @@ export default function SettingsPage() {
           <TabsContent value="super-admin">
             <SuperAdminDashboard />
           </TabsContent>
+          </div>
         </Tabs>
       </div>
     </AppLayout>
