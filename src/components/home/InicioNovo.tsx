@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowDownRight, ArrowUpRight, CheckCircle2, Minus, Users } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CheckCircle2, Minus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useInicioDados } from '@/hooks/home/useInicioDados';
@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { rotuloProblema } from '@/components/coordination/v2/Painel';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
-import { ClientHealthWidget } from '@/components/dashboard/ClientHealthWidget';
 import { TodayAgenda } from './TodayAgenda';
 import { DailyInsights } from './DailyInsights';
 import { MyTasksWidget } from './MyTasksWidget';
@@ -23,8 +22,9 @@ import { HolidayBanner } from '@/components/notices/HolidayBanner';
  * Início com o visual novo (opção pessoal em teste).
  *
  * Reaproveita os widgets e os dados da Início atual (agenda, insights, minhas tarefas, atividade) e
- * acrescenta, no estilo do desenho: a faixa de indicadores de entrega, a fila "Precisa de decisão" e a
- * carga da equipe. Quem não tem acesso à Coordenação vê só os próprios cards na fila e não vê a carga.
+ * acrescenta, no estilo do desenho: a faixa de indicadores de entrega e a fila "Precisa de decisão".
+ * Quem não tem acesso à Coordenação vê só os próprios cards na fila. Carga da equipe e saúde dos clientes
+ * ficam na Coordenação e na visão executiva do Dashboard, não aqui.
  */
 
 type Home = {
@@ -136,12 +136,6 @@ export function InicioNovo({
     if (!dados) return [];
     return canViewCoordination ? dados.emAtencao : dados.emAtencao.filter(a => user?.id && a.responsaveis.includes(user.id));
   }, [dados, canViewCoordination, user?.id]);
-
-  const maxCarga = Math.max(1, ...(dados?.carga.map(c => c.abertos) ?? [1]));
-  const mediaCarga = useMemo(() => {
-    const com = (dados?.carga ?? []).filter(c => c.abertos > 0);
-    return com.length ? com.reduce((s, c) => s + c.abertos, 0) / com.length : 0;
-  }, [dados]);
 
   const a = dados?.resumoAtual;
   const p = dados?.resumoAnterior;
@@ -284,40 +278,7 @@ export function InicioNovo({
         <DailyInsights novo insights={home.insights} />
 
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
-          {canViewCoordination && (
-            <Cartao titulo="Carga da equipe" acao={<Link to="/coordination">Coordenação ›</Link>}>
-              {carregando || !dados ? (
-                <Skeleton className="h-40 w-full rounded-xl" />
-              ) : dados.carga.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">Nenhum card aberto com responsável.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {dados.carga.slice(0, 6).map(c => (
-                    <li key={c.userId} className="flex items-center gap-3">
-                      <span className="w-24 shrink-0 truncate text-sm font-semibold">
-                        {(dados.nomes.get(c.userId) ?? 'Ex-membro').split(' ')[0]}
-                      </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={cn('h-full rounded-full', mediaCarga > 0 && c.abertos >= mediaCarga * 1.8 && c.abertos >= 3 ? 'bg-red-500' : 'bg-primary')}
-                          style={{ width: `${(c.abertos / maxCarga) * 100}%` }}
-                        />
-                      </div>
-                      <span className="w-6 shrink-0 text-right text-sm font-bold tabular-nums">{c.abertos}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-                <Users className="h-3.5 w-3.5" /> Cards abertos por responsável.
-              </p>
-            </Cartao>
-          )}
           <MyTasksWidget novo tasks={home.priorityTasks} isLoading={home.isLoading.tasks} />
-          <ClientHealthWidget novo />
-        </section>
-
-        <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <AltControlPendingWidget novo />
           <RecentActivityWidget novo items={atividade.data ?? []} isLoading={atividade.isLoading} />
         </section>
