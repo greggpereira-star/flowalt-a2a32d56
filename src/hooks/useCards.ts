@@ -8,6 +8,7 @@ import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 import { triggerWebhook } from '@/lib/webhookTrigger';
 import { toast } from 'sonner';
+import { lembrarDeTempo } from '@/lib/cards/lembreteDeTempo';
 
 
 export type CardType = 'quick' | 'full';
@@ -562,6 +563,8 @@ export const useUpdateCard = () => {
         .single();
 
       if (error) throw error;
+
+      if (updates.status === 'delivered') void lembrarDeTempo(id);
 
       // Trigger webhook
       triggerWebhook(data.workspace_id, 'card.updated', {

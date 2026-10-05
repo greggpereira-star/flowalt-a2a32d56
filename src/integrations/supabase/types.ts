@@ -2132,6 +2132,7 @@ export type Database = {
           card_type: string
           client_id: string | null
           completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           current_stage: string | null
@@ -2160,6 +2161,7 @@ export type Database = {
           card_type?: string
           client_id?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           current_stage?: string | null
@@ -2188,6 +2190,7 @@ export type Database = {
           card_type?: string
           client_id?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           current_stage?: string | null

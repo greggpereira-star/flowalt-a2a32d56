@@ -43,7 +43,7 @@ export function useRecentActivity(limit = 5) {
           .limit(limit),
         supabase
           .from('cards')
-          .select('id, title, completed_at, owner_id')
+          .select('id, title, completed_at, completed_by, owner_id')
           .eq('workspace_id', workspaceId!)
           .not('completed_at', 'is', null)
           .order('completed_at', { ascending: false })
@@ -77,7 +77,8 @@ export function useRecentActivity(limit = 5) {
       (completedRes.data ?? []).forEach((row: any) => {
         raw.push({
           id: `done-${row.id}`,
-          actorId: row.owner_id,
+          // completed_by é quem marcou como entregue; owner_id é legado e quase sempre vazio
+          actorId: row.completed_by ?? row.owner_id,
           actor: '',
           actionText: `concluiu ${row.title}`,
           createdAt: row.completed_at,
