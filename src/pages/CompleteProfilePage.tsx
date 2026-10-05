@@ -16,6 +16,17 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseLocalDateOnly } from '@/hooks/useBirthdays';
 
+/** Marca em qual etapa o salvamento falhou, para a tela dizer o que aconteceu em vez de uma mensagem única. */
+class EtapaFalhou extends Error {
+  constructor(
+    public etapa: 'foto' | 'perfil',
+    public causa: unknown,
+    public mensagemAmigavel?: string,
+  ) {
+    super((causa as { message?: string })?.message ?? 'falha');
+  }
+}
+
 const CompleteProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -144,7 +155,7 @@ const CompleteProfilePage: React.FC = () => {
             contentType: 'image/jpeg'
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) throw new EtapaFalhou('foto', uploadError);
 
         const { data: urlData } = supabase.storage
           .from('avatars')
@@ -170,7 +181,7 @@ const CompleteProfilePage: React.FC = () => {
             null,
         });
 
-      if (completionError) throw completionError;
+      if (completionError) throw new EtapaFalhou('perfil', completionError);
 
       const result = completionResult as { success?: boolean; error?: string } | null;
       if (result?.success === false) {
@@ -181,7 +192,7 @@ const CompleteProfilePage: React.FC = () => {
           BIRTHDAY_IN_FUTURE: 'A data de aniversário não pode ser futura.',
           AVATAR_REQUIRED: 'Adicione uma foto de perfil.',
         };
-        throw new Error(friendlyErrors[result.error || ''] || result.error || 'Erro ao completar perfil');
+        throw new EtapaFalhou('perfil', new Error(result.error || 'Erro ao completar perfil'), friendlyErrors[result.error || '']);
       }
 
       // Invalidate cache and redirect
@@ -195,9 +206,24 @@ const CompleteProfilePage: React.FC = () => {
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Error updating profile:', error);
+      const falha = error instanceof EtapaFalhou ? error : null;
+      const detalhe = (falha?.causa as { message?: string } | undefined)?.message ?? (error as { message?: string })?.message ?? '';
+      const semConexao = typeof navigator !== 'undefined' && navigator.onLine === false;
+      let descricao = 'Ocorreu um erro ao atualizar o perfil. Tente novamente.';
+      if (falha?.mensagemAmigavel) {
+        descricao = falha.mensagemAmigavel;
+      } else if (semConexao) {
+        descricao = 'Sem conexão com a internet. Verifique a rede e tente novamente.';
+      } else if (falha?.etapa === 'foto') {
+        descricao = /row-level security|permission|not authorized|unauthorized/i.test(detalhe)
+          ? 'O sistema recusou o envio da foto. Avise o administrador e informe o horário desta tentativa.'
+          : 'Não foi possível enviar a foto. Tente uma imagem menor ou em outro formato (JPG ou PNG).';
+      } else if (falha?.etapa === 'perfil') {
+        descricao = 'A foto foi enviada, mas não foi possível salvar o perfil. Tente novamente em instantes.';
+      }
       toast({
-        title: 'Erro ao salvar',
-        description: 'Ocorreu um erro ao atualizar o perfil. Tente novamente.',
+        title: falha?.etapa === 'foto' ? 'Erro ao enviar a foto' : 'Erro ao salvar',
+        description: detalhe && !falha?.mensagemAmigavel ? `${descricao} (${detalhe.slice(0, 120)})` : descricao,
         variant: 'destructive',
       });
     } finally {
