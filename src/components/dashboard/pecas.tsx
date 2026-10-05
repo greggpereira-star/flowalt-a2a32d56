@@ -9,12 +9,12 @@ export const cartao = 'rounded-2xl border border-border/60 bg-card shadow-sm';
 // ---------------------------------------------------------------------------
 // peças
 // ---------------------------------------------------------------------------
-export function Variacao({ valor, unidade = '', melhorQuandoMaior = true }: { valor: number | null; unidade?: string; melhorQuandoMaior?: boolean }) {
+export function Variacao({ valor, unidade = '', melhorQuandoMaior = true, base = 'período anterior' }: { valor: number | null; unidade?: string; melhorQuandoMaior?: boolean; base?: string }) {
   if (valor === null) return <span className="text-xs text-muted-foreground">sem base de comparação</span>;
   if (valor === 0) {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-        <Minus className="h-3 w-3" /> igual ao período anterior
+        <Minus className="h-3 w-3" /> igual ao {base}
       </span>
     );
   }
@@ -26,7 +26,7 @@ export function Variacao({ valor, unidade = '', melhorQuandoMaior = true }: { va
       <Seta className="h-3 w-3" />
       {subiu ? '+' : '−'}
       {Math.abs(valor).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
-      {unidade} vs período anterior
+      {unidade} vs {base}
     </span>
   );
 }

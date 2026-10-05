@@ -139,7 +139,7 @@ export function DashboardExecutor({ podeVerGeral, pessoaId }: { podeVerGeral: bo
           )}
           {podeVerGeral && (
             <Link
-              to="/dashboard"
+              to="/dashboard?visao=time"
               className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 text-[13px] font-semibold shadow-sm transition-colors hover:bg-muted/50"
             >
               Visão do time <ArrowRight className="h-3.5 w-3.5" />

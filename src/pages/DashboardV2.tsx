@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
 import { DashboardExecutor } from '@/components/dashboard/executor/DashboardExecutor';
 import { DashboardCoordenacao } from '@/components/dashboard/coordenacao/DashboardCoordenacao';
+import { DashboardExecutiva } from '@/components/dashboard/executiva/DashboardExecutiva';
 import { useMemo } from 'react';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarRange, Layers } from 'lucide-react';
@@ -159,7 +160,7 @@ function DashboardGeral() {
             </DropdownMenu>
 
             <Button asChild variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
-              <Link to="/dashboard">
+              <Link to="/dashboard?visao=time">
                 Visão do time
               </Link>
             </Button>
@@ -224,7 +225,8 @@ function DashboardGeral() {
  * O Dashboard muda conforme o nível de quem abre:
  *  - quem executa (membro) vê só o próprio desempenho, com o time como régua;
  *  - quem coordena ou é sócio vê a visão geral do workspace e pode alternar para "Meu desempenho".
- * A visão do time (padrão da coordenação) mostra tendência, pessoas, tempo por etapa, retrabalho e capacidade; a visão executiva do sócio vem na próxima etapa.
+ * A visão do time (padrão da coordenação) mostra tendência, pessoas, tempo por etapa, retrabalho e capacidade;
+ * a visão executiva (padrão do sócio) mostra caixa, resultado, carteira de clientes e decisões.
  */
 export default function DashboardV2() {
   const permissoes = usePermissions();
@@ -253,6 +255,15 @@ export default function DashboardV2() {
 
   // A visão antiga (genérica, igual para todos) fica acessível por enquanto em ?visao=geral.
   if (params.get('visao') === 'geral') return <DashboardGeral />;
+
+  // Sócio abre na visão executiva; coordenação (e o sócio, pelo botão) na visão do time.
+  if (permissoes.canViewPartners && params.get('visao') !== 'time') {
+    return (
+      <AppLayout>
+        <DashboardExecutiva />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

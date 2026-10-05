@@ -11,12 +11,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowRight, ChevronDown, Layers, RotateCcw, UserRound } from 'lucide-react';
+import { ArrowRight, ChevronDown, Layers, RotateCcw, UserRound, Wallet } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useSpaces } from '@/hooks/useSpaces';
 import { cn } from '@/lib/utils';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Bloco, Indicador, Variacao, cartao } from '@/components/dashboard/pecas';
 import { useDashboardCoordenacao, type PeriodoCoordenacao } from '@/hooks/dashboard/useDashboardCoordenacao';
 import type { NivelCapacidade } from '@/lib/dashboard/coordenacao-metrics';
@@ -40,6 +41,7 @@ const corDoPrazo = (pct: number | null) =>
 
 export function DashboardCoordenacao() {
   const navigate = useNavigate();
+  const { canViewPartners } = usePermissions();
   const { data: espacos } = useSpaces();
   const [periodo, setPeriodo] = useState<PeriodoCoordenacao>('30d');
   const [espacoId, setEspacoId] = useState<string | undefined>();
@@ -110,6 +112,12 @@ export function DashboardCoordenacao() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          {canViewPartners && (
+            <Link to="/dashboard" className={botao}>
+              <Wallet className="h-4 w-4" />
+              Visão executiva
+            </Link>
+          )}
           <Link to="/dashboard?visao=meu" className={botao}>
             <UserRound className="h-4 w-4" />
             Meu desempenho
