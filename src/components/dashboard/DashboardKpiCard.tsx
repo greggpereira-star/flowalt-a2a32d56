@@ -72,7 +72,7 @@ export function DashboardKpiCard({
 
       <p className={cn(
         'mt-2 text-2xl font-semibold tabular-nums tracking-tight',
-        novo && 'mt-3 text-[32px] font-extrabold leading-none',
+        novo && 'mt-2.5 text-[28px] font-extrabold leading-none sm:mt-3 sm:text-[32px]',
         alerta && 'text-destructive',
       )}>
         {value}
@@ -90,7 +90,7 @@ export function DashboardKpiCard({
 
   const classes = cn(
     'rounded-xl border bg-card p-4 sm:p-5 text-left transition-colors',
-    novo && 'rounded-2xl p-5 shadow-sm',
+    novo && 'rounded-2xl p-4 shadow-sm sm:p-5',
     alerta ? 'border-destructive/30' : 'border-border/60',
     clicavel && 'hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   );

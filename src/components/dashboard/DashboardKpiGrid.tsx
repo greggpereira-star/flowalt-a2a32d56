@@ -1,6 +1,8 @@
 import { LayoutGrid, PlayCircle, AlertTriangle, Timer, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { DashboardKpiCard } from '@/components/dashboard/DashboardKpiCard';
 import { Progress } from '@/components/ui/progress';
 import { getCardStatusLabel } from '@/lib/cards/cardStatusLabels';
@@ -23,6 +25,7 @@ interface DashboardKpiGridProps {
  * outra tela, e aí ela para de clicar.
  */
 export function DashboardKpiGrid({ summary, isLoading, nextEvent, criticos = 0 }: DashboardKpiGridProps) {
+  const { dashboard: novo } = useNewUiBeta();
   const {
     totalCards, completedCards, productionCards, overdueCards,
     trackedMinutes, targetMinutes, todayAgendaCount, deltas,
@@ -37,7 +40,13 @@ export function DashboardKpiGrid({ summary, isLoading, nextEvent, criticos = 0 }
     : 0;
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5 sm:gap-4">
+    <div
+      className={cn(
+        'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5 sm:gap-4',
+        // Visual novo no celular: 2 colunas compactas; o último (Agenda de Hoje) ocupa a linha inteira.
+        novo && 'grid-cols-2 [&>*:last-child]:col-span-2 xl:[&>*:last-child]:col-span-1'
+      )}
+    >
       <DashboardKpiCard
         label="Total de Cards"
         value={totalCards}

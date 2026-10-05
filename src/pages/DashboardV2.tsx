@@ -96,7 +96,7 @@ export default function DashboardV2() {
 
   return (
     <AppLayout>
-      <div className={cn('space-y-4 p-4 sm:space-y-6 sm:p-6', novo && 'mx-auto max-w-[1240px] space-y-6 px-4 py-6 sm:space-y-7 sm:px-8 sm:py-8')}>
+      <div className={cn('space-y-4 p-4 sm:space-y-6 sm:p-6', novo && 'mx-auto max-w-[1240px] space-y-6 px-4 pb-28 pt-6 sm:space-y-7 sm:px-8 sm:py-8')}>
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className={cn('text-2xl font-semibold tracking-tight', novo && 'text-[28px] font-extrabold leading-tight')}>Dashboard</h1>
