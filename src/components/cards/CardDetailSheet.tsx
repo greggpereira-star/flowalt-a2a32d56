@@ -23,6 +23,8 @@ import { normalizeBriefingData, isBriefingContentComplete } from './briefingData
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
+import { PostDateRow } from '@/components/social-media/PostDateRow';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { useSocialPostsByCard } from '@/hooks/useSocialPosts';
 import { useEntitlementRegistry } from '@/hooks/useEntitlementRegistry';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -248,6 +250,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const canDelete = isOwner || isAdmin || isCoordinator || canDeleteCards || isCardCreator;
   const isTrafficSpace = space?.type === 'traffic';
   const isSocialMediaSpace = space?.type === 'social_media';
+  const { respiro: novoVisual } = useNewUiBeta();
   const isQuickCard = (card as any)?.card_type === 'quick';
 
   useEffect(() => {
@@ -514,6 +517,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         setClientId(id);
                         updateCard.mutate({ id: card.id, client_id: id });
                       }}
+                      extraDateRows={novoVisual && isSocialMediaSpace && cardId ? <PostDateRow cardId={cardId} spaceType="social_media" /> : undefined}
                     />
 
                     {/* Timer - integrated as field row */}

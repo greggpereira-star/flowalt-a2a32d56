@@ -518,6 +518,24 @@ const SpacePage: React.FC = () => {
                       <span className="hidden sm:inline">Adicionar</span>
                     </Button>
                   </DropdownMenuTrigger>
+                  {visualNovo ? (
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl p-1.5">
+                    <DropdownMenuItem className="rounded-lg py-2" onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
+                      <Plus className="mr-3 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Novo card</p>
+                        <p className="text-xs text-muted-foreground">Rápido ou completo, você escolhe</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="rounded-lg py-2" onClick={() => setCreateFolderOpen(true)}>
+                      <FolderPlus className="mr-3 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Nova pasta</p>
+                        <p className="text-xs text-muted-foreground">Organiza cards e views</p>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                  ) : (
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => { setQuickAddInitialMode('quick'); setQuickAddOpen(true); }}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -532,6 +550,7 @@ const SpacePage: React.FC = () => {
                       Nova Pasta
                     </DropdownMenuItem>
                   </DropdownMenuContent>
+                  )}
                 </DropdownMenu>
                 )}
               </div>

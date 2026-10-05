@@ -149,12 +149,17 @@ export const useDeleteChecklist = () => {
 
   return useMutation({
     mutationFn: async ({ id, card_id }: { id: string; card_id: string }) => {
-      const { error } = await supabase
+      // .select('id') devolve as linhas apagadas: se o banco negar por permissão ele não dá erro, só apaga 0 linhas.
+      const { data, error } = await supabase
         .from('checklists')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Você não tem permissão para excluir este item do checklist.');
+      }
       return { id, card_id };
     },
     onSuccess: (data) => {

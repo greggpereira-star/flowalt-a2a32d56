@@ -68,6 +68,8 @@ interface CardPropertiesPanelProps {
   onEstimatedHoursChange: (hours: string) => void;
   onEstimatedHoursBlur: () => void;
   onClientChange: (clientId: string | null) => void;
+  /** Linhas extras logo abaixo do prazo (ex.: Data de postagem nos spaces de Social Media). */
+  extraDateRows?: React.ReactNode;
 }
 
 const STATUS_OPTIONS: { value: CardStatus; label: string }[] = CARD_STATUS_OPTIONS;
@@ -91,7 +93,7 @@ interface FieldRowProps {
   className?: string;
 }
 
-const FieldRow: React.FC<FieldRowProps> = ({ icon, label, children, className }) => (
+export const FieldRow: React.FC<FieldRowProps> = ({ icon, label, children, className }) => (
   <div className={cn(
     "flex items-center min-h-[36px] px-2 py-1 rounded-md transition-all hover:bg-muted/40 group",
     className
@@ -121,6 +123,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   onEstimatedHoursChange,
   onEstimatedHoursBlur,
   onClientChange,
+  extraDateRows,
 }) => {
   const [memberPopoverOpen, setMemberPopoverOpen] = useState(false);
   const { data: cardMembers = [] } = useCardMembers(cardId);
@@ -330,6 +333,8 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             </Popover>
           </div>
         </FieldRow>
+
+        {extraDateRows}
 
         {/* Priority */}
         <FieldRow icon={<Flag className="h-3.5 w-3.5" />} label="Prioridade">

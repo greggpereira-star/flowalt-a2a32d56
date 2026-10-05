@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
@@ -69,6 +70,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
   spaceType = 'social_media',
   readOnly = false,
 }) => {
+  const { respiro: novo } = useNewUiBeta();
   const { data: definitions, isLoading: defsLoading } = useCustomFieldDefinitions(spaceType);
   const { data: cardFields, isLoading: fieldsLoading } = useCardCustomFields(cardId);
   const updateFields = useUpdateCardCustomFields();
@@ -121,7 +123,9 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
     );
   }
 
-  if (!definitions || definitions.length === 0) return null;
+  // No visual novo a Data de Postagem vira uma propriedade ao lado do prazo (PostDateRow) e o Cliente já é uma propriedade do card: aqui não repetem.
+  const definicoesVisiveis = novo ? definitions?.filter((d) => d.field_key !== 'post_date' && d.field_key !== 'client') : definitions;
+  if (!definitions || definitions.length === 0 || !definicoesVisiveis?.length) return null;
 
   const getValue = (key: string) => localValues[key] || '';
 
@@ -200,16 +204,20 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={cn('space-y-4', novo && 'rounded-xl border border-border/60 bg-card p-4')}>
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <h4 className="text-sm font-medium">Campos Social Media</h4>
+        <Sparkles className={cn('h-4 w-4 text-primary', novo && 'h-6 w-6 rounded-lg bg-primary/10 p-1')} />
+        <h4 className={cn('text-sm font-medium', novo && 'text-[14px] font-bold tracking-tight')}>
+          {novo ? 'Publicação' : 'Campos Social Media'}
+        </h4>
       </div>
-      <p className="text-[11px] text-muted-foreground -mt-2">
-        ⓘ <span className="font-medium text-foreground">Data de Postagem</span> é diferente do <span className="font-medium text-foreground">Prazo da Tarefa</span>: a primeira indica quando o conteúdo será publicado; o prazo é a entrega da execução interna.
-      </p>
-      <div className="grid grid-cols-2 gap-3">
-        {definitions.map((def) => {
+      {!novo && (
+        <p className="text-[11px] text-muted-foreground -mt-2">
+          ⓘ <span className="font-medium text-foreground">Data de Postagem</span> é diferente do <span className="font-medium text-foreground">Prazo da Tarefa</span>: a primeira indica quando o conteúdo será publicado; o prazo é a entrega da execução interna.
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {definicoesVisiveis.map((def) => {
           const isPostDate = def.field_key === 'post_date';
           return (
             <div

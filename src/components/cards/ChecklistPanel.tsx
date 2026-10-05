@@ -17,6 +17,8 @@ import {
 import { useStartTimer, useStopTimer, useRunningTimer } from '@/hooks/useTimeEntries';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { ChecklistItemActions } from './ChecklistItemActions';
+import { toast } from 'sonner';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -25,6 +27,7 @@ interface ChecklistPanelProps {
 }
 
 export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
+  const { respiro: novo } = useNewUiBeta();
   const { data: checklists, isLoading } = useChecklists(cardId);
   const { data: members } = useWorkspaceMembers();
   const createChecklist = useCreateChecklist();
@@ -47,10 +50,15 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
   const handleAddItem = async () => {
     if (!newItemTitle.trim()) return;
 
-    await createChecklist.mutateAsync({
-      card_id: cardId,
-      title: newItemTitle.trim(),
-    });
+    try {
+      await createChecklist.mutateAsync({
+        card_id: cardId,
+        title: newItemTitle.trim(),
+      });
+    } catch (e) {
+      toast.error('Não foi possível adicionar o item.', { description: (e as Error)?.message });
+      return;
+    }
 
     setNewItemTitle('');
     setIsAdding(false);
@@ -59,46 +67,69 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
   const handleAddBelow = async (afterItem: Checklist) => {
     if (!addBelowTitle.trim()) return;
 
-    await createChecklist.mutateAsync({
-      card_id: cardId,
-      title: addBelowTitle.trim(),
-    });
+    try {
+      await createChecklist.mutateAsync({
+        card_id: cardId,
+        title: addBelowTitle.trim(),
+      });
+    } catch (e) {
+      toast.error('Não foi possível adicionar o item.', { description: (e as Error)?.message });
+      return;
+    }
 
     setAddBelowTitle('');
     setAddingBelowId(null);
   };
 
   const handleToggleComplete = async (item: Checklist) => {
-    await updateChecklist.mutateAsync({
-      id: item.id,
-      card_id: cardId,
-      is_completed: !item.is_completed,
-    });
+    try {
+      await updateChecklist.mutateAsync({
+        id: item.id,
+        card_id: cardId,
+        is_completed: !item.is_completed,
+      });
+    } catch (e) {
+      toast.error('Não foi possível atualizar o item.', { description: (e as Error)?.message });
+    }
   };
 
   const handleRename = async (item: Checklist, newTitle: string) => {
-    await updateChecklist.mutateAsync({
-      id: item.id,
-      card_id: cardId,
-      title: newTitle,
-    });
+    try {
+      await updateChecklist.mutateAsync({
+        id: item.id,
+        card_id: cardId,
+        title: newTitle,
+      });
+    } catch (e) {
+      toast.error('Não foi possível renomear o item.', { description: (e as Error)?.message });
+      return;
+    }
     setRenamingId(null);
   };
 
   const handleAssign = async (item: Checklist, assigneeId: string | null, functionTitle: string | null) => {
-    await updateChecklist.mutateAsync({
-      id: item.id,
-      card_id: cardId,
-      assignee_id: assigneeId,
-      function_title: functionTitle,
-    });
+    try {
+      await updateChecklist.mutateAsync({
+        id: item.id,
+        card_id: cardId,
+        assignee_id: assigneeId,
+        function_title: functionTitle,
+      });
+    } catch (e) {
+      toast.error('Não foi possível atribuir o item.', { description: (e as Error)?.message });
+    }
   };
 
   const handleDelete = async (item: Checklist) => {
-    await deleteChecklist.mutateAsync({
-      id: item.id,
-      card_id: cardId,
-    });
+    try {
+      await deleteChecklist.mutateAsync({
+        id: item.id,
+        card_id: cardId,
+      });
+      toast.success('Item excluído.');
+    } catch (e) {
+      toast.error('Não foi possível excluir o item.', { description: (e as Error)?.message });
+    }
   };
 
   const handleToggleTimer = async (item: Checklist) => {
@@ -139,29 +170,30 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
     <div className="space-y-4">
       {/* Progress */}
       {totalCount > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
+        <div className={cn('space-y-2', novo && 'space-y-1.5')}>
+          <div className={cn('flex items-center justify-between text-sm', novo && 'text-[12.5px]')}>
             <span className="text-muted-foreground">Progresso</span>
-            <span className="font-medium">
+            <span className={cn('font-medium', novo && 'font-semibold tabular-nums')}>
               {completedCount}/{totalCount} ({Math.round(progressPercent)}%)
             </span>
           </div>
-          <Progress value={progressPercent} className="h-2" />
+          <Progress value={progressPercent} className={cn('h-2', novo && 'h-1.5')} />
         </div>
       )}
 
       {/* Checklist Items */}
-      <div className="space-y-1">
+      <div className={cn('space-y-1', novo && 'space-y-1.5')}>
         {checklists?.map((item, index) => (
           <React.Fragment key={item.id}>
             <div
               className={cn(
                 'flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors group',
+                novo && 'gap-3 rounded-xl border-border/60 px-3 py-2.5 hover:bg-muted/40',
                 item.is_completed && 'opacity-60'
               )}
             >
               {/* Drag Handle */}
-              <div className="opacity-0 group-hover:opacity-50 cursor-grab">
+              <div className={cn('opacity-0 group-hover:opacity-50 cursor-grab', novo && 'hidden')}>
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
               </div>
 
@@ -169,7 +201,7 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
               <Checkbox
                 checked={item.is_completed}
                 onCheckedChange={() => handleToggleComplete(item)}
-                className="flex-shrink-0"
+                className={cn('flex-shrink-0', novo && 'h-[18px] w-[18px] rounded-full')}
               />
 
               {/* Content */}
@@ -190,6 +222,7 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
                     <p
                       className={cn(
                         'text-sm',
+                        novo && 'text-[14px] font-medium leading-snug',
                         item.is_completed && 'line-through text-muted-foreground'
                       )}
                     >
@@ -346,7 +379,10 @@ export const ChecklistPanel: React.FC<ChecklistPanelProps> = ({ cardId }) => {
       ) : (
         <Button
           variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          className={cn(
+            'w-full justify-start text-muted-foreground hover:text-foreground',
+            novo && 'h-11 rounded-xl border border-dashed border-border/70 px-3 font-medium hover:border-foreground/30 hover:bg-muted/30'
+          )}
           onClick={() => setIsAdding(true)}
         >
           <Plus className="h-4 w-4 mr-2" />

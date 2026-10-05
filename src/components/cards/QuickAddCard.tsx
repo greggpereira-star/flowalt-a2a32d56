@@ -51,7 +51,11 @@ import {
   Upload,
   Copy,
   Users,
+  Zap,
+  ListChecks,
+  Megaphone,
 } from 'lucide-react';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
@@ -111,6 +115,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   }, [clientCards]);
 
   // Form state
+  const { respiro: novo } = useNewUiBeta();
   const [mode, setMode] = useState<QuickAddMode>(initialMode);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -125,6 +130,8 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
   // Cross-sector duplication
   const [isDuplicateEnabled, setIsDuplicateEnabled] = useState(false);
   const [duplicateToSpace, setDuplicateToSpace] = useState<string>('');
+  // Social Media: data em que o conteúdo vai ao ar (diferente do prazo da produção)
+  const [postDate, setPostDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (open) setMode(initialMode);
@@ -144,6 +151,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     setMode(initialMode);
     setIsDuplicateEnabled(false);
     setDuplicateToSpace('');
+    setPostDate(undefined);
   };
 
   const setDueDatePreservingTime = (date: Date | undefined) => {
@@ -188,7 +196,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
     }
 
     try {
-      await createCard.mutateAsync({
+      const criado = await createCard.mutateAsync({
         title,
         space_id: spaceId,
         folder_id: folderId,
@@ -201,6 +209,24 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         card_type: mode === 'quick' ? 'quick' : 'full',
         duplicate_to_space_id: isDuplicateEnabled && duplicateToSpace ? duplicateToSpace : undefined,
       });
+
+      // Data de postagem vai para os campos do card (é ela que coloca o card no quadro de Postagens)
+      if (isSocialMedia && postDate && criado?.id) {
+        const { error: erroData } = await supabase
+          .from('card_custom_fields')
+          .upsert(
+            [{ card_id: criado.id, field_key: 'post_date', field_value: format(postDate, 'yyyy-MM-dd'), updated_at: new Date().toISOString() }],
+            { onConflict: 'card_id,field_key' }
+          );
+        if (erroData) {
+          console.error('QuickAddCard: salvar data de postagem falhou', erroData);
+          toast({
+            title: 'Card criado, mas a data de postagem não foi salva',
+            description: 'Abra o card e defina a data de postagem.',
+            variant: 'destructive',
+          });
+        }
+      }
 
       toast({ 
         title: 'Card criado!', 
@@ -225,6 +251,33 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
 
   const content = (
     <div className="space-y-4">
+      {novo ? (
+        <div className="space-y-2">
+          <div role="tablist" aria-label="Tipo de card" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border/60 bg-card p-1">
+            {([['quick', 'Rápido', Zap], ['full', 'Completo', ListChecks]] as const).map(([chave, rotulo, Icone]) => (
+              <button
+                key={chave}
+                type="button"
+                role="tab"
+                aria-selected={mode === chave}
+                onClick={() => setMode(chave)}
+                className={cn(
+                  'flex h-9 items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-colors',
+                  mode === chave ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Icone className="h-3.5 w-3.5" />
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          <p className="px-1 text-[12.5px] leading-snug text-muted-foreground">
+            {mode === 'quick'
+              ? 'Só o essencial: título, urgência, prazo e responsável.'
+              : 'Descrição, status, cliente, checklist e anexos. O briefing você preenche dentro do card.'}
+          </p>
+        </div>
+      ) : (
       <div className="grid w-full grid-cols-2 gap-1 rounded-md bg-muted p-1">
         <Button
           type="button"
@@ -245,6 +298,7 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
           Completo
         </Button>
       </div>
+      )}
 
       {mode === 'quick' ? (
         <div className="space-y-4">
@@ -508,6 +562,34 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
         </ScrollArea>
       )}
 
+      {/* Social Media: data de postagem já no cadastro, para o card aparecer no quadro de Postagens */}
+      {novo && isSocialMedia && (
+        <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.04] p-3">
+          <Label className="flex items-center gap-2 text-[13px] font-semibold">
+            <Megaphone className="h-3.5 w-3.5 text-primary" />
+            Data de postagem
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn('h-10 w-full justify-start rounded-xl bg-background text-left font-normal', !postDate && 'text-muted-foreground')}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {postDate ? format(postDate, "EEEE, dd 'de' MMMM", { locale: ptBR }) : 'Quando o conteúdo vai ao ar'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={postDate} onSelect={setPostDate} locale={ptBR} />
+            </PopoverContent>
+          </Popover>
+          <p className="text-[12px] leading-snug text-muted-foreground">
+            Sem essa data o card não aparece no quadro de Postagens. O prazo acima é só da produção.
+          </p>
+        </div>
+      )}
+
       {/* Duplication to other sectors */}
       {true && (
         <div className="p-3 rounded-lg border bg-primary/5 space-y-3">
@@ -548,11 +630,12 @@ export const QuickAddCard: React.FC<QuickAddCardProps> = ({
 
   const footer = (
     <div className="flex gap-2 justify-end">
-      <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+      <Button variant="outline" className={cn(novo && 'h-10 rounded-xl')} onClick={() => { resetForm(); onOpenChange(false); }}>
         Cancelar
       </Button>
       <Button 
         onClick={handleSubmit} 
+        className={cn(novo && 'h-10 rounded-xl px-5 font-semibold')}
         disabled={createCard.isPending || (isDuplicateEnabled && !duplicateToSpace)}
       >
         {createCard.isPending ? 'Criando...' : 'Criar Card'}
