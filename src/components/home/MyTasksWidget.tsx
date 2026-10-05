@@ -104,8 +104,8 @@ export function MyTasksWidget({ tasks, isLoading, novo }: MyTasksWidgetProps) {
           <p className={cn('mt-0.5 text-sm text-slate-500', novo && 'text-[13px] text-muted-foreground')}>Suas prioridades de hoje</p>
         </div>
 
-        <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
-          Ver todas
+        <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')} className={cn(novo && 'h-8 px-2 text-[13px] font-semibold text-primary hover:bg-primary/10 hover:text-primary')}>
+          Ver todas{novo && ' ›'}
         </Button>
       </div>
 

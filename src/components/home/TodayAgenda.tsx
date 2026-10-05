@@ -61,7 +61,7 @@ export function TodayAgenda({ events, isLoading, error, onRetry, novo }: TodayAg
             <CalendarDays className={cn('h-[18px] w-[18px] text-slate-400', novo && 'h-7 w-7 rounded-lg bg-primary/10 p-1.5 text-primary')} strokeWidth={1.75} />
             Agenda de Hoje
           </h2>
-          <p className={cn('mt-0.5 text-sm capitalize text-slate-500', novo && 'text-[13px] text-muted-foreground')}>{today}</p>
+          <p className={cn('mt-0.5 text-sm text-slate-500 first-letter:uppercase', novo && 'text-[13px] text-muted-foreground')}>{today}</p>
         </div>
 
         <div className="flex gap-2">

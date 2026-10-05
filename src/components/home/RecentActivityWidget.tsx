@@ -46,8 +46,8 @@ export function RecentActivityWidget({ items, isLoading, novo }: RecentActivityW
           <p className={cn('mt-0.5 text-sm text-slate-500', novo && 'text-[13px] text-muted-foreground')}>Últimas movimentações do workspace</p>
         </div>
 
-        <Button variant="ghost" size="sm" onClick={() => navigate('/activity')}>
-          Ver tudo
+        <Button variant="ghost" size="sm" onClick={() => navigate('/activity')} className={cn(novo && 'h-8 px-2 text-[13px] font-semibold text-primary hover:bg-primary/10 hover:text-primary')}>
+          Ver tudo{novo && ' ›'}
         </Button>
       </div>
 

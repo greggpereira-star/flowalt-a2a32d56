@@ -63,7 +63,7 @@ export default function HomePage() {
           atividade={{ data: activity.data, isLoading: activity.isLoading }}
         />
       ) : (
-      <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 pt-6 sm:px-6 lg:px-7">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-28 pt-6 sm:px-6 sm:pb-10 lg:px-7">
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
