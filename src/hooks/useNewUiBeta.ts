@@ -2,16 +2,13 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * Opções de visual em teste ("beta"), ligadas por pessoa.
+ * Opções do visual novo, por pessoa.
  *
- * Só quem está em EMAILS_BETA enxerga e consegue ligar estas opções; para todos os
- * outros o hook devolve sempre "desligado", mesmo que exista algo guardado no navegador.
- * Assim o menu e o Kanban continuam exatamente como eram para o resto da equipe.
- *
- * O estado fica no navegador (localStorage): liga e desliga na hora, sem piscar, e não
- * exige mudança no banco. Vale por navegador, não é sincronizado entre aparelhos.
+ * Desde 05/10/2026 o visual novo vem LIGADO para todos os usuários logados. Quem preferir o antigo
+ * desliga tela por tela no menu da conta; essa escolha fica guardada no navegador (localStorage),
+ * liga e desliga na hora, sem piscar, e não exige mudança no banco. Vale por navegador, não é
+ * sincronizado entre aparelhos: num navegador sem escolha guardada, tudo vem ligado.
  */
-export const EMAILS_BETA = ['gregg.pereira@gmail.com'];
 
 export interface EstadoBeta {
   menu: boolean;
@@ -28,7 +25,7 @@ export interface EstadoBeta {
   alertas: boolean;
 }
 
-const PADRAO: EstadoBeta = { menu: false, respiro: false, inicio: false, meutrabalho: false, agenda: false, clientes: false, dashboard: false, gestao: false, tempo: false, ideias: false, config: false, alertas: false };
+const PADRAO: EstadoBeta = { menu: true, respiro: true, inicio: true, meutrabalho: true, agenda: true, clientes: true, dashboard: true, gestao: true, tempo: true, ideias: true, config: true, alertas: true };
 const EVENTO = 'flowalt:ui-beta';
 const chave = (userId?: string) => `flowalt_ui_beta_${userId ?? 'anon'}`;
 
@@ -51,7 +48,7 @@ function assinar(aviso: () => void) {
 
 export function useNewUiBeta() {
   const { user } = useAuth();
-  const podeUsar = !!user?.email && EMAILS_BETA.includes(user.email.toLowerCase());
+  const podeUsar = !!user;
 
   const bruto = useSyncExternalStore(
     assinar,

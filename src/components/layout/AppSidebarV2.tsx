@@ -87,7 +87,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Menu lateral novo (beta, só para quem está em EMAILS_BETA).
+ * Menu lateral novo (visual novo, ligado por padrão para todos).
  *
  * Mesmas telas, permissões e dados do menu atual. A navegação diária dos espaços é desenhada
  * aqui (espaço, pasta, visão), e a administração (criar pasta, criar/editar/excluir visão,
@@ -934,7 +934,7 @@ export const AppSidebarV2: React.FC = () => {
             {beta.podeUsar && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Visual em teste (só para você)</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Aparência (preferência só sua)</DropdownMenuLabel>
                 <DropdownMenuCheckboxItem checked={beta.menu} onCheckedChange={v => beta.definir({ menu: !!v })}>
                   Menu novo
                 </DropdownMenuCheckboxItem>

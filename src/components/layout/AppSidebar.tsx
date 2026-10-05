@@ -284,7 +284,7 @@ export const AppSidebar: React.FC = () => {
             {beta.podeUsar && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Visual em teste (só para você)</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Aparência (preferência só sua)</DropdownMenuLabel>
                 <DropdownMenuCheckboxItem checked={beta.menu} onCheckedChange={(v) => beta.definir({ menu: !!v })}>
                   Menu novo
                 </DropdownMenuCheckboxItem>
