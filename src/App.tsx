@@ -52,6 +52,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const IdeasBankPage = lazy(() => import("./pages/IdeasBankPage"));
 const PublicBoardPage = lazy(() => import("./pages/PublicBoardPage"));
 const PublicProposalPage = lazy(() => import("./pages/PublicProposalPage"));
+const PublicApprovalPage = lazy(() => import("./pages/PublicApprovalPage"));
 const AltControlPage = lazy(() => import("./pages/altcontrol/AltControlPage").then(module => ({ default: module.AltControlPage })));
 const NewProposalPage = lazy(() => import("./pages/altcontrol/NewProposalPage").then(module => ({ default: module.NewProposalPage })));
 const ProposalGeneratorPage = lazy(() => import("./pages/altcontrol/ProposalGeneratorPage"));
@@ -146,6 +147,7 @@ const App = () => (
                 <Route path="/pluggy/oauth/callback" element={<PluggyOAuthCallback />} />
                 <Route path="/share/board/:token" element={<PublicBoardPage />} />
                 <Route path="/p/:token" element={<PublicProposalPage />} />
+                <Route path="/aprovacao/:token" element={<PublicApprovalPage />} />
                 
                 
                 {/* Protected Routes with shared AppLayout */}

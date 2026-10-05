@@ -9,6 +9,7 @@ import {
   UserPlus,
   Share2,
   Tags,
+  BadgeCheck,
   ChevronDown,
   Plus,
 } from 'lucide-react';
@@ -24,6 +25,8 @@ import { CardFinancialTab } from '../CardFinancialTab';
 import { CardKitTab } from '../CardKitTab';
 import { CardInvitePanel } from '../CardInvitePanel';
 import { SocialPostButton } from '@/components/social-media/SocialPostButton';
+import { ClientApprovalPanel } from '@/components/approvals/ClientApprovalPanel';
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { SectionHeader } from './SectionHeader';
 
 export interface CardToolsStackProps {
@@ -43,6 +46,7 @@ type SectionId =
   | 'tags'
   | 'time'
   | 'attachments'
+  | 'approval'
   | 'financial'
   | 'kit'
   | 'invites'
@@ -81,6 +85,7 @@ export const CardToolsStack = React.forwardRef<HTMLDivElement, CardToolsStackPro
     },
     ref,
   ) => {
+    const { isEnabled } = useFeatureFlags();
     const sections: SectionDef[] = [
       {
         id: 'checklist',
@@ -97,6 +102,14 @@ export const CardToolsStack = React.forwardRef<HTMLDivElement, CardToolsStackPro
         accent: 'text-amber-500',
         defaultOpen: true,
         count: attachmentsCount > 0 ? attachmentsCount : null,
+      },
+      {
+        id: 'approval',
+        label: 'Aprovação do cliente',
+        icon: BadgeCheck,
+        accent: 'text-sky-500',
+        defaultOpen: false,
+        hidden: !isEnabled(FEATURE_FLAGS.CLIENT_APPROVAL),
       },
       {
         id: 'tags',
@@ -178,6 +191,8 @@ export const CardToolsStack = React.forwardRef<HTMLDivElement, CardToolsStackPro
           return <TimeTrackingPanel cardId={cardId} />;
         case 'attachments':
           return <AttachmentsPanel cardId={cardId} />;
+        case 'approval':
+          return <ClientApprovalPanel cardId={cardId} />;
         case 'financial':
           return <CardFinancialTab cardId={cardId} />;
         case 'kit':

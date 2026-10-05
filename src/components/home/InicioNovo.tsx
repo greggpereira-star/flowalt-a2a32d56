@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, Minus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { rotuloProblema } from '@/components/coordination/v2/Painel';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
+import { usePendingApprovals } from '@/hooks/useApprovals';
 import { TodayAgenda } from './TodayAgenda';
 import { DailyInsights } from './DailyInsights';
 import { MyTasksWidget } from './MyTasksWidget';
@@ -125,6 +127,9 @@ export function InicioNovo({
   const { canViewCoordination } = usePermissions();
   const { dados, carregando } = useInicioDados(true);
   const [cardAberto, setCardAberto] = useState<string | null>(null);
+  const { isEnabled } = useFeatureFlags();
+  const aprovacaoLigada = isEnabled(FEATURE_FLAGS.CLIENT_APPROVAL);
+  const { data: aguardandoCliente } = usePendingApprovals(aprovacaoLigada);
 
   const dataTexto = useMemo(() => {
     const t = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -276,6 +281,28 @@ export function InicioNovo({
         </section>
 
         <DailyInsights novo insights={home.insights} />
+
+        {aprovacaoLigada && (aguardandoCliente?.length ?? 0) > 0 && (
+          <Cartao titulo="Aguardando o cliente" contador={aguardandoCliente!.length}>
+            <ul className="divide-y divide-border/60">
+              {aguardandoCliente!.slice(0, 5).map(a => (
+                <li key={a.id}>
+                  <button type="button" onClick={() => setCardAberto(a.card_id)} className="flex w-full items-center gap-3 py-2.5 text-left">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{a.cards?.title ?? a.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {a.client_name ? a.client_name + ' · ' : ''}Rodada {a.round} · enviado {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
+                      </span>
+                    </span>
+                    <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold', a.view_count > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-muted text-muted-foreground')}>
+                      {a.view_count > 0 ? 'Visto, sem resposta' : 'Não visto'}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Cartao>
+        )}
 
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
           <MyTasksWidget novo tasks={home.priorityTasks} isLoading={home.isLoading.tasks} />

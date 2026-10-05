@@ -21,6 +21,7 @@ export const FEATURE_FLAGS = {
   AUTOMATIONS: 'automations',
   TEMPLATES: 'templates',
   AI_ESTIMATES: 'ai_estimates',
+  CLIENT_APPROVAL: 'client_approval',
 } as const;
 
 export function useFeatureFlags() {
@@ -78,6 +79,12 @@ export function useFeatureFlags() {
     }
 
     if (!flag.enabled) return false;
+
+    // Liberacao por pessoa: se metadata.user_ids existir, so essas pessoas veem (usado nos pilotos).
+    const permitidos = flag.metadata?.user_ids;
+    if (Array.isArray(permitidos) && permitidos.length > 0) {
+      return !!user?.id && permitidos.includes(user.id);
+    }
 
     // Check rollout percentage
     if (flag.rollout_percentage < 100 && user?.id) {
