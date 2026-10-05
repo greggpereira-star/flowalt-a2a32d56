@@ -164,7 +164,7 @@ const App = () => (
                       aparecer com o time, a volta e trocar estas duas linhas. */}
                   <Route path="/dashboard" element={<DashboardV2 />} />
                   <Route path="/dashboard-legacy" element={<Dashboard />} />
-                  <Route path="/dashboard-v2" element={<DashboardV2 />} />
+                  <Route path="/dashboard-v2" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/time" element={<TempoSkin><TimePage /></TempoSkin>} />
                   <Route path="/coordination" element={<GestaoSkin><CoordinationPage /></GestaoSkin>} />

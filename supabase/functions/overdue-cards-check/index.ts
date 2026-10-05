@@ -43,6 +43,9 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // dry_run=1: so conta o que seria enviado, sem gravar notificacao nem mandar e-mail.
+    const dryRun = new URL(req.url).searchParams.get('dry_run') === '1';
+
     // Find overdue cards that haven't been notified today
     const today = new Date().toISOString().split('T')[0];
     
@@ -58,8 +61,8 @@ Deno.serve(async (req) => {
         card_members (user_id)
       `)
       .lt('due_date', new Date().toISOString())
-      .not('status', 'in', '("delivered","archived")')
-      .not('owner_id', 'is', null);
+      // Mesma definicao de "em aberto" do app (src/lib/metrics/definicoes.ts): approved, delivered e archived encerram.
+      .not('status', 'in', '("approved","delivered","archived")');
 
     if (cardsError) {
       log('error', 'Error fetching overdue cards', { error: cardsError.message }, correlationId);
@@ -103,6 +106,12 @@ Deno.serve(async (req) => {
       // Create notifications for users not yet notified
       for (const userId of usersToNotify) {
         if (alreadyNotifiedUsers.has(userId)) continue;
+
+        if (dryRun) {
+          notificationsCreated++;
+          if (daysOverdue >= CRITICAL_OVERDUE_DAYS) emailsSent++;
+          continue;
+        }
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -184,7 +193,7 @@ Deno.serve(async (req) => {
     const duration = Date.now() - startTime;
     
     // Record metrics
-    await supabase.rpc('record_metric', {
+    if (!dryRun) await supabase.rpc('record_metric', {
       p_metric_type: 'job',
       p_metric_name: 'overdue_cards_check_duration_ms',
       p_metric_value: duration,
@@ -208,6 +217,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        dry_run: dryRun,
         correlation_id: correlationId,
         duration_ms: duration,
         overdue_cards: overdueCards?.length || 0,

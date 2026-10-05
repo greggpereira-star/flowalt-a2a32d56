@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0b",
-  "theme_color": "#2563eb",
+  "theme_color": "#3947df",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -15,25 +15,34 @@
       "purpose": "any"
     },
     {
-      "src": "/flowalt-symbol.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "screenshots": [],
   "shortcuts": [
     {
@@ -41,14 +50,24 @@
       "short_name": "Dashboard",
       "description": "Ver painel principal",
       "url": "/dashboard",
-      "icons": [{ "src": "/flowalt-symbol.png", "sizes": "512x512" }]
+      "icons": [
+        {
+          "src": "/flowalt-symbol.png",
+          "sizes": "512x512"
+        }
+      ]
     },
     {
       "name": "Agenda",
       "short_name": "Agenda",
       "description": "Ver compromissos",
       "url": "/calendar",
-      "icons": [{ "src": "/flowalt-symbol.png", "sizes": "512x512" }]
+      "icons": [
+        {
+          "src": "/flowalt-symbol.png",
+          "sizes": "512x512"
+        }
+      ]
     }
   ],
   "related_applications": [],

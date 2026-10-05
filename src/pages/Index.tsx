@@ -96,7 +96,7 @@ const Index: React.FC = () => {
       return data;
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
-    refetchInterval: 1000,
+    refetchInterval: 60_000,
   });
 
   const { data: todayEvents } = useQuery({
