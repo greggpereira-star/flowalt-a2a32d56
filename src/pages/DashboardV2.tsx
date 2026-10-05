@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
 import { DashboardExecutor } from '@/components/dashboard/executor/DashboardExecutor';
+import { DashboardCoordenacao } from '@/components/dashboard/coordenacao/DashboardCoordenacao';
 import { useMemo } from 'react';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarRange, Layers } from 'lucide-react';
@@ -158,6 +159,12 @@ function DashboardGeral() {
             </DropdownMenu>
 
             <Button asChild variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
+              <Link to="/dashboard">
+                Visão do time
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
               <Link to="/dashboard?visao=meu">
                 <UserRound className="h-4 w-4" aria-hidden="true" />
                 Meu desempenho
@@ -217,7 +224,7 @@ function DashboardGeral() {
  * O Dashboard muda conforme o nível de quem abre:
  *  - quem executa (membro) vê só o próprio desempenho, com o time como régua;
  *  - quem coordena ou é sócio vê a visão geral do workspace e pode alternar para "Meu desempenho".
- * A visão geral continua a mesma por enquanto; as visões de coordenação e de sócio vêm nas próximas etapas.
+ * A visão do time (padrão da coordenação) mostra tendência, pessoas, tempo por etapa, retrabalho e capacidade; a visão executiva do sócio vem na próxima etapa.
  */
 export default function DashboardV2() {
   const permissoes = usePermissions();
@@ -244,5 +251,12 @@ export default function DashboardV2() {
     );
   }
 
-  return <DashboardGeral />;
+  // A visão antiga (genérica, igual para todos) fica acessível por enquanto em ?visao=geral.
+  if (params.get('visao') === 'geral') return <DashboardGeral />;
+
+  return (
+    <AppLayout>
+      <DashboardCoordenacao />
+    </AppLayout>
+  );
 }
