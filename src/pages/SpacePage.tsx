@@ -81,6 +81,7 @@ import {
   X,
   Trash2,
   Pencil,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Card } from '@/hooks/useCards';
@@ -396,11 +397,28 @@ const SpacePage: React.FC = () => {
 
 
         {/* Fixed Header - Always visible */}
-        <div className={cn('flex-shrink-0 border-b bg-background', visualNovo ? 'border-border/60' : 'border-border')}>
-          <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3', visualNovo ? (ehIdeiasNovo ? 'px-6 pb-0 pt-4' : 'px-6 pb-4 pt-5') : 'px-4 py-2.5')}>
+        <div className={cn('flex-shrink-0 border-b bg-background', visualNovo ? 'border-border/60' : 'border-border', ehIdeiasNovo && 'border-b-0 bg-transparent')}>
+          <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3', visualNovo ? (ehIdeiasNovo ? 'p-0' : 'px-6 pb-4 pt-5') : 'px-4 py-2.5')}>
             {/* Row 1 on mobile: breadcrumb + view switcher/add button share a line; becomes 3 separate flex items on sm+ via `contents` */}
             <div className="flex items-center justify-between gap-2 sm:contents">
-              {visualNovo ? (
+              {ehIdeiasNovo ? (
+                <nav aria-label="Caminho" className="mx-auto flex w-full min-w-0 max-w-[1400px] items-center gap-1 px-4 pt-5 text-[13px] sm:order-1 sm:px-8">
+                  <button
+                    type="button"
+                    onClick={handleClearView}
+                    title="Ver todos os cards do espaço"
+                    className="-ml-1.5 inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: space.color }} />
+                    <span className="truncate">{space.name}</span>
+                  </button>
+                  <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                  <span className="truncate px-1.5 py-1 font-semibold text-foreground" aria-current="page">
+                    {activeView ? activeView.name : space.name}
+                  </span>
+                  {viewLoading && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
+                </nav>
+              ) : visualNovo ? (
                 <div className="min-w-0 sm:order-1 sm:flex-shrink-0">
                   <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                     <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: space.color }} />
