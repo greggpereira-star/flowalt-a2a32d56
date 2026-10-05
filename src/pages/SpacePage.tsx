@@ -13,6 +13,7 @@ import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 // usadas e mais pesadas (gantt/mapa mental em especial), então carregam sob
 // demanda: só quem realmente troca de view paga o custo de baixá-las.
 import { KanbanWithColumns } from '@/components/cards/KanbanWithColumns';
+import { ehAtrasado } from '@/lib/metrics/definicoes';
 const KanbanAdvanced = lazy(() => import('@/components/cards/KanbanAdvanced').then(m => ({ default: m.KanbanAdvanced })));
 const ListView = lazy(() => import('@/components/cards/ListView').then(m => ({ default: m.ListView })));
 const CalendarBoardView = lazy(() => import('@/components/cards/CalendarBoardView').then(m => ({ default: m.CalendarBoardView })));
@@ -337,10 +338,7 @@ const SpacePage: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       result = result.filter(card => card.due_date?.startsWith(today));
     } else if (advancedFilters.time?.due === 'overdue') {
-      const today = new Date().toISOString().split('T')[0];
-      result = result.filter(card => 
-        card.due_date && card.due_date < today && !['done', 'delivered', 'archived'].includes(card.status)
-      );
+      result = result.filter(card => ehAtrasado(card));
     } else if (advancedFilters.time?.due === 'none') {
       result = result.filter(card => !card.due_date);
     }

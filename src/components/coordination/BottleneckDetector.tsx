@@ -29,6 +29,7 @@ import { format, differenceInDays, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
 import type { Dependency } from '@/hooks/useDependencies';
+import { ehAberto } from '@/lib/metrics/definicoes';
 
 interface BottleneckDetectorProps {
   cards: CardType[];
@@ -69,7 +70,7 @@ export const BottleneckDetector: React.FC<BottleneckDetectorProps> = ({
   const bottlenecks = useMemo(() => {
     const now = new Date();
     const detected: Bottleneck[] = [];
-    const activeCards = cards.filter(c => c.status !== 'delivered' && c.status !== 'archived');
+    const activeCards = cards.filter(ehAberto);
 
     // 1. OVERDUE CHAINS - Cards atrasados que bloqueiam outros
     const overdueCards = activeCards.filter(c => 

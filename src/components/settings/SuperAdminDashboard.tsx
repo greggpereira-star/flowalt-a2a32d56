@@ -24,6 +24,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+import { STATUS_ENCERRADOS_SQL_ASPAS } from '@/lib/metrics/definicoes';
 
 interface WorkspaceStats {
   id: string;
@@ -128,7 +129,7 @@ export const SuperAdminDashboard = () => {
           supabase.from('workspace_members').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id).eq('is_active', true),
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id),
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id).in('status', ['todo', 'in_progress', 'review']),
-          supabase.from('cards').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id).not('status', 'in', '("delivered","archived")').lt('due_date', new Date().toISOString().split('T')[0]),
+          supabase.from('cards').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id).not('status', 'in', STATUS_ENCERRADOS_SQL_ASPAS).lt('due_date', new Date().toISOString()),
         ]);
 
         return {

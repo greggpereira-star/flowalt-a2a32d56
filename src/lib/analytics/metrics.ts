@@ -8,7 +8,9 @@
 const TZ = 'America/Sao_Paulo';
 const DIA_MS = 86_400_000;
 
-export const STATUS_ENCERRADOS = ['delivered', 'approved', 'archived'];
+// A regra de "aberto/encerrado" mora em lib/metrics/definicoes (fonte única); aqui só é reexportada.
+import { STATUS_ENCERRADOS, ehAberto } from '@/lib/metrics/definicoes';
+export { STATUS_ENCERRADOS, ehAberto };
 
 export interface CardRow {
   id: string;
@@ -33,7 +35,6 @@ export interface Janela {
 export const diaKey = (d: string | Date) => new Date(d).toLocaleDateString('en-CA', { timeZone: TZ });
 
 export const ehConcluido = (c: CardRow) => !!c.completed_at && STATUS_ENCERRADOS.includes(c.status);
-export const ehAberto = (c: CardRow) => !STATUS_ENCERRADOS.includes(c.status);
 const dentro = (iso: string | null, j: Janela) => !!iso && new Date(iso) >= j.start && new Date(iso) <= j.end;
 
 export function mediana(valores: number[]): number | null {

@@ -28,6 +28,7 @@ import { format, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card as CardType } from '@/hooks/useCards';
 import type { Dependency } from '@/hooks/useDependencies';
+import { ehAberto } from '@/lib/metrics/definicoes';
 
 interface CriticalPathAnalyzerProps {
   cards: CardType[];
@@ -83,7 +84,7 @@ export const CriticalPathAnalyzer: React.FC<CriticalPathAnalyzerProps> = ({
 
   // Find all paths and calculate critical path
   const criticalPathData = useMemo(() => {
-    const activeCards = cards.filter(c => c.status !== 'delivered' && c.status !== 'archived');
+    const activeCards = cards.filter(ehAberto);
     
     // Calculate earliest start time for each card
     const earliestStart: Map<string, number> = new Map();

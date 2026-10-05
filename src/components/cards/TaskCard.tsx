@@ -23,6 +23,7 @@ import { useSpaces } from '@/hooks/useSpaces';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ehAberto } from '@/lib/metrics/definicoes';
 
 interface TaskCardProps {
   card: Card;
@@ -70,7 +71,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   // Selos por exceção (só no visual novo): o card saudável fica limpo, e um selo só aparece quando
   // algo precisa de atenção. No máximo 2 por card, na ordem de importância abaixo.
   const excecoes: { chave: string; texto: string; titulo: string; tom: 'cr' | 'w' | 'g' | 'n'; icone: React.ReactNode }[] = [];
-  if (respiro && !['delivered', 'approved', 'archived'].includes(card.status)) {
+  if (respiro && ehAberto(card)) {
     const agora = Date.now();
 
     if (meuCronometro?.card_id === card.id) {

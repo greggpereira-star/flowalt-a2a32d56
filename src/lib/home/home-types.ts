@@ -6,6 +6,8 @@
  * e status = backlog|briefing|todo|in_progress|review|approved|delivered|archived.
  */
 
+import { STATUS_ENCERRADOS } from '@/lib/metrics/definicoes';
+
 export type HomeStatusTone =
   | 'danger'
   | 'warning'
@@ -27,7 +29,7 @@ export type CardStatus =
   | 'archived';
 
 /** Status que significam "não é mais trabalho pendente". */
-export const CLOSED_CARD_STATUSES: CardStatus[] = ['delivered', 'archived'];
+export const CLOSED_CARD_STATUSES: CardStatus[] = [...STATUS_ENCERRADOS] as CardStatus[];
 
 export interface HomeTaskItem {
   id: string;

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Card } from '@/hooks/useCards';
 import { isPast, isToday } from 'date-fns';
+import { ehAberto } from '@/lib/metrics/definicoes';
 
 interface QuickFilter {
   id: string;
@@ -53,7 +54,7 @@ export const KanbanQuickFilters: React.FC<KanbanQuickFiltersProps> = ({
   const noBriefingCount = cards.filter(c => 
     (c as any).card_type !== 'quick' &&
     !c.briefing_completed && 
-    !['delivered', 'approved'].includes(c.status)
+    ehAberto(c)
   ).length;
 
   const quickFilters: QuickFilter[] = [
@@ -188,7 +189,7 @@ export const applyQuickFilter = (
       return cards.filter(c => 
         (c as any).card_type !== 'quick' &&
         !c.briefing_completed && 
-        !['delivered', 'approved'].includes(c.status)
+        ehAberto(c)
       );
     default:
       return cards;

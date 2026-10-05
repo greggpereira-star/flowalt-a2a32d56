@@ -1,4 +1,5 @@
 import type { ClientFinancialState } from './useClientCards';
+import { ehAtrasado } from '@/lib/metrics/definicoes';
 
 // Calculate financial state based on margins and profitability
 function calculateFinancialState(
@@ -79,9 +80,7 @@ export const computeClientMetrics = (input: ComputeClientMetricsInput) => {
   const totalTasks = cards.length;
   const completedTasks = cards.filter(c => c.status === 'delivered').length;
   const inProgressTasks = cards.filter(c => c.status === 'todo' || c.status === 'review').length;
-  const overduesTasks = cards.filter(c =>
-    c.due_date && new Date(c.due_date) < now && c.status !== 'delivered' && c.status !== 'approved' && c.status !== 'archived'
-  ).length;
+  const overduesTasks = cards.filter(c => ehAtrasado(c, now)).length;
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const totalHours = timeEntries.reduce((acc, e) => acc + (e.duration_seconds / 3600), 0);

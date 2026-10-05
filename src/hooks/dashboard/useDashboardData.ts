@@ -8,10 +8,11 @@ import type {
 } from '@/lib/dashboard/dashboard-types';
 import { calcularScoreAtraso } from '@/lib/dashboard/dashboard-priority';
 import type { CardStatus } from '@/lib/supabase';
+import { STATUS_ENCERRADOS, ehAtrasado } from '@/lib/metrics/definicoes';
 import type { SpaceBottleneck } from '@/lib/dashboard/dashboard-types';
 
-/** Status que não representam trabalho em aberto. */
-const STATUS_FECHADOS: CardStatus[] = ['delivered', 'archived'];
+/** Status que não representam trabalho em aberto (definição oficial, a mesma de todas as telas). */
+const STATUS_FECHADOS = STATUS_ENCERRADOS;
 
 /**
  * Dados do Dashboard.
@@ -204,7 +205,7 @@ export function useDashboardData(period: DashboardPeriod, agora: Date, spaceId?:
 
   // Atrasado = tem prazo, o prazo já passou e o card não foi fechado.
   // A comparação é por instante, não por dia: 16:00 vira atraso às 16:01.
-  const atrasados = abertos.filter(c => c.due_date && c.due_date < agoraIso);
+  const atrasados = abertos.filter(c => ehAtrasado(c, agora));
 
   const overdueCards: OverdueCard[] = atrasados
     .map(c => {

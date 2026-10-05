@@ -8,8 +8,9 @@
 const HORA_MS = 3_600_000;
 const DIA_MS = 24 * HORA_MS;
 
-export const STATUS_ENCERRADOS = ['delivered', 'approved', 'archived'];
-export const ehAberto = (c: { status: string }) => !STATUS_ENCERRADOS.includes(c.status);
+// A regra de "aberto/encerrado" mora em lib/metrics/definicoes (fonte única); aqui só é reexportada.
+import { STATUS_ENCERRADOS, ehAberto } from '@/lib/metrics/definicoes';
+export { STATUS_ENCERRADOS, ehAberto };
 
 export interface CoordCard {
   id: string;

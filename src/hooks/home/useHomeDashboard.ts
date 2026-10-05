@@ -20,6 +20,7 @@ import type {
   HomeMetrics,
   HomeTaskItem,
 } from '@/lib/home/home-types';
+import { STATUS_ENCERRADOS_SQL } from '@/lib/metrics/definicoes';
 
 /**
  * Agregador de dados da Home.
@@ -58,7 +59,7 @@ export function useHomeDashboard() {
             .select('id, title, urgency, status, due_date, space_id, completed_at')
             .eq('workspace_id', workspaceId!)
             .eq('owner_id', userId!)
-            .not('status', 'in', '(delivered,archived)')
+            .not('status', 'in', STATUS_ENCERRADOS_SQL)
             .order('due_date', { ascending: true, nullsFirst: false })
             .limit(200);
 

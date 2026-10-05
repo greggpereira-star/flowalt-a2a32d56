@@ -33,6 +33,7 @@ import { useStatusLabel } from '@/hooks/useStatusLabel';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { cn } from '@/lib/utils';
 import { differenceInCalendarDays } from 'date-fns';
+import { STATUS_ENCERRADOS_SQL, ehAberto } from '@/lib/metrics/definicoes';
 
 const STATUS_COLORS: Record<string, string> = {
   backlog: 'bg-muted text-muted-foreground',
@@ -70,8 +71,7 @@ const TasksPage: React.FC = () => {
         `)
         .eq('workspace_id', currentWorkspace.id)
         .eq('owner_id', user.id)
-        .neq('status', 'archived')
-        .neq('status', 'delivered')
+        .not('status', 'in', STATUS_ENCERRADOS_SQL)
         .order('due_date', { ascending: true, nullsFirst: false });
 
       if (ownedError) throw ownedError;
@@ -94,7 +94,7 @@ const TasksPage: React.FC = () => {
       const memberCardsList = memberCards
         ?.map((m) => m.card)
         .filter((c): c is NonNullable<typeof c> => 
-          c !== null && (c as any).status !== 'archived' && (c as any).status !== 'delivered'
+          c !== null && ehAberto(c as { status: string })
         );
 
       const allCards = [...(ownedCards || [])];

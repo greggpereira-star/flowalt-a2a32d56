@@ -47,6 +47,7 @@ import { ExecutiveRiskPanel } from "@/components/partners/ExecutiveRiskPanel";
 import { ExecutiveAssetsPanel } from "@/components/partners/ExecutiveAssetsPanel";
 import { useSkinNovo } from '@/components/ui/skin-novo';
 import { cn } from '@/lib/utils';
+import { ehAtrasado } from '@/lib/metrics/definicoes';
 
 const COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"];
 
@@ -130,10 +131,7 @@ export default function PartnersPage() {
   const alerts = [];
   
   // Overdue cards
-  const overdueCards = cards.filter(c => {
-    if (!c.due_date || c.status === "delivered" || c.status === "archived") return false;
-    return new Date(c.due_date) < new Date();
-  });
+  const overdueCards = cards.filter(c => ehAtrasado(c));
   if (overdueCards.length > 0) {
     alerts.push({
       type: "critical",

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { STATUS_ENCERRADOS_SQL_ASPAS } from '@/lib/metrics/definicoes';
 
 export interface CardMemberAssignment {
   card_id: string;
@@ -33,7 +34,7 @@ export const useCardMemberAssignments = (options?: { includeInactive?: boolean }
         .eq('cards.workspace_id', currentWorkspace.id);
 
       if (!includeInactive) {
-        query = query.not('cards.status', 'in', '("delivered","archived")');
+        query = query.not('cards.status', 'in', STATUS_ENCERRADOS_SQL_ASPAS);
       }
 
       const { data, error } = await query;

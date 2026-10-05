@@ -23,6 +23,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, differenceInDays, differenceInSeconds, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { STATUS_ENCERRADOS_SQL } from '@/lib/metrics/definicoes';
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
@@ -60,9 +61,7 @@ export const WorkRadar: React.FC = () => {
         .select('id, title, due_date, status, urgency, space_id')
         .eq('workspace_id', currentWorkspace.id)
         .eq('owner_id', user.id)
-        .neq('status', 'archived')
-        .neq('status', 'delivered')
-        .neq('status', 'approved')
+        .not('status', 'in', STATUS_ENCERRADOS_SQL)
         .not('due_date', 'is', null)
         .lte('due_date', tomorrow.toISOString())
         .order('due_date', { ascending: true })

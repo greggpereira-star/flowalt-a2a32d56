@@ -51,6 +51,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useSkinNovo } from '@/components/ui/skin-novo';
 import { cn } from '@/lib/utils';
+import { STATUS_ENCERRADOS } from '@/lib/metrics/definicoes';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -88,7 +89,7 @@ interface MemberStats {
 }
 
 const STATUS_CONCLUIDO = ['delivered', 'approved'];
-const STATUS_ENCERRADO = ['delivered', 'approved', 'archived'];
+const STATUS_ENCERRADO = STATUS_ENCERRADOS;
 
 function iniciais(nome: string) {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
