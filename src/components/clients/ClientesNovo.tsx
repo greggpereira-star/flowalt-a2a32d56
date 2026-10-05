@@ -125,7 +125,7 @@ function CartaoCliente({
     <button
       type="button"
       onClick={onAbrir}
-      className="group flex min-h-[148px] flex-col rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:border-foreground/20 hover:bg-muted/20"
+      className="group flex flex-col rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:border-foreground/20 hover:bg-muted/20 sm:min-h-[148px]"
     >
       <div className="flex items-center gap-3">
         <div
@@ -145,7 +145,7 @@ function CartaoCliente({
         <Saude score={saude?.healthScore} estado={estado} />
       </div>
 
-      <p className="mt-5 text-[13px] text-muted-foreground">
+      <p className="mt-4 text-[13px] text-muted-foreground sm:mt-5">
         <span className="font-semibold text-foreground">{carteira.abertos}</span> {carteira.abertos === 1 ? 'card aberto' : 'cards abertos'}
         {atrasado && (
           <>
@@ -157,7 +157,7 @@ function CartaoCliente({
         )}
       </p>
 
-      <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+      <div className="mt-auto flex items-end justify-between gap-3 pt-2 sm:pt-3">
         <p className="min-w-0 truncate text-[12px] text-muted-foreground/80">
           {carteira.proxima ? (
             <>
@@ -258,7 +258,7 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
   ];
 
   return (
-    <div className="mx-auto max-w-[1180px] space-y-6 px-4 py-6 sm:px-8 sm:py-8">
+    <div className="mx-auto max-w-[1180px] space-y-6 px-4 pb-28 pt-6 sm:px-8 sm:py-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">Clientes</h1>
@@ -270,15 +270,15 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.rotulo} className={cn('rounded-2xl border bg-card p-5 shadow-sm', k.alerta ? 'border-red-500/30' : 'border-border/60')}>
-            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
+          <div key={k.rotulo} className={cn('rounded-2xl border bg-card p-4 shadow-sm sm:p-5', k.alerta ? 'border-red-500/30' : 'border-border/60')}>
+            <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-muted-foreground sm:text-[13px]">
               {k.alerta && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
               {k.rotulo}
             </p>
-            <p className={cn('mt-2.5 text-[32px] font-extrabold leading-none tracking-tight', k.alerta && 'text-red-600 dark:text-red-400')}>{k.valor}</p>
-            <p className="mt-1.5 text-[12.5px] text-muted-foreground">{k.sub}</p>
+            <p className={cn('mt-2 text-[26px] font-extrabold leading-none tracking-tight sm:mt-2.5 sm:text-[32px]', k.alerta && 'text-red-600 dark:text-red-400')}>{k.valor}</p>
+            <p className="mt-1 truncate text-[12px] text-muted-foreground sm:mt-1.5 sm:text-[12.5px]">{k.sub}</p>
           </div>
         ))}
       </div>
@@ -301,15 +301,15 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
           ))}
         </div>
 
-        <div className="flex items-center gap-1 pb-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-1 pb-2 sm:flex-nowrap">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar"
               aria-label="Buscar cliente"
-              className="h-8 w-32 rounded-lg bg-transparent pl-8 pr-2 text-[13px] outline-none transition-all placeholder:text-muted-foreground hover:bg-muted/60 focus:w-52 focus:bg-muted/60"
+              className="h-9 w-full rounded-lg bg-muted/50 pl-8 pr-2 text-[13px] outline-none transition-all placeholder:text-muted-foreground hover:bg-muted/60 focus:bg-muted/60 sm:h-8 sm:w-32 sm:bg-transparent sm:focus:w-52"
             />
           </div>
           <select
