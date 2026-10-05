@@ -320,6 +320,9 @@ export const AppSidebar: React.FC = () => {
                 <DropdownMenuCheckboxItem checked={beta.config} onCheckedChange={(v) => beta.definir({ config: !!v })}>
                   Configurações com visual novo
                 </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={beta.alertas} onCheckedChange={(v) => beta.definir({ alertas: !!v })}>
+                  Notificações com visual novo
+                </DropdownMenuCheckboxItem>
               </>
             )}
             <DropdownMenuSeparator />

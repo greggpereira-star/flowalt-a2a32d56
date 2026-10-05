@@ -19,7 +19,10 @@ import {
   Shield,
   X,
   Filter,
+  MoreHorizontal,
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -95,6 +98,7 @@ const priorityBorder: Record<Notice['priority'], string> = {
 
 export function UnifiedAlertsCenter() {
   const navigate = useNavigate();
+  const { alertas: novo } = useNewUiBeta();
   const [open, setOpen] = useState(false);
   
   const [mandatoryNotice, setMandatoryNotice] = useState<Notice | null>(null);
@@ -255,6 +259,18 @@ export function UnifiedAlertsCenter() {
     [feedItems],
   );
 
+  /* ── Visual novo: itens agrupados por dia ── */
+  const gruposDoFeed = useMemo(() => {
+    const grupos: { titulo: string; itens: FeedItem[] }[] = [];
+    visibleFeed.forEach((item) => {
+      const titulo = grupoDeData(item.createdAt);
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.titulo === titulo) ultimo.itens.push(item);
+      else grupos.push({ titulo, itens: [item] });
+    });
+    return grupos;
+  }, [visibleFeed]);
+
   /* ── Limpar tudo (respeitando filtro) ── */
   const clearVisible = () => {
     if (onlyUnread) {
@@ -310,6 +326,167 @@ export function UnifiedAlertsCenter() {
           </Button>
         </SheetTrigger>
 
+        {novo ? (
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[26rem]">
+          <SheetHeader className="space-y-0 px-5 pb-3 pr-14 pt-5 text-left">
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-xl font-extrabold tracking-tight">Notificações</SheetTitle>
+              {totalUnread > 0 && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold tabular-nums text-primary-foreground">
+                  {totalUnread}
+                </span>
+              )}
+            </div>
+            <p className="pt-0.5 text-[13px] text-muted-foreground">
+              {totalUnreadInFeed > 0
+                ? `${totalUnreadInFeed} ${totalUnreadInFeed === 1 ? 'não lida' : 'não lidas'}`
+                : 'Tudo em dia'}
+            </p>
+          </SheetHeader>
+
+          {/* Todas | Não lidas  +  ações */}
+          <div className="flex items-center justify-between gap-2 border-b border-border/60 px-5 pb-3">
+            <div className="flex gap-1 rounded-xl border border-border/60 bg-card p-1" role="tablist" aria-label="Filtro das notificações">
+              {([['todas', 'Todas', 0], ['nao-lidas', 'Não lidas', totalUnreadInFeed]] as const).map(([chave, rotulo, n]) => {
+                const ativo = (chave === 'nao-lidas') === onlyUnread;
+                return (
+                  <button
+                    key={chave}
+                    type="button"
+                    role="tab"
+                    aria-selected={ativo}
+                    onClick={() => setOnlyUnread(chave === 'nao-lidas')}
+                    className={cn(
+                      'rounded-lg px-3 py-1 text-[13px] font-semibold transition-colors',
+                      ativo ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {rotulo}
+                    {n > 0 && <span className="ml-1.5 opacity-70 tabular-nums">{n > 99 ? '99+' : n}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {(totalUnreadInFeed > 0 || canClear) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" aria-label="Mais ações">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5">
+                  {totalUnreadInFeed > 0 && (
+                    <DropdownMenuItem
+                      className="h-9 gap-2.5 rounded-lg text-[13px] font-medium"
+                      onClick={() => {
+                        if (unreadNotifications > 0) markAllAsRead.mutate();
+                        notices
+                          .filter((n) => !n.requires_confirmation && !readNotices.includes(n.id))
+                          .forEach((n) => markNoticeAsRead.mutate(n.id));
+                      }}
+                    >
+                      <CheckCheck className="h-4 w-4 text-muted-foreground" />
+                      Marcar todas como lidas
+                    </DropdownMenuItem>
+                  )}
+                  {canClear && (
+                    <>
+                      {totalUnreadInFeed > 0 && <DropdownMenuSeparator className="my-1.5" />}
+                      <DropdownMenuItem
+                        className="h-9 gap-2.5 rounded-lg text-[13px] font-medium text-destructive focus:bg-destructive/10 focus:text-destructive"
+                        onClick={clearVisible}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {onlyUnread ? 'Limpar não lidas' : 'Limpar tudo'}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="px-3 pb-8 pt-2">
+              {birthdaysVisible && (
+                <div className="mb-3 px-2">
+                  <BirthdaysAlertCard
+                    members={otherBirthdays}
+                    onDismiss={dismissBirthdays}
+                    onOpenCalendar={() => {
+                      navigate('/birthdays');
+                      setOpen(false);
+                    }}
+                  />
+                </div>
+              )}
+
+              {pendingInvites.length > 0 && (
+                <div className="mb-3 space-y-2 px-2">
+                  {pendingInvites.map((invite) => (
+                    <PendingInviteItem
+                      key={invite.id}
+                      invite={invite}
+                      onAccept={() => handleAcceptInvite(invite.token)}
+                      isAccepting={acceptInvite.isPending}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {(loadingNotifications || loadingNotices || loadingInvites) && feedItems.length === 0 ? (
+                <div className="space-y-2 px-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-[72px] animate-pulse rounded-xl bg-muted" />
+                  ))}
+                </div>
+              ) : visibleFeed.length === 0 && !birthdaysVisible && pendingInvites.length === 0 ? (
+                <div className="flex flex-col items-center px-6 py-16 text-center">
+                  <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                    <CheckCheck className="h-6 w-6" />
+                  </span>
+                  <p className="text-[15px] font-bold">{onlyUnread ? 'Nada não lido' : 'Tudo em dia'}</p>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    {onlyUnread ? 'Você já viu tudo por aqui.' : 'Quando algo precisar da sua atenção, aparece aqui.'}
+                  </p>
+                </div>
+              ) : (
+                gruposDoFeed.map((grupo) => (
+                  <section key={grupo.titulo} className="mt-3 first:mt-1">
+                    <h3 className="mb-1 px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/80">
+                      {grupo.titulo}
+                    </h3>
+                    <ul className="space-y-0.5">
+                      {grupo.itens.map((item) =>
+                        item.kind === 'notification' ? (
+                          <li key={item.id}>
+                            <NotificationRowNovo
+                              notification={item.data}
+                              onClick={() => handleNotificationClick(item.data)}
+                              onMarkRead={() => markAsRead.mutate(item.data.id)}
+                              onDelete={() => deleteNotification.mutate(item.data.id)}
+                            />
+                          </li>
+                        ) : (
+                          <li key={item.id}>
+                            <NoticeRowNovo
+                              notice={item.data}
+                              isRead={!item.isUnread}
+                              onMarkRead={() => markNoticeAsRead.mutate(item.data.id)}
+                              onOpenMandatory={() => setMandatoryNotice(item.data)}
+                            />
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </section>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+        ) : (
         <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
           <SheetHeader className="px-6 pt-6 pb-3 border-b border-border">
             <SheetTitle className="flex items-center gap-2">
@@ -457,6 +634,7 @@ export function UnifiedAlertsCenter() {
             </div>
           )}
         </SheetContent>
+        )}
       </Sheet>
 
       {mandatoryNotice && (
@@ -843,6 +1021,140 @@ function NoticeRow({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+
+/* ───────── Visual novo ───────── */
+
+function grupoDeData(iso: string) {
+  const dia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((dia(new Date()) - dia(new Date(iso))) / 86400000);
+  if (diff <= 0) return 'Hoje';
+  if (diff === 1) return 'Ontem';
+  if (diff <= 7) return 'Esta semana';
+  if (diff <= 30) return 'Este mês';
+  return 'Mais antigas';
+}
+
+function NotificationRowNovo({
+  notification: n,
+  onClick,
+  onMarkRead,
+  onDelete,
+}: {
+  notification: Notification;
+  onClick: () => void;
+  onMarkRead: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'group relative flex items-start gap-1 rounded-xl py-1 pl-4 pr-1 transition-colors hover:bg-muted/60',
+        !n.is_read && 'bg-primary/[0.05]',
+      )}
+    >
+      {!n.is_read && <span className="absolute left-1.5 top-[1.3rem] h-1.5 w-1.5 rounded-full bg-primary" aria-label="Não lida" />}
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-1 py-2 text-left">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
+          {notificationIcons[n.type] || <Bell className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-[14px] leading-snug', n.is_read ? 'font-medium' : 'font-bold')}>{n.title}</span>
+          <span className="mt-0.5 block line-clamp-2 text-[13px] leading-snug text-muted-foreground">{n.message}</span>
+          <span className="mt-1 block text-[11.5px] text-muted-foreground/80">
+            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
+          </span>
+        </span>
+      </button>
+      <div className="flex shrink-0 gap-0.5 pt-2 md:opacity-0 md:transition-opacity md:focus-within:opacity-100 md:group-hover:opacity-100">
+        {!n.is_read && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onMarkRead} aria-label="Marcar como lida">
+            <Check className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          aria-label="Remover"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function NoticeRowNovo({
+  notice,
+  isRead,
+  onMarkRead,
+  onOpenMandatory,
+}: {
+  notice: Notice;
+  isRead: boolean;
+  onMarkRead: () => void;
+  onOpenMandatory: () => void;
+}) {
+  const obrigatorio = notice.requires_confirmation && !isRead;
+  const importante = notice.priority === 'high' || notice.priority === 'critical';
+  return (
+    <div
+      className={cn(
+        'group relative flex items-start gap-3 rounded-xl py-3 pl-4 pr-3 transition-colors hover:bg-muted/60',
+        !isRead && 'bg-primary/[0.05]',
+        isRead && 'opacity-75',
+      )}
+    >
+      {!isRead && !obrigatorio && <span className="absolute left-1.5 top-[1.6rem] h-1.5 w-1.5 rounded-full bg-primary" aria-label="Não lido" />}
+      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', noticeCategoryColors[notice.category])}>
+        {noticeIcons[notice.category]}
+      </span>
+      <div className="min-w-0 flex-1">
+        {(obrigatorio || importante) && (
+          <div className="mb-1 flex flex-wrap gap-1.5">
+            {obrigatorio && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-bold text-amber-700 dark:text-amber-400">
+                <Shield className="h-3 w-3" />
+                Confirmação obrigatória
+              </span>
+            )}
+            {importante && !obrigatorio && (
+              <span className="inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[10.5px] font-bold text-destructive">
+                {notice.priority === 'critical' ? 'Crítico' : 'Importante'}
+              </span>
+            )}
+          </div>
+        )}
+        <p className={cn('text-[14px] leading-snug', isRead ? 'font-medium' : 'font-bold')}>{notice.title}</p>
+        {notice.content && (
+          <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">{notice.content}</p>
+        )}
+        <p className="mt-1 text-[11.5px] text-muted-foreground/80">
+          {format(new Date(notice.starts_at), "d 'de' MMM, HH:mm", { locale: ptBR })}
+        </p>
+        {obrigatorio && (
+          <Button size="sm" onClick={onOpenMandatory} className="mt-2.5 h-8 rounded-lg px-3 text-xs font-semibold">
+            <Shield className="mr-1.5 h-3.5 w-3.5" />
+            Confirmar leitura
+          </Button>
+        )}
+      </div>
+      {!isRead && !notice.requires_confirmation && (
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-lg" onClick={onMarkRead} aria-label="Descartar aviso">
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      {isRead && notice.requires_confirmation && (
+        <span className="flex shrink-0 items-center gap-1 text-[11.5px] font-semibold text-emerald-600 dark:text-emerald-400">
+          <Check className="h-3.5 w-3.5" />
+          Confirmado
+        </span>
+      )}
     </div>
   );
 }
