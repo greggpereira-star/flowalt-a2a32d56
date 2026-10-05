@@ -165,18 +165,18 @@ export default function ActivityPage() {
                             <li
                               key={item.id}
                               className={cn(
-                                'flex items-start gap-3.5 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:px-5',
+                                'flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40 sm:gap-3.5 sm:px-5 sm:py-3.5',
                                 index > 0 && 'border-t border-border/50',
                               )}
                             >
                               <span
-                                className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full', config.className)}
+                                className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:h-9 sm:w-9', config.className)}
                                 aria-hidden="true"
                               >
                                 <Icon className="h-4 w-4" strokeWidth={2} />
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="text-[14px] leading-snug text-foreground/80">
+                                <p className="line-clamp-3 text-[14px] leading-snug text-foreground/80 sm:line-clamp-2">
                                   <span className="font-bold text-foreground">{item.actor}</span> {item.actionText}
                                 </p>
                                 <p className="mt-0.5 text-[12px] text-muted-foreground sm:hidden">
