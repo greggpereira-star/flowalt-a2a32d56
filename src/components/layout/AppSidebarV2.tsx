@@ -6,6 +6,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -293,7 +294,7 @@ function PastaItem({
   }, [contemAtiva]);
 
   const classeSub =
-    'flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-foreground/65 ' +
+    'flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-foreground/65 max-md:h-10 ' +
     'transition-colors hover:bg-foreground/[0.04] hover:text-foreground';
 
   const podeGerenciar = !restrita && (ehAdmin || permissoes.canManageViews);
@@ -447,7 +448,7 @@ function PastaItem({
                 key={v.id}
                 to={`/space/${espacoId}?view=${v.id}`}
                 className={cn(
-                  'flex h-8 items-center rounded-lg px-3 text-[12.5px] font-medium text-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
+                  'flex h-8 items-center rounded-lg px-3 text-[12.5px] font-medium text-foreground/60 transition-colors max-md:h-10 hover:bg-foreground/[0.04] hover:text-foreground',
                   ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
                 )}
               >
@@ -553,6 +554,11 @@ function EspacoItem({
 export const AppSidebarV2: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
+  // No celular o menu é uma gaveta: depois de escolher um destino ela precisa fechar
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [location.pathname, location.search, isMobile, setOpenMobile]);
   const { user, signOut } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const { data: spaces, isLoading: carregandoEspacos } = useSpaces();
@@ -661,7 +667,7 @@ export const AppSidebarV2: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    'flex h-9 items-center rounded-lg px-3 text-[13px] font-medium text-foreground/65 transition-colors hover:bg-foreground/[0.04] hover:text-foreground',
+                    'flex h-9 items-center rounded-lg px-3 text-[13px] font-medium text-foreground/65 transition-colors max-md:h-10 hover:bg-foreground/[0.04] hover:text-foreground',
                     ativo && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
                   )}
                 >
@@ -730,19 +736,20 @@ export const AppSidebarV2: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <div className="contents max-md:flex max-md:gap-2">
         <button
           onClick={() => window.dispatchEvent(new Event('flowalt:abrir-busca'))}
-          className="flex h-10 w-full items-center gap-2.5 rounded-xl bg-muted/70 px-3.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted"
+          className="flex h-10 w-full items-center gap-2.5 rounded-xl bg-muted/70 px-3.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted max-md:order-2 max-md:w-11 max-md:flex-none max-md:justify-center max-md:px-0"
           aria-label="Abrir busca (Command K)"
         >
           <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">Buscar…</span>
-          <kbd className="rounded-md border bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">⌘K</kbd>
+          <span className="flex-1 text-left max-md:hidden">Buscar…</span>
+          <kbd className="rounded-md border bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground max-md:hidden">⌘K</kbd>
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="h-10 w-full gap-1.5 rounded-xl text-[13.5px] font-bold shadow-sm" aria-label="Criar novo">
+            <Button className="h-10 w-full gap-1.5 rounded-xl text-[13.5px] font-bold shadow-sm max-md:order-1 max-md:flex-1" aria-label="Criar novo">
               <Plus className="h-4 w-4" strokeWidth={2.5} /> Novo
             </Button>
           </DropdownMenuTrigger>
@@ -771,6 +778,7 @@ export const AppSidebarV2: React.FC = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="gap-0 overflow-hidden px-3 pb-2">
