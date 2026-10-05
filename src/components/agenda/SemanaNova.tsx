@@ -228,18 +228,53 @@ export function SemanaNova({
             Hoje
           </Button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3 sm:w-auto">
           {seletorDeVista}
-          <Button size="sm" className="h-10 rounded-xl px-4 font-bold shadow-sm" onClick={() => onNovo(diaSel)}>
+          <Button size="sm" className="h-10 flex-1 rounded-xl px-4 font-bold shadow-sm sm:flex-none" onClick={() => onNovo(diaSel)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo evento
           </Button>
         </div>
       </div>
 
+      {/* Celular: faixa com os 7 dias da semana (a grade de horas fica para telas maiores) */}
+      <div className="grid grid-cols-7 gap-1 md:hidden" role="tablist" aria-label="Dias da semana">
+        {dias.map((d) => {
+          const hoje = isToday(d);
+          const sel = isSameDay(d, diaSel);
+          const qtd = doDia(d).length;
+          return (
+            <button
+              key={d.toISOString()}
+              type="button"
+              role="tab"
+              aria-selected={sel}
+              onClick={() => setDiaSel(d)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-2xl border py-2.5 transition-colors',
+                sel ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card'
+              )}
+            >
+              <span className={cn('text-[11px] font-semibold capitalize', sel ? 'text-background/80' : 'text-muted-foreground')}>
+                {format(d, 'EEE', { locale: ptBR }).replace('.', '').slice(0, 3)}
+              </span>
+              <span
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold',
+                  hoje && !sel && 'bg-primary text-primary-foreground'
+                )}
+              >
+                {format(d, 'd')}
+              </span>
+              <span className={cn('h-1.5 w-1.5 rounded-full', qtd > 0 ? (sel ? 'bg-background' : 'bg-primary') : 'bg-transparent')} aria-hidden="true" />
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* Semana */}
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        {/* Semana (a partir de tablet) */}
+        <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-card md:block">
           <div className="max-h-[68vh] overflow-y-auto">
             <div className="sticky top-0 z-20 border-b border-border/60 bg-card">
               <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))]">

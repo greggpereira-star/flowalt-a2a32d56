@@ -99,9 +99,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   // Visual novo (opção beta pessoal): só muda classes; dados e comportamento são os mesmos.
   const { agenda: novo } = useNewUiBeta();
   const isMobile = useIsMobile();
-  // Visual novo no desktop abre na semana (grade de horas + painel do dia); o mês continua disponível.
+  // Visual novo abre na semana (no desktop: grade de horas + painel do dia; no celular: faixa de dias + lista do dia); o mês continua disponível.
   const [vista, setVista] = useState<'semana' | 'mes'>('semana');
-  const usaSemana = novo && !isMobile && vista === 'semana';
+  const usaSemana = novo && vista === 'semana';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
@@ -463,7 +463,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const seletorDeVista = (
-    <div className="flex rounded-xl border border-border/60 bg-card p-0.5">
+    <div className="flex w-fit shrink-0 rounded-xl border border-border/60 bg-card p-0.5">
       {(['semana', 'mes'] as const).map((v) => (
         <button
           key={v}
@@ -543,7 +543,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onEventClick }) => {
           </Button>
         </div>
 
-        {novo && !isMobile && <div className="sm:ml-4 sm:mr-auto">{seletorDeVista}</div>}
+        {novo && <div className="sm:ml-4 sm:mr-auto">{seletorDeVista}</div>}
         <Button 
           size="sm" 
           onClick={() => {
