@@ -19,10 +19,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft, Plus, Search, Star, ImagePlus, Share2, CheckSquare, X,
-  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard, Loader2,
+  FolderInput, Trash2, FolderOpen, Sparkles, HelpCircle, Keyboard, Loader2, MoreHorizontal,
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useSkinNovo } from '@/components/ui/skin-novo';
+import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, useSensor, useSensors, useDroppable,
@@ -186,7 +188,8 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
     files.forEach(quickAddFile);
   };
 
-  const novo = useSkinNovo();
+  const { respiro } = useNewUiBeta();
+  const novo = useSkinNovo() || respiro;
   return (
     <TooltipProvider delayDuration={200}>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -215,7 +218,12 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                       </Badge>
                     )}
                   </div>
-                  {board?.description && (
+                  {novo ? (
+                    <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">
+                      {board?.description && board.description !== 'Quadro padrão desta pasta.' && <>{board.description} · </>}
+                      <span className="tabular-nums">{filtered.length} {filtered.length === 1 ? 'referência' : 'referências'}</span>
+                    </p>
+                  ) : board?.description && (
                     <p className="text-sm text-muted-foreground line-clamp-1">{board.description}</p>
                   )}
                   {board?.tags && board.tags.length > 0 && (
@@ -225,7 +233,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={cn('flex items-center gap-2', novo && 'hidden')}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -287,9 +295,9 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
               const activeCount = (activeType ? 1 : 0) + (isFav ? 1 : 0) + (q.trim() ? 1 : 0);
 
               return (
-                <div role="toolbar" aria-label="Filtros do quadro" className="flex items-center gap-2 flex-wrap">
+                <div role="toolbar" aria-label="Filtros do quadro" className={cn('flex items-center gap-2 flex-wrap', novo && 'rounded-2xl border border-border/60 bg-card p-2 shadow-sm')}>
                   {/* Search */}
-                  <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <div className={cn('relative flex-1 min-w-[200px] max-w-sm', novo && 'max-w-md')}>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                     <label htmlFor="ib-board-search" className="sr-only">Buscar referência</label>
                     <Input
@@ -297,7 +305,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                       ref={searchRef}
                       value={q} onChange={e => setQ(e.target.value)}
                       placeholder="Buscar referência..."
-                      className="pl-9 h-9 text-sm rounded-full bg-muted/40 border-transparent focus-visible:bg-background focus-visible:border-input"
+                      className={cn('pl-9 h-9 text-sm rounded-full bg-muted/40 border-transparent focus-visible:bg-background focus-visible:border-input', novo && 'h-10 rounded-xl border-border/70 bg-background shadow-none focus-visible:border-foreground/30')}
                     />
                   </div>
 
@@ -308,6 +316,7 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                         type="button"
                         className={cn(
                           'h-9 px-3 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 border',
+                          novo && 'h-10 rounded-xl text-[13px]',
                           activeCount > 0
                             ? 'bg-primary/10 text-primary border-primary/30'
                             : 'bg-background hover:bg-muted/60 border-input text-foreground'
@@ -460,9 +469,46 @@ export const BoardMoodboardView: React.FC<Props> = ({ boardId, onBack }) => {
                     </button>
                   )}
 
-                  <span className="text-[11px] text-muted-foreground ml-auto tabular-nums">
+                  <span className={cn('text-[11px] text-muted-foreground ml-auto tabular-nums', novo && 'hidden')}>
                     {filtered.length} {filtered.length === 1 ? 'referência' : 'referências'}
                   </span>
+
+                  {novo && (
+                    <div className="ml-auto flex items-center gap-2">
+                      {selectMode ? (
+                        <Button variant="ghost" className="h-10 rounded-xl" onClick={exitSelectMode} aria-label="Sair do modo de seleção">
+                          <X className="mr-2 h-4 w-4" aria-hidden="true" />Sair da seleção
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" aria-label="Mais ações do quadro">
+                              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem onClick={() => setSharing(true)}>
+                              <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />Compartilhar
+                            </DropdownMenuItem>
+                            {references.length > 0 && (
+                              <DropdownMenuItem onClick={() => setConvertingBoard(true)}>
+                                <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />Virar demanda
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => setSelectMode(true)}>
+                              <CheckSquare className="mr-2 h-4 w-4" aria-hidden="true" />Selecionar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setHowOpen(true)}>
+                              <HelpCircle className="mr-2 h-4 w-4" aria-hidden="true" />Como funciona
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                      <Button onClick={() => setAdding(true)} className="h-10 rounded-xl px-4 font-semibold shadow-sm" aria-keyshortcuts="N">
+                        <Plus className="mr-2 h-4 w-4" aria-hidden="true" />Referência
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })()}

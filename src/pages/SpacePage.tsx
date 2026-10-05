@@ -373,6 +373,8 @@ const SpacePage: React.FC = () => {
   }
 
   const isSocialMedia = space.type === 'social_media';
+  // No Banco de Ideias a busca/filtros/Adicionar da faixa de cima são de cards de tarefa: no visual novo somem e a tela usa a própria barra
+  const ehIdeiasNovo = !!visualNovo && view === 'ideas';
   const isEmptySpace = !foldersLoading && (!folders || folders.length === 0) && !activeViewId;
 
   // Show empty state for blank spaces (except social_media which has auto-structure)
@@ -395,7 +397,7 @@ const SpacePage: React.FC = () => {
 
         {/* Fixed Header - Always visible */}
         <div className={cn('flex-shrink-0 border-b bg-background', visualNovo ? 'border-border/60' : 'border-border')}>
-          <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3', visualNovo ? 'px-6 pb-4 pt-5' : 'px-4 py-2.5')}>
+          <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3', visualNovo ? (ehIdeiasNovo ? 'px-6 pb-0 pt-4' : 'px-6 pb-4 pt-5') : 'px-4 py-2.5')}>
             {/* Row 1 on mobile: breadcrumb + view switcher/add button share a line; becomes 3 separate flex items on sm+ via `contents` */}
             <div className="flex items-center justify-between gap-2 sm:contents">
               {visualNovo ? (
@@ -406,7 +408,7 @@ const SpacePage: React.FC = () => {
                     {viewLoading && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2">
-                    <h1 className="truncate text-xl font-bold tracking-tight sm:text-[22px]">
+                    <h1 className={cn("truncate text-xl font-bold tracking-tight sm:text-[22px]", ehIdeiasNovo && "text-sm font-semibold text-muted-foreground sm:text-sm")}>
                       {activeView ? activeView.name : space.name}
                     </h1>
                     {activeView && (
@@ -480,7 +482,7 @@ const SpacePage: React.FC = () => {
                 )}
 
                 {/* Show view type badge when a view is active */}
-                {activeView && (
+                {activeView && !ehIdeiasNovo && (
                   <Badge variant="secondary" className="gap-1 capitalize">
                     {activeView.view_type === 'kanban' && <LayoutGrid className="h-3 w-3" />}
                     {activeView.view_type === 'list' && <List className="h-3 w-3" />}
@@ -490,6 +492,7 @@ const SpacePage: React.FC = () => {
                 )}
 
                 {/* Add Button */}
+                {!ehIdeiasNovo && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="default" className={cn('h-9 gap-2 px-3 sm:px-4', visualNovo && 'h-10 rounded-xl px-4 font-semibold shadow-sm')}>
@@ -512,11 +515,12 @@ const SpacePage: React.FC = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                )}
               </div>
             </div>
 
             {/* Row 2 on mobile: Search + Filters, full width; center column on sm+ */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:flex-1 sm:max-w-xl sm:order-2">
+            <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:flex-1 sm:max-w-xl sm:order-2", ehIdeiasNovo && "hidden")}>
               <div className="relative w-full sm:flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
