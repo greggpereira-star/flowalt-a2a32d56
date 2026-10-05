@@ -228,7 +228,7 @@ export default function SettingsPage() {
       
       <div className={cn('container mx-auto p-6 max-w-6xl', novo && 'px-4 pb-28 pt-6 sm:px-8 sm:py-8 sm:pb-10')}>
         <div className={cn('mb-6', novo && 'mb-8')}>
-          <h1 className="text-2xl font-bold">Configurações do Workspace</h1>
+          <h1 className={cn("text-2xl font-bold", novo && "max-sm:!text-[24px]")}>Configurações do Workspace</h1>
           <p className="text-muted-foreground">
             Gerencie membros, governança, espaços e configurações operacionais
           </p>
@@ -402,7 +402,7 @@ export default function SettingsPage() {
           )}
 
           {/* Painéis: no visual novo ocupam a coluna da direita */}
-          <div className={novo ? 'min-w-0 flex-1 [&>*]:!mt-0' : 'contents [&>*]:mt-8'}>
+          <div className={novo ? 'config-novo min-w-0 flex-1 [&>*]:!mt-0' : 'contents [&>*]:mt-8'}>
 
           {/* User Profile */}
           <TabsContent value="profile">

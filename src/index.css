@@ -1198,3 +1198,21 @@
   background: transparent;
   box-shadow: none;
 }
+
+/* Configurações no celular: abas internas dos painéis rolam para o lado em vez de espremer ou cortar o texto. */
+@media (max-width: 767px) {
+  .config-novo [role="tablist"]:not(.tablist-limpo) {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .config-novo [role="tablist"]:not(.tablist-limpo)::-webkit-scrollbar {
+    display: none;
+  }
+  .config-novo [role="tablist"]:not(.tablist-limpo) > [role="tab"] {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
