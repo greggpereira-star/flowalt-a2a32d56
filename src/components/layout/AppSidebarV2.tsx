@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -185,16 +185,26 @@ function useContagens() {
 // peças visuais
 // ---------------------------------------------------------------------------
 const classeLinha =
-  'group/linha flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[13.5px] font-semibold ' +
+  'group/linha flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[13.5px] font-semibold group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ' +
   'text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground';
 const classeAtiva = 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary';
+
+// Nomes cadastrados em CAIXA ALTA (ex.: TAREFAS) aparecem como "Tarefas"; siglas curtas (CRM) ficam como estão.
+function rotuloPasta(nome: string) {
+  const letras = nome.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  if (letras.length > 4 && nome === nome.toUpperCase()) {
+    const minusculo = nome.toLowerCase();
+    return minusculo.charAt(0).toUpperCase() + minusculo.slice(1);
+  }
+  return nome;
+}
 
 function Contador({ valor, destaque }: { valor?: number; destaque?: boolean }) {
   if (!valor) return null;
   return (
     <span
       className={cn(
-        'ml-auto min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums leading-5',
+        'ml-auto min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums leading-5 group-data-[collapsible=icon]:hidden',
         destaque ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
       )}
     >
@@ -205,9 +215,9 @@ function Contador({ valor, destaque }: { valor?: number; destaque?: boolean }) {
 
 function LinhaItem({ item, ativo }: { item: Item; ativo: boolean }) {
   return (
-    <Link to={item.path} className={cn(classeLinha, ativo && classeAtiva)} aria-current={ativo ? 'page' : undefined}>
+    <Link to={item.path} title={item.label} className={cn(classeLinha, ativo && classeAtiva)} aria-current={ativo ? 'page' : undefined}>
       <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-      <span className="truncate">{item.label}</span>
+      <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
       <Contador valor={item.contagem} />
     </Link>
   );
@@ -215,9 +225,9 @@ function LinhaItem({ item, ativo }: { item: Item; ativo: boolean }) {
 
 function Rotulo({ children, acao }: { children: React.ReactNode; acao?: React.ReactNode }) {
   return (
-    <div className="mb-1 mt-5 flex items-center px-3">
-      <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/80">{children}</span>
-      <span className="ml-auto">{acao}</span>
+    <div className="mb-1 mt-5 flex items-center px-3 group-data-[collapsible=icon]:mx-2 group-data-[collapsible=icon]:mb-2 group-data-[collapsible=icon]:mt-3 group-data-[collapsible=icon]:border-t group-data-[collapsible=icon]:px-0">
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/80 group-data-[collapsible=icon]:hidden">{children}</span>
+      <span className="ml-auto group-data-[collapsible=icon]:hidden">{acao}</span>
     </div>
   );
 }
@@ -245,7 +255,7 @@ function CronometroAtivo() {
     <Link
       to="/time"
       title="Cronômetro em andamento"
-      className="mb-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary"
+      className="mb-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary group-data-[collapsible=icon]:hidden"
     >
       <span className="relative flex h-2 w-2 shrink-0">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
@@ -395,7 +405,7 @@ function PastaItem({
     return (
       <div className={cn(classeSub, 'cursor-not-allowed opacity-60')} title="Pasta pessoal de outro usuário">
         <Lock className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{pasta.name}</span>
+        <span className="truncate">{rotuloPasta(pasta.name)}</span>
       </div>
     );
   }
@@ -415,7 +425,7 @@ function PastaItem({
           className={cn(classeSub, podeGerenciar && 'pr-9', ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary')}
           title={`${pasta.name} · ${visao.name}`}
         >
-          <span className="truncate">{pasta.name}</span>
+          <span className="truncate">{rotuloPasta(pasta.name)}</span>
         </Link>
         {menuDaPasta('right-1.5')}
         {dialogos}
@@ -433,14 +443,14 @@ function PastaItem({
           aria-expanded={aberto}
           title={pasta.name}
         >
-          <span className="truncate">{pasta.name}</span>
+          <span className="truncate">{rotuloPasta(pasta.name)}</span>
           <ChevronDown className={cn('ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
         </button>
         {menuDaPasta('right-8')}
         {dialogos}
       </div>
       {aberto && (
-        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border/70 pl-2">
+        <div className="mt-0.5 space-y-0.5 pl-2">
           {lista.map(v => {
             const ativa = noEspacoAtivo && visaoAtual === v.id;
             return (
@@ -449,7 +459,8 @@ function PastaItem({
                 to={`/space/${espacoId}?view=${v.id}`}
                 className={cn(
                   'flex h-8 items-center rounded-lg px-3 text-[12.5px] font-medium text-foreground/60 transition-colors max-md:h-10 hover:bg-foreground/[0.04] hover:text-foreground',
-                  ativa && 'bg-primary/10 font-semibold text-primary hover:bg-primary/10 hover:text-primary'
+                  'before:mr-2.5 before:h-1 before:w-1 before:shrink-0 before:rounded-full before:bg-current before:opacity-35 before:content-[\'\']',
+                  ativa && 'bg-primary/10 font-semibold text-primary before:opacity-100 hover:bg-primary/10 hover:text-primary'
                 )}
               >
                 <span className="truncate">{v.name}</span>
@@ -475,6 +486,7 @@ function EspacoItem({
 }) {
   const location = useLocation();
   const { user } = useAuth();
+  const { state: estadoMenu, setOpen: abrirMenu, isMobile } = useSidebar();
   const visaoAtual = new URLSearchParams(location.search).get('view');
   const noEspacoAtivo = location.pathname === `/space/${espaco.id}`;
   const [aberto, definirAberto] = useFlag(`espaco_${espaco.id}`, false);
@@ -490,12 +502,21 @@ function EspacoItem({
 
   return (
     <div>
-      <div className={cn(classeLinha, 'pr-2', noEspacoAtivo && 'text-foreground')}>
+      <div className={cn(classeLinha, 'pr-2 group-data-[collapsible=icon]:pr-0', noEspacoAtivo && 'text-foreground')}>
         <button
-          onClick={() => definirAberto(!mostrar)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={() => {
+            // Com o menu em ícones, tocar num espaço reabre o menu já com ele aberto.
+            if (!isMobile && estadoMenu === 'collapsed') {
+              abrirMenu(true);
+              definirAberto(true);
+            } else {
+              definirAberto(!mostrar);
+            }
+          }}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left group-data-[collapsible=icon]:justify-center"
           aria-expanded={mostrar}
           aria-label={`${mostrar ? 'Recolher' : 'Expandir'} ${espaco.name}`}
+          title={espaco.name}
         >
           <span
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
@@ -503,12 +524,12 @@ function EspacoItem({
           >
             <Icone className="h-3.5 w-3.5" strokeWidth={2.1} />
           </span>
-          <span className="truncate">{espaco.name}</span>
+          <span className="truncate group-data-[collapsible=icon]:hidden">{espaco.name}</span>
         </button>
         {ehAdmin && (
           <button
             onClick={aoGerenciar}
-            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground group-hover/linha:flex"
+            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground group-hover/linha:flex group-data-[collapsible=icon]:!hidden"
             title="Gerenciar pastas e visões"
             aria-label={`Gerenciar ${espaco.name}`}
           >
@@ -516,13 +537,13 @@ function EspacoItem({
           </button>
         )}
         <Contador valor={contagem} />
-        <button onClick={() => definirAberto(!mostrar)} tabIndex={-1} aria-hidden="true" className="flex h-6 w-5 items-center justify-center">
+        <button onClick={() => definirAberto(!mostrar)} tabIndex={-1} aria-hidden="true" className="flex h-6 w-5 items-center justify-center group-data-[collapsible=icon]:hidden">
           <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', mostrar && 'rotate-180')} />
         </button>
       </div>
 
       {mostrar && (
-        <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5">
+        <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5 group-data-[collapsible=icon]:hidden">
           {isLoading ? (
             <>
               <Skeleton className="h-9 w-full rounded-lg" />
@@ -554,7 +575,7 @@ function EspacoItem({
 export const AppSidebarV2: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state: estadoMenu, setOpen: abrirMenu } = useSidebar();
   // No celular o menu é uma gaveta: depois de escolher um destino ela precisa fechar
   useEffect(() => {
     if (isMobile) setOpenMobile(false);
@@ -567,6 +588,30 @@ export const AppSidebarV2: React.FC = () => {
   const { has } = useEntitlementRegistry();
   const beta = useNewUiBeta();
   const { porEspaco, meus } = useContagens();
+  // Sombras discretas no topo/base da lista quando há mais conteúdo rolando por baixo
+  const rolagemRef = useRef<HTMLDivElement>(null);
+  const [sombra, definirSombra] = useState({ topo: false, base: false });
+  const medirRolagem = useCallback(() => {
+    const el = rolagemRef.current;
+    if (!el) return;
+    const topo = el.scrollTop > 4;
+    const base = el.scrollTop + el.clientHeight < el.scrollHeight - 4;
+    definirSombra(atual => (atual.topo === topo && atual.base === base ? atual : { topo, base }));
+  }, []);
+  useEffect(() => {
+    const el = rolagemRef.current;
+    if (!el) return;
+    medirRolagem();
+    const redimensionou = new ResizeObserver(medirRolagem);
+    redimensionou.observe(el);
+    const mudou = new MutationObserver(medirRolagem);
+    mudou.observe(el, { childList: true, subtree: true });
+    return () => {
+      redimensionou.disconnect();
+      mudou.disconnect();
+    };
+  }, [medirRolagem]);
+
   const [gerenciando, setGerenciando] = useState<{ id: string; name: string; color?: string; icon?: string; type?: string } | null>(null);
 
   const temAcessoIntegracoes = isAdmin || isCoordinator;
@@ -642,10 +687,18 @@ export const AppSidebarV2: React.FC = () => {
     return (
       <div>
         <button
-          onClick={() => definir(!visivel)}
+          onClick={() => {
+            if (!isMobile && estadoMenu === 'collapsed') {
+              abrirMenu(true);
+              definir(true);
+            } else {
+              definir(!visivel);
+            }
+          }}
           className={cn(classeLinha, noCaminho(itens) && 'text-primary')}
           aria-expanded={visivel}
           aria-label={`${visivel ? 'Recolher' : 'Expandir'} ${titulo}`}
+          title={titulo}
         >
           <span
             className={cn(
@@ -655,11 +708,11 @@ export const AppSidebarV2: React.FC = () => {
           >
             <Icone className="h-3.5 w-3.5" strokeWidth={2.1} />
           </span>
-          <span className="flex-1 text-left">{titulo}</span>
-          <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', visivel && 'rotate-180')} />
+          <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">{titulo}</span>
+          <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[collapsible=icon]:hidden', visivel && 'rotate-180')} />
         </button>
         {visivel && (
-          <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5">
+          <div className="ml-[1.1rem] mt-0.5 space-y-0.5 border-l border-border/70 pl-2.5 group-data-[collapsible=icon]:hidden">
             {itens.map(item => {
               const ativo = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
               return (
@@ -690,26 +743,26 @@ export const AppSidebarV2: React.FC = () => {
   );
 
   return (
-    <Sidebar className="border-r border-sidebar-border" data-tour="sidebar">
-      <SidebarHeader className="gap-3 px-4 pb-3 pt-5">
-        <div className="flex items-center px-1">
-          <FlowaltLogo size={30} wordmarkClassName="text-[1.05rem]" />
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border" data-tour="sidebar">
+      <SidebarHeader className="gap-3 px-4 pb-3 pt-5 group-data-[collapsible=icon]:px-2">
+        <div className="flex items-center px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <FlowaltLogo size={30} wordmarkClassName="text-[1.05rem] group-data-[collapsible=icon]:hidden" />
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="h-11 w-full justify-between rounded-xl bg-card px-3 shadow-sm"
+              className="h-11 w-full justify-between rounded-xl bg-card px-3 shadow-sm group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               data-tour="workspace-selector"
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
                   <Building2 className="h-4 w-4 text-primary" />
                 </div>
-                <span className="truncate text-sm font-semibold">{currentWorkspace?.name || 'Selecionar Workspace'}</span>
+                <span className="truncate text-sm font-semibold group-data-[collapsible=icon]:hidden">{currentWorkspace?.name || 'Selecionar Workspace'}</span>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -739,18 +792,18 @@ export const AppSidebarV2: React.FC = () => {
         <div className="contents max-md:flex max-md:gap-2">
         <button
           onClick={() => window.dispatchEvent(new Event('flowalt:abrir-busca'))}
-          className="flex h-10 w-full items-center gap-2.5 rounded-xl bg-muted/70 px-3.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted max-md:order-2 max-md:w-11 max-md:flex-none max-md:justify-center max-md:px-0"
+          className="flex h-10 w-full items-center gap-2.5 rounded-xl bg-muted/70 px-3.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted max-md:order-2 max-md:w-11 max-md:flex-none max-md:justify-center max-md:px-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
           aria-label="Abrir busca (Command K)"
         >
           <Search className="h-4 w-4" />
-          <span className="flex-1 text-left max-md:hidden">Buscar…</span>
-          <kbd className="rounded-md border bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground max-md:hidden">⌘K</kbd>
+          <span className="flex-1 text-left max-md:hidden group-data-[collapsible=icon]:hidden">Buscar…</span>
+          <kbd className="rounded-md border bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground max-md:hidden group-data-[collapsible=icon]:hidden">⌘K</kbd>
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="h-10 w-full gap-1.5 rounded-xl text-[13.5px] font-bold shadow-sm max-md:order-1 max-md:flex-1" aria-label="Criar novo">
-              <Plus className="h-4 w-4" strokeWidth={2.5} /> Novo
+            <Button className="h-10 w-full gap-1.5 rounded-xl text-[13.5px] font-bold shadow-sm max-md:order-1 max-md:flex-1 group-data-[collapsible=icon]:px-0" aria-label="Criar novo" title="Novo">
+              <Plus className="h-4 w-4" strokeWidth={2.5} /> <span className="group-data-[collapsible=icon]:hidden">Novo</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64 rounded-xl p-1.5">
@@ -781,9 +834,14 @@ export const AppSidebarV2: React.FC = () => {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 overflow-hidden px-3 pb-2">
+      <SidebarContent className="gap-0 overflow-hidden px-3 pb-2 group-data-[collapsible=icon]:px-2">
         {/* A área com nav e espaços rola; Gestão e Mais ficam fixos logo acima do rodapé. */}
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={rolagemRef}
+          onScroll={medirRolagem}
+          className="min-h-0 flex-1 overflow-y-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
         <nav className="space-y-0.5" aria-label="Principal">
           {principais.map(item => (
             <LinhaItem key={item.path} item={item} ativo={location.pathname === item.path} />
@@ -842,27 +900,30 @@ export const AppSidebarV2: React.FC = () => {
           {/* Gestão e Mais abertos rolam junto com o menu, sem ficar presos por cima da lista. */}
           {algumAberto && <div className="mt-4 space-y-0.5 pb-2">{grupos}</div>}
         </div>
+        <div aria-hidden="true" className={cn('pointer-events-none absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-sidebar to-transparent transition-opacity', sombra.topo ? 'opacity-100' : 'opacity-0')} />
+        <div aria-hidden="true" className={cn('pointer-events-none absolute inset-x-0 bottom-0 h-7 bg-gradient-to-t from-sidebar to-transparent transition-opacity', sombra.base ? 'opacity-100' : 'opacity-0')} />
+        </div>
 
         {/* Recolhidos, ficam fixos no rodapé do menu, com respiro em relação à lista. */}
         {!algumAberto && <div className="mt-3 shrink-0 space-y-0.5 pb-1">{grupos}</div>}
       </SidebarContent>
 
-      <SidebarFooter className="px-3 pb-4 pt-2" data-tour="user-menu">
+      <SidebarFooter className="px-3 pb-4 pt-2 group-data-[collapsible=icon]:px-2" data-tour="user-menu">
         <CronometroAtivo />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-auto w-full justify-start gap-2.5 rounded-xl px-2 py-2">
+            <Button variant="ghost" className="h-auto w-full justify-start gap-2.5 rounded-xl px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               <Avatar className="h-9 w-9 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">{iniciais}</AvatarFallback>
               </Avatar>
-              <div className="flex min-w-0 flex-1 flex-col items-start text-left">
+              <div className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
                 <span className="max-w-[130px] truncate text-sm font-semibold">
                   {user?.user_metadata?.full_name?.split(' ')[0] || 'Usuário'}
                 </span>
                 <span className="max-w-[130px] truncate text-xs text-muted-foreground">{user?.email}</span>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 rounded-xl">
