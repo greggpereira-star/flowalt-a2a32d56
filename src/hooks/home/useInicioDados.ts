@@ -23,7 +23,7 @@ interface Bruto extends CardRow {
   space: { id: string; name: string; color: string | null } | null;
 }
 
-async function buscarCards(workspaceId: string): Promise<Bruto[]> {
+export async function buscarCards(workspaceId: string): Promise<Bruto[]> {
   const desde = new Date(Date.now() - DIAS * 86_400_000).toISOString();
   const linhas: Bruto[] = [];
   const PAGINA = 1000;

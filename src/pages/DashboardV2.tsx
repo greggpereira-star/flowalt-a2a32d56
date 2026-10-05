@@ -1,3 +1,6 @@
+import { Link, useSearchParams } from 'react-router-dom';
+import { UserRound } from 'lucide-react';
+import { DashboardExecutor } from '@/components/dashboard/executor/DashboardExecutor';
 import { useMemo } from 'react';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarRange, Layers } from 'lucide-react';
@@ -35,7 +38,7 @@ import type { DashboardAgendaEvent } from '@/lib/dashboard/dashboard-types';
  * significaria descobrir problemas com todo mundo dentro. Quando esta versão
  * for aprovada, a troca é uma linha no roteador.
  */
-export default function DashboardV2() {
+function DashboardGeral() {
   const { currentWorkspace } = useWorkspace();
   const { dashboard: novo } = useNewUiBeta();
   // Quem executa vê o próprio trabalho; quem coordena vê onde o time trava.
@@ -154,6 +157,13 @@ export default function DashboardV2() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <Button asChild variant="outline" size="sm" className={cn('gap-2', novo && 'h-10 rounded-xl border-border/60 bg-card px-3.5 font-semibold shadow-sm')}>
+              <Link to="/dashboard?visao=meu">
+                <UserRound className="h-4 w-4" aria-hidden="true" />
+                Meu desempenho
+              </Link>
+            </Button>
+
             <QuickActionMenu />
           </div>
         </header>
@@ -201,4 +211,38 @@ export default function DashboardV2() {
       </div>
     </AppLayout>
   );
+}
+
+/**
+ * O Dashboard muda conforme o nível de quem abre:
+ *  - quem executa (membro) vê só o próprio desempenho, com o time como régua;
+ *  - quem coordena ou é sócio vê a visão geral do workspace e pode alternar para "Meu desempenho".
+ * A visão geral continua a mesma por enquanto; as visões de coordenação e de sócio vêm nas próximas etapas.
+ */
+export default function DashboardV2() {
+  const permissoes = usePermissions();
+  const { loading } = useWorkspace();
+  const [params] = useSearchParams();
+  const gestao = permissoes.canViewCoordination;
+
+  // Enquanto o papel não carrega, nada de piscar a visão errada.
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="mx-auto w-full max-w-[1240px] px-4 pt-8 sm:px-8">
+          <div className="h-8 w-56 animate-pulse rounded-lg bg-muted" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!gestao || params.get('visao') === 'meu') {
+    return (
+      <AppLayout>
+        <DashboardExecutor podeVerGeral={gestao} pessoaId={gestao ? params.get('pessoa') ?? undefined : undefined} />
+      </AppLayout>
+    );
+  }
+
+  return <DashboardGeral />;
 }
