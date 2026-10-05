@@ -28,7 +28,6 @@ export const useGlobalShortcuts = (
       'a': '/analytics',
       't': '/tasks',
       'f': '/financial',
-      'p': '/partners',
       'g': '/gamification',
       'o': '/coordination',
     };

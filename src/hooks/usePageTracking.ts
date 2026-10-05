@@ -26,7 +26,6 @@ const ROUTE_TO_MODULE: Record<string, ModuleName> = {
   '/calendar': 'calendar',
   '/coordination': 'coordination',
   '/financial': 'financial',
-  '/partners': 'partners',
   '/gamification': 'gamification',
   '/analytics': 'analytics',
   '/settings': 'settings',

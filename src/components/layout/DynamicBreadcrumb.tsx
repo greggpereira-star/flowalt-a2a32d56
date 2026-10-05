@@ -28,7 +28,6 @@ const routeNames: Record<string, { label: string; icon?: React.ReactNode }> = {
   '/calendar': { label: 'Agenda' },
   '/coordination': { label: 'Coordenação' },
   '/financial': { label: 'Financeiro' },
-  '/partners': { label: 'Painel dos Sócios' },
   '/gamification': { label: 'Gamificação' },
   '/analytics': { label: 'Análises' },
   '/settings': { label: 'Configurações' },

@@ -69,7 +69,6 @@ import {
   Pencil,
   Trash2,
   Palette,
-  PieChart,
   Plug,
   Plus,
   Search,
@@ -631,7 +630,6 @@ export const AppSidebarV2: React.FC = () => {
     { icon: Calculator, label: 'AltControl', path: '/altcontrol' },
     { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
     { icon: DollarSign, label: 'Financeiro', path: '/financial' },
-    { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
     { icon: Trophy, label: 'Ranking', path: '/gamification' },
     { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
   ];

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -27,7 +27,6 @@ const TimePage = lazy(() => import("./pages/TimePage"));
 const CoordinationPage = lazy(() => import("./pages/CoordinationPage"));
 const AgendaPage = lazy(() => import("./pages/AgendaPage"));
 const FinancialPage = lazy(() => import("./pages/FinancialPage"));
-const PartnersPage = lazy(() => import("./pages/PartnersPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const IntegrationsPage = lazy(() => import("./pages/IntegrationsPage"));
 // Dashboard novo em rota paralela enquanto o antigo segue servindo o time.
@@ -171,7 +170,7 @@ const App = () => (
                   <Route path="/coordination" element={<GestaoSkin><CoordinationPage /></GestaoSkin>} />
                   <Route path="/calendar" element={<AgendaPage />} />
                   <Route path="/financial" element={<GestaoSkin><FinancialPage /></GestaoSkin>} />
-                  <Route path="/partners" element={<GestaoSkin><PartnersPage /></GestaoSkin>} />
+                  <Route path="/partners" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/settings" element={<ConfigSkin><SettingsPage /></ConfigSkin>} />
                   <Route path="/integrations" element={<IntegrationsPage />} />
                   <Route path="/gamification" element={<GestaoSkin><GamificationPage /></GestaoSkin>} />

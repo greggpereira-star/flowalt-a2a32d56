@@ -46,7 +46,6 @@ import {
   Building2,
   Share2,
   DollarSign,
-  PieChart,
   Trophy,
   TrendingUp,
   UserCircle,
@@ -73,7 +72,6 @@ const getManagementItems = (hasIntegrationAccess: boolean, hasSocialPublish: boo
     { icon: Calculator, label: 'AltControl', path: '/altcontrol' },
     { icon: UserCircle, label: 'People Analytics', path: '/people-analytics' },
     { icon: DollarSign, label: 'Financeiro', path: '/financial' },
-    { icon: PieChart, label: 'Painel dos Sócios', path: '/partners' },
     { icon: Trophy, label: 'Ranking', path: '/gamification' },
     { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
   ];
