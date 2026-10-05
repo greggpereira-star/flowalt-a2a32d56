@@ -1062,8 +1062,8 @@ function NotificationRowNovo({
           {notificationIcons[n.type] || <Bell className="h-4 w-4" />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className={cn('block text-[14px] leading-snug', n.is_read ? 'font-medium' : 'font-bold')}>{n.title}</span>
-          <span className="mt-0.5 block line-clamp-2 text-[13px] leading-snug text-muted-foreground">{n.message}</span>
+          <span className={cn('line-clamp-2 text-[14px] leading-snug', n.is_read ? 'font-medium' : 'font-bold')}>{n.title}</span>
+          <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">{n.message}</span>
           <span className="mt-1 block text-[11.5px] text-muted-foreground/80">
             {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
           </span>
@@ -1071,7 +1071,7 @@ function NotificationRowNovo({
       </button>
       <div className="flex shrink-0 gap-0.5 pt-2 md:opacity-0 md:transition-opacity md:focus-within:opacity-100 md:group-hover:opacity-100">
         {!n.is_read && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onMarkRead} aria-label="Marcar como lida">
+          <Button variant="ghost" size="icon" className="hidden h-8 w-8 rounded-lg md:inline-flex" onClick={onMarkRead} aria-label="Marcar como lida">
             <Check className="h-4 w-4" />
           </Button>
         )}
@@ -1130,7 +1130,7 @@ function NoticeRowNovo({
             )}
           </div>
         )}
-        <p className={cn('text-[14px] leading-snug', isRead ? 'font-medium' : 'font-bold')}>{notice.title}</p>
+        <p className={cn('line-clamp-2 text-[14px] leading-snug', isRead ? 'font-medium' : 'font-bold')}>{notice.title}</p>
         {notice.content && (
           <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">{notice.content}</p>
         )}
