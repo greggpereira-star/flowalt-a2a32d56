@@ -205,7 +205,42 @@ export function PainelEquipe({ carga, nomes }: { carga: CargaPessoa[]; nomes: Ma
         </CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[38rem] text-sm">
+        {/* Celular: um cartão por pessoa (a tabela de 5 colunas exigia rolar para o lado) */}
+        <ul className="space-y-3 md:hidden">
+          {carga.map(c => (
+            <li key={c.userId} className="rounded-xl border border-border/60 p-3.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate font-semibold">{nomeDe(nomes, c.userId)}</p>
+                <p className="shrink-0 text-sm text-muted-foreground">
+                  <span className="font-bold tabular-nums text-foreground">{c.abertos}</span> em aberto
+                </p>
+              </div>
+              <Progress value={(c.abertos / maxAbertos) * 100} className="mt-2 h-1.5" />
+              <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11.5px] font-semibold">
+                <span className={cn('rounded-full px-2 py-0.5', c.atrasados > 0 ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-muted text-muted-foreground')}>
+                  {c.atrasados} {c.atrasados === 1 ? 'atrasado' : 'atrasados'}
+                </span>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{c.semPrazo} sem prazo</span>
+              </div>
+              <p className="mb-1.5 mt-3 text-[11px] text-muted-foreground">Prazos nas próximas 4 semanas</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {c.porSemana.map((n, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'flex h-8 items-center justify-center rounded-lg text-xs font-semibold tabular-nums',
+                      n === 0 ? 'bg-muted text-muted-foreground' : 'text-white'
+                    )}
+                    style={n === 0 ? undefined : { backgroundColor: `hsl(var(--primary) / ${0.35 + 0.65 * (n / maxSemana)})` }}
+                  >
+                    {n}
+                  </div>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <table className="hidden w-full min-w-[38rem] text-sm md:table">
           <thead>
             <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="py-2 pr-2 font-medium">Pessoa</th>

@@ -381,7 +381,7 @@ export default function PartnersPage() {
                 <CardTitle className="text-base">Receita por Cliente</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
+                <div className={cn('h-[300px]', clientRevenueData.length === 0 && 'h-auto py-10')}>
                   {clientRevenueData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>

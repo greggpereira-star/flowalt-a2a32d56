@@ -1216,3 +1216,20 @@
     white-space: nowrap;
   }
 }
+
+/* Celular: abas em uma só linha que rola para o lado, em vez de quebrar em duas fileiras. */
+@media (max-width: 767px) {
+  .gestao-novo [role="tablist"]:not(.tablist-limpo):not(.grid) {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .gestao-novo [role="tablist"]:not(.tablist-limpo):not(.grid)::-webkit-scrollbar {
+    display: none;
+  }
+  .gestao-novo [role="tablist"]:not(.tablist-limpo):not(.grid) > [role="tab"] {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}

@@ -90,16 +90,16 @@ export function AgingReportChart({ aging }: AgingReportChartProps) {
         <div className="grid grid-cols-3 gap-1.5 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/30">
           <div className="text-center min-w-0">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Total</p>
-            <p className="text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate">{formatCurrency(totalReceivables)}</p>
+            <p className="text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap">{formatCurrency(totalReceivables)}</p>
           </div>
           <div className="text-center min-w-0 border-x border-border/50 px-1">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
-            <p className="text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate text-rose-500">{formatCurrency(overdueAmount)}</p>
+            <p className="text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap text-rose-500">{formatCurrency(overdueAmount)}</p>
           </div>
           <div className="text-center min-w-0">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Score</p>
             <p className={cn(
-              "text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate",
+              "text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap",
               healthScore >= 80 ? "text-emerald-500" : healthScore >= 50 ? "text-amber-500" : "text-rose-500"
             )}>
               {healthScore.toFixed(0)}%

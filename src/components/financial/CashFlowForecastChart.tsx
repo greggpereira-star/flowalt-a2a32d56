@@ -68,19 +68,19 @@ export function CashFlowForecastChart() {
         <div className="grid grid-cols-3 gap-1.5 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/30">
           <div className="text-center min-w-0">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Próximo Mês</p>
-            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${data[0]?.balance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+            <p className={`text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap ${data[0]?.balance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(data[0]?.balance || 0)}
             </p>
           </div>
           <div className="text-center min-w-0 border-x border-border/50 px-1">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Em 6 Meses</p>
-            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${(data[5]?.cumulative || 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+            <p className={`text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap ${(data[5]?.cumulative || 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(data[5]?.cumulative || 0)}
             </p>
           </div>
           <div className="text-center min-w-0">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Em 12 Meses</p>
-            <p className={`text-sm sm:text-lg font-semibold mt-1 tabular-nums truncate ${lastBalance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+            <p className={`text-[clamp(11px,3.1vw,14px)] sm:text-lg font-semibold mt-1 tabular-nums whitespace-nowrap ${lastBalance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
               {formatCurrency(lastBalance)}
             </p>
           </div>

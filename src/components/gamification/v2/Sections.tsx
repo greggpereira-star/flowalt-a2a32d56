@@ -349,16 +349,16 @@ export function RankingCompleto({ jogadores, pesos, meuId }: { jogadores: Jogado
             <div
               key={j.user_id}
               className={cn(
-                'flex items-center gap-3 rounded-lg border p-3',
+                'flex items-center gap-3 rounded-lg border p-3 [.gestao-novo_&]:max-sm:gap-2 [.gestao-novo_&]:max-sm:p-2.5',
                 m && `bg-gradient-to-r ${m.fundo}`,
                 j.user_id === meuId && 'ring-2 ring-primary/60'
               )}
             >
-              <div className="flex w-10 shrink-0 flex-col items-center">
+              <div className="flex w-10 shrink-0 flex-col items-center [.gestao-novo_&]:max-sm:w-6">
                 <span className={cn('text-lg font-black tabular-nums', m?.texto ?? 'text-muted-foreground')}>{i + 1}</span>
                 {criterio === 'score' && <Variacao valor={j.variacao} />}
               </div>
-              <Foto j={j} className="h-10 w-10" />
+              <Foto j={j} className="h-10 w-10 [.gestao-novo_&]:max-sm:h-9 [.gestao-novo_&]:max-sm:w-9" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">
                   {j.name}
@@ -379,9 +379,9 @@ export function RankingCompleto({ jogadores, pesos, meuId }: { jogadores: Jogado
                   )}
                 </div>
               </div>
-              <div className="w-20 shrink-0 text-right sm:w-28">
+              <div className="w-20 shrink-0 text-right sm:w-28 [.gestao-novo_&]:max-sm:w-auto">
                 <p className="text-xl font-bold tabular-nums">{valor(j)}</p>
-                {criterio === 'score' && <Progress value={j.score} className="mt-1 h-1.5" />}
+                {criterio === 'score' && <Progress value={j.score} className="mt-1 h-1.5 [.gestao-novo_&]:max-sm:hidden" />}
               </div>
             </div>
           );

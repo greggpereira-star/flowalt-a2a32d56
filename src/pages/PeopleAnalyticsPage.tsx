@@ -561,7 +561,7 @@ export default function PeopleAnalyticsPage() {
                   {memberStats.map((member) => {
                     const posicao = member.participa ? overallStats.equipe.indexOf(member) + 1 : null;
                     return (
-                    <div key={member.user_id} className={`flex items-center gap-2 sm:gap-4 ${member.participa ? '' : 'opacity-60'}`}>
+                    <div key={member.user_id} className={`flex items-center gap-2 sm:gap-4 ${novo ? 'max-sm:flex-wrap max-sm:items-start max-sm:gap-y-3 max-sm:rounded-xl max-sm:border max-sm:border-border/60 max-sm:p-3' : ''} ${member.participa ? '' : 'opacity-60'}`}>
                       <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-muted font-bold text-sm">
                         {posicao ?? '–'}
                       </div>
@@ -569,7 +569,7 @@ export default function PeopleAnalyticsPage() {
                         <AvatarImage src={member.avatar_url ?? undefined} alt={member.name} />
                         <AvatarFallback>{iniciais(member.name)}</AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0 flex-1">
+                      <div className={cn('min-w-0 flex-1', novo && 'max-sm:basis-[calc(100%-5.5rem)]')}>
                         <p className="truncate font-medium">{member.name}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {member.role_label}
@@ -593,10 +593,10 @@ export default function PeopleAnalyticsPage() {
                           </p>
                         )}
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div className={cn('shrink-0 text-right', novo && 'max-sm:w-full max-sm:border-t max-sm:border-border/50 max-sm:pt-3 max-sm:text-left')}>
                         {member.participa ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Progress value={member.score} className="w-12 sm:w-20" />
+                          <div className={cn('flex items-center justify-end gap-2', novo && 'max-sm:justify-start')}>
+                            <Progress value={member.score} className={cn('w-12 sm:w-20', novo && 'max-sm:w-full max-sm:flex-1')} />
                             <span className="w-14 text-sm font-semibold tabular-nums">{member.score}/100</span>
                           </div>
                         ) : (
@@ -607,7 +607,7 @@ export default function PeopleAnalyticsPage() {
                           <span className="hidden sm:inline"> · {member.level_name}</span> · {member.total_score.toLocaleString('pt-BR')} XP
                         </p>
                         {souAdmin && (
-                          <label className="mt-1 flex items-center justify-end gap-2 text-[11px] text-muted-foreground">
+                          <label className={cn('mt-1 flex items-center justify-end gap-2 text-[11px] text-muted-foreground', novo && 'max-sm:mt-2 max-sm:justify-start')}>
                             No ranking
                             <Switch
                               checked={member.participa}
