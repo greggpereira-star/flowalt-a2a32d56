@@ -236,7 +236,7 @@ export function useRenewApprovalLink() {
       const token_hash = await sha256Hex(token);
       const { error } = await db
         .from('approval_requests')
-        .update({ token_hash, expires_at: new Date(Date.now() + 14 * 86_400_000).toISOString() })
+        .update({ token_hash, token_enc: null, expires_at: new Date(Date.now() + 14 * 86_400_000).toISOString() })
         .eq('id', request.id).eq('status', 'pending');
       if (error) throw error;
       await db.from('approval_events').insert({
@@ -324,6 +324,43 @@ export function usePendingApprovals(enabled = true) {
         .order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as (Pick<ApprovalRequest, 'id' | 'card_id' | 'title' | 'round' | 'status' | 'client_name' | 'created_at' | 'last_viewed_at' | 'view_count' | 'expires_at'> & { cards: { title: string } | null })[];
+    },
+  });
+}
+
+/** Visao de acompanhamento (Coordenacao): ultimo pedido de cada card que ainda depende de alguem. */
+export function useApprovalsOverview(enabled = true) {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+  return useQuery({
+    queryKey: ['approvals-visao', wsId],
+    enabled: enabled && !!wsId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const desde = new Date(Date.now() - 60 * 86_400_000).toISOString();
+      const { data, error } = await db
+        .from('approval_requests')
+        .select('id, card_id, title, round, status, client_name, created_at, decided_at, view_count, last_viewed_at, reminder_count, expires_at, cards(title)')
+        .eq('workspace_id', wsId)
+        .gte('created_at', desde)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      type Linha = Pick<ApprovalRequest, 'id' | 'card_id' | 'title' | 'round' | 'status' | 'client_name' | 'created_at' | 'decided_at' | 'view_count' | 'last_viewed_at' | 'expires_at'> & { reminder_count: number; cards: { title: string } | null };
+      const ultimoPorCard = new Map<string, Linha>();
+      for (const l of (data ?? []) as Linha[]) if (!ultimoPorCard.has(l.card_id)) ultimoPorCard.set(l.card_id, l);
+      const todos = [...ultimoPorCard.values()];
+      const agora = Date.now();
+      const diasDesde = (iso: string) => Math.floor((agora - new Date(iso).getTime()) / 86_400_000);
+      const aguardando = todos.filter(l => l.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at));
+      const ajustes = todos.filter(l => l.status === 'changes_requested').sort((a, b) => (b.decided_at ?? '').localeCompare(a.decided_at ?? ''));
+      const aprovados7d = todos.filter(l => l.status === 'approved' && l.decided_at && agora - new Date(l.decided_at).getTime() < 7 * 86_400_000).length;
+      return {
+        aguardando,
+        ajustes,
+        aprovados7d,
+        naoVistos: aguardando.filter(l => l.view_count === 0).length,
+        semRespostaHa2Dias: aguardando.filter(l => diasDesde(l.created_at) >= 2).length,
+      };
     },
   });
 }

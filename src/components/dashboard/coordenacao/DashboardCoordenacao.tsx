@@ -19,6 +19,7 @@ import { useSpaces } from '@/hooks/useSpaces';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Bloco, Indicador, Variacao, cartao } from '@/components/dashboard/pecas';
+import { AprovacoesDoClienteBloco } from '@/components/approvals/AprovacoesDoClienteBloco';
 import { useDashboardCoordenacao, type PeriodoCoordenacao } from '@/hooks/dashboard/useDashboardCoordenacao';
 import type { NivelCapacidade } from '@/lib/dashboard/coordenacao-metrics';
 
@@ -208,6 +209,8 @@ export function DashboardCoordenacao() {
               }
             />
           </div>
+
+          <AprovacoesDoClienteBloco />
 
           {/* Tendência */}
           <Bloco titulo="Entradas, saídas e prazo por semana" subtitulo="Cards criados e entregues, e quantos das entregas saíram no prazo (últimas 8 semanas)">

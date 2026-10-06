@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.approval-send-email]
 verify_jwt = false
 
+[functions.approval-reminders]
+verify_jwt = false
+
 [functions.webhook-retry]
 verify_jwt = true
 

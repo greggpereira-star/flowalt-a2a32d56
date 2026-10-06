@@ -358,6 +358,9 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
               <Clock className="h-3.5 w-3.5" /> {b.items.length} {b.items.length === 1 ? 'peça' : 'peças'}
             </span>
             {r.client_name && <span>Para: {r.client_name}</span>}
+            {b.events.filter(e => e.type === 'reminder').length > 0 && (
+              <span>{b.events.filter(e => e.type === 'reminder').length} {b.events.filter(e => e.type === 'reminder').length === 1 ? 'lembrete' : 'lembretes'} enviados</span>
+            )}
           </div>
 
           {r.status === 'approved' && (

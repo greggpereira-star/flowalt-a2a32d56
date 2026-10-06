@@ -28,6 +28,28 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// Guarda o token cifrado (AES-GCM, chave derivada da chave de servico) so quando o pedido e enviado por e-mail,
+// para a rotina de lembretes reenviar o MESMO link. O banco sozinho nao revela o token.
+async function cifrar(token: string): Promise<string | null> {
+  try {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!), "HKDF", false, ["deriveKey"]);
+    const chave = await crypto.subtle.deriveKey(
+      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("flowalt-approval-token-v1") },
+      base, { name: "AES-GCM", length: 256 }, false, ["encrypt"],
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const cifrado = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, chave, new TextEncoder().encode(token)));
+    const junto = new Uint8Array(iv.length + cifrado.length);
+    junto.set(iv); junto.set(cifrado, iv.length);
+    let bin = "";
+    junto.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
+  } catch (e) {
+    console.error("cifrar falhou", e);
+    return null;
+  }
+}
+
 function enderecoRemetente(): string {
   const env = Deno.env.toObject();
   const isEmail = (str?: string) => !!str && str.includes("@") && str.includes(".");
@@ -117,7 +139,7 @@ Deno.serve(async (req) => {
       return json({ error: "Não foi possível enviar o e-mail agora. Copie o link e envie por outro canal." }, 502);
     }
 
-    await supabase.from("approval_requests").update({ client_email: para }).eq("id", pedido.id);
+    await supabase.from("approval_requests").update({ client_email: para, token_enc: await cifrar(token) }).eq("id", pedido.id);
     await supabase.from("approval_events").insert({
       request_id: pedido.id, workspace_id: pedido.workspace_id, type: "sent", actor_kind: "member",
       actor_label: perfil?.email ?? usuario.email ?? null, payload: { channel: "email", to: para, card_title: card?.title ?? null },
