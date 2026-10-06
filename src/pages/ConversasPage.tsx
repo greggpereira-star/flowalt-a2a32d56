@@ -121,7 +121,7 @@ function ListaDeCanais({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2 max-lg:pb-24">
         {carregando ? (
           <div className="space-y-2 p-2">
             {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-9 w-full rounded-lg" />)}
@@ -191,6 +191,7 @@ function Conversa({
   const [mencoes, setMencoes] = useState<Map<string, string>>(new Map()); // nome -> id
   const [respondendo, setRespondendo] = useState<ChatMessage | null>(null);
   const [reagindoEm, setReagindoEm] = useState<string | null>(null);
+  const [ativa, setAtiva] = useState<string | null>(null); // mensagem tocada (celular)
   const [gatilho, setGatilho] = useState<string | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
   const listaRef = useRef<HTMLDivElement>(null);
@@ -320,7 +321,10 @@ function Conversa({
                       <span className="h-px flex-1 bg-border" />
                     </li>
                   )}
-                  <li className={cn('group relative flex gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50', novoBloco && 'mt-2')}>
+                  <li
+                    onClick={() => setAtiva(a => (a === m.id ? null : m.id))}
+                    className={cn('group relative flex gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50', novoBloco && 'mt-2', ativa === m.id && 'bg-muted/50')}
+                  >
                     <div className="w-8 shrink-0">{novoBloco && <Foto pessoa={autor} />}</div>
                     <div className="min-w-0 flex-1">
                       {novoBloco && (
@@ -356,7 +360,10 @@ function Conversa({
                     </div>
 
                     {!m.deleted_at && (
-                      <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border bg-card p-0.5 opacity-100 shadow-sm lg:opacity-0 lg:group-hover:opacity-100">
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        className={cn('absolute -top-3 right-2 z-10 items-center gap-0.5 rounded-lg border bg-card p-0.5 shadow-sm', ativa === m.id ? 'flex' : 'hidden lg:flex lg:opacity-0 lg:group-hover:opacity-100')}
+                      >
                         <button type="button" aria-label="Reagir" onClick={() => setReagindoEm(reagindoEm === m.id ? null : m.id)} className="rounded p-1.5 hover:bg-muted"><SmilePlus className="h-3.5 w-3.5" /></button>
                         <button type="button" aria-label="Responder" onClick={() => { setRespondendo(m); campoRef.current?.focus(); }} className="rounded p-1.5 hover:bg-muted"><Reply className="h-3.5 w-3.5" /></button>
                         {minha && (
@@ -391,7 +398,7 @@ function Conversa({
         <div ref={fimRef} />
       </div>
 
-      <div className="border-t p-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className="border-t p-3 max-lg:pr-[4.75rem]" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         {respondendo && (
           <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
             <Reply className="h-3.5 w-3.5 shrink-0" />
@@ -515,7 +522,7 @@ function NovoCanalDialog({ aberto, onFechar, pessoas, onCriado }: { aberto: bool
 // Pagina
 // ---------------------------------------------------------------------------------------------------------------------
 export default function ConversasPage() {
-  const { isEnabled, isLoading: carregandoFlags } = useFeatureFlags();
+  const { isEnabled, isReady } = useFeatureFlags();
   const ligada = isEnabled(FEATURE_FLAGS.TEAM_CHAT);
   const [params, setParams] = useSearchParams();
   const canalId = params.get('canal');
@@ -525,7 +532,7 @@ export default function ConversasPage() {
   const [dmAberta, setDmAberta] = useState(false);
   const [privadoAberto, setPrivadoAberto] = useState(false);
 
-  if (carregandoFlags) return <div className="p-6"><Skeleton className="h-64 w-full rounded-2xl" /></div>;
+  if (!isReady) return <div className="p-6"><Skeleton className="h-64 w-full rounded-2xl" /></div>;
   if (!ligada) return <Navigate to="/" replace />;
 
   const selecionar = (id: string | null) => {

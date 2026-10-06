@@ -107,6 +107,8 @@ export function useFeatureFlags() {
   return {
     flags: flags || [],
     isLoading,
+    /** true so depois que as flags foram carregadas de fato (antes disso 'desligada' ainda nao e resposta). */
+    isReady: flags !== undefined,
     isEnabled,
     getFlag,
   };
