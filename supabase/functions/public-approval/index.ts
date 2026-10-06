@@ -81,6 +81,16 @@ function estourouLimite(ip: string): boolean {
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{40,128}$/;
 
+// A URL assinada sai com o endereco INTERNO do servidor (http://kong:8000), que o navegador do cliente nao alcanca.
+// Troca pelo endereco publico (SUPABASE_PUBLIC_URL) mantendo o caminho e o token.
+function urlPublica(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const interna = Deno.env.get("SUPABASE_URL");
+  const publica = Deno.env.get("SUPABASE_PUBLIC_URL");
+  if (interna && publica && url.startsWith(interna)) return publica.replace(/\/$/, "") + url.slice(interna.length);
+  return url;
+}
+
 // ---- notificacao da equipe ------------------------------------------------------------------------------------
 async function notificarEquipe(
   supabase: any,
@@ -251,7 +261,7 @@ Deno.serve(async (req) => {
           // So assina caminhos do proprio card: impede expor outro arquivo do bucket por um item mal montado.
           if (it.storage_path.startsWith(`${pedido.card_id}/`)) {
             const { data: assinada } = await supabase.storage.from(it.bucket).createSignedUrl(it.storage_path, SIGNED_URL_TTL);
-            base.url = assinada?.signedUrl ?? null;
+            base.url = urlPublica(assinada?.signedUrl);
           }
         }
         pecas.push(base);

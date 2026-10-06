@@ -89,13 +89,13 @@ export default function PublicPortalPage() {
   const recentes = portal.calendar.filter(c => c.date < hoje).reverse();
 
   const Item = ({ c }: { c: ItemDoCalendario }) => (
-    <li className="flex items-center gap-3 py-3">
-      <div className="w-16 shrink-0 text-xs font-semibold capitalize text-muted-foreground">{diaPorExtenso(c.date)}</div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{c.title}</p>
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-3">
+      <div className="w-20 shrink-0 text-xs font-semibold text-muted-foreground first-letter:uppercase">{diaPorExtenso(c.date)}</div>
+      <div className="min-w-0 flex-1 basis-40">
+        <p className="line-clamp-2 text-sm font-semibold">{c.title}</p>
         <p className="truncate text-xs text-muted-foreground">{[TIPOS[c.type ?? ''] ?? null, c.platform].filter(Boolean).join(' · ') || 'Peça'}</p>
       </div>
-      <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold', SITUACAO[c.situation].classe)}>{SITUACAO[c.situation].rotulo}</span>
+      <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold max-sm:ml-[92px]', SITUACAO[c.situation].classe)}>{SITUACAO[c.situation].rotulo}</span>
     </li>
   );
 
@@ -133,7 +133,7 @@ export default function PublicPortalPage() {
                   <Link to={`/portal/${token}/aprovacao/${p.id}`} className="flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Clock className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold">{p.title}</span>
+                      <span className="line-clamp-2 block text-sm font-bold">{p.title}</span>
                       <span className="block text-xs text-muted-foreground">Rodada {p.round} · enviado {quando(p.sent_at)}</span>
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Ver e aprovar <ChevronRight className="h-3.5 w-3.5" /></span>
