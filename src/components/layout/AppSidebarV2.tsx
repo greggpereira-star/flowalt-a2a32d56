@@ -65,6 +65,7 @@ import {
   Folder,
   LayoutDashboard,
   LayoutGrid,
+  Rocket,
   Lightbulb,
   Lock,
   LogOut,
@@ -623,6 +624,7 @@ export const AppSidebarV2: React.FC = () => {
   const { isEnabled: flagLigada } = useFeatureFlags();
   const conversasLigada = flagLigada(FEATURE_FLAGS.TEAM_CHAT);
   const feedLigado = flagLigada(FEATURE_FLAGS.EDITORIAL_FEED);
+  const onboardingLigado = flagLigada(FEATURE_FLAGS.ONBOARDING_ESTEIRA);
   const { total: conversasNaoLidas } = useChatUnread(conversasLigada);
 
   const principais: Item[] = [
@@ -633,6 +635,7 @@ export const AppSidebarV2: React.FC = () => {
     ...(conversasLigada ? [{ icon: MessageCircle, label: 'Conversas', path: '/conversas', contagem: conversasNaoLidas }] : []),
     { icon: Building2, label: 'Clientes', path: '/clients' },
     ...(feedLigado ? [{ icon: LayoutGrid, label: 'Feed editorial', path: '/feed' }] : []),
+    ...(onboardingLigado ? [{ icon: Rocket, label: 'Onboarding', path: '/onboarding' }] : []),
   ];
 
   // Mesmos itens e mesmas regras de exibição do menu atual.
