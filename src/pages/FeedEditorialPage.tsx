@@ -152,7 +152,7 @@ export default function FeedEditorialPage() {
               </Avatar>
               <div className="min-w-0">
                 <p className="truncate text-base font-bold">{cliente.name}</p>
-                <p className="text-xs capitalize text-muted-foreground">Ciclo de {MESES[mes0]} · {total} {total === 1 ? 'post' : 'posts'}</p>
+                <p className="text-xs text-muted-foreground">Ciclo de <span className="capitalize">{MESES[mes0]}</span> · {total} {total === 1 ? 'post' : 'posts'}</p>
               </div>
             </div>
 
