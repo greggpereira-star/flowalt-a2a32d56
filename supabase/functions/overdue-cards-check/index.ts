@@ -44,7 +44,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // dry_run=1: so conta o que seria enviado, sem gravar notificacao nem mandar e-mail.
-    const dryRun = new URL(req.url).searchParams.get('dry_run') === '1';
+    const params = new URL(req.url).searchParams;
+    const dryRun = params.get('dry_run') === '1';
+    // E-mail de atraso so sai quando ligado de proposito (?emails=1). Por padrao so ha notificacao dentro do app.
+    const enviarEmails = params.get('emails') === '1';
 
     // Find overdue cards that haven't been notified today
     const today = new Date().toISOString().split('T')[0];
@@ -107,9 +110,13 @@ Deno.serve(async (req) => {
       for (const userId of usersToNotify) {
         if (alreadyNotifiedUsers.has(userId)) continue;
 
+        // Cards muito atrasados nao enchem a caixa todo dia: nos primeiros 7 dias avisa diariamente; depois, so
+        // uma vez por semana (no dia em que completa 14, 21, 28... dias de atraso).
+        if (daysOverdue > 7 && daysOverdue % 7 !== 0) continue;
+
         if (dryRun) {
           notificationsCreated++;
-          if (daysOverdue >= CRITICAL_OVERDUE_DAYS) emailsSent++;
+          if (enviarEmails && daysOverdue >= CRITICAL_OVERDUE_DAYS) emailsSent++;
           continue;
         }
 
@@ -140,7 +147,7 @@ Deno.serve(async (req) => {
         }
 
         // Send email for critically overdue cards (>3 days)
-        if (daysOverdue >= CRITICAL_OVERDUE_DAYS) {
+        if (enviarEmails && daysOverdue >= CRITICAL_OVERDUE_DAYS) {
           // Check if email was already sent for this critical threshold
           const { data: existingEmails } = await supabase
             .from('email_notifications')
@@ -218,6 +225,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         dry_run: dryRun,
+        emails_ligados: enviarEmails,
         correlation_id: correlationId,
         duration_ms: duration,
         overdue_cards: overdueCards?.length || 0,
