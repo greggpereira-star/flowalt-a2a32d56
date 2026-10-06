@@ -184,12 +184,31 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const token = typeof body.token === "string" ? body.token : "";
     const action = typeof body.action === "string" ? body.action : "get";
-    if (!TOKEN_RE.test(token)) return json({ error: NAO_DISPONIVEL }, 404);
 
-    const hash = await sha256Hex(token);
-    const { data: pedido } = await supabase.from("approval_requests").select("*").eq("token_hash", hash).maybeSingle();
+    // Dois modos de entrada: o link do pedido (token) ou o portal do cliente (portal_token + request_id). No portal, o
+    // pedido so vale se pertencer a um card do mesmo cliente do link, no mesmo workspace.
+    let pedido: any = null;
+    if (typeof body.portal_token === "string") {
+      const portalToken = body.portal_token;
+      const requestId = typeof body.request_id === "string" ? body.request_id : "";
+      if (!TOKEN_RE.test(portalToken) || !/^[0-9a-f-]{36}$/i.test(requestId)) return json({ error: NAO_DISPONIVEL }, 404);
+      const { data: acesso } = await supabase
+        .from("client_portal_access").select("client_id, workspace_id").eq("token_hash", await sha256Hex(portalToken)).is("revoked_at", null).maybeSingle();
+      if (!acesso) return json({ error: NAO_DISPONIVEL }, 404);
+      const { data: candidato } = await supabase
+        .from("approval_requests").select("*").eq("id", requestId).eq("workspace_id", acesso.workspace_id).maybeSingle();
+      if (!candidato) return json({ error: NAO_DISPONIVEL }, 404);
+      const { data: cardDoPedido } = await supabase.from("cards").select("client_id").eq("id", candidato.card_id).maybeSingle();
+      if (!cardDoPedido || cardDoPedido.client_id !== acesso.client_id) return json({ error: NAO_DISPONIVEL }, 404);
+      pedido = candidato;
+    } else {
+      const token = typeof body.token === "string" ? body.token : "";
+      if (!TOKEN_RE.test(token)) return json({ error: NAO_DISPONIVEL }, 404);
+      const hash = await sha256Hex(token);
+      const { data: porLink } = await supabase.from("approval_requests").select("*").eq("token_hash", hash).maybeSingle();
+      pedido = porLink;
+    }
     if (!pedido || pedido.status === "canceled") return json({ error: NAO_DISPONIVEL }, 404);
 
     // Expiracao: so vale para pedidos ainda abertos; decididos continuam consultaveis (somente leitura).
@@ -242,7 +261,7 @@ Deno.serve(async (req) => {
         .from("approval_comments").select("id, author_kind, author_name, body, created_at")
         .eq("request_id", pedido.id).order("created_at");
 
-      const { data: ws } = await supabase.from("workspaces").select("name, logo_url").eq("id", pedido.workspace_id).maybeSingle();
+      const { data: ws } = await supabase.from("workspaces").select("name, logo_url, settings").eq("id", pedido.workspace_id).maybeSingle();
 
       return json({
         approval: {
@@ -256,6 +275,7 @@ Deno.serve(async (req) => {
           decided_by_name: pedido.decided_by_name,
           workspace_name: ws?.name ?? null,
           workspace_logo: ws?.logo_url ?? null,
+          brand_color: /^#[0-9a-fA-F]{6}$/.test(ws?.settings?.brand_color ?? "") ? ws.settings.brand_color : null,
           items: pecas,
           comments: conversa ?? [],
         },

@@ -53,6 +53,7 @@ const IdeasBankPage = lazy(() => import("./pages/IdeasBankPage"));
 const PublicBoardPage = lazy(() => import("./pages/PublicBoardPage"));
 const PublicProposalPage = lazy(() => import("./pages/PublicProposalPage"));
 const PublicApprovalPage = lazy(() => import("./pages/PublicApprovalPage"));
+const PublicPortalPage = lazy(() => import("./pages/PublicPortalPage"));
 const ConversasPage = lazy(() => import("./pages/ConversasPage"));
 const FeedEditorialPage = lazy(() => import("./pages/FeedEditorialPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
@@ -152,6 +153,8 @@ const App = () => (
                 <Route path="/share/board/:token" element={<PublicBoardPage />} />
                 <Route path="/p/:token" element={<PublicProposalPage />} />
                 <Route path="/aprovacao/:token" element={<PublicApprovalPage />} />
+                <Route path="/portal/:token" element={<PublicPortalPage />} />
+                <Route path="/portal/:token/aprovacao/:id" element={<PublicApprovalPage />} />
                 
                 
                 {/* Protected Routes with shared AppLayout */}

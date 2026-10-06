@@ -40,11 +40,14 @@ import {
   BarChart3,
   Settings2,
   Calculator,
-  LayoutList
+  LayoutList,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ClientReportTab } from './ClientReportTab';
+import { PortalDoClienteTab } from '@/components/portal/PortalDoClienteTab';
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { ClientPoliciesTab } from './ClientPoliciesTab';
 import { ContractSimulatorTab } from './ContractSimulatorTab';
 import { ClientTasksTab } from './ClientTasksTab';
@@ -756,6 +759,8 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const deleteClient = useDeleteClientCard();
   const { data: members } = useWorkspaceMembers();
   const { canViewClientFinancials, isAdmin, isOwner } = usePermissions();
+  const { isEnabled: flagLigada } = useFeatureFlags();
+  const portalLigado = flagLigada(FEATURE_FLAGS.CLIENT_PORTAL);
   
   const [formData, setFormData] = useState<Partial<ClientCard>>({});
   const [activeTab, setActiveTab] = useState('identity');
@@ -921,7 +926,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
             {/* Tabs com scroll */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="px-6 pt-4 flex-shrink-0 -mx-6 sm:mx-0">
-                <TabsList className="flex sm:grid sm:grid-cols-10 h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0">
+                <TabsList className={`flex sm:grid ${portalLigado ? 'sm:grid-cols-11' : 'sm:grid-cols-10'} h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0`}>
                   <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Building2 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Identidade</span>
@@ -950,6 +955,12 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     <BarChart3 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Relatório</span>
                   </TabsTrigger>
+                  {portalLigado && (
+                    <TabsTrigger value="portal" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
+                      <Globe className="h-3.5 w-3.5" />
+                      <span className="text-[9px]">Portal</span>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="policies" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Settings2 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Políticas</span>
@@ -993,6 +1004,11 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <TabsContent value="report" className="mt-0 focus-visible:outline-none">
                     <ClientReportTab clientId={client.id} />
                   </TabsContent>
+                  {portalLigado && (
+                    <TabsContent value="portal" className="mt-0 focus-visible:outline-none">
+                      <PortalDoClienteTab clientId={client.id} clientName={client.name} />
+                    </TabsContent>
+                  )}
                   <TabsContent value="policies" className="mt-0 focus-visible:outline-none">
                     <ClientPoliciesTab clientId={client.id} />
                   </TabsContent>

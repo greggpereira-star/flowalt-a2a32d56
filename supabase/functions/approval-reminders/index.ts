@@ -57,6 +57,16 @@ async function decifrar(valor: string): Promise<string | null> {
   }
 }
 
+
+// Cor da marca da agencia (workspaces.settings.brand_color) para o botao dos e-mails ao cliente, com texto claro ou
+// escuro conforme a luminancia.
+function marcaDoEmail(settings: any): { fundo: string; texto: string } {
+  const hex = typeof settings?.brand_color === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.brand_color) ? settings.brand_color : "#3947df";
+  const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return { fundo: hex, texto: lum > 0.55 ? "#111111" : "#ffffff" };
+}
+
 // Hora de Sao Paulo sem depender do fuso do servidor
 function agoraEmSP() {
   const partes = new Intl.DateTimeFormat("en-US", {
@@ -141,10 +151,11 @@ Deno.serve(async (req) => {
             enviadoAoCliente = true;
           } else {
             const [{ data: ws }, { data: quem }] = await Promise.all([
-              supabase.from("workspaces").select("name").eq("id", p.workspace_id).maybeSingle(),
+              supabase.from("workspaces").select("name, settings").eq("id", p.workspace_id).maybeSingle(),
               supabase.from("profiles").select("email").eq("id", p.requested_by).maybeSingle(),
             ]);
             const agencia = (ws?.name || "Equipe").replace(/[<>",]/g, "").slice(0, 60);
+            const marca = marcaDoEmail(ws?.settings);
             const link = `${APP_URL}/aprovacao/${token}`;
             const vale = new Date(p.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
             const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:auto;padding:24px;color:#111">
@@ -152,7 +163,7 @@ Deno.serve(async (req) => {
               <h2 style="margin:0 0 12px;font-size:20px">${p.client_name ? "Olá, " + esc(p.client_name) + "!" : "Olá!"}</h2>
               <p style="margin:0 0 12px;line-height:1.5">Este conteúdo ainda está aguardando a sua aprovação:</p>
               <p style="margin:0 0 16px;padding:12px 14px;background:#f4f4f6;border-radius:10px;font-weight:600">${esc(p.title)}</p>
-              <p style="margin:24px 0"><a href="${link}" style="display:inline-block;padding:14px 28px;background:#3947df;color:#fff;text-decoration:none;border-radius:10px;font-weight:600">Ver e aprovar</a></p>
+              <p style="margin:24px 0"><a href="${link}" style="display:inline-block;padding:14px 28px;background:${marca.fundo};color:${marca.texto};text-decoration:none;border-radius:10px;font-weight:600">Ver e aprovar</a></p>
               <p style="font-size:13px;color:#666;line-height:1.5">É rápido e não precisa de conta. O link vale até ${vale}.</p>
             </div>`;
             enviadoAoCliente = await sendEmail(

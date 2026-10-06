@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { varsDaMarca } from '@/lib/portal/marca';
 import { format } from 'date-fns';
 import { CheckCircle2, ExternalLink, FileText, Lock, MessageSquareWarning, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -39,12 +40,15 @@ interface Aprovacao {
   decided_by_name: string | null;
   workspace_name: string | null;
   workspace_logo: string | null;
+  brand_color?: string | null;
   items: Peca[];
   comments: Mensagem[];
 }
 
-async function chamar(token: string, action: string, extra: Record<string, unknown> = {}) {
-  const { data, error } = await supabase.functions.invoke('public-approval', { body: { token, action, ...extra } });
+async function chamar(token: string, action: string, extra: Record<string, unknown> = {}, pedidoDoPortal?: string) {
+  // No portal, o token e o do portal e o pedido vai em request_id; fora dele, o token e o do proprio pedido.
+  const corpo = pedidoDoPortal ? { portal_token: token, request_id: pedidoDoPortal, action, ...extra } : { token, action, ...extra };
+  const { data, error } = await supabase.functions.invoke('public-approval', { body: corpo });
   // Em erro HTTP o supabase-js devolve o corpo em error.context; tentamos ler a mensagem real da funcao.
   if (error) {
     let msg = 'Não foi possível carregar agora. Tente novamente.';
@@ -63,7 +67,7 @@ async function chamar(token: string, action: string, extra: Record<string, unkno
 }
 
 export default function PublicApprovalPage() {
-  const { token = '' } = useParams<{ token: string }>();
+  const { token = '', id: pedidoDoPortal } = useParams<{ token: string; id?: string }>();
   const [dados, setDados] = useState<Aprovacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -79,7 +83,7 @@ export default function PublicApprovalPage() {
 
   const carregar = useCallback(async () => {
     try {
-      const r = await chamar(token, 'get');
+      const r = await chamar(token, 'get', {}, pedidoDoPortal);
       setDados(r.approval as Aprovacao);
       setErro(null);
     } catch (e: any) {
@@ -101,7 +105,7 @@ export default function PublicApprovalPage() {
   const executar = async (action: string, extra: Record<string, unknown>, sucesso: string) => {
     setEnviando(true);
     try {
-      await chamar(token, action, { name: nome.trim(), ...extra });
+      await chamar(token, action, { name: nome.trim(), ...extra }, pedidoDoPortal);
       toast.success(sucesso);
       setDialogo(null);
       setMensagem('');
@@ -139,7 +143,7 @@ export default function PublicApprovalPage() {
   const aberto = dados.status === 'pending';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={varsDaMarca(dados.brand_color ?? null)}>
       <header className="border-b bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           {dados.workspace_logo && <img src={dados.workspace_logo} alt="" className="h-8 w-8 rounded-lg object-cover" />}
@@ -147,6 +151,11 @@ export default function PublicApprovalPage() {
             <p className="truncate text-sm font-semibold">{dados.workspace_name ?? 'Aprovação'}</p>
             <p className="text-xs text-muted-foreground">Aprovação de conteúdo</p>
           </div>
+          {pedidoDoPortal && (
+            <Link to={`/portal/${token}`} className="ml-auto shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+              ← Portal
+            </Link>
+          )}
         </div>
       </header>
 

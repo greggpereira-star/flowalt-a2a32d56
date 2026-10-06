@@ -50,6 +50,16 @@ async function cifrar(token: string): Promise<string | null> {
   }
 }
 
+
+// Cor da marca da agencia (workspaces.settings.brand_color) para o botao dos e-mails ao cliente, com texto claro ou
+// escuro conforme a luminancia.
+function marcaDoEmail(settings: any): { fundo: string; texto: string } {
+  const hex = typeof settings?.brand_color === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.brand_color) ? settings.brand_color : "#3947df";
+  const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return { fundo: hex, texto: lum > 0.55 ? "#111111" : "#ffffff" };
+}
+
 function enderecoRemetente(): string {
   const env = Deno.env.toObject();
   const isEmail = (str?: string) => !!str && str.includes("@") && str.includes(".");
@@ -102,11 +112,12 @@ Deno.serve(async (req) => {
 
     // 4) Monta e envia
     const [{ data: ws }, { data: perfil }, { data: card }] = await Promise.all([
-      supabase.from("workspaces").select("name").eq("id", pedido.workspace_id).maybeSingle(),
+      supabase.from("workspaces").select("name, settings").eq("id", pedido.workspace_id).maybeSingle(),
       supabase.from("profiles").select("full_name, email").eq("id", usuario.id).maybeSingle(),
       supabase.from("cards").select("title").eq("id", pedido.card_id).maybeSingle(),
     ]);
     const agencia = (ws?.name || "Equipe").replace(/[<>",]/g, "").slice(0, 60);
+    const marca = marcaDoEmail(ws?.settings);
     const remetenteNome = (perfil?.full_name || "").replace(/[<>",]/g, "").slice(0, 60);
     const link = `${APP_URL}/aprovacao/${token}`;
     const valeAte = new Date(pedido.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -118,7 +129,7 @@ Deno.serve(async (req) => {
       <p style="margin:0 0 12px;line-height:1.5">${remetenteNome ? esc(remetenteNome) + " enviou" : "Enviamos"} um conteúdo para a sua aprovação:</p>
       <p style="margin:0 0 16px;padding:12px 14px;background:#f4f4f6;border-radius:10px;font-weight:600">${esc(pedido.title)}</p>
       ${pedido.message ? `<p style="margin:0 0 16px;line-height:1.5;white-space:pre-wrap">${esc(pedido.message)}</p>` : ""}
-      <p style="margin:24px 0"><a href="${link}" style="display:inline-block;padding:14px 28px;background:#3947df;color:#fff;text-decoration:none;border-radius:10px;font-weight:600">Ver e aprovar</a></p>
+      <p style="margin:24px 0"><a href="${link}" style="display:inline-block;padding:14px 28px;background:${marca.fundo};color:${marca.texto};text-decoration:none;border-radius:10px;font-weight:600">Ver e aprovar</a></p>
       <p style="font-size:13px;color:#666;line-height:1.5;margin:0 0 6px">Você não precisa criar conta: é só abrir o link, ver a peça e aprovar ou pedir ajustes. O link vale até ${valeAte}.</p>
       <p style="font-size:12px;color:#999;margin:16px 0 0;word-break:break-all">Se o botão não abrir, copie este endereço no navegador:<br>${link}</p>
     </div>`;

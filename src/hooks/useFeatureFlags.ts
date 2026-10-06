@@ -25,6 +25,7 @@ export const FEATURE_FLAGS = {
   TEAM_CHAT: 'team_chat',
   EDITORIAL_FEED: 'editorial_feed',
   ONBOARDING_ESTEIRA: 'onboarding_esteira',
+  CLIENT_PORTAL: 'client_portal',
 } as const;
 
 export function useFeatureFlags() {
