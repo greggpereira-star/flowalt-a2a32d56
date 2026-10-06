@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, AtSign, Hash, Lock, MessageCircle, Plus, Reply, Search, Send, SmilePlus, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, AtSign, Hash, LogOut, Lock, MessageCircle, Plus, Reply, Search, Send, SmilePlus, Trash2, Users, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,10 @@ import {
   ChatMessage,
   Pessoa,
   useAbrirMensagemDireta,
+  useAdicionarMembro,
+  useAlterarPapel,
+  useMembrosDoCanal,
+  useRemoverMembro,
   useAlternarReacao,
   useApagarMensagem,
   useChatChannels,
@@ -179,6 +183,7 @@ function Conversa({
   pessoas: Map<string, Pessoa>;
   onVoltar: () => void;
 }) {
+  const [membrosAberto, setMembrosAberto] = useState(false);
   const { user } = useAuth();
   const [limite, setLimite] = useState(80);
   const { data, isLoading } = useChatMessages(canal.id, limite);
@@ -280,10 +285,14 @@ function Conversa({
           <ArrowLeft className="h-4 w-4" />
         </button>
         <Icone className="h-4 w-4 shrink-0 opacity-70" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate text-[15px] font-bold leading-tight">{canal.nomeExibido}</h2>
           <p className="truncate text-xs text-muted-foreground">{subtitulo}</p>
         </div>
+        <button type="button" onClick={() => setMembrosAberto(true)} aria-label="Quem tem acesso" className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted">
+          <Users className="h-3.5 w-3.5" /> Acesso
+        </button>
+        <MembrosDialog canal={canal} pessoas={pessoas} aberto={membrosAberto} onFechar={() => setMembrosAberto(false)} onSaiu={onVoltar} />
       </header>
 
       <div ref={listaRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
@@ -441,6 +450,140 @@ function Conversa({
         </p>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Quem tem acesso ao canal
+// ---------------------------------------------------------------------------------------------------------------------
+function MembrosDialog({
+  canal,
+  pessoas,
+  aberto,
+  onFechar,
+  onSaiu,
+}: {
+  canal: ReturnType<typeof useChatChannels>['canais'][number];
+  pessoas: Map<string, Pessoa>;
+  aberto: boolean;
+  onFechar: () => void;
+  onSaiu: () => void;
+}) {
+  const { user } = useAuth();
+  const fechado = canal.kind === 'private' || canal.kind === 'dm';
+  const { data: membros, isLoading } = useMembrosDoCanal(canal.id, aberto && fechado);
+  const adicionar = useAdicionarMembro();
+  const remover = useRemoverMembro();
+  const papel = useAlterarPapel();
+
+  const meu = membros?.find(m => m.user_id === user?.id);
+  const souAdmin = canal.kind === 'private' && meu?.role === 'admin';
+  const idsNoCanal = new Set((membros ?? []).map(m => m.user_id));
+  const podemEntrar = [...pessoas.values()].filter(p => !idsNoCanal.has(p.id));
+
+  const texto =
+    canal.kind === 'workspace' ? 'Aberto a toda a equipe do workspace.'
+    : canal.kind === 'client' ? 'Aberto a toda a equipe do workspace, como o cadastro de clientes.'
+    : canal.kind === 'space' ? 'Segue o acesso do espaço: toda a equipe, exceto se o espaço for restrito por papel (aí só quem tem o papel permitido).'
+    : null;
+
+  return (
+    <Dialog open={aberto} onOpenChange={o => !o && onFechar()}>
+      <DialogContent className="max-h-[88vh] max-w-md overflow-y-auto rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Quem tem acesso</DialogTitle>
+          <DialogDescription>{canal.nomeExibido}</DialogDescription>
+        </DialogHeader>
+
+        {!fechado ? (
+          <p className="rounded-xl bg-muted/60 p-4 text-sm">{texto} Quem sai do workspace perde o acesso na hora.</p>
+        ) : isLoading ? (
+          <Skeleton className="h-28 w-full rounded-xl" />
+        ) : (
+          <>
+            <ul className="space-y-0.5">
+              {(membros ?? []).map(m => {
+                const p = pessoas.get(m.user_id);
+                const eu = m.user_id === user?.id;
+                return (
+                  <li key={m.user_id} className="flex items-center gap-3 rounded-lg px-2 py-2">
+                    <Foto pessoa={p} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{p?.nome ?? 'Ex-membro'}{eu ? ' (você)' : ''}</span>
+                    {canal.kind === 'private' && (
+                      <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', m.role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+                        {m.role === 'admin' ? 'Admin' : 'Membro'}
+                      </span>
+                    )}
+                    {souAdmin && !eu && (
+                      <>
+                        <button
+                          type="button"
+                          className="rounded px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+                          disabled={papel.isPending}
+                          onClick={() => papel.mutate({ channelId: canal.id, userId: m.user_id, role: m.role === 'admin' ? 'member' : 'admin' })}
+                        >
+                          {m.role === 'admin' ? 'Tirar admin' : 'Tornar admin'}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remover ${p?.nome ?? 'pessoa'}`}
+                          className="rounded p-1.5 text-destructive hover:bg-destructive/10"
+                          disabled={remover.isPending}
+                          onClick={() => window.confirm(`Remover ${p?.nome ?? 'esta pessoa'} do canal?`) && remover.mutate({ channelId: canal.id, userId: m.user_id })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {canal.kind === 'dm' && <p className="text-xs text-muted-foreground">Só vocês dois leem. Nem owner nem admin enxergam.</p>}
+            {canal.kind === 'private' && !souAdmin && <p className="text-xs text-muted-foreground">Só admins do canal convidam, removem ou mudam papéis.</p>}
+
+            {souAdmin && (
+              <div className="space-y-1.5 border-t pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Adicionar pessoas</p>
+                {podemEntrar.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Todo mundo do workspace já está no canal.</p>
+                ) : (
+                  <ul className="max-h-48 space-y-0.5 overflow-y-auto">
+                    {podemEntrar.map(p => (
+                      <li key={p.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5">
+                        <Foto pessoa={p} tamanho="h-6 w-6" />
+                        <span className="min-w-0 flex-1 truncate text-sm">{p.nome}</span>
+                        <Button size="sm" variant="outline" disabled={adicionar.isPending} onClick={() => adicionar.mutate({ channelId: canal.id, userId: p.id })}>
+                          Adicionar
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {canal.kind === 'private' && (
+              <div className="border-t pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={remover.isPending}
+                  onClick={() =>
+                    window.confirm('Sair deste canal? Você só volta se um admin convidar de novo.') &&
+                    remover.mutate({ channelId: canal.id, userId: user!.id }, { onSuccess: () => { onFechar(); onSaiu(); } })
+                  }
+                >
+                  <LogOut className="mr-1.5 h-4 w-4" /> Sair do canal
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -272,3 +272,63 @@ export function useCriarCanalPrivado() {
     onError: (e: any) => toast.error(e?.message || 'Não foi possível criar o canal.'),
   });
 }
+
+export interface MembroDoCanal {
+  user_id: string;
+  role: 'member' | 'admin';
+  created_at: string;
+}
+
+/** Participantes de um canal privado ou mensagem direta (nos canais abertos a lista e a do workspace). */
+export function useMembrosDoCanal(channelId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ['chat-membros', channelId],
+    enabled: enabled && !!channelId,
+    queryFn: async () => {
+      const { data, error } = await db.from('chat_members').select('user_id, role, created_at').eq('channel_id', channelId).order('created_at');
+      if (error) throw error;
+      return (data ?? []) as MembroDoCanal[];
+    },
+  });
+}
+
+export function useAdicionarMembro() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ channelId, userId }: { channelId: string; userId: string }) => {
+      const { error } = await db.from('chat_members').insert({ channel_id: channelId, user_id: userId, workspace_id: currentWorkspace?.id });
+      if (error) throw error;
+    },
+    onSuccess: (_r, v) => qc.invalidateQueries({ queryKey: ['chat-membros', v.channelId] }),
+    onError: (e: any) => toast.error(e?.message || 'Não foi possível adicionar.'),
+  });
+}
+
+export function useRemoverMembro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ channelId, userId }: { channelId: string; userId: string }) => {
+      const { error } = await db.from('chat_members').delete().eq('channel_id', channelId).eq('user_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ['chat-membros', v.channelId] });
+      qc.invalidateQueries({ queryKey: ['chat-canais'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Não foi possível concluir.'),
+  });
+}
+
+export function useAlterarPapel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ channelId, userId, role }: { channelId: string; userId: string; role: 'member' | 'admin' }) => {
+      const { data, error } = await db.from('chat_members').update({ role }).eq('channel_id', channelId).eq('user_id', userId).select('user_id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Você não tem permissão para mudar o papel desta pessoa.');
+    },
+    onSuccess: (_r, v) => qc.invalidateQueries({ queryKey: ['chat-membros', v.channelId] }),
+    onError: (e: any) => toast.error(e?.message || 'Não foi possível mudar o papel.'),
+  });
+}
