@@ -22,6 +22,7 @@ export const FEATURE_FLAGS = {
   TEMPLATES: 'templates',
   AI_ESTIMATES: 'ai_estimates',
   CLIENT_APPROVAL: 'client_approval',
+  TEAM_CHAT: 'team_chat',
 } as const;
 
 export function useFeatureFlags() {

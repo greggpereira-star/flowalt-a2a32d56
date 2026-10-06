@@ -64,6 +64,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   approval_changes_requested: <AlertTriangle className="h-4 w-4 text-rose-500" />,
   approval_comment: <AtSign className="h-4 w-4 text-sky-500" />,
   approval_reminder: <AlertTriangle className="h-4 w-4 text-amber-500" />,
+  chat_mention: <AtSign className="h-4 w-4 text-primary" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
   workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
   altcontrol_approval_pending: <FileText className="h-4 w-4 text-amber-500" />,

@@ -1,3 +1,5 @@
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
+import { useChatUnread } from '@/hooks/useChat';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -65,6 +67,7 @@ import {
   Lightbulb,
   Lock,
   LogOut,
+  MessageCircle,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -616,11 +619,16 @@ export const AppSidebarV2: React.FC = () => {
   const temAcessoIntegracoes = isAdmin || isCoordinator;
   const temSocial = has('social_publish');
 
+  const { isEnabled: flagLigada } = useFeatureFlags();
+  const conversasLigada = flagLigada(FEATURE_FLAGS.TEAM_CHAT);
+  const { total: conversasNaoLidas } = useChatUnread(conversasLigada);
+
   const principais: Item[] = [
     { icon: LayoutDashboard, label: 'Início', path: '/' },
     { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
     { icon: CheckSquare, label: 'Meu trabalho', path: '/tasks', contagem: meus },
     { icon: Calendar, label: 'Agenda', path: '/calendar' },
+    ...(conversasLigada ? [{ icon: MessageCircle, label: 'Conversas', path: '/conversas', contagem: conversasNaoLidas }] : []),
     { icon: Building2, label: 'Clientes', path: '/clients' },
   ];
 
