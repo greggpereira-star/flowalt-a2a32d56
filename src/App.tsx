@@ -54,6 +54,7 @@ const PublicBoardPage = lazy(() => import("./pages/PublicBoardPage"));
 const PublicProposalPage = lazy(() => import("./pages/PublicProposalPage"));
 const PublicApprovalPage = lazy(() => import("./pages/PublicApprovalPage"));
 const ConversasPage = lazy(() => import("./pages/ConversasPage"));
+const FeedEditorialPage = lazy(() => import("./pages/FeedEditorialPage"));
 const AltControlPage = lazy(() => import("./pages/altcontrol/AltControlPage").then(module => ({ default: module.AltControlPage })));
 const NewProposalPage = lazy(() => import("./pages/altcontrol/NewProposalPage").then(module => ({ default: module.NewProposalPage })));
 const ProposalGeneratorPage = lazy(() => import("./pages/altcontrol/ProposalGeneratorPage"));
@@ -156,6 +157,7 @@ const App = () => (
                   <Route path="/" element={<HomePageV2 />} />
                   <Route path="/home-legacy" element={<Index />} />
                   <Route path="/conversas" element={<ConversasPage />} />
+                  <Route path="/feed" element={<FeedEditorialPage />} />
                   <Route path="/activity" element={<ActivityPage />} />
                   <Route path="/complete-profile" element={<CompleteProfilePage />} />
                   <Route path="/oauth/bridge" element={<OAuthBridgePage />} />

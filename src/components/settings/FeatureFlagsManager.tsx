@@ -43,6 +43,7 @@ const PREDEFINED_FLAGS = [
   { key: FEATURE_FLAGS.AI_ESTIMATES, name: 'Estimativas com IA', description: 'Estimativa de tempo com IA' },
   { key: FEATURE_FLAGS.CLIENT_APPROVAL, name: 'Aprovação do cliente por link', description: 'Painel no card para enviar peças ao cliente aprovar por link' },
   { key: FEATURE_FLAGS.TEAM_CHAT, name: 'Conversas (chat da equipe)', description: 'Canais por cliente e espaço, canais privados e mensagens diretas' },
+  { key: FEATURE_FLAGS.EDITORIAL_FEED, name: 'Feed editorial', description: 'Prévia do feed do cliente em grade, ciclo mensal e gaveta de posts' },
 ];
 
 export function FeatureFlagsManager() {

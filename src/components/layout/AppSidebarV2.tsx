@@ -64,6 +64,7 @@ import {
   FileText,
   Folder,
   LayoutDashboard,
+  LayoutGrid,
   Lightbulb,
   Lock,
   LogOut,
@@ -621,6 +622,7 @@ export const AppSidebarV2: React.FC = () => {
 
   const { isEnabled: flagLigada } = useFeatureFlags();
   const conversasLigada = flagLigada(FEATURE_FLAGS.TEAM_CHAT);
+  const feedLigado = flagLigada(FEATURE_FLAGS.EDITORIAL_FEED);
   const { total: conversasNaoLidas } = useChatUnread(conversasLigada);
 
   const principais: Item[] = [
@@ -630,6 +632,7 @@ export const AppSidebarV2: React.FC = () => {
     { icon: Calendar, label: 'Agenda', path: '/calendar' },
     ...(conversasLigada ? [{ icon: MessageCircle, label: 'Conversas', path: '/conversas', contagem: conversasNaoLidas }] : []),
     { icon: Building2, label: 'Clientes', path: '/clients' },
+    ...(feedLigado ? [{ icon: LayoutGrid, label: 'Feed editorial', path: '/feed' }] : []),
   ];
 
   // Mesmos itens e mesmas regras de exibição do menu atual.

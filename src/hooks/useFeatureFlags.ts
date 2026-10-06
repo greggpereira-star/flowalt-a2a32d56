@@ -23,6 +23,7 @@ export const FEATURE_FLAGS = {
   AI_ESTIMATES: 'ai_estimates',
   CLIENT_APPROVAL: 'client_approval',
   TEAM_CHAT: 'team_chat',
+  EDITORIAL_FEED: 'editorial_feed',
 } as const;
 
 export function useFeatureFlags() {
