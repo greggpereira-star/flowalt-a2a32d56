@@ -840,7 +840,15 @@ export const AppSidebarV2: React.FC = () => {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 overflow-hidden px-3 pb-2 group-data-[collapsible=icon]:px-2">
+      <SidebarContent
+        className="gap-0 overflow-hidden px-3 pb-2 group-data-[collapsible=icon]:px-2"
+        // No celular, tocar em qualquer destino fecha a gaveta, inclusive o da pagina em que a pessoa ja esta
+        // (nesse caso a rota nao muda e o efeito de fechar ao navegar nao dispara: a gaveta ficava aberta, com a
+        // tela escurecida e sem responder ao toque).
+        onClick={e => {
+          if (isMobile && (e.target as HTMLElement).closest('a[href]')) setOpenMobile(false);
+        }}
+      >
         {/* A área com nav e espaços rola; Gestão e Mais ficam fixos logo acima do rodapé. */}
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div
