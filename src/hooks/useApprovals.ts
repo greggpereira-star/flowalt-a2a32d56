@@ -219,7 +219,7 @@ export function useCreateApproval() {
         request_id: pedido.id, workspace_id: p.workspaceId, type: 'sent', actor_kind: 'member', actor_label: user.email ?? null,
       });
 
-      return { token, link: linkDeAprovacao(token), round };
+      return { token, link: linkDeAprovacao(token), round, requestId: pedido.id as string };
     },
     onSuccess: (_r, vars) => qc.invalidateQueries({ queryKey: keyDoCard(vars.cardId) }),
     onError: (e: any) => toast.error(e?.message || 'Não foi possível criar o pedido.'),
@@ -242,7 +242,7 @@ export function useRenewApprovalLink() {
       await db.from('approval_events').insert({
         request_id: request.id, workspace_id: request.workspace_id, type: 'link_renewed', actor_kind: 'member', actor_label: user?.email ?? null,
       });
-      return { link: linkDeAprovacao(token) };
+      return { link: linkDeAprovacao(token), token, requestId: request.id };
     },
     onSuccess: (_r, { request }) => qc.invalidateQueries({ queryKey: keyDoCard(request.card_id) }),
     onError: (e: any) => toast.error(e?.message || 'Não foi possível gerar o novo link.'),
@@ -283,6 +283,27 @@ export function useReplyApproval() {
     },
     onSuccess: (_r, { request }) => qc.invalidateQueries({ queryKey: keyDoCard(request.card_id) }),
     onError: (e: any) => toast.error(e?.message || 'Não foi possível enviar.'),
+  });
+}
+
+/** Envia o link por e-mail ao cliente (funcao de borda confere o hash do token, o workspace e o limite de envios). */
+export function useSendApprovalEmail() {
+  return useMutation({
+    mutationFn: async ({ requestId, token, to }: { requestId: string; token: string; to: string }) => {
+      const { data, error } = await supabase.functions.invoke('approval-send-email', { body: { request_id: requestId, token, to } });
+      if (error) {
+        let msg = 'Não foi possível enviar o e-mail agora.';
+        try {
+          const corpo = await (error as any).context?.json?.();
+          if (corpo?.error) msg = corpo.error;
+        } catch {
+          /* mantem a mensagem padrao */
+        }
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      return data as { ok: true; to: string };
+    },
   });
 }
 

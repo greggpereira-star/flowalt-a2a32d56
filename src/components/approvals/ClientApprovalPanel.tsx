@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   Link2,
+  Mail,
   MessageCircle,
   MessageSquareWarning,
   Send,
@@ -28,6 +29,7 @@ import {
   useCreateApproval,
   useRenewApprovalLink,
   useReplyApproval,
+  useSendApprovalEmail,
 } from '@/hooks/useApprovals';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,7 +50,27 @@ const ROTULO: Record<ApprovalStatus, { texto: string; classe: string }> = {
 
 const quando = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
 
-function LinkDialog({ link, onClose }: { link: string | null; onClose: () => void }) {
+export interface InfoLink {
+  link: string;
+  token: string;
+  requestId: string;
+  /** E-mail do cliente, quando ja conhecido (preenche o campo). */
+  email?: string | null;
+  /** Preenchido quando o e-mail ja foi enviado ao criar o pedido. */
+  enviadoPara?: string | null;
+}
+
+function LinkDialog({ info, onClose }: { info: InfoLink | null; onClose: () => void }) {
+  const enviar = useSendApprovalEmail();
+  const [email, setEmail] = useState('');
+  const [enviadoPara, setEnviadoPara] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setEmail(info?.email ?? '');
+    setEnviadoPara(info?.enviadoPara ?? null);
+  }, [info]);
+
+  const link = info?.link ?? null;
   const copiar = async () => {
     if (!link) return;
     try {
@@ -59,8 +81,24 @@ function LinkDialog({ link, onClose }: { link: string | null; onClose: () => voi
     }
   };
   const whats = link ? `https://wa.me/?text=${encodeURIComponent(`Olá! Segue o link para você ver e aprovar: ${link}`)}` : '#';
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
+  const mandarEmail = () => {
+    if (!info) return;
+    enviar.mutate(
+      { requestId: info.requestId, token: info.token, to: email.trim() },
+      {
+        onSuccess: r => {
+          setEnviadoPara(r.to);
+          toast.success(`E-mail enviado para ${r.to}.`);
+        },
+        onError: (e: any) => toast.error(e?.message || 'Não foi possível enviar o e-mail.'),
+      },
+    );
+  };
+
   return (
-    <Dialog open={!!link} onOpenChange={o => !o && onClose()}>
+    <Dialog open={!!info} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>Link para o cliente</DialogTitle>
@@ -72,10 +110,26 @@ function LinkDialog({ link, onClose }: { link: string | null; onClose: () => voi
           <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input readOnly value={link ?? ''} onFocus={e => e.currentTarget.select()} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
         </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="ap-email">Enviar por e-mail</Label>
+          <div className="flex gap-2">
+            <Input id="ap-email" type="email" inputMode="email" placeholder="cliente@empresa.com" value={email} onChange={e => setEmail(e.target.value)} />
+            <Button variant="outline" disabled={!emailValido || enviar.isPending} onClick={mandarEmail}>
+              <Mail className="mr-1.5 h-4 w-4" /> {enviar.isPending ? 'Enviando…' : enviadoPara ? 'Reenviar' : 'Enviar'}
+            </Button>
+          </div>
+          {enviadoPara && (
+            <p className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-3.5 w-3.5" /> E-mail enviado para {enviadoPara}. As respostas dele vão para o seu e-mail.
+            </p>
+          )}
+        </div>
+
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" asChild>
             <a href={whats} target="_blank" rel="noreferrer">
-              <MessageCircle className="mr-1.5 h-4 w-4" /> Enviar por WhatsApp
+              <MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp
             </a>
           </Button>
           <Button onClick={copiar}>
@@ -96,9 +150,10 @@ function NovoPedidoDialog({
   cardId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  onCreated: (link: string) => void;
+  onCreated: (info: InfoLink) => void;
 }) {
   const { currentWorkspace } = useWorkspace();
+  const enviarEmail = useSendApprovalEmail();
   const { data: anexos } = useAttachments(cardId);
   const criar = useCreateApproval();
 
@@ -107,13 +162,22 @@ function NovoPedidoDialog({
     enabled: open,
     queryFn: async () => {
       const { data } = await (supabase as any).from('cards').select('title, client_id, client_cards(name)').eq('id', cardId).maybeSingle();
-      return data as { title: string; client_id: string | null; client_cards: { name: string } | null } | null;
+      // Reaproveita o e-mail usado no ultimo pedido deste cliente.
+      let ultimoEmail: string | null = null;
+      if (data?.client_id) {
+        const { data: ult } = await (supabase as any)
+          .from('approval_requests').select('client_email').eq('client_id', data.client_id).not('client_email', 'is', null)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        ultimoEmail = ult?.client_email ?? null;
+      }
+      return { ...(data as { title: string; client_id: string | null; client_cards: { name: string } | null }), ultimoEmail };
     },
   });
 
   const [titulo, setTitulo] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [cliente, setCliente] = useState('');
+  const [emailCliente, setEmailCliente] = useState('');
   const [texto, setTexto] = useState('');
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set());
   const [dias, setDias] = useState(14);
@@ -122,6 +186,7 @@ function NovoPedidoDialog({
     if (open && card) {
       setTitulo(t => t || card.title);
       setCliente(c => c || card.client_cards?.name || '');
+      setEmailCliente(e => e || card.ultimoEmail || '');
     }
   }, [open, card]);
 
@@ -143,17 +208,30 @@ function NovoPedidoDialog({
         title: titulo || card?.title || 'Aprovação',
         message: mensagem,
         clientName: cliente,
+        clientEmail: emailCliente,
         anexos: lista.map(a => ({ file_url: a.file_url, file_name: a.file_name, file_type: a.file_type })),
         texto,
         expiraEmDias: dias,
       },
       {
-        onSuccess: r => {
+        onSuccess: async r => {
           onOpenChange(false);
           setEscolhidos(new Set());
           setTexto('');
           setMensagem('');
-          onCreated(r.link);
+          const base: InfoLink = { link: r.link, token: r.token, requestId: r.requestId, email: emailCliente.trim() || null };
+          // Se o e-mail do cliente foi informado, ja envia; se falhar, o link continua valendo e o dialogo avisa.
+          if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailCliente.trim())) {
+            try {
+              const env = await enviarEmail.mutateAsync({ requestId: r.requestId, token: r.token, to: emailCliente.trim() });
+              onCreated({ ...base, enviadoPara: env.to });
+              toast.success(`E-mail enviado para ${env.to}.`);
+              return;
+            } catch (e: any) {
+              toast.error(e?.message || 'O e-mail não foi enviado. Use o link abaixo.');
+            }
+          }
+          onCreated(base);
         },
       },
     );
@@ -203,6 +281,11 @@ function NovoPedidoDialog({
             <Textarea id="ap-msg" rows={2} value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Ex.: Oi! Segue o post da semana para você aprovar." />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="ap-email-cli">E-mail do cliente (opcional)</Label>
+            <Input id="ap-email-cli" type="email" inputMode="email" value={emailCliente} onChange={e => setEmailCliente(e.target.value)} placeholder="Se preencher, enviamos o link por e-mail" />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="ap-cliente">Nome do cliente</Label>
@@ -229,7 +312,7 @@ function NovoPedidoDialog({
             Cancelar
           </Button>
           <Button onClick={enviar} disabled={criar.isPending}>
-            <Send className="mr-1.5 h-4 w-4" /> {criar.isPending ? 'Criando…' : 'Gerar link'}
+            <Send className="mr-1.5 h-4 w-4" /> {criar.isPending ? 'Criando…' : emailCliente.trim() ? 'Gerar link e enviar' : 'Gerar link'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -237,7 +320,7 @@ function NovoPedidoDialog({
   );
 }
 
-function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: boolean; onNovoLink: (link: string) => void }) {
+function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: boolean; onNovoLink: (info: InfoLink) => void }) {
   const { user } = useAuth();
   const renovar = useRenewApprovalLink();
   const cancelar = useCancelApproval();
@@ -351,7 +434,7 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
                   size="sm"
                   variant="outline"
                   disabled={renovar.isPending}
-                  onClick={() => renovar.mutate({ request: r }, { onSuccess: x => onNovoLink(x.link) })}
+                  onClick={() => renovar.mutate({ request: r }, { onSuccess: x => onNovoLink({ link: x.link, token: x.token, requestId: x.requestId, email: r.client_email }) })}
                 >
                   <Link2 className="mr-1.5 h-3.5 w-3.5" /> Gerar novo link
                 </Button>
@@ -377,7 +460,7 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
 export function ClientApprovalPanel({ cardId }: { cardId: string }) {
   const { data, isLoading } = useCardApprovals(cardId);
   const [novo, setNovo] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
+  const [info, setInfo] = useState<InfoLink | null>(null);
 
   const temAberto = useMemo(() => (data ?? []).some(b => b.request.status === 'pending'), [data]);
 
@@ -396,7 +479,7 @@ export function ClientApprovalPanel({ cardId }: { cardId: string }) {
       ) : (
         <div className="space-y-2">
           {(data ?? []).map((b, i) => (
-            <PedidoCard key={b.request.id} b={b} aberto={i === 0} onNovoLink={setLink} />
+            <PedidoCard key={b.request.id} b={b} aberto={i === 0} onNovoLink={setInfo} />
           ))}
         </div>
       )}
@@ -405,8 +488,8 @@ export function ClientApprovalPanel({ cardId }: { cardId: string }) {
         <Send className="mr-1.5 h-4 w-4" /> {(data ?? []).length === 0 ? 'Enviar ao cliente' : 'Nova rodada'}
       </Button>
 
-      <NovoPedidoDialog cardId={cardId} open={novo} onOpenChange={setNovo} onCreated={setLink} />
-      <LinkDialog link={link} onClose={() => setLink(null)} />
+      <NovoPedidoDialog cardId={cardId} open={novo} onOpenChange={setNovo} onCreated={setInfo} />
+      <LinkDialog info={info} onClose={() => setInfo(null)} />
     </div>
   );
 }
