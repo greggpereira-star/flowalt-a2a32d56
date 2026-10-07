@@ -43,6 +43,8 @@ import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useCardMembers, useAddCardMember, useRemoveCardMember } from '@/hooks/useCardMembers';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { useSugestaoResponsavel } from '@/hooks/useSugestaoResponsavel';
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
 interface Client {
@@ -129,6 +131,10 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
   const { data: cardMembers = [] } = useCardMembers(cardId);
   const { data: workspaceMembers = [] } = useWorkspaceMembers();
   const addMember = useAddCardMember();
+  const { isEnabled } = useFeatureFlags();
+  // Sugestão de responsável (Onda 6): só aparece com o card sem responsável, atrás da flag do radar.
+  const sugerir = isEnabled(FEATURE_FLAGS.RISK_RADAR) && cardMembers.length === 0;
+  const { sugestoes } = useSugestaoResponsavel(cardId, cardMembers.map(m => m.user_id), sugerir);
   const removeMember = useRemoveCardMember();
 
   const selectedClient = clients.find(c => c.id === clientId);
@@ -247,6 +253,22 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
               </PopoverContent>
             </Popover>
           </div>
+          {sugerir && sugestoes.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground">Sugestão de responsável</p>
+              {sugestoes.map(sg => (
+                <button
+                  key={sg.user_id}
+                  onClick={() => handleAddMember(sg.user_id)}
+                  className="flex w-full items-start gap-2 rounded-lg border border-dashed border-primary/30 px-2 py-1.5 text-left transition-colors hover:bg-primary/5"
+                >
+                  <span className="text-xs font-semibold text-foreground">{sg.nome.split(' ')[0]}</span>
+                  <span className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">{sg.motivo}</span>
+                  <span className="text-[11px] font-semibold text-primary">Atribuir</span>
+                </button>
+              ))}
+            </div>
+          )}
         </FieldRow>
 
         {/* Dates */}
