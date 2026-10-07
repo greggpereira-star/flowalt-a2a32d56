@@ -98,7 +98,8 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
           </h2>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 px-5 pt-4">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-5 pb-5 pt-4">
           {/* Search */}
           <div className="mb-4">
             <Label className="text-sm font-medium mb-2 block">Busca</Label>
@@ -243,6 +244,7 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
               </div>
             </CollapsibleContent>
           </Collapsible>
+        </div>
         </ScrollArea>
       </PopoverContent>
     </Popover>
