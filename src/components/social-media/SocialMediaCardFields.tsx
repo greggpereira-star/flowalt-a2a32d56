@@ -220,7 +220,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
   };
 
   return (
-    <div className={cn('space-y-4', novo && 'rounded-xl border border-border/60 bg-card p-4')}>
+    <div className="space-y-4 rounded-xl border border-border/60 bg-card p-5">
       <button
         type="button"
         onClick={() => setAberto(!estaAberto)}

@@ -552,7 +552,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                     {/* Traffic Briefing - Conditional */}
                     {isTrafficSpace && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mt-4">
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mt-6">
                         <div className="flex items-center gap-2 mb-3">
                           <Truck className="h-4 w-4 text-primary" />
                           <h4 className="text-sm font-medium">Briefing de Tráfego</h4>
@@ -577,7 +577,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
                     {/* Publicação (campos sociais): depois da descrição e recolhível; abre sozinho só se faltar algo */}
                     {isSocialMediaSpace && cardId && (
-                      <div className="mt-4">
+                      <div className="pt-7">
                         <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
                       </div>
                     )}
