@@ -75,7 +75,7 @@ export function ProcessNodeEditSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="overflow-y-auto"
+        size="sm" className="overflow-y-auto"
         style={{
           background: "#0f1114",
           borderColor: "#22262d",

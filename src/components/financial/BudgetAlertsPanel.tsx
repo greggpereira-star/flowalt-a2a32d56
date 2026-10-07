@@ -198,7 +198,7 @@ export function BudgetAlertsPanel({ selectedMonth = new Date() }: BudgetAlertsPa
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:w-[540px]">
+      <SheetContent size="md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />

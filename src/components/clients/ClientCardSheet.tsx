@@ -861,7 +861,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={fechar}>
-      <SheetContent size="xl" className="flex flex-col gap-0 p-0 sm:p-0">
+      <SheetContent size="xl" className="flex flex-col gap-0 p-0 sm:h-[min(90dvh,50rem)] sm:p-0">
         {isLoading ? (
           <div className="space-y-4 p-8">
             <Skeleton className="h-8 w-48" />

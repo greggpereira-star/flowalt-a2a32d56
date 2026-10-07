@@ -25,7 +25,7 @@ export const WidgetCustomizer: React.FC = () => {
           Personalizar
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent size="md">
         <SheetHeader>
           <SheetTitle>Personalizar Dashboard</SheetTitle>
           <SheetDescription>

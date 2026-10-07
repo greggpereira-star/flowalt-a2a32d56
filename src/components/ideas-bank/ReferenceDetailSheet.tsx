@@ -55,7 +55,7 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={cn('w-full overflow-y-auto p-0 sm:max-w-xl', aba === 'analise' && 'sm:max-w-2xl')}>
+      <SheetContent size={aba === 'analise' ? 'xl' : 'lg'} className="overflow-y-auto p-0 sm:p-0">
         <div className="p-6 pb-4">
           <SheetHeader className="mb-4">
             <div className="flex items-start justify-between gap-3">

@@ -193,7 +193,7 @@ export const KanbanColumnsEditor: React.FC<KanbanColumnsEditorProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md">
+      <SheetContent size="md">
         <SheetHeader>
           <SheetTitle>Editar Colunas</SheetTitle>
           <SheetDescription>

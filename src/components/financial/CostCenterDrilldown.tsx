@@ -187,7 +187,7 @@ export function CostCenterDrilldown({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:w-[800px] sm:max-w-[800px]">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-3">
             <div

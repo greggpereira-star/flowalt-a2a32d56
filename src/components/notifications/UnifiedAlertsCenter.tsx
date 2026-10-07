@@ -336,7 +336,7 @@ export function UnifiedAlertsCenter() {
         </SheetTrigger>
 
         {novo ? (
-        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[26rem]">
+        <SheetContent size="md" className="flex flex-col gap-0 p-0 sm:p-0">
           <SheetHeader className="space-y-0 px-5 pb-3 pr-14 pt-5 text-left">
             <div className="flex items-center gap-2">
               <SheetTitle className="text-xl font-extrabold tracking-tight">Notificações</SheetTitle>
@@ -496,7 +496,7 @@ export function UnifiedAlertsCenter() {
           </ScrollArea>
         </SheetContent>
         ) : (
-        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+        <SheetContent size="md" className="flex flex-col p-0 sm:p-0">
           <SheetHeader className="px-6 pt-6 pb-3 border-b border-border">
             <SheetTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />

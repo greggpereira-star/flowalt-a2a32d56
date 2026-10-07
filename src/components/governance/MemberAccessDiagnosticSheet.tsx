@@ -111,7 +111,7 @@ export const MemberAccessDiagnosticSheet: React.FC<MemberAccessDiagnosticSheetPr
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
+      <SheetContent size="lg" className="flex flex-col p-0 sm:p-0">
         <SheetHeader className="p-6 pb-4 border-b">
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
