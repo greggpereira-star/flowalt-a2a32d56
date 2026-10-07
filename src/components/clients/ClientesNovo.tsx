@@ -7,6 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useClientCardsByStatus, type ClientCard, type ClientStatus } from '@/hooks/useClientCards';
 import { useClientsHealth, type ClientHealth } from '@/hooks/useClientsHealth';
+import { useSinaisDosClientes } from '@/hooks/useSinaisDosClientes';
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
+import { rotuloSinal, type SinalCliente } from '@/lib/inteligencia/saude-operacional';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { ehAberto } from '@/lib/coordination/coordMetrics';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -109,12 +112,14 @@ function CartaoCliente({
   cliente,
   carteira,
   saude,
+  sinais,
   responsavel,
   onAbrir,
 }: {
   cliente: ClientCard;
   carteira: Carteira;
   saude?: ClientHealth;
+  sinais?: SinalCliente[];
   responsavel?: { nome: string; foto?: string | null };
   onAbrir: () => void;
 }) {
@@ -157,6 +162,25 @@ function CartaoCliente({
         )}
       </p>
 
+      {sinais && sinais.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {sinais.slice(0, 2).map((sn, i) => {
+            const r = rotuloSinal(sn);
+            return (
+              <span
+                key={i}
+                className={
+                  'rounded-full px-2 py-0.5 text-[11px] font-semibold ' +
+                  (r.grave ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400')
+                }
+              >
+                {r.texto}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mt-auto flex items-end justify-between gap-3 pt-2 sm:pt-3">
         <p className="min-w-0 truncate text-[12px] text-muted-foreground/80">
           {carteira.proxima ? (
@@ -188,6 +212,8 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
   const pausados = useClientCardsByStatus('paused');
   const encerrados = useClientCardsByStatus('closed');
   const { data: saude } = useClientsHealth();
+  const { isEnabled } = useFeatureFlags();
+  const { data: sinais } = useSinaisDosClientes(isEnabled(FEATURE_FLAGS.RISK_RADAR));
   const { data: carteira, isLoading: carregandoCarteira } = useCarteira();
   const { data: membros } = useWorkspaceMembers();
 
@@ -362,6 +388,7 @@ export function ClientesNovo({ onAbrir, onNovo }: { onAbrir: (id: string) => voi
               cliente={c}
               carteira={cart(c.id)}
               saude={saude?.get(c.id)}
+              sinais={sinais?.get(c.id)}
               responsavel={responsavelDe(c.responsible_user_id)}
               onAbrir={() => onAbrir(c.id)}
             />
