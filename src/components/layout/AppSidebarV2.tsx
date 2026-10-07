@@ -634,6 +634,7 @@ export const AppSidebarV2: React.FC = () => {
     { icon: CheckSquare, label: 'Meu trabalho', path: '/tasks', contagem: meus },
     { icon: Calendar, label: 'Agenda', path: '/calendar' },
     ...(conversasLigada ? [{ icon: MessageCircle, label: 'Conversas', path: '/conversas', contagem: conversasNaoLidas }] : []),
+    { icon: Lightbulb, label: 'Banco de Ideias', path: '/ideas' },
     { icon: Building2, label: 'Clientes', path: '/clients' },
     ...(feedLigado ? [{ icon: LayoutGrid, label: 'Feed editorial', path: '/feed' }] : []),
     ...(onboardingLigado ? [{ icon: Rocket, label: 'Onboarding', path: '/onboarding' }] : []),
@@ -651,7 +652,6 @@ export const AppSidebarV2: React.FC = () => {
   ];
 
   const mais: Item[] = [
-    { icon: Lightbulb, label: 'Banco de Ideias', path: '/ideas' },
     { icon: Clock, label: 'Tempo', path: '/time' },
     ...(temSocial ? [{ icon: Share2, label: 'Marketing', path: '/marketing' }] : []),
     ...(temAcessoIntegracoes ? [{ icon: Plug, label: 'API & Integrações', path: '/integrations' }] : []),
