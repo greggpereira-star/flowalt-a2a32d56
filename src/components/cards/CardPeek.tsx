@@ -196,7 +196,7 @@ export function CardPeekHost({
 
   return (
     <Sheet open={!!card} onOpenChange={aberto => !aberto && setCardId(null)}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[460px]">
+      <SheetContent size="md" className="flex flex-col gap-0 p-0 sm:p-0">
         {card && (
           <Conteudo
             card={card}

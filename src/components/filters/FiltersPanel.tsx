@@ -86,7 +86,7 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
       <SheetTrigger asChild>
         <FiltersButton activeCount={activeFiltersCount} onClick={() => setOpen(true)} />
       </SheetTrigger>
-      <SheetContent side="right" className="w-[340px] sm:w-[400px]">
+      <SheetContent size="md">
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center justify-between">
             Filtros

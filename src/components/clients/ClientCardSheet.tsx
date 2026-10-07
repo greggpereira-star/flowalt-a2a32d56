@@ -41,8 +41,10 @@ import {
   Settings2,
   Calculator,
   LayoutList,
-  Globe
+  Globe,
+  MoreHorizontal
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ClientReportTab } from './ClientReportTab';
@@ -775,8 +777,6 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const { isEnabled: flagLigada } = useFeatureFlags();
   const portalLigado = flagLigada(FEATURE_FLAGS.CLIENT_PORTAL);
   const mensalLigado = flagLigada(FEATURE_FLAGS.MONTHLY_REPORT);
-  const colunasAbas = 10 + (portalLigado ? 1 : 0) + (mensalLigado ? 1 : 0);
-  const classeColunas = colunasAbas >= 12 ? 'sm:grid-cols-12' : colunasAbas === 11 ? 'sm:grid-cols-11' : 'sm:grid-cols-10';
   
   const [formData, setFormData] = useState<Partial<ClientCard>>({});
   const [activeTab, setActiveTab] = useState('identity');
@@ -816,197 +816,169 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const StateIcon = stateConfig?.icon || TrendingUp;
   const healthScore = clientHealth?.healthScore;
 
+  // Seções da ficha, agrupadas por assunto. Cada uma abre num painel à direita da lista (em tela estreita, vira uma faixa rolável).
+  const secoes: { grupo: string; itens: { valor: string; rotulo: string; ajuda: string; Icone: React.ElementType; mostrar?: boolean }[] }[] = [
+    {
+      grupo: 'Cadastro',
+      itens: [
+        { valor: 'identity', rotulo: 'Identidade', ajuda: 'Nome, status, responsável e logo', Icone: Building2 },
+        { valor: 'onboarding', rotulo: 'Contexto', ajuda: 'Quem é o cliente, objetivos e público', Icone: Users },
+        { valor: 'branding', rotulo: 'Branding', ajuda: 'Posicionamento e identidade visual', Icone: Palette },
+        { valor: 'voice', rotulo: 'Voz da marca', ajuda: 'Como a marca fala e o que evita', Icone: MessageSquare },
+      ],
+    },
+    {
+      grupo: 'Operação',
+      itens: [
+        { valor: 'tasks', rotulo: 'Tarefas', ajuda: 'Cards em andamento deste cliente', Icone: LayoutList },
+        { valor: 'report', rotulo: 'Relatório', ajuda: 'Resultado financeiro do cliente', Icone: BarChart3 },
+        { valor: 'mensal', rotulo: 'Relatório mensal', ajuda: 'Rascunho do mês para revisar e enviar', Icone: FileText, mostrar: mensalLigado },
+        { valor: 'portal', rotulo: 'Portal', ajuda: 'Link de acompanhamento do cliente', Icone: Globe, mostrar: portalLigado },
+      ],
+    },
+    {
+      grupo: 'Comercial',
+      itens: [
+        { valor: 'contract', rotulo: 'Contrato', ajuda: 'Vigência, serviços e limites combinados', Icone: FileText },
+        { valor: 'policies', rotulo: 'Políticas', ajuda: 'Regras de atendimento e cobrança', Icone: Settings2 },
+        { valor: 'simulator', rotulo: 'Simulador', ajuda: 'Simule cenários do contrato', Icone: Calculator },
+        { valor: 'financial', rotulo: 'Financeiro', ajuda: 'Valores, margem e custos', Icone: DollarSign },
+      ],
+    },
+  ];
+  const secaoAtual = secoes.flatMap(g => g.itens).find(i => i.valor === activeTab);
+  // Abas que gravam pelo botão do rodapé; as outras têm o próprio botão ou gravam na hora.
+  const abaDeFormulario = ['identity', 'onboarding', 'branding', 'voice', 'contract'].includes(activeTab);
+  const alterado = !!client && JSON.stringify(formData) !== JSON.stringify(client);
+
+  const fechar = (aberto: boolean) => {
+    if (!aberto && alterado && !window.confirm('Há alterações não salvas neste cliente. Fechar e descartar?')) return;
+    onOpenChange(aberto);
+  };
+
+  const corDaSaude = (n: number) => (n >= 80 ? 'bg-green-500' : n >= 60 ? 'bg-amber-500' : n >= 40 ? 'bg-orange-500' : 'bg-red-500');
+  const textoDaSaude = (n: number) => (n >= 80 ? 'text-green-600' : n >= 60 ? 'text-amber-600' : n >= 40 ? 'text-orange-600' : 'text-red-600');
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0 gap-0">
+    <Sheet open={open} onOpenChange={fechar}>
+      <SheetContent size="xl" className="flex flex-col gap-0 p-0 sm:p-0">
         {isLoading ? (
-          <div className="space-y-4 p-6">
+          <div className="space-y-4 p-8">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-32 w-full" />
           </div>
         ) : client ? (
           <>
-            {/* Header fixo */}
-            <SheetHeader className="p-6 border-b flex-shrink-0 space-y-0">
-              {/* Top row - Avatar, Name, Status badges */}
-              <div className="flex items-start gap-4">
-                <div 
-                  className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0"
+            {/* Cabeçalho: quem é o cliente e como está, num relance */}
+            <SheetHeader className="flex-shrink-0 space-y-0 border-b bg-muted/20 px-6 py-5 pr-20 sm:px-8">
+              <div className="flex flex-wrap items-center gap-4">
+                <div
+                  className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl text-xl font-bold text-white shadow-sm ring-1 ring-black/5"
                   style={{ backgroundColor: client.color || '#6366f1' }}
                 >
                   {client.logo_url ? (
-                    <img src={client.logo_url} alt={client.name} className="w-full h-full object-cover rounded-xl" />
+                    <img src={client.logo_url} alt={client.name} className="h-full w-full object-cover" />
                   ) : (
                     client.name.charAt(0).toUpperCase()
                   )}
                 </div>
-                
-                <div className="flex-1 min-w-0 pt-1">
-                  <SheetTitle className="text-xl font-semibold truncate mb-1">
-                    {client.name}
-                  </SheetTitle>
-                  {client.segment && (
-                    <span className="text-sm text-muted-foreground">{client.segment}</span>
-                  )}
+
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="truncate text-xl font-semibold tracking-tight">{client.name}</SheetTitle>
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">{client.segment || 'Sem segmento definido'}</p>
                 </div>
 
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <Badge className={cn('text-xs px-3 py-1', statusConfig[client.status].color)}>
-                    {statusConfig[client.status].label}
-                  </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={cn('px-3 py-1 text-xs', statusConfig[client.status].color)}>{statusConfig[client.status].label}</Badge>
                   {stateConfig && (
-                    <Badge variant="outline" className={cn('text-xs gap-1.5 px-2.5 py-1', stateConfig.color)}>
+                    <Badge variant="outline" className={cn('gap-1.5 px-2.5 py-1 text-xs', stateConfig.color)}>
                       <StateIcon className="h-3 w-3" />
                       {stateConfig.label}
                     </Badge>
                   )}
+                  {/* O score deriva de receita, custo e margem: só aparece para quem enxerga finanças. */}
+                  {healthScore !== undefined && (
+                    <div className="flex items-center gap-2 rounded-full border bg-background px-3 py-1" title="Saúde financeira do cliente">
+                      <span className={cn('h-2 w-2 rounded-full', corDaSaude(healthScore))} />
+                      <span className="text-xs text-muted-foreground">Saúde</span>
+                      <span className={cn('text-sm font-bold tabular-nums', textoDaSaude(healthScore))}>{healthScore}</span>
+                    </div>
+                  )}
+                  {canDelete && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" aria-label="Mais ações do cliente">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setShowDeleteConfirm(true)}>
+                          <Trash2 className="h-4 w-4" />
+                          Excluir cliente
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
 
-              {/* Health Score Bar — só para quem enxerga finanças, já que o
-                  score deriva de receita, custo e margem. */}
-              {healthScore !== undefined && (
-                <div className="mt-5 pt-4 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground">Health Score</span>
-                    <span className={cn(
-                      'text-sm font-bold',
-                      healthScore >= 80 ? 'text-green-600' :
-                      healthScore >= 60 ? 'text-amber-600' :
-                      healthScore >= 40 ? 'text-orange-600' : 'text-red-600'
-                    )}>
-                      {healthScore}/100
-                    </span>
-                  </div>
-                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all duration-500',
-                        healthScore >= 80 ? 'bg-green-500' :
-                        healthScore >= 60 ? 'bg-amber-500' :
-                        healthScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
-                      )}
-                      style={{ width: `${healthScore}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Actions row - separated for clarity */}
-              {canDelete && (
-                <div className="mt-4 pt-3 border-t border-border/50">
-                  {!showDeleteConfirm ? (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Excluir cliente
+              {showDeleteConfirm && (
+                <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                  <p className="text-sm font-medium text-destructive">Excluir o cliente "{client.name}"?</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Esta ação não pode ser desfeita. Todos os dados do cliente serão removidos.</p>
+                  <div className="mt-3 flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
+                    <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleteClient.isPending}>
+                      {deleteClient.isPending ? 'Excluindo...' : 'Confirmar exclusão'}
                     </Button>
-                  ) : (
-                    <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
-                      <p className="text-sm text-destructive font-medium mb-1">
-                        Excluir cliente "{client.name}"?
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        Esta ação não pode ser desfeita. Todos os dados do cliente serão removidos.
-                      </p>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8"
-                          onClick={() => setShowDeleteConfirm(false)}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          className="h-8"
-                          onClick={handleDelete}
-                          disabled={deleteClient.isPending}
-                        >
-                          {deleteClient.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
             </SheetHeader>
 
-            {/* Tabs com scroll */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="px-6 pt-4 flex-shrink-0 -mx-6 sm:mx-0">
-                <TabsList className={`flex sm:grid ${classeColunas} h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0`}>
-                  <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <Building2 className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Identidade</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="onboarding" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <Users className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Onboard</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="branding" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <Palette className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Branding</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="voice" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Voz</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="contract" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <FileText className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Contrato</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="tasks" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <LayoutList className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Tarefas</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="report" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Relatório</span>
-                  </TabsTrigger>
-                  {mensalLigado && (
-                    <TabsTrigger value="mensal" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                      <FileText className="h-3.5 w-3.5" />
-                      <span className="text-[9px]">Mensal</span>
-                    </TabsTrigger>
-                  )}
-                  {portalLigado && (
-                    <TabsTrigger value="portal" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                      <Globe className="h-3.5 w-3.5" />
-                      <span className="text-[9px]">Portal</span>
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="policies" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Políticas</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="simulator" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <Calculator className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Simulador</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="financial" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
-                    <DollarSign className="h-3.5 w-3.5" />
-                    <span className="text-[9px]">Financeiro</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col md:flex-row">
+              {/* Lista de seções */}
+              <nav
+                aria-label="Seções do cliente"
+                className="flex flex-shrink-0 gap-1 overflow-x-auto border-b bg-muted/20 p-2 md:w-60 md:flex-col md:gap-0.5 md:overflow-y-auto md:overflow-x-visible md:border-b-0 md:border-r md:p-4"
+              >
+                {secoes.map(g => {
+                  const itens = g.itens.filter(i => i.mostrar !== false);
+                  return (
+                    <div key={g.grupo} className="flex gap-1 md:mb-4 md:flex-col md:gap-0.5">
+                      <p className="hidden px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 md:block">{g.grupo}</p>
+                      {itens.map(({ valor, rotulo, Icone }) => (
+                        <button
+                          key={valor}
+                          type="button"
+                          onClick={() => setActiveTab(valor)}
+                          aria-current={activeTab === valor ? 'page' : undefined}
+                          className={cn(
+                            'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors md:w-full',
+                            activeTab === valor ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          )}
+                        >
+                          <Icone className="h-4 w-4 shrink-0" />
+                          <span className="whitespace-nowrap">{rotulo}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </nav>
 
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="px-6 py-4">
+              {/* Conteúdo da seção */}
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="mx-auto max-w-3xl px-6 py-6 sm:px-10 sm:py-8">
+                  {secaoAtual && (
+                    <div className="mb-6">
+                      <h2 className="text-lg font-semibold tracking-tight">{secaoAtual.rotulo}</h2>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{secaoAtual.ajuda}</p>
+                    </div>
+                  )}
                   <TabsContent value="identity" className="mt-0 focus-visible:outline-none">
-                    <IdentityTab 
-                      client={client}
-                      formData={formData} 
-                      setFormData={setFormData}
-                      members={members || []}
-                    />
+                    <IdentityTab client={client} formData={formData} setFormData={setFormData} members={members || []} />
                   </TabsContent>
                   <TabsContent value="onboarding" className="mt-0 focus-visible:outline-none">
                     <OnboardingTab formData={formData} setFormData={setFormData} />
@@ -1049,22 +1021,25 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
               </ScrollArea>
             </Tabs>
 
-            {/* Footer fixo - só aparece em abas editáveis (não financeiro) */}
-            {activeTab !== 'financial' && activeTab !== 'report' && activeTab !== 'tasks' && activeTab !== 'policies' && activeTab !== 'simulator' && (
-              <div className="p-4 border-t flex-shrink-0 bg-background">
-                <Button 
-                  onClick={handleSave} 
-                  disabled={updateClient.isPending}
-                  className="w-full"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {updateClient.isPending ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
+            {/* Rodapé: só nas seções que gravam por aqui. Mostra se há algo por salvar. */}
+            {abaDeFormulario && (
+              <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t bg-background px-6 py-4 sm:px-8">
+                <p className={cn('flex items-center gap-2 text-sm', alterado ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-muted-foreground')} role="status" aria-live="polite">
+                  <span className={cn('h-2 w-2 rounded-full', alterado ? 'bg-amber-500' : 'bg-green-500')} />
+                  {alterado ? 'Alterações não salvas' : 'Tudo salvo'}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => fechar(false)}>Fechar</Button>
+                  <Button onClick={handleSave} disabled={updateClient.isPending || !alterado}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {updateClient.isPending ? 'Salvando...' : 'Salvar alterações'}
+                  </Button>
+                </div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex h-full items-center justify-center p-12">
             <p className="text-muted-foreground">Cliente não encontrado</p>
           </div>
         )}

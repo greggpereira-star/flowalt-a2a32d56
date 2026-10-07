@@ -19,7 +19,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[3px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -33,6 +33,9 @@ const sheetVariants = cva(
   {
     variants: {
       side: {
+        // Padrão do sistema: janela centralizada. Em tela pequena vira tela cheia.
+        center:
+          "left-1/2 top-1/2 flex max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-2xl border border-border/50 p-6 shadow-[0_24px_80px_-12px_rgba(15,23,42,0.35)] data-[state=open]:duration-200 data-[state=closed]:duration-150 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-h-[min(90dvh,56rem)] sm:p-8 max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0",
         top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
           "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
@@ -42,28 +45,57 @@ const sheetVariants = cva(
       },
     },
     defaultVariants: {
-      side: "right",
+      side: "center",
     },
   },
 );
 
+/** Largura da janela central: sm 32rem, md 42rem, lg 48rem (padrão), xl 64rem, 2xl 72rem. */
+export type SheetSize = "sm" | "md" | "lg" | "xl" | "2xl";
+const LARGURAS: Record<SheetSize, string> = {
+  sm: "sm:w-[32rem]",
+  md: "sm:w-[42rem]",
+  lg: "sm:w-[48rem]",
+  xl: "sm:w-[64rem]",
+  "2xl": "sm:w-[72rem]",
+};
+// Larguras escritas nas telas antigas (gaveta lateral) saem de cena na janela central: quem manda é o `size`.
+const LARGURA_ANTIGA = /(?:^|\s)(?:(?:sm|md|lg|xl|2xl):)?(?:max-w|w)-(?!full(?:\s|$))\S+/g;
+
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  size?: SheetSize;
+}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+  ({ side = "center", size = "lg", className, children, ...props }, ref) => {
+    const central = side === "center";
+    const classes = central ? (className ?? "").replace(LARGURA_ANTIGA, " ") : className;
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content
+          ref={ref}
+          className={cn(sheetVariants({ side }), central && ["w-[calc(100vw-2rem)]", LARGURAS[size]], classes)}
+          {...props}
+        >
+          {children}
+          <SheetPrimitive.Close
+            aria-label="Fechar"
+            className={cn(
+              "absolute z-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none",
+              central
+                ? "right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:right-5 sm:top-5"
+                : "right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            )}
+          >
+            <X className="h-4 w-4" />
+          </SheetPrimitive.Close>
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 

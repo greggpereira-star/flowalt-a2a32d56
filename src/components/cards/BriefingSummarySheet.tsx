@@ -643,10 +643,7 @@ export const BriefingSummarySheet: React.FC<BriefingSummarySheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="right" 
-        className="w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col"
-      >
+      <SheetContent size="lg" className="flex flex-col p-0 sm:p-0">
         <SummaryContent />
       </SheetContent>
     </Sheet>
