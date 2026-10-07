@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ClientReportTab } from './ClientReportTab';
 import { PortalDoClienteTab } from '@/components/portal/PortalDoClienteTab';
+import { RelatorioMensalTab } from '@/components/clients/RelatorioMensalTab';
 import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { ClientPoliciesTab } from './ClientPoliciesTab';
 import { ContractSimulatorTab } from './ContractSimulatorTab';
@@ -773,6 +774,9 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const { canViewClientFinancials, isAdmin, isOwner } = usePermissions();
   const { isEnabled: flagLigada } = useFeatureFlags();
   const portalLigado = flagLigada(FEATURE_FLAGS.CLIENT_PORTAL);
+  const mensalLigado = flagLigada(FEATURE_FLAGS.MONTHLY_REPORT);
+  const colunasAbas = 10 + (portalLigado ? 1 : 0) + (mensalLigado ? 1 : 0);
+  const classeColunas = colunasAbas >= 12 ? 'sm:grid-cols-12' : colunasAbas === 11 ? 'sm:grid-cols-11' : 'sm:grid-cols-10';
   
   const [formData, setFormData] = useState<Partial<ClientCard>>({});
   const [activeTab, setActiveTab] = useState('identity');
@@ -938,7 +942,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
             {/* Tabs com scroll */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="px-6 pt-4 flex-shrink-0 -mx-6 sm:mx-0">
-                <TabsList className={`flex sm:grid ${portalLigado ? 'sm:grid-cols-11' : 'sm:grid-cols-10'} h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0`}>
+                <TabsList className={`flex sm:grid ${classeColunas} h-auto w-full min-w-0 overflow-x-auto px-6 sm:px-0`}>
                   <TabsTrigger value="identity" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                     <Building2 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Identidade</span>
@@ -967,6 +971,12 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                     <BarChart3 className="h-3.5 w-3.5" />
                     <span className="text-[9px]">Relatório</span>
                   </TabsTrigger>
+                  {mensalLigado && (
+                    <TabsTrigger value="mensal" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
+                      <FileText className="h-3.5 w-3.5" />
+                      <span className="text-[9px]">Mensal</span>
+                    </TabsTrigger>
+                  )}
                   {portalLigado && (
                     <TabsTrigger value="portal" className="flex flex-col gap-0.5 py-2 px-2 sm:px-0.5 shrink-0 w-16 sm:w-auto">
                       <Globe className="h-3.5 w-3.5" />
@@ -1016,6 +1026,11 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <TabsContent value="report" className="mt-0 focus-visible:outline-none">
                     <ClientReportTab clientId={client.id} />
                   </TabsContent>
+                  {mensalLigado && (
+                    <TabsContent value="mensal" className="mt-0 focus-visible:outline-none">
+                      <RelatorioMensalTab clientId={client.id} clientName={client.name} />
+                    </TabsContent>
+                  )}
                   {portalLigado && (
                     <TabsContent value="portal" className="mt-0 focus-visible:outline-none">
                       <PortalDoClienteTab clientId={client.id} clientName={client.name} />
