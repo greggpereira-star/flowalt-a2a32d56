@@ -26,13 +26,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -309,8 +303,8 @@ export function UnifiedAlertsCenter() {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
@@ -333,13 +327,13 @@ export function UnifiedAlertsCenter() {
               </span>
             )}
           </Button>
-        </SheetTrigger>
+        </PopoverTrigger>
 
         {novo ? (
-        <SheetContent size="md" className="flex flex-col gap-0 p-0 sm:p-0">
-          <SheetHeader className="space-y-0 px-5 pb-3 pr-14 pt-5 text-left">
+        <PopoverContent align="end" sideOffset={10} collisionPadding={12} className="flex max-h-[min(80dvh,42rem)] w-[min(27rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden rounded-2xl p-0 shadow-xl">
+          <div className="space-y-0 px-5 pb-3 pt-5 text-left">
             <div className="flex items-center gap-2">
-              <SheetTitle className="text-xl font-extrabold tracking-tight">Notificações</SheetTitle>
+              <h2 className="text-xl font-extrabold tracking-tight">Notificações</h2>
               {totalUnread > 0 && (
                 <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold tabular-nums text-primary-foreground">
                   {totalUnread}
@@ -351,7 +345,7 @@ export function UnifiedAlertsCenter() {
                 ? `${totalUnreadInFeed} ${totalUnreadInFeed === 1 ? 'não lida' : 'não lidas'}`
                 : 'Tudo em dia'}
             </p>
-          </SheetHeader>
+          </div>
 
           {/* Todas | Não lidas  +  ações */}
           <div className="flex items-center justify-between gap-2 border-b border-border/60 px-5 pb-3">
@@ -494,11 +488,11 @@ export function UnifiedAlertsCenter() {
               )}
             </div>
           </ScrollArea>
-        </SheetContent>
+        </PopoverContent>
         ) : (
-        <SheetContent size="md" className="flex flex-col p-0 sm:p-0">
-          <SheetHeader className="px-6 pt-6 pb-3 border-b border-border">
-            <SheetTitle className="flex items-center gap-2">
+        <PopoverContent align="end" sideOffset={10} collisionPadding={12} className="flex max-h-[min(80dvh,42rem)] w-[min(27rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden rounded-2xl p-0 shadow-xl">
+          <div className="px-6 pt-5 pb-3 border-b border-border">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
               <Bell className="h-5 w-5" />
               Central de alertas
               {totalUnread > 0 && (
@@ -506,8 +500,8 @@ export function UnifiedAlertsCenter() {
                   {totalUnread}
                 </Badge>
               )}
-            </SheetTitle>
-          </SheetHeader>
+            </h2>
+          </div>
 
           {/* ───────── Filtro + ações ───────── */}
           <div className="px-6 pt-3 pb-2 flex items-center justify-between gap-2 border-b border-border/60">
@@ -642,9 +636,9 @@ export function UnifiedAlertsCenter() {
               </Button>
             </div>
           )}
-        </SheetContent>
+        </PopoverContent>
         )}
-      </Sheet>
+      </Popover>
 
       {mandatoryNotice && (
         <MandatoryNoticeModal

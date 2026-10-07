@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -82,23 +82,23 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <FiltersButton activeCount={activeFiltersCount} onClick={() => setOpen(true)} />
-      </SheetTrigger>
-      <SheetContent size="md">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center justify-between">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <FiltersButton activeCount={activeFiltersCount} />
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={8} collisionPadding={12} className="flex max-h-[min(82dvh,40rem)] w-[min(25rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden rounded-2xl p-0 shadow-xl">
+        <div className="flex-shrink-0 border-b px-5 py-3">
+          <h2 className="flex items-center justify-between text-base font-semibold">
             Filtros
             {activeFiltersCount > 0 && (
               <Button variant="ghost" size="sm" onClick={onClearFilters}>
                 Limpar todos
               </Button>
             )}
-          </SheetTitle>
-        </SheetHeader>
+          </h2>
+        </div>
 
-        <ScrollArea className="h-[calc(100vh-120px)] pr-4">
+        <ScrollArea className="min-h-0 flex-1 px-5 pt-4">
           {/* Search */}
           <div className="mb-4">
             <Label className="text-sm font-medium mb-2 block">Busca</Label>
@@ -244,7 +244,7 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
             </CollapsibleContent>
           </Collapsible>
         </ScrollArea>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 };
