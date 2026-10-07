@@ -15,6 +15,9 @@ import { Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Card } from '@/hooks/useCards';
+import { cn } from '@/lib/utils';
+import { CaixaSelecao } from './SelecionavelCard';
+import { useSelecaoDeCards } from '@/hooks/useCardSelection';
 
 interface ListViewProps {
   cards: Card[];
@@ -22,6 +25,7 @@ interface ListViewProps {
 }
 
 export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
+  const sel = useSelecaoDeCards();
   const [dueDateDirection, setDueDateDirection] = useState<'asc' | 'desc'>('asc');
   const sortedCards = useMemo(() => {
     return [...cards].sort((a, b) => {
@@ -34,6 +38,10 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
       return dueDateDirection === 'asc' ? comparison : -comparison;
     });
   }, [cards, dueDateDirection]);
+
+  const ordemIds = sortedCards.map(c => c.id);
+  const marcadosVisiveis = sel ? ordemIds.filter(i => sel.tem(i)).length : 0;
+  const todosMarcados = ordemIds.length > 0 && marcadosVisiveis === ordemIds.length;
 
   if (cards.length === 0) {
     return (
@@ -48,6 +56,16 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
       <Table>
         <TableHeader>
           <TableRow>
+            {sel && (
+              <TableHead className="w-12 pr-0">
+                <CaixaSelecao
+                  marcado={todosMarcados}
+                  parcial={marcadosVisiveis > 0 && !todosMarcados}
+                  rotulo={todosMarcados ? 'Desmarcar todos os cards' : 'Selecionar todos os cards'}
+                  onChange={() => (todosMarcados ? sel.desmarcar(ordemIds) : sel.marcar(ordemIds))}
+                />
+              </TableHead>
+            )}
             <TableHead className="w-[40%]">Título</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Urgência</TableHead>
@@ -72,9 +90,27 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
             return (
               <TableRow
                 key={card.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => onCardClick(card)}
+                className={cn('cursor-pointer hover:bg-muted/50 transition-colors', sel?.tem(card.id) && 'bg-primary/5 hover:bg-primary/10')}
+                data-state={sel?.tem(card.id) ? 'selected' : undefined}
+                onClick={(e) => {
+                  if (sel && (sel.ativa || e.shiftKey || e.metaKey || e.ctrlKey)) {
+                    sel.alternar(card.id, { intervalo: e.shiftKey ? ordemIds : undefined });
+                    return;
+                  }
+                  onCardClick(card);
+                }}
               >
+                {sel && (
+                  <TableCell
+                    className="w-12 pr-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sel.alternar(card.id, { intervalo: e.shiftKey ? ordemIds : undefined });
+                    }}
+                  >
+                    <CaixaSelecao marcado={sel.tem(card.id)} rotulo={`${sel.tem(card.id) ? 'Desmarcar' : 'Selecionar'} o card ${card.title}`} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium">{card.title}</span>

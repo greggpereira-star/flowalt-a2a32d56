@@ -13,6 +13,8 @@ import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 // usadas e mais pesadas (gantt/mapa mental em especial), então carregam sob
 // demanda: só quem realmente troca de view paga o custo de baixá-las.
 import { KanbanWithColumns } from '@/components/cards/KanbanWithColumns';
+import { CardSelectionBar } from '@/components/cards/CardSelectionBar';
+import { ProvedorDeSelecao, useCardSelection } from '@/hooks/useCardSelection';
 import { ehAtrasado } from '@/lib/metrics/definicoes';
 const KanbanAdvanced = lazy(() => import('@/components/cards/KanbanAdvanced').then(m => ({ default: m.KanbanAdvanced })));
 const ListView = lazy(() => import('@/components/cards/ListView').then(m => ({ default: m.ListView })));
@@ -346,6 +348,12 @@ const SpacePage: React.FC = () => {
     return result;
   }, [cards, viewConfig, searchQuery, advancedFilters]);
 
+  // Seleção múltipla: só vale para o que a tela mostra, e some ao trocar de visão.
+  const idsVisiveis = useMemo(() => filteredCards.map(c => c.id), [filteredCards]);
+  const selecao = useCardSelection(idsVisiveis);
+  const { limpar: limparSelecao } = selecao;
+  useEffect(() => { limparSelecao(); }, [view, limparSelecao]);
+
   // Get view title
   const viewTitle = activeView?.name || space?.name || 'Espaço';
 
@@ -618,6 +626,7 @@ const SpacePage: React.FC = () => {
         </div>
 
         {/* Content - Kanban area with internal scroll */}
+        <ProvedorDeSelecao valor={selecao}>
         <div className="flex-1 min-h-0 overflow-hidden">
           <WorkflowInitializer>
             {cardsLoading ? (
@@ -712,6 +721,8 @@ const SpacePage: React.FC = () => {
             )}
           </WorkflowInitializer>
         </div>
+        <CardSelectionBar cards={filteredCards} spaceId={spaceId} folderId={activeFolderId || undefined} />
+        </ProvedorDeSelecao>
       </div>
 
       {/* Dialogs */}

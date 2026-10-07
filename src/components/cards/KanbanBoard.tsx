@@ -14,6 +14,8 @@ import {
 } from '@dnd-kit/core';
 import { TaskCard } from './TaskCard';
 import { DraggableCard } from './DraggableCard';
+import { SelecionavelCard, CaixaSelecao } from './SelecionavelCard';
+import { useSelecaoDeCards } from '@/hooks/useCardSelection';
 import { DragOverlayCard } from './DragOverlayCard';
 import { CardContextMenu } from './CardContextMenu';
 import { TransitionBlockedModal } from './TransitionBlockedModal';
@@ -174,6 +176,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { respiro } = useNewUiBeta();
+  const sel = useSelecaoDeCards();
 
   // Próxima coluna visível do quadro, para o atalho "Avançar" do visual novo.
   const proximoDe = (status: CardStatus): CardStatus | undefined => {
@@ -752,7 +755,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
                   : (card.owner_id && memberMap.has(card.owner_id) ? [memberMap.get(card.owner_id)!] : []);
                 return (
-                  <div key={card.id}>
+                  <div key={card.id} className="px-1.5 pt-1.5">
+                    <SelecionavelCard id={card.id} titulo={card.title} grupo={activeCards.map(c => c.id)}>
                     <CardBlockIndicators card={card} />
                     <TaskCard
                       card={card}
@@ -767,6 +771,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       proximoStatus={proximoDe(card.status)}
                       proximoRotulo={rotuloDoProximo(card.status)}
                     />
+                    </SelecionavelCard>
                   </div>
                 );
               })
@@ -849,7 +854,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 )}
               >
                 {/* Column Header */}
-                <div className={cn('flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10', respiro ? 'border-b-0 bg-transparent px-4 py-3.5 backdrop-blur-none' : 'p-3')}>
+                <div className={cn('group/col flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md rounded-t-xl border-b border-border/30 z-10', respiro ? 'border-b-0 bg-transparent px-4 py-3.5 backdrop-blur-none' : 'p-3')}>
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
@@ -867,6 +872,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
                       {columnCards.length}
                     </Badge>
+                    {sel && columnCards.length > 0 && (() => {
+                      const idsDaColuna = columnCards.map(c => c.id);
+                      const qtd = idsDaColuna.filter(i => sel.tem(i)).length;
+                      const todos = qtd === idsDaColuna.length;
+                      return (
+                        <CaixaSelecao
+                          marcado={todos}
+                          parcial={qtd > 0 && !todos}
+                          rotulo={todos ? `Desmarcar todos os cards de ${columnLabels?.[status] || config.label}` : `Selecionar todos os cards de ${columnLabels?.[status] || config.label}`}
+                          onChange={() => (todos ? sel.desmarcar(idsDaColuna) : sel.marcar(idsDaColuna))}
+                          className={cn('ml-0.5', !sel.ativa && 'opacity-0 group-hover/col:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100')}
+                        />
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-1">
                     <TooltipProvider>
@@ -926,7 +945,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         ? assignedIds.map(id => memberMap.get(id)).filter((m): m is Assignee => !!m)
                         : (card.owner_id && memberMap.has(card.owner_id) ? [memberMap.get(card.owner_id)!] : []);
                       return (
-                        <DraggableCard key={card.id} id={card.id}>
+                        <DraggableCard key={card.id} id={card.id} disabled={!!sel?.ativa}>
+                          <SelecionavelCard id={card.id} titulo={card.title} grupo={columnCards.map(c => c.id)}>
                           <CardContextMenu
                             card={card}
                             onStatusChange={(status) => handleStatusChange(card, status)}
@@ -955,6 +975,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                               />
                             </div>
                           </CardContextMenu>
+                          </SelecionavelCard>
                         </DraggableCard>
                       );
                     })
