@@ -125,6 +125,8 @@ export function useInicioDados(ativo: boolean) {
       resumoAnterior,
       coord: resumir(avaliados, agora),
       emAtencao: ativosEmAtencao,
+      todos: avaliados,
+      nomeEtapa: (slug: string) => apoioQ.data.etapas.find(e => e.slug === slug)?.name ?? slug,
       carga: cargaPorPessoa(avaliados, agora),
       nomes: apoioQ.data.nomes,
     };

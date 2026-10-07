@@ -9,6 +9,9 @@ import { useInicioDados } from '@/hooks/home/useInicioDados';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { rotuloProblema } from '@/components/coordination/v2/Painel';
+import type { Problema } from '@/lib/coordination/coordMetrics';
+import { enriquecerRisco, rotuloRisco } from '@/lib/inteligencia/risco';
+import { useDuracoesPorEtapa } from '@/hooks/useDuracoesPorEtapa';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { usePendingApprovals } from '@/hooks/useApprovals';
@@ -130,6 +133,8 @@ export function InicioNovo({
   const { isEnabled } = useFeatureFlags();
   const aprovacaoLigada = isEnabled(FEATURE_FLAGS.CLIENT_APPROVAL);
   const { data: aguardandoCliente } = usePendingApprovals(aprovacaoLigada);
+  const radarLigado = isEnabled(FEATURE_FLAGS.RISK_RADAR);
+  const { data: duracoes } = useDuracoesPorEtapa(radarLigado);
 
   const dataTexto = useMemo(() => {
     const t = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -139,8 +144,23 @@ export function InicioNovo({
   // Fila: quem gerencia vê tudo; os demais veem só os cards em que são responsáveis.
   const fila = useMemo(() => {
     if (!dados) return [];
-    return canViewCoordination ? dados.emAtencao : dados.emAtencao.filter(a => user?.id && a.responsaveis.includes(user.id));
-  }, [dados, canViewCoordination, user?.id]);
+    let base: Array<(typeof dados.emAtencao)[number] | ReturnType<typeof enriquecerRisco>[number]> = dados.emAtencao;
+    if (radarLigado && duracoes) {
+      // Radar de risco: soma tempo vs. histórico, carga do responsável e aprovação parada ao avaliador de atenção.
+      const abertosPorPessoa = new Map<string, number>();
+      dados.todos.forEach(a => a.responsaveis.forEach(id => abertosPorPessoa.set(id, (abertosPorPessoa.get(id) ?? 0) + 1)));
+      base = enriquecerRisco(dados.todos, {
+        agora: new Date(),
+        duracoes,
+        nomeEtapa: dados.nomeEtapa,
+        abertosPorPessoa,
+        pendentes: (aguardandoCliente ?? []).map(p => ({ card_id: p.card_id, enviado_em: p.created_at })),
+      })
+        .filter(a => a.pontos > 0)
+        .sort((x, y) => y.pontos - x.pontos);
+    }
+    return canViewCoordination ? base : base.filter(a => user?.id && a.responsaveis.includes(user.id));
+  }, [dados, canViewCoordination, user?.id, radarLigado, duracoes, aguardandoCliente]);
 
   const a = dados?.resumoAtual;
   const p = dados?.resumoAnterior;
@@ -235,7 +255,7 @@ export function InicioNovo({
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.problemas.slice(0, 3).map((pr, i) => {
-                          const r = rotuloProblema(pr);
+                          const r = rotuloRisco(pr as never) ?? rotuloProblema(pr as Problema);
                           return (
                             <span
                               key={i}

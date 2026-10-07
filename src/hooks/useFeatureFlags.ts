@@ -26,6 +26,7 @@ export const FEATURE_FLAGS = {
   EDITORIAL_FEED: 'editorial_feed',
   ONBOARDING_ESTEIRA: 'onboarding_esteira',
   CLIENT_PORTAL: 'client_portal',
+  RISK_RADAR: 'risk_radar',
 } as const;
 
 export function useFeatureFlags() {
