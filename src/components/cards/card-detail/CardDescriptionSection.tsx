@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { RichTextViewer, isRichTextEmpty } from '@/components/ui/rich-text-viewer';
-import { Sparkles, Check, Pencil, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Check, Pencil, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CardDescriptionSectionProps {
@@ -72,14 +72,6 @@ export const CardDescriptionSection: React.FC<CardDescriptionSectionProps> = ({
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
-          >
-            <Sparkles className="h-3 w-3" />
-            Escrever com IA
-          </Button>
           <Button
             variant="ghost"
             size="sm"

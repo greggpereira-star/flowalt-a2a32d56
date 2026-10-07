@@ -1,25 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import {
-  MessageCircle,
-  History as HistoryIcon,
-  Send,
-  Loader2,
-  ListFilter,
-  Paperclip,
-  Image,
-  AtSign,
-  Smile,
-  CheckSquare,
-  Film,
-  Mic,
-  Link,
-  Lock,
-  Type,
-  Sparkles,
-  Plus,
-} from 'lucide-react';
+import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '@/hooks/useComments';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
@@ -164,30 +146,12 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
     { id: 'history', label: 'Histórico' },
   ];
 
-  const toolbarItems = [
-    { icon: Plus, tooltip: 'Mais opções' },
-    { icon: Sparkles, tooltip: 'IA', special: true },
-    { icon: Paperclip, tooltip: 'Anexar arquivo' },
-    { icon: Image, tooltip: 'Imagem' },
-    { icon: AtSign, tooltip: 'Mencionar' },
-    { icon: Smile, tooltip: 'Emoji' },
-    { icon: CheckSquare, tooltip: 'Checklist' },
-    { icon: Film, tooltip: 'GIF' },
-    { icon: Mic, tooltip: 'Áudio' },
-    { icon: Link, tooltip: 'Vincular tarefa' },
-    { icon: Lock, tooltip: 'Privado' },
-    { icon: Type, tooltip: 'Formatação' },
-  ];
-
   return (
     <div className="h-full w-full min-w-0 flex flex-col bg-muted/20 overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border/40 bg-background">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-foreground">Atividade</h3>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground">
-            <ListFilter className="h-3.5 w-3.5" />
-          </Button>
         </div>
 
         {/* Tabs */}
@@ -351,7 +315,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
           <RichTextEditor
             value={newComment}
             onChange={setNewComment}
-            placeholder="Escreva um comentário... (Ctrl+Enter para enviar)"
+            placeholder="Escreva um comentário... use @ para mencionar (Ctrl+Enter envia)"
             minHeight="36px"
             maxHeight="120px"
             mentionSuggestions={mentionSuggestions}
@@ -362,26 +326,7 @@ export const CardActivityPanel: React.FC<CardActivityPanelProps> = ({
             contentClassName="px-3 py-2 text-sm leading-relaxed"
           />
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-2 pb-1.5 border-t border-border/20 pt-1">
-            <div className="flex items-center gap-0">
-              {toolbarItems.slice(0, 8).map((item, i) => (
-                <Tooltip key={i}>
-                  <TooltipTrigger asChild>
-                    <button
-                      className={cn(
-                        "h-6 w-6 rounded flex items-center justify-center transition-colors",
-                        item.special
-                          ? "text-primary hover:bg-primary/10"
-                          : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/60"
-                      )}
-                    >
-                      <item.icon className="h-3.5 w-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-[11px]">{item.tooltip}</TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
+          <div className="flex items-center justify-end px-2 pb-1.5 border-t border-border/20 pt-1">
             <Button
               size="sm"
               className={cn(

@@ -1,37 +1,14 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  X,
-  MoreHorizontal,
-  Trash2,
-  Copy,
-  Archive,
-  Sparkles,
-  Hash,
-  ExternalLink,
-  Star,
-  LayoutGrid,
-  CheckSquare,
-  RefreshCw,
-} from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { X, MoreHorizontal, Trash2, Archive, Hash, LayoutGrid, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface CardDetailHeaderProps {
+  estadoSalvo?: 'salvando' | 'salvo' | 'erro' | null;
   title: string;
   cardId: string;
   cardType?: string;
@@ -55,6 +32,7 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
   onDelete,
   canDelete = false,
   hasHistory = false,
+  estadoSalvo,
   createdAt,
   spaceName,
 }) => {
@@ -93,46 +71,21 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-0.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 gap-1.5 text-xs text-primary/80 hover:text-primary hover:bg-primary/10"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Pergunte à IA</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Assistente IA</TooltipContent>
-          </Tooltip>
+          <span role="status" aria-live="polite" className={cn('mr-2 text-xs', estadoSalvo === 'erro' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+            {estadoSalvo === 'salvando' && 'Salvando…'}
+            {estadoSalvo === 'salvo' && 'Salvo'}
+            {estadoSalvo === 'erro' && 'Não salvou. Tente de novo.'}
+          </span>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-                <Star className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Favoritar</TooltipContent>
-          </Tooltip>
 
           {canDelete && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" aria-label="Mais ações do card" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="gap-2 text-xs">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Abrir em nova aba
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 text-xs">
-                  <Copy className="h-3.5 w-3.5" />
-                  Duplicar card
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={onDelete}
                   className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -156,6 +109,7 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
+            aria-label="Fechar"
             className="h-7 w-7 p-0 ml-1 text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
@@ -177,14 +131,6 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
             <CheckSquare className="h-3 w-3" />
             {cardType === 'quick' ? 'Card Rápido' : 'Demanda'}
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground/50 hover:text-muted-foreground transition-colors">
-                <RefreshCw className="h-3 w-3" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Converter tipo</TooltipContent>
-          </Tooltip>
         </div>
 
         {/* Title - Large and editable */}
@@ -192,7 +138,8 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           onBlur={onTitleBlur}
-          className="text-2xl font-bold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent placeholder:text-muted-foreground/30 leading-tight"
+          className="text-2xl font-bold border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-muted/40 rounded-md bg-transparent placeholder:text-muted-foreground/30 leading-tight"
+          aria-label="Título do card"
           placeholder="Nome da tarefa..."
         />
       </div>

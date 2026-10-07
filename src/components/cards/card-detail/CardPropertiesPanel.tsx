@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { useCardMembers, useAddCardMember, useRemoveCardMember } from '@/hooks/useCardMembers';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
 import { useSugestaoResponsavel } from '@/hooks/useSugestaoResponsavel';
+import { ResponsavelCommand } from './ResponsavelCommand';
 import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { CARD_STATUS_OPTIONS } from '@/lib/cards/cardStatusLabels';
 
@@ -160,6 +161,29 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
     return nextDate;
   };
 
+  // Atalhos do prazo: mantêm a hora já escolhida (ou 18:00 se ainda não havia prazo).
+  const diaDaSemana = (alvo: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + (((alvo - d.getDay() + 7) % 7) || 7));
+    return d;
+  };
+  const maisDias = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  const atalhosPrazo: { rotulo: string; data: Date }[] = [
+    { rotulo: 'Hoje', data: maisDias(0) },
+    { rotulo: 'Amanhã', data: maisDias(1) },
+    { rotulo: 'Sexta', data: diaDaSemana(5) },
+    { rotulo: 'Próx. segunda', data: diaDaSemana(1) },
+  ];
+  const definirPrazo = (d: Date) => {
+    if (dueDate) d.setHours(dueDate.getHours(), dueDate.getMinutes(), 0, 0);
+    else d.setHours(18, 0, 0, 0);
+    onDueDateChange(d);
+  };
+
   return (
     <div className="space-y-0">
       {/* Two-column grid for fields */}
@@ -167,7 +191,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         {/* Status */}
         <FieldRow icon={<CircleDot className="h-3.5 w-3.5" />} label="Status">
           <Select value={status} onValueChange={onStatusChange}>
-            <SelectTrigger className={PROPERTY_TRIGGER_BASE} data-testid="status-trigger">
+            <SelectTrigger aria-label="Status" className={PROPERTY_TRIGGER_BASE} data-testid="status-trigger">
               <StatusBadge status={status} showChevron />
             </SelectTrigger>
             <SelectContent>
@@ -202,7 +226,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                 {!member.is_owner && (
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="opacity-0 group-hover/member:opacity-100 h-3.5 w-3.5 rounded-full hover:bg-destructive/20 flex items-center justify-center transition-opacity"
+                    aria-label="Remover responsável" className="opacity-0 group-hover/member:opacity-100 [@media(hover:none)]:opacity-100 h-3.5 w-3.5 [@media(pointer:coarse)]:h-6 [@media(pointer:coarse)]:w-6 rounded-full hover:bg-destructive/20 flex items-center justify-center transition-opacity"
                   >
                     <X className="h-2.5 w-2.5 text-muted-foreground hover:text-destructive" />
                   </button>
@@ -211,64 +235,28 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             ))}
             <Popover open={memberPopoverOpen} onOpenChange={setMemberPopoverOpen}>
               <PopoverTrigger asChild>
-                <button className="h-5 w-5 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors">
+                <button
+                  aria-label={sugerir && sugestoes.length > 0 ? 'Adicionar responsável (há indicações)' : 'Adicionar responsável'}
+                  className="relative h-5 w-5 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors"
+                >
                   <Plus className="h-3 w-3 text-muted-foreground" />
+                  {sugerir && sugestoes.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background" aria-hidden />
+                  )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
-                <Command className="rounded-lg [&_[cmdk-input-wrapper]]:border-none [&_[cmdk-input-wrapper]_svg]:hidden [&_[cmdk-input-wrapper]]:px-0">
-                  <CommandInput 
-                    placeholder="Buscar membro..." 
-                    className="!h-8 !border-none !bg-muted/40 !rounded-md !px-3 !text-sm !shadow-none !ring-0 !outline-none" 
-                  />
-                  <CommandList className="max-h-[180px] mt-1">
-                    <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">Nenhum membro</CommandEmpty>
-                    <CommandGroup>
-                      {availableMembers.map((member) => (
-                        <CommandItem
-                          key={member.user_id}
-                          value={member.profile?.full_name || member.profile?.email || member.user_id}
-                          onSelect={() => {
-                            handleAddMember(member.user_id);
-                            setMemberPopoverOpen(false);
-                          }}
-                          className="cursor-pointer"
-                        >
-                          <Avatar className="h-5 w-5 mr-2">
-                            {member.profile?.avatar_url && (
-                              <AvatarImage src={member.profile.avatar_url} />
-                            )}
-                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                              {getInitials(member.profile?.full_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm truncate">
-                            {member.profile?.full_name || member.profile?.email || 'Usuário'}
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+              <PopoverContent className="w-[22rem] max-w-[calc(100vw-2rem)] p-2" align="start">
+                <ResponsavelCommand
+                  membros={availableMembers}
+                  sugestoes={sugerir ? sugestoes : []}
+                  onEscolher={(userId) => {
+                    handleAddMember(userId);
+                    setMemberPopoverOpen(false);
+                  }}
+                />
               </PopoverContent>
             </Popover>
           </div>
-          {sugerir && sugestoes.length > 0 && (
-            <div className="mt-2 space-y-1">
-              <p className="text-[11px] font-medium text-muted-foreground">Sugestão de responsável</p>
-              {sugestoes.map(sg => (
-                <button
-                  key={sg.user_id}
-                  onClick={() => handleAddMember(sg.user_id)}
-                  className="flex w-full items-start gap-2 rounded-lg border border-dashed border-primary/30 px-2 py-1.5 text-left transition-colors hover:bg-primary/5"
-                >
-                  <span className="text-xs font-semibold text-foreground">{sg.nome.split(' ')[0]}</span>
-                  <span className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">{sg.motivo}</span>
-                  <span className="text-[11px] font-semibold text-primary">Atribuir</span>
-                </button>
-              ))}
-            </div>
-          )}
         </FieldRow>
 
         {/* Dates */}
@@ -276,7 +264,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <Popover>
               <PopoverTrigger asChild>
-                <button className={cn(
+                <button aria-label="Início da tarefa" className={cn(
                   "px-1.5 py-0.5 rounded text-xs hover:bg-muted/50 transition-colors",
                   startDate ? "text-foreground" : "text-muted-foreground/50 border border-dashed border-muted-foreground/20"
                 )}>
@@ -316,7 +304,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             <span className="text-muted-foreground/30">→</span>
             <Popover>
               <PopoverTrigger asChild>
-                <button className={cn(
+                <button aria-label="Prazo de entrega" className={cn(
                   "px-1.5 py-0.5 rounded text-xs hover:bg-muted/50 transition-colors",
                   dueDate ? "text-foreground font-medium" : "text-muted-foreground/50 border border-dashed border-muted-foreground/20"
                 )}>
@@ -324,6 +312,18 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
+                <div className="flex flex-wrap gap-1.5 border-b p-3">
+                  {atalhosPrazo.map((a) => (
+                    <button
+                      key={a.rotulo}
+                      type="button"
+                      onClick={() => definirPrazo(a.data)}
+                      className="rounded-full border border-border/60 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
+                    >
+                      {a.rotulo}
+                    </button>
+                  ))}
+                </div>
                 <div className="p-3 border-b bg-muted/20">
                    <div className="flex items-center gap-2">
                      <Clock className="h-3 w-3 text-muted-foreground" />
@@ -361,7 +361,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
         {/* Priority */}
         <FieldRow icon={<Flag className="h-3.5 w-3.5" />} label="Prioridade">
           <Select value={urgency} onValueChange={onUrgencyChange}>
-            <SelectTrigger className={PROPERTY_TRIGGER_BASE} data-testid="priority-trigger">
+            <SelectTrigger aria-label="Prioridade" className={PROPERTY_TRIGGER_BASE} data-testid="priority-trigger">
               <UrgencyBadge urgency={urgency} />
             </SelectTrigger>
             <SelectContent>
@@ -398,7 +398,7 @@ export const CardPropertiesPanel: React.FC<CardPropertiesPanelProps> = ({
             value={clientId || '__none__'}
             onValueChange={(v) => onClientChange(v === '__none__' ? null : v)}
           >
-            <SelectTrigger className={cn(PROPERTY_TRIGGER_BASE, 'max-w-[220px]')} data-testid="client-trigger">
+            <SelectTrigger aria-label="Cliente" className={cn(PROPERTY_TRIGGER_BASE, 'max-w-[220px]')} data-testid="client-trigger">
               {selectedClient ? (
                 <div className="flex items-center gap-1.5 truncate">
                   {selectedClient.color && (

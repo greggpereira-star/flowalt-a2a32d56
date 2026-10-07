@@ -14,7 +14,6 @@ import {
   CardBriefingSection,
   CardToolsStack,
   InlineTimerWidget,
-  AIBar,
   SectionHeader,
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
@@ -68,6 +67,15 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const { isOwner, isAdmin, isCoordinator, canDeleteCards } = usePermissions();
   const { user } = useAuth();
   const updateCard = useUpdateCard();
+  // Feedback de salvamento no cabeçalho: "Salvando…", "Salvo" (some em 2,5 s) ou erro.
+  const [salvoRecente, setSalvoRecente] = useState(false);
+  useEffect(() => {
+    if (!updateCard.isSuccess) return;
+    setSalvoRecente(true);
+    const t = setTimeout(() => setSalvoRecente(false), 2500);
+    return () => clearTimeout(t);
+  }, [updateCard.isSuccess]);
+  const estadoSalvo = updateCard.isPending ? 'salvando' : updateCard.isError ? 'erro' : salvoRecente ? 'salvo' : null;
   const deleteCard = useDeleteCard();
   const cardRef = useRef(card);
 
@@ -434,8 +442,15 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const isRestrictedNoAccess = !isLoading && !card;
 
+  // Descrição só salva no botão Salvar: avisa antes de fechar com texto novo que ainda não foi gravado.
+  const tentarFechar = () => {
+    const naoSalva = !!card && (description || '') !== (card.description || '');
+    if (naoSalva && !window.confirm('A descrição tem alterações que não foram salvas. Fechar e descartar?')) return;
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(aberto) => (aberto ? onOpenChange(true) : tentarFechar())}>
         <DialogContent 
           className="left-0 top-0 w-screen h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none border-0 sm:left-[50%] sm:top-[50%] sm:max-w-[1320px] sm:w-[95vw] sm:h-[min(92vh,860px)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl sm:border p-0 flex flex-col overflow-hidden bg-background gap-0 shadow-lg"
           hideCloseButton
@@ -465,7 +480,8 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               cardType={(card as any).card_type}
               onTitleChange={setTitle}
               onTitleBlur={() => title !== card.title && handleSave({ title })}
-              onClose={() => onOpenChange(false)}
+              onClose={tentarFechar}
+              estadoSalvo={estadoSalvo}
               onDelete={() => setDeleteDialogOpen(true)}
               canDelete={canDelete}
               hasHistory={hasHistory}
@@ -479,9 +495,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               <div className="flex-1 flex flex-col min-w-0 border-r border-border/40">
                 <ScrollArea className="flex-1">
                   <div className="px-6 py-4 space-y-1">
-                    {/* AI Bar */}
-                    <AIBar />
-
                     {/* Properties - ClickUp-style field rows */}
                     <CardPropertiesPanel
                       cardId={card.id}
@@ -551,13 +564,6 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                       </div>
                     )}
 
-                    {/* Social Media Fields - Conditional */}
-                    {isSocialMediaSpace && cardId && (
-                      <div className="mt-4">
-                        <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
-                      </div>
-                    )}
-
                     {/* Section: Content & Description (acima das ferramentas) */}
                     <section className="card-section">
                       <SectionHeader title="Conteúdo & Descrição" />
@@ -568,6 +574,13 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         isDirty={description !== card.description}
                       />
                     </section>
+
+                    {/* Publicação (campos sociais): depois da descrição e recolhível; abre sozinho só se faltar algo */}
+                    {isSocialMediaSpace && cardId && (
+                      <div className="mt-4">
+                        <SocialMediaCardFields cardId={cardId} spaceType="social_media" />
+                      </div>
+                    )}
 
                     {/* Tools / Resources — stacked sections, ClickUp-style */}
                     <section className="card-section">
@@ -582,6 +595,14 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                         socialPostsCount={socialPostsCount}
                         forceOpenId={activeResourceTab}
                       />
+                    </section>
+
+                    {/* Celular e tela estreita: a coluna Atividade só existe em tela larga, então comentários e histórico entram aqui */}
+                    <section className="card-section lg:hidden">
+                      <SectionHeader title="Atividade e comentários" />
+                      <div className="h-[32rem] overflow-hidden rounded-lg border border-border/40">
+                        <CardActivityPanel cardId={card.id} />
+                      </div>
                     </section>
 
                   </div>

@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,15 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  MoreHorizontal,
-  Link2,
-  BellOff,
-  FileText,
-  Clock,
-  Pencil,
-  Trash2,
-} from 'lucide-react';
+import { MoreHorizontal, Link2, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommentContextMenuProps {
@@ -66,28 +49,12 @@ export const CommentContextMenu: React.FC<CommentContextMenuProps> = ({
             <Link2 className="h-3.5 w-3.5" />
             Copiar URL
           </DropdownMenuItem>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="gap-2 text-xs cursor-pointer">
-              <Clock className="h-3.5 w-3.5" />
-              Lembrar-me
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-44">
-              <DropdownMenuItem className="text-xs cursor-pointer" onClick={() => toast.success('Lembrete em 30 min')}>Em 30 min</DropdownMenuItem>
-              <DropdownMenuItem className="text-xs cursor-pointer" onClick={() => toast.success('Lembrete em 1 hora')}>Em 1 hora</DropdownMenuItem>
-              <DropdownMenuItem className="text-xs cursor-pointer" onClick={() => toast.success('Lembrete amanhã')}>Amanhã</DropdownMenuItem>
-              <DropdownMenuItem className="text-xs cursor-pointer" onClick={() => toast.success('Lembrete próxima semana')}>Próxima semana</DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
           {onAddToDescription && (
             <DropdownMenuItem onClick={onAddToDescription} className="gap-2 text-xs cursor-pointer">
               <FileText className="h-3.5 w-3.5" />
               Adicionar à descrição
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem className="gap-2 text-xs cursor-pointer">
-            <BellOff className="h-3.5 w-3.5" />
-            Não me notifique sobre respostas
-          </DropdownMenuItem>
 
           {isAuthor && (
             <>

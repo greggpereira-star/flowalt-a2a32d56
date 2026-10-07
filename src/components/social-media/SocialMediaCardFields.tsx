@@ -1,3 +1,4 @@
+import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
@@ -27,6 +28,7 @@ import {
   Calendar,
   Link2,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 
 interface SocialMediaCardFieldsProps {
@@ -71,6 +73,9 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
   readOnly = false,
 }) => {
   const { respiro: novo } = useNewUiBeta();
+  const { isEnabled } = useFeatureFlags();
+  const aprovacaoLigada = isEnabled(FEATURE_FLAGS.CLIENT_APPROVAL);
+  const [aberto, setAberto] = useState<boolean | null>(null);
   const { data: definitions, isLoading: defsLoading } = useCustomFieldDefinitions(spaceType);
   const { data: cardFields, isLoading: fieldsLoading } = useCardCustomFields(cardId);
   const updateFields = useUpdateCardCustomFields();
@@ -124,10 +129,21 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
   }
 
   // No visual novo a Data de Postagem vira uma propriedade ao lado do prazo (PostDateRow) e o Cliente já é uma propriedade do card: aqui não repetem.
-  const definicoesVisiveis = novo ? definitions?.filter((d) => d.field_key !== 'post_date' && d.field_key !== 'client') : definitions;
+  // O Cliente do card é a propriedade acima (card.client_id); este campo livre antigo ('client') contradizia ela e some em qualquer visual.
+  // Os valores já gravados em card_custom_fields ficam intactos.
+  // Com a aprovação do cliente ligada, "Status Editorial" e "Link de Aprovação" sobrepõem o fluxo de aprovação
+  // (nenhum código lê esses dois campos). Os valores já gravados ficam intactos.
+  const semCliente = definitions?.filter(
+    (d) => d.field_key !== 'client' && !(aprovacaoLigada && (d.field_key === 'editorial_status' || d.field_key === 'approval_link'))
+  );
+  const definicoesVisiveis = novo ? semCliente?.filter((d) => d.field_key !== 'post_date') : semCliente;
   if (!definitions || definitions.length === 0 || !definicoesVisiveis?.length) return null;
 
   const getValue = (key: string) => localValues[key] || '';
+  // Abre sozinho só se faltar plataforma ou tipo de peça; quem já preencheu vê um resumo de uma linha.
+  const preenchido = !!getValue('platform') && !!getValue('piece_type');
+  const estaAberto = aberto ?? !preenchido;
+  const resumo = [getValue('platform'), getValue('piece_type')].filter(Boolean).join(' · ');
 
   const renderSelectField = (fieldKey: string) => {
     const value = getValue(fieldKey);
@@ -205,17 +221,29 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
 
   return (
     <div className={cn('space-y-4', novo && 'rounded-xl border border-border/60 bg-card p-4')}>
-      <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setAberto(!estaAberto)}
+        aria-expanded={estaAberto}
+        className="flex w-full items-center gap-2 text-left"
+      >
         <Sparkles className={cn('h-4 w-4 text-primary', novo && 'h-6 w-6 rounded-lg bg-primary/10 p-1')} />
         <h4 className={cn('text-sm font-medium', novo && 'text-[14px] font-bold tracking-tight')}>
           {novo ? 'Publicação' : 'Campos Social Media'}
         </h4>
-      </div>
-      {!novo && (
+        {!estaAberto && (
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {resumo || 'Preencha plataforma e tipo de peça'}
+          </span>
+        )}
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform', estaAberto && 'rotate-180')} aria-hidden />
+      </button>
+      {estaAberto && !novo && (
         <p className="text-[11px] text-muted-foreground -mt-2">
           ⓘ <span className="font-medium text-foreground">Data de Postagem</span> é diferente do <span className="font-medium text-foreground">Prazo da Tarefa</span>: a primeira indica quando o conteúdo será publicado; o prazo é a entrega da execução interna.
         </p>
       )}
+      {estaAberto && (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {definicoesVisiveis.map((def) => {
           const isPostDate = def.field_key === 'post_date';
@@ -235,6 +263,7 @@ export const SocialMediaCardFields: React.FC<SocialMediaCardFieldsProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };
