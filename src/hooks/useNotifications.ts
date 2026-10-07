@@ -9,7 +9,7 @@ export interface Notification {
   id: string;
   user_id: string;
   workspace_id: string;
-  type: 'webhook_failure' | 'card_overdue' | 'mention' | 'assignment' | 'badge_earned' | 'workspace_invite' | 'altcontrol_approval_pending' | 'altcontrol_approved' | 'altcontrol_needs_adjustment' | 'approval_approved' | 'approval_changes_requested' | 'approval_comment' | 'approval_reminder' | 'chat_mention' | 'automation';
+  type: 'webhook_failure' | 'card_overdue' | 'mention' | 'assignment' | 'badge_earned' | 'workspace_invite' | 'altcontrol_approval_pending' | 'altcontrol_approved' | 'altcontrol_needs_adjustment' | 'approval_approved' | 'approval_changes_requested' | 'approval_comment' | 'approval_reminder' | 'chat_mention' | 'automation' | 'lembrete';
   title: string;
   message: string;
   metadata: Record<string, unknown>;

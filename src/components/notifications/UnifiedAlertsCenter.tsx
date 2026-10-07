@@ -21,6 +21,7 @@ import {
   Filter,
   MoreHorizontal,
   Zap,
+  BellRing,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
@@ -68,6 +69,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   chat_mention: <AtSign className="h-4 w-4 text-primary" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
   automation: <Zap className="h-4 w-4 text-primary" />,
+  lembrete: <BellRing className="h-4 w-4 text-amber-500" />,
   workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
   altcontrol_approval_pending: <FileText className="h-4 w-4 text-amber-500" />,
   altcontrol_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
@@ -179,7 +181,7 @@ export function UnifiedAlertsCenter() {
     if (!notification.is_read) markAsRead.mutate(notification.id);
 
     if (
-      (notification.type === 'mention' || notification.type === 'assignment' || notification.type === 'automation') &&
+      (notification.type === 'mention' || notification.type === 'assignment' || notification.type === 'automation' || notification.type === 'lembrete') &&
       notification.metadata?.card_id
     ) {
       const cardId = notification.metadata.card_id as string;

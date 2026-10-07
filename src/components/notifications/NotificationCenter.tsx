@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle, Zap } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle, Zap, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   chat_mention: <AtSign className="h-4 w-4 text-primary" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
   automation: <Zap className="h-4 w-4 text-primary" />,
+  lembrete: <BellRing className="h-4 w-4 text-amber-500" />,
   workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
   altcontrol_approval_pending: <FileText className="h-4 w-4 text-amber-500" />,
   altcontrol_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
@@ -53,7 +54,7 @@ export function NotificationCenter() {
 
     // Navigate based on notification type
     if (
-      (notification.type === 'mention' || notification.type === 'assignment' || notification.type === 'automation') &&
+      (notification.type === 'mention' || notification.type === 'assignment' || notification.type === 'automation' || notification.type === 'lembrete') &&
       notification.metadata?.card_id
     ) {
       const cardId = notification.metadata.card_id as string;
@@ -115,6 +116,8 @@ export function NotificationCenter() {
         // Fallback to tasks page with card param
         navigate(`/tasks?card=${cardId}`);
       }
+    } else if (notification.type === 'lembrete' && !notification.metadata?.card_id) {
+      navigate('/tasks');
     } else if (
       notification.type === 'altcontrol_approval_pending' &&
       notification.metadata?.proposal_id
