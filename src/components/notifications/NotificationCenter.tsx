@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   approval_reminder: <AlertTriangle className="h-4 w-4 text-amber-500" />,
   chat_mention: <AtSign className="h-4 w-4 text-primary" />,
   assignment: <UserPlus className="h-4 w-4 text-green-500" />,
+  automation: <Zap className="h-4 w-4 text-primary" />,
   workspace_invite: <Building2 className="h-4 w-4 text-primary" />,
   altcontrol_approval_pending: <FileText className="h-4 w-4 text-amber-500" />,
   altcontrol_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
@@ -52,7 +53,7 @@ export function NotificationCenter() {
 
     // Navigate based on notification type
     if (
-      (notification.type === 'mention' || notification.type === 'assignment') &&
+      (notification.type === 'mention' || notification.type === 'assignment' || notification.type === 'automation') &&
       notification.metadata?.card_id
     ) {
       const cardId = notification.metadata.card_id as string;

@@ -28,6 +28,7 @@ export const FEATURE_FLAGS = {
   CLIENT_PORTAL: 'client_portal',
   RISK_RADAR: 'risk_radar',
   MONTHLY_REPORT: 'monthly_report',
+  AUTOMATION_RULES: 'automation_rules',
 } as const;
 
 export function useFeatureFlags() {

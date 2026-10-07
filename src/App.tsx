@@ -56,6 +56,7 @@ const PublicApprovalPage = lazy(() => import("./pages/PublicApprovalPage"));
 const PublicPortalPage = lazy(() => import("./pages/PublicPortalPage"));
 const ConversasPage = lazy(() => import("./pages/ConversasPage"));
 const FeedEditorialPage = lazy(() => import("./pages/FeedEditorialPage"));
+const RegrasAutomaticasPage = lazy(() => import("./pages/RegrasAutomaticasPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const OnboardingClientePage = lazy(() => import("./pages/OnboardingClientePage"));
 const AltControlPage = lazy(() => import("./pages/altcontrol/AltControlPage").then(module => ({ default: module.AltControlPage })));
@@ -163,6 +164,7 @@ const App = () => (
                   <Route path="/home-legacy" element={<Index />} />
                   <Route path="/conversas" element={<ConversasPage />} />
                   <Route path="/feed" element={<FeedEditorialPage />} />
+                  <Route path="/regras" element={<RegrasAutomaticasPage />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
                   <Route path="/onboarding/:id" element={<OnboardingClientePage />} />
                   <Route path="/activity" element={<ActivityPage />} />

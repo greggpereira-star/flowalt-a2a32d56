@@ -625,6 +625,7 @@ export const AppSidebarV2: React.FC = () => {
   const conversasLigada = flagLigada(FEATURE_FLAGS.TEAM_CHAT);
   const feedLigado = flagLigada(FEATURE_FLAGS.EDITORIAL_FEED);
   const onboardingLigado = flagLigada(FEATURE_FLAGS.ONBOARDING_ESTEIRA);
+  const regrasLigadas = flagLigada(FEATURE_FLAGS.AUTOMATION_RULES);
   const { total: conversasNaoLidas } = useChatUnread(conversasLigada);
 
   const principais: Item[] = [
@@ -646,6 +647,7 @@ export const AppSidebarV2: React.FC = () => {
     { icon: DollarSign, label: 'Financeiro', path: '/financial' },
     { icon: Trophy, label: 'Ranking', path: '/gamification' },
     { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
+    ...(regrasLigadas ? [{ icon: Zap, label: 'Regras automáticas', path: '/regras' }] : []),
   ];
 
   const mais: Item[] = [
