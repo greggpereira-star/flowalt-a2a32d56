@@ -21,6 +21,7 @@ export interface CoordCard {
   created_at: string;
   current_stage: string | null;
   stage_entered_at: string | null;
+  client_id?: string | null;
   space?: { id: string; name: string; color: string | null } | null;
 }
 

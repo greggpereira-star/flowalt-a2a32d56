@@ -35,7 +35,8 @@ export type ProblemaRisco =
   | Problema
   | { tipo: 'lento-historico'; etapa: string; dias: number; medianaDias: number; amostras: number }
   | { tipo: 'sobrecarga'; abertos: number; limite: number }
-  | { tipo: 'aprovacao-parada'; dias: number };
+  | { tipo: 'aprovacao-parada'; dias: number }
+  | { tipo: 'rodadas'; rodadas: number; limite: number };
 
 export function mediana(valores: number[]): number | null {
   if (valores.length === 0) return null;
@@ -69,13 +70,17 @@ export interface ContextoRisco {
   /** cards abertos por pessoa */
   abertosPorPessoa: Map<string, number>;
   pendentes: PedidoPendente[];
+  /** rodadas de ajuste já usadas por card (ver contarRodadas) */
+  rodadas?: Map<string, number>;
+  /** limite de rodadas contratado por cliente; cliente sem limite definido não gera alerta */
+  limitePorCliente?: Map<string, number>;
 }
 
 export interface CardComRisco extends Omit<CardEmAtencao, 'problemas'> {
   problemas: ProblemaRisco[];
 }
 
-const PONTOS = { lento: 2, sobrecarga: 1, aprovacao: 2 } as const;
+const PONTOS = { lento: 2, sobrecarga: 1, aprovacao: 2, rodadaNoLimite: 1, rodadaAcima: 3 } as const;
 
 export function enriquecerRisco(avaliados: CardEmAtencao[], ctx: ContextoRisco): CardComRisco[] {
   const pendPorCard = new Map<string, PedidoPendente>();
@@ -121,8 +126,36 @@ export function enriquecerRisco(avaliados: CardEmAtencao[], ctx: ContextoRisco):
       }
     }
 
+    const limite = card.client_id ? ctx.limitePorCliente?.get(card.client_id) : undefined;
+    const usadas = ctx.rodadas?.get(card.id) ?? 0;
+    if (limite != null && usadas >= limite && usadas > 0) {
+      problemas.push({ tipo: 'rodadas', rodadas: usadas, limite });
+      pontos += usadas > limite ? PONTOS.rodadaAcima : PONTOS.rodadaNoLimite;
+    }
+
     return { ...a, problemas, pontos };
   });
+}
+
+/**
+ * Rodadas de ajuste de cada card = a maior contagem entre (a) pedidos de ajuste do cliente nas aprovações e
+ * (b) voltas internas de Revisão/Aprovação para Produção/Planejamento. Usa o maior, e não a soma, porque um
+ * pedido do cliente costuma gerar também uma volta de etapa: somar contaria a mesma rodada duas vezes.
+ */
+export function contarRodadas(
+  voltasDeEtapa: { card_id: string }[],
+  ajustesDoCliente: { card_id: string }[]
+): Map<string, number> {
+  const conta = (linhas: { card_id: string }[]) => {
+    const m = new Map<string, number>();
+    linhas.forEach(l => m.set(l.card_id, (m.get(l.card_id) ?? 0) + 1));
+    return m;
+  };
+  const a = conta(voltasDeEtapa);
+  const b = conta(ajustesDoCliente);
+  const saida = new Map<string, number>();
+  new Set([...a.keys(), ...b.keys()]).forEach(id => saida.set(id, Math.max(a.get(id) ?? 0, b.get(id) ?? 0)));
+  return saida;
 }
 
 /** Texto da explicação; a UI só mostra, nunca recalcula. */
@@ -137,6 +170,10 @@ export function rotuloRisco(p: ProblemaRisco): { texto: string; grave: boolean }
       return { texto: `responsável com ${p.abertos} cards abertos (limite ${p.limite})`, grave: false };
     case 'aprovacao-parada':
       return { texto: `cliente sem responder há ${p.dias} d`, grave: p.dias >= 7 };
+    case 'rodadas':
+      return p.rodadas > p.limite
+        ? { texto: `${p.rodadas} rodadas de ajuste, ${p.rodadas - p.limite} acima do contratado (${p.limite})`, grave: true }
+        : { texto: `${p.rodadas} de ${p.limite} rodadas de ajuste usadas: no limite`, grave: false };
     default:
       return null;
   }

@@ -519,6 +519,18 @@ const ContractTab: React.FC<{
           />
         </div>
       </div>
+      <div className="space-y-2 md:max-w-xs">
+        <Label htmlFor="revision_rounds_limit">Rodadas de ajuste por peça</Label>
+        <Input
+          id="revision_rounds_limit"
+          type="number"
+          min={0}
+          placeholder="Não definido"
+          value={formData.revision_rounds_limit ?? ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, revision_rounds_limit: e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0) }))}
+        />
+        <p className="text-xs text-muted-foreground">Quantas vezes uma peça pode voltar para ajuste dentro do contrato. Em branco, o radar não alerta.</p>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="contract_type">Tipo de Contrato</Label>

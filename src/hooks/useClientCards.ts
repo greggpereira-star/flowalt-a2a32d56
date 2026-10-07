@@ -48,6 +48,7 @@ export interface ClientCard {
   contracted_services: string[];
   agreed_deliverables: string | null;
   scope_limits: string | null;
+  revision_rounds_limit: number | null;
   contract_notes: string | null;
   contract_start_date: string | null;
   contract_end_date: string | null;

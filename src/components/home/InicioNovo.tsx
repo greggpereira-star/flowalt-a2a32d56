@@ -12,6 +12,7 @@ import { rotuloProblema } from '@/components/coordination/v2/Painel';
 import type { Problema } from '@/lib/coordination/coordMetrics';
 import { enriquecerRisco, rotuloRisco } from '@/lib/inteligencia/risco';
 import { useDuracoesPorEtapa } from '@/hooks/useDuracoesPorEtapa';
+import { useRodadasDeAjuste } from '@/hooks/useRodadasDeAjuste';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { useFeatureFlags, FEATURE_FLAGS } from '@/hooks/useFeatureFlags';
 import { usePendingApprovals } from '@/hooks/useApprovals';
@@ -135,6 +136,7 @@ export function InicioNovo({
   const { data: aguardandoCliente } = usePendingApprovals(aprovacaoLigada);
   const radarLigado = isEnabled(FEATURE_FLAGS.RISK_RADAR);
   const { data: duracoes } = useDuracoesPorEtapa(radarLigado);
+  const { data: ajustes } = useRodadasDeAjuste(radarLigado);
 
   const dataTexto = useMemo(() => {
     const t = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -155,12 +157,14 @@ export function InicioNovo({
         nomeEtapa: dados.nomeEtapa,
         abertosPorPessoa,
         pendentes: (aguardandoCliente ?? []).map(p => ({ card_id: p.card_id, enviado_em: p.created_at })),
+        rodadas: ajustes?.rodadas,
+        limitePorCliente: ajustes?.limitePorCliente,
       })
         .filter(a => a.pontos > 0)
         .sort((x, y) => y.pontos - x.pontos);
     }
     return canViewCoordination ? base : base.filter(a => user?.id && a.responsaveis.includes(user.id));
-  }, [dados, canViewCoordination, user?.id, radarLigado, duracoes, aguardandoCliente]);
+  }, [dados, canViewCoordination, user?.id, radarLigado, duracoes, aguardandoCliente, ajustes]);
 
   const a = dados?.resumoAtual;
   const p = dados?.resumoAnterior;

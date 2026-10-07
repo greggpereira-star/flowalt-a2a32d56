@@ -2328,6 +2328,7 @@ export type Database = {
           products_services: string | null
           relationship_tone: string | null
           responsible_user_id: string | null
+          revision_rounds_limit: number | null
           scope_limits: string | null
           segment: string | null
           start_date: string | null
@@ -2367,6 +2368,7 @@ export type Database = {
           products_services?: string | null
           relationship_tone?: string | null
           responsible_user_id?: string | null
+          revision_rounds_limit?: number | null
           scope_limits?: string | null
           segment?: string | null
           start_date?: string | null
@@ -2406,6 +2408,7 @@ export type Database = {
           products_services?: string | null
           relationship_tone?: string | null
           responsible_user_id?: string | null
+          revision_rounds_limit?: number | null
           scope_limits?: string | null
           segment?: string | null
           start_date?: string | null

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { duracoesPorEtapa, enriquecerRisco, mediana, rotuloRisco } from './risco';
+import { contarRodadas, duracoesPorEtapa, enriquecerRisco, mediana, rotuloRisco } from './risco';
 import type { CardEmAtencao } from '@/lib/coordination/coordMetrics';
 
 const agora = new Date('2026-10-20T12:00:00Z');
@@ -64,5 +64,41 @@ describe('enriquecerRisco', () => {
   it('rotuloRisco explica com números', () => {
     expect(rotuloRisco({ tipo: 'aprovacao-parada', dias: 8 })).toEqual({ texto: 'cliente sem responder há 8 d', grave: true });
     expect(rotuloRisco({ tipo: 'sem-prazo' })).toBeNull();
+  });
+});
+
+describe('rodadas de ajuste', () => {
+  const comCliente = () => avaliado({ client_id: 'cli1' });
+  const rodar = (usadas: number, limite?: number) =>
+    enriquecerRisco([comCliente()], {
+      ...base,
+      duracoes: new Map(),
+      rodadas: new Map([['c1', usadas]]),
+      limitePorCliente: limite == null ? new Map() : new Map([['cli1', limite]]),
+    })[0];
+
+  it('alerta grave quando passa do contratado', () => {
+    const r = rodar(3, 2);
+    expect(r.problemas).toContainEqual({ tipo: 'rodadas', rodadas: 3, limite: 2 });
+    expect(r.pontos).toBe(3);
+  });
+  it('avisa quando chega no limite', () => {
+    const r = rodar(2, 2);
+    expect(r.pontos).toBe(1);
+  });
+  it('fica calado abaixo do limite, sem rodadas ou sem limite definido', () => {
+    expect(rodar(1, 2).problemas).toHaveLength(0);
+    expect(rodar(0, 0).problemas).toHaveLength(0);
+    expect(rodar(5).problemas).toHaveLength(0);
+  });
+  it('contarRodadas usa o maior entre voltas de etapa e ajustes do cliente, sem somar', () => {
+    const m = contarRodadas([{ card_id: 'a' }, { card_id: 'a' }, { card_id: 'b' }], [{ card_id: 'a' }, { card_id: 'b' }, { card_id: 'b' }, { card_id: 'c' }]);
+    expect(m.get('a')).toBe(2);
+    expect(m.get('b')).toBe(2);
+    expect(m.get('c')).toBe(1);
+  });
+  it('rotuloRisco explica as duas situações', () => {
+    expect(rotuloRisco({ tipo: 'rodadas', rodadas: 3, limite: 2 })).toEqual({ texto: '3 rodadas de ajuste, 1 acima do contratado (2)', grave: true });
+    expect(rotuloRisco({ tipo: 'rodadas', rodadas: 2, limite: 2 })?.grave).toBe(false);
   });
 });
