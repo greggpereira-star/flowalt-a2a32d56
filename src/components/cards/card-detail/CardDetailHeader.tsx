@@ -1,3 +1,4 @@
+import { atividadeParada, descricaoDaAtividade, rotuloAtividade } from '@/lib/cards/atividade';
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ interface CardDetailHeaderProps {
   canDelete?: boolean;
   hasHistory?: boolean;
   createdAt?: string;
+  /** Última ação de uma pessoa no card. */
+  ultimaAtividade?: { quando: string; nome?: string | null; parado?: boolean };
   spaceName?: string;
 }
 
@@ -34,6 +37,7 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
   hasHistory = false,
   estadoSalvo,
   createdAt,
+  ultimaAtividade,
   spaceName,
 }) => {
   const shortId = cardId.substring(0, 8);
@@ -64,6 +68,18 @@ export const CardDetailHeader: React.FC<CardDetailHeaderProps> = ({
               <span className="text-muted-foreground/40">·</span>
               <span className="text-muted-foreground/70">
                 Criada em {format(new Date(createdAt), "dd MMM", { locale: ptBR })}
+              </span>
+            </>
+          )}
+          {ultimaAtividade && (
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <span
+                className={ultimaAtividade.parado ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground/70'}
+                title={descricaoDaAtividade(ultimaAtividade.quando, ultimaAtividade.nome)}
+              >
+                Atualizada {rotuloAtividade(ultimaAtividade.quando)}
+                {ultimaAtividade.nome ? ` por ${ultimaAtividade.nome.split(' ')[0]}` : ''}
               </span>
             </>
           )}

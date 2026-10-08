@@ -1,3 +1,5 @@
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { atividadeParada } from '@/lib/cards/atividade';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dialog,
@@ -54,6 +56,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   onOpenChange,
 }) => {
   const { data: card, isLoading } = useCard(cardId || undefined);
+  const { data: membrosDoWorkspace } = useWorkspaceMembers();
   const { data: space } = useSpace(card?.space_id);
   const { data: checklists } = useChecklists(cardId || undefined);
   const { data: comments } = useComments(cardId || undefined);
@@ -486,6 +489,15 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
               canDelete={canDelete}
               hasHistory={hasHistory}
               createdAt={card.created_at}
+              ultimaAtividade={
+                card.last_activity_at
+                  ? {
+                      quando: card.last_activity_at,
+                      nome: card.last_activity_by ? membrosDoWorkspace?.find(m => m.user_id === card.last_activity_by)?.profile?.full_name : null,
+                      parado: atividadeParada(card),
+                    }
+                  : undefined
+              }
               spaceName={space?.name}
             />
 

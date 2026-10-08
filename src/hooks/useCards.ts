@@ -33,6 +33,9 @@ export interface Card {
   actual_hours: number;
   sort_order: number;
   created_by: string | null;
+  /** Última ação de uma pessoa no card (não o updated_at). Preenchido por gatilhos no banco. */
+  last_activity_at?: string | null;
+  last_activity_by?: string | null;
   created_at: string;
   updated_at: string;
   // Card type: 'quick' bypasses briefing/validations, 'full' requires complete process

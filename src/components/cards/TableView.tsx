@@ -13,6 +13,7 @@ import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import { ehAtrasado } from '@/lib/metrics/definicoes';
+import { atividadeParada, descricaoDaAtividade, diasSemAtividade, rotuloAtividade } from '@/lib/cards/atividade';
 import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
 import { CelulaEtapa, CelulaPrazo, CelulaPrioridade, CelulaResponsavel, IconeSemResponsavel } from './CelulasEditaveis';
 import type { Card } from '@/hooks/useCards';
@@ -25,8 +26,8 @@ interface TableViewProps {
   viewId: string | null;
 }
 
-// Colunas: seleção · tarefa · responsável · etapa · prioridade · prazo · cliente
-const GRADE = 'grid grid-cols-[2.25rem_minmax(16rem,1fr)_9rem_9.5rem_8rem_8.5rem_10rem]';
+// Colunas: seleção · tarefa · responsável · etapa · prioridade · prazo · atualizado · cliente
+const GRADE = 'grid grid-cols-[2.25rem_minmax(16rem,1fr)_9rem_9.5rem_8rem_8.5rem_9rem_10rem]';
 
 const chaveDeGrupos = (viewId: string | null) => `flowalt:tabela:${viewId ?? 'espaco'}:recolhidos`;
 
@@ -117,7 +118,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
 
   return (
     <div className="h-full overflow-auto px-4 pb-24 pt-2 sm:px-6" role="table" aria-label="Tarefas por etapa">
-      <div className="min-w-[56rem] space-y-8">
+      <div className="min-w-[64rem] space-y-8">
         {grupos.map(({ status, cards: lista }) => {
           const config = statusConfig[status];
           const rotulo = columnLabels?.[status] || config.label;
@@ -162,6 +163,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
                     <span role="columnheader" className="px-3 py-2.5 text-center">Etapa</span>
                     <span role="columnheader" className="px-3 py-2.5 text-center">Prioridade</span>
                     <span role="columnheader" className="px-3 py-2.5">Prazo</span>
+                    <span role="columnheader" className="px-3 py-2.5">Atualizado</span>
                     <span role="columnheader" className="px-3 py-2.5">Cliente</span>
                   </div>
 
@@ -262,6 +264,39 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
                             <span className="text-muted-foreground/60">—</span>
                           )}
                           </CelulaPrazo>
+                        </div>
+
+                        <div role="cell" className="flex min-w-0 items-center gap-2 px-3 py-2">
+                          {card.last_activity_at ? (
+                            (() => {
+                              const quem = card.last_activity_by ? pessoas.get(card.last_activity_by) : undefined;
+                              const parado = atividadeParada(card);
+                              return (
+                                <span
+                                  className="flex min-w-0 items-center gap-2"
+                                  title={
+                                    parado
+                                      ? `Sem atividade há ${diasSemAtividade(card.last_activity_at)} dias. ${descricaoDaAtividade(card.last_activity_at, quem?.nome)}`
+                                      : descricaoDaAtividade(card.last_activity_at, quem?.nome)
+                                  }
+                                >
+                                  {quem && (
+                                    <Avatar className="h-5 w-5 shrink-0">
+                                      {quem.avatar && <AvatarImage src={quem.avatar} alt={quem.nome} />}
+                                      <AvatarFallback className="bg-muted text-[9px]">
+                                        {quem.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  )}
+                                  <span className={cn('truncate tabular-nums text-muted-foreground', parado && 'font-medium text-amber-600 dark:text-amber-400')}>
+                                    {rotuloAtividade(card.last_activity_at)}
+                                  </span>
+                                </span>
+                              );
+                            })()
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
                         </div>
 
                         <div role="cell" className="flex min-w-0 items-center gap-2 px-3 py-2">

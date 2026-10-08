@@ -16,7 +16,7 @@ import { useEtapasSla } from '@/hooks/useEtapasSla';
 import { CardHoverActions } from './CardHoverActions';
 import { peekHover } from '@/lib/cardPeek';
 import { useMyRunningTimer } from '@/hooks/useTimeEntries';
-import { MessageSquare, CheckCircle2, Hourglass, UserX, FileWarning, Moon } from 'lucide-react';
+import { MessageSquare, CheckCircle2, Hourglass, UserX, FileWarning, Moon, History } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -24,6 +24,7 @@ import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ehAberto } from '@/lib/metrics/definicoes';
+import { atividadeParada, descricaoDaAtividade, diasSemAtividade, tempoCurto } from '@/lib/cards/atividade';
 
 interface TaskCardProps {
   card: Card;
@@ -34,6 +35,8 @@ interface TaskCardProps {
   clientName?: string;
   clientColor?: string;
   assignees?: Assignee[];
+  /** Quem mexeu por último (nome para a dica de ferramenta). O horário vem do próprio card. */
+  nomeUltimaAtividade?: string | null;
   onStatusChange?: (status: CardStatus) => void;
   onUrgencyChange?: (urgency: CardUrgency) => void;
   onDuplicate?: (targetSpaceId?: string, mode?: 'mirror' | 'copy') => void;
@@ -53,6 +56,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   clientName,
   clientColor,
   assignees = [],
+  nomeUltimaAtividade,
   onStatusChange,
   onUrgencyChange,
   onDuplicate,
@@ -308,6 +312,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             >
               <CardAssignees assignees={assignees} maxVisible={3} size="sm" />
               <div className="flex items-center gap-3 text-[11px] font-semibold text-muted-foreground">
+                {card.last_activity_at && (
+                  <span
+                    className={cn('inline-flex items-center gap-1 font-medium tabular-nums', atividadeParada(card) && 'text-amber-600 dark:text-amber-400')}
+                    title={
+                      atividadeParada(card)
+                        ? `Sem atividade há ${diasSemAtividade(card.last_activity_at)} dias. ${descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)}`
+                        : descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)
+                    }
+                  >
+                    <History className="h-3.5 w-3.5" aria-hidden />
+                    <span>{tempoCurto(card.last_activity_at)}</span>
+                    <span className="sr-only">{descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)}</span>
+                  </span>
+                )}
                 {ind && ind.total > 0 && (
                   <span className="inline-flex items-center gap-1" title="Itens do checklist concluídos">
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -407,6 +425,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50">
                 <Timer className="h-3 w-3" />
                 <span>{card.actual_hours.toFixed(1)}h</span>
+              </div>
+            )}
+            {card.last_activity_at && (
+              <div
+                className={cn(
+                  'flex items-center gap-1 px-1.5 py-0.5 rounded-md border bg-background/50 tabular-nums',
+                  atividadeParada(card) ? 'border-amber-300/60 text-amber-600 dark:text-amber-400' : 'border-border/50'
+                )}
+                title={
+                  atividadeParada(card)
+                    ? `Sem atividade há ${diasSemAtividade(card.last_activity_at)} dias. ${descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)}`
+                    : descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)
+                }
+              >
+                <History className="h-3 w-3" aria-hidden />
+                <span>{tempoCurto(card.last_activity_at)}</span>
+                <span className="sr-only">{descricaoDaAtividade(card.last_activity_at, nomeUltimaAtividade)}</span>
               </div>
             )}
           </div>

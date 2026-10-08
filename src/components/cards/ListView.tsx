@@ -18,6 +18,8 @@ import type { Card } from '@/hooks/useCards';
 import { cn } from '@/lib/utils';
 import { CaixaSelecao } from './SelecionavelCard';
 import { useSelecaoDeCards } from '@/hooks/useCardSelection';
+import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { atividadeParada, descricaoDaAtividade, rotuloAtividade } from '@/lib/cards/atividade';
 
 interface ListViewProps {
   cards: Card[];
@@ -26,6 +28,8 @@ interface ListViewProps {
 
 export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
   const sel = useSelecaoDeCards();
+  const { data: membros } = useWorkspaceMembers();
+  const nomeDe = (id?: string | null) => (id ? membros?.find(m => m.user_id === id)?.profile?.full_name ?? null : null);
   const [dueDateDirection, setDueDateDirection] = useState<'asc' | 'desc'>('asc');
   const sortedCards = useMemo(() => {
     return [...cards].sort((a, b) => {
@@ -80,6 +84,7 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
               </button>
             </TableHead>
             <TableHead>Tempo</TableHead>
+            <TableHead>Atualizado</TableHead>
             <TableHead className="text-right">Responsável</TableHead>
           </TableRow>
         </TableHeader>
@@ -143,6 +148,18 @@ export const ListView: React.FC<ListViewProps> = ({ cards, onCardClick }) => {
                       <Clock className="h-3.5 w-3.5" />
                       <span>{card.actual_hours.toFixed(1)}h</span>
                     </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {card.last_activity_at ? (
+                    <span
+                      className={atividadeParada(card) ? 'text-sm font-medium tabular-nums text-amber-600 dark:text-amber-400' : 'text-sm tabular-nums text-muted-foreground'}
+                      title={descricaoDaAtividade(card.last_activity_at, nomeDe(card.last_activity_by))}
+                    >
+                      {rotuloAtividade(card.last_activity_at)}
+                    </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}

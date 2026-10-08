@@ -764,6 +764,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       clientName={clientInfo?.name}
                       clientColor={clientInfo?.color || undefined}
                       assignees={assignees}
+                      nomeUltimaAtividade={card.last_activity_by ? memberMap.get(card.last_activity_by)?.name : undefined}
                       onStatusChange={(status) => handleStatusChange(card, status)}
                       onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
                       onDuplicate={(targetSpaceId, mode) => handleDuplicate(card, targetSpaceId, mode)}
@@ -966,6 +967,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 clientName={clientInfo?.name}
                                 clientColor={clientInfo?.color || undefined}
                                 assignees={assignees}
+                                nomeUltimaAtividade={card.last_activity_by ? memberMap.get(card.last_activity_by)?.name : undefined}
                                 onStatusChange={(status) => handleStatusChange(card, status)}
                                 onUrgencyChange={(urgency) => handleUrgencyChange(card, urgency)}
                                 onDuplicate={(targetSpaceId, mode) => handleDuplicate(card, targetSpaceId, mode)}
