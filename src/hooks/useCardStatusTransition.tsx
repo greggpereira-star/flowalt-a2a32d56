@@ -209,5 +209,5 @@ export function useCardStatusTransition({ aoAbrirCard }: { aoAbrirCard: (card: C
     />
   );
 
-  return { mudarEtapa, aviso };
+  return { mudarEtapa, tentarTransicao: attemptTransition, aviso };
 }
