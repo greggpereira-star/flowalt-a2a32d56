@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { statusConfig, urgencyConfig } from './CardBadges';
+import { statusConfig } from './CardBadges';
 import { CaixaSelecao } from './SelecionavelCard';
 import { useSelecaoDeCards } from '@/hooks/useCardSelection';
 import { useKanbanColumns } from '@/hooks/useKanbanColumns';
@@ -13,6 +13,8 @@ import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import { ehAtrasado } from '@/lib/metrics/definicoes';
+import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
+import { CelulaEtapa, CelulaPrazo, CelulaPrioridade, CelulaResponsavel, IconeSemResponsavel } from './CelulasEditaveis';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 
@@ -45,6 +47,7 @@ function lerRecolhidos(viewId: string | null): CardStatus[] {
 export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddCard, viewId }) => {
   const sel = useSelecaoDeCards();
   const { visibleStatuses, columnLabels } = useKanbanColumns(viewId);
+  const { mudarEtapa, aviso } = useCardStatusTransition({ aoAbrirCard: onCardClick });
   const { data: members } = useWorkspaceMembers();
   const { data: atribuicoes } = useCardMemberAssignments({ includeInactive: true });
   const { data: clientesAntigos } = useClients();
@@ -169,7 +172,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
                     const prazo = card.due_date ? new Date(card.due_date) : null;
                     const entregue = card.status === 'delivered';
                     const atrasado = !entregue && ehAtrasado(card);
-                    const urg = urgencyConfig[card.urgency] ?? urgencyConfig.medium;
+                    const editavel = !sel?.ativa;
 
                     return (
                       <div
@@ -209,41 +212,40 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
                           <span className="truncate font-medium">{card.title}</span>
                         </div>
 
-                        <div role="cell" className="flex items-center px-3 py-2">
-                          {resp.length === 0 ? (
-                            <span className="text-muted-foreground/60">—</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="flex -space-x-1.5">
-                                {resp.slice(0, 3).map(p => (
-                                  <Avatar key={p.nome} className="h-6 w-6 ring-2 ring-card">
-                                    {p.avatar && <AvatarImage src={p.avatar} alt={p.nome} />}
-                                    <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
-                                      {p.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                ))}
+                        <div role="cell" className="flex items-stretch">
+                          <CelulaResponsavel card={card} editavel={editavel}>
+                            {resp.length === 0 ? (
+                              <IconeSemResponsavel />
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="flex -space-x-1.5">
+                                  {resp.slice(0, 3).map(p => (
+                                    <Avatar key={p.nome} className="h-6 w-6 ring-2 ring-card">
+                                      {p.avatar && <AvatarImage src={p.avatar} alt={p.nome} />}
+                                      <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
+                                        {p.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  ))}
+                                </div>
+                                {resp.length === 1 && <span className="truncate text-muted-foreground">{resp[0].nome.split(' ')[0]}</span>}
+                                {resp.length > 3 && <span className="text-xs text-muted-foreground">+{resp.length - 3}</span>}
                               </div>
-                              {resp.length === 1 && <span className="truncate text-muted-foreground">{resp[0].nome.split(' ')[0]}</span>}
-                              {resp.length > 3 && <span className="text-xs text-muted-foreground">+{resp.length - 3}</span>}
-                            </div>
-                          )}
+                            )}
+                          </CelulaResponsavel>
                         </div>
 
                         <div role="cell" className="flex items-stretch p-1.5">
-                          <span className={cn('flex w-full items-center justify-center rounded-lg px-2 text-[13px] font-medium', config.bgColor, config.color)}>
-                            <span className="truncate">{rotulo}</span>
-                          </span>
+                          <CelulaEtapa card={card} etapas={visibleStatuses} rotulos={columnLabels} aoTrocar={mudarEtapa} editavel={editavel} />
                         </div>
 
                         <div role="cell" className="flex items-stretch p-1.5">
-                          <span className={cn('flex w-full items-center justify-center rounded-lg px-2 text-[13px] font-medium', urg.bgColor, urg.color)}>
-                            {urg.label}
-                          </span>
+                          <CelulaPrioridade card={card} editavel={editavel} />
                         </div>
 
-                        <div role="cell" className="flex items-center gap-2 px-3 py-2">
-                          {prazo ? (
+                        <div role="cell" className="flex items-stretch">
+                          <CelulaPrazo card={card} editavel={editavel}>
+                            {prazo ? (
                             <>
                               {entregue ? (
                                 <Check className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Entregue" />
@@ -259,6 +261,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
                           ) : (
                             <span className="text-muted-foreground/60">—</span>
                           )}
+                          </CelulaPrazo>
                         </div>
 
                         <div role="cell" className="flex min-w-0 items-center gap-2 px-3 py-2">
@@ -289,6 +292,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
           );
         })}
       </div>
+      {aviso}
     </div>
   );
 };
