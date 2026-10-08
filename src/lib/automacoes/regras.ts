@@ -26,7 +26,7 @@ export const PRIORIDADES: { valor: string; rotulo: string }[] = [
   { valor: 'low', rotulo: 'Baixa' },
   { valor: 'medium', rotulo: 'Média' },
   { valor: 'high', rotulo: 'Alta' },
-  { valor: 'critical', rotulo: 'Urgente' },
+  { valor: 'critical', rotulo: 'Crítica' },
 ];
 
 export const DESTINATARIOS: { valor: Destinatario; rotulo: string }[] = [

@@ -11,7 +11,7 @@ describe('descreverRegra', () => {
     expect(descreverRegra(regra({}))).toEqual({ quando: 'o cliente pedir ajustes', entao: 'mover o card para Em Produção', onde: 'em todos os espaços' });
     expect(descreverRegra(regra({ trigger_event: 'stage_entered', trigger_stage: 'aprovacao', action_type: 'notify', action_config: { to: 'admins', message: 'x' }, space_id: 's' }), 'Social Media'))
       .toEqual({ quando: 'um card entrar na etapa Aprovação', entao: 'avisar a coordenação e os administradores', onde: 'só no espaço Social Media' });
-    expect(descreverRegra(regra({ action_type: 'set_priority', action_config: { priority: 'critical' } })).entao).toBe('mudar a prioridade para Urgente');
+    expect(descreverRegra(regra({ action_type: 'set_priority', action_config: { priority: 'critical' } })).entao).toBe('mudar a prioridade para Crítica');
   });
 });
 

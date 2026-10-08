@@ -81,7 +81,7 @@ const URGENCY_OPTIONS: { value: CardUrgency; label: string; color: string }[] = 
   { value: 'low', label: 'Baixa', color: 'text-muted-foreground' },
   { value: 'medium', label: 'Média', color: 'text-warning' },
   { value: 'high', label: 'Alta', color: 'text-orange-500' },
-  { value: 'critical', label: 'Urgente', color: 'text-destructive' },
+  { value: 'critical', label: 'Crítica', color: 'text-destructive' },
 ];
 
 const getInitials = (name: string | null | undefined) => {
