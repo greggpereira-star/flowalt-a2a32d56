@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   Kanban,
   Calendar,
   List,
+  Rows3,
   Lightbulb,
   CheckCircle,
   Megaphone,
@@ -46,6 +47,7 @@ const iconMap: Record<string, React.ElementType> = {
   megaphone: Megaphone,
   'bar-chart': BarChart,
   'layout-grid': LayoutGrid,
+  table: Rows3,
 };
 
 const getIcon = (iconName: string) => iconMap[iconName] || LayoutGrid;
@@ -65,6 +67,13 @@ const DEFAULT_VIEW_TYPES = [
     description: 'Visualização em tabela detalhada',
     icon: 'list',
     view_type: 'list',
+  },
+  {
+    id: 'table',
+    name: 'Tabela',
+    description: 'Tarefas por etapa, em seções, com prazo e prioridade',
+    icon: 'table',
+    view_type: 'table',
   },
   {
     id: 'calendar',
@@ -89,6 +98,8 @@ const DEFAULT_VIEW_TYPES = [
   },
 ];
 
+const OPCAO_TABELA = DEFAULT_VIEW_TYPES.find(v => v.id === 'table')!;
+
 export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
   open,
   onOpenChange,
@@ -107,7 +118,11 @@ export const CreateViewDialog: React.FC<CreateViewDialogProps> = ({
   const [creationMode, setCreationMode] = useState<'template' | 'basic'>('template');
 
   // Use templates from DB, or fallback to default view types
-  const viewOptions = templates && templates.length > 0 ? templates : DEFAULT_VIEW_TYPES;
+  // A Tabela não é um modelo do banco: entra sempre, ao lado deles.
+  const viewOptions = useMemo(
+    () => (templates && templates.length > 0 ? [...templates, OPCAO_TABELA] : DEFAULT_VIEW_TYPES),
+    [templates]
+  );
 
   // Auto-select first option
   useEffect(() => {

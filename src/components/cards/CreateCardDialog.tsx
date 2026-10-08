@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -68,6 +68,11 @@ export const CreateCardDialog: React.FC<CreateCardDialogProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<CardStatus>(defaultStatus);
+
+  // O "+" de cada coluna/grupo abre este formulário já na etapa dela: aplica a etapa a cada abertura.
+  useEffect(() => {
+    if (open) setStatus(defaultStatus);
+  }, [open, defaultStatus]);
   const [urgency, setUrgency] = useState<CardUrgency>('medium');
   const [dueDate, setDueDate] = useState('');
   const [clientId, setClientId] = useState<string>('');

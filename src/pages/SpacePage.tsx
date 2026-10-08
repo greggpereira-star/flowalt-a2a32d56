@@ -14,6 +14,7 @@ import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 // demanda: só quem realmente troca de view paga o custo de baixá-las.
 import { KanbanWithColumns } from '@/components/cards/KanbanWithColumns';
 import { CardSelectionBar } from '@/components/cards/CardSelectionBar';
+import { TableView } from '@/components/cards/TableView';
 import { ProvedorDeSelecao, useCardSelection } from '@/hooks/useCardSelection';
 import { ehAtrasado } from '@/lib/metrics/definicoes';
 const KanbanAdvanced = lazy(() => import('@/components/cards/KanbanAdvanced').then(m => ({ default: m.KanbanAdvanced })));
@@ -75,6 +76,7 @@ import {
   Loader2,
   Plus,
   LayoutGrid,
+  Rows3,
   List,
   Calendar,
   FolderPlus,
@@ -91,7 +93,7 @@ import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 import type { FilterQuery } from '@/hooks/useCardFilters';
 
-type ViewType = 'kanban' | 'kanban-advanced' | 'list' | 'calendar' | 'gantt' | 'mindmap' | 'approvals' | 'checklist' | 'ideas';
+type ViewType = 'kanban' | 'kanban-advanced' | 'table' | 'list' | 'calendar' | 'gantt' | 'mindmap' | 'approvals' | 'checklist' | 'ideas';
 
 // Hook to fetch a specific folder view
 function useFolderView(viewId: string | null) {
@@ -190,6 +192,7 @@ const SpacePage: React.FC = () => {
     if (viewType === 'kanban') return 'kanban';
     if (viewType === 'calendar') return 'calendar';
     if (viewType === 'list') return 'list';
+    if (viewType === 'table') return 'table';
     if (viewType === 'gantt') return 'gantt';
     if (viewType === 'mindmap') return 'mindmap';
     return 'kanban';
@@ -247,7 +250,7 @@ const SpacePage: React.FC = () => {
   useShortcutEvent('flowalt:focusSearch', useCallback(() => searchInputRef.current?.focus(), []));
   useShortcutEvent('flowalt:viewChange', useCallback((e?: Event) => {
     const detail = (e as CustomEvent)?.detail;
-    if (detail?.view && ['kanban', 'list', 'calendar'].includes(detail.view)) {
+    if (detail?.view && ['kanban', 'table', 'list', 'calendar'].includes(detail.view)) {
       setView(detail.view);
     }
   }, []));
@@ -495,6 +498,9 @@ const SpacePage: React.FC = () => {
                         <LayoutGrid className="h-4 w-4" />
                         <span className="text-[9px] ml-0.5 font-bold">+</span>
                       </TabsTrigger>
+                      <TabsTrigger value="table" className="px-2 sm:px-3 h-8" title="Tabela">
+                        <Rows3 className="h-4 w-4" />
+                      </TabsTrigger>
                       <TabsTrigger value="list" className="px-2 sm:px-3 h-8" title="Lista">
                         <List className="h-4 w-4" />
                       </TabsTrigger>
@@ -510,8 +516,9 @@ const SpacePage: React.FC = () => {
                   <Badge variant="secondary" className="gap-1 capitalize">
                     {activeView.view_type === 'kanban' && <LayoutGrid className="h-3 w-3" />}
                     {activeView.view_type === 'list' && <List className="h-3 w-3" />}
+                    {activeView.view_type === 'table' && <Rows3 className="h-3 w-3" />}
                     {activeView.view_type === 'calendar' && <Calendar className="h-3 w-3" />}
-                    {activeView.view_type}
+                    {activeView.view_type === 'table' ? 'tabela' : activeView.view_type}
                   </Badge>
                 )}
 
@@ -651,6 +658,13 @@ const SpacePage: React.FC = () => {
                   />
                 </div>
               </Suspense>
+            ) : view === 'table' ? (
+              <TableView
+                cards={filteredCards}
+                onCardClick={handleCardClick}
+                onAddCard={handleAddCard}
+                viewId={activeViewId}
+              />
             ) : view === 'list' ? (
               <Suspense fallback={<ViewFallback />}>
                 <div className="h-full p-4 overflow-auto">

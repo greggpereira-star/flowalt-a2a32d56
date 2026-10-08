@@ -36,6 +36,7 @@ import {
   Kanban,
   Calendar,
   List,
+  Rows3,
   Plus,
   ChevronDown,
   Trash2,
@@ -54,6 +55,7 @@ interface FolderViewSwitcherProps {
 const VIEW_TYPE_OPTIONS = [
   { value: 'kanban', label: 'Kanban', icon: Kanban },
   { value: 'list', label: 'Lista', icon: List },
+  { value: 'table', label: 'Tabela', icon: Rows3 },
   { value: 'calendar', label: 'Calendário', icon: Calendar },
 ];
 
