@@ -42,8 +42,14 @@ import {
   Calculator,
   LayoutList,
   Globe,
-  MoreHorizontal
+  MoreHorizontal,
+  ScanSearch,
+  UserRound,
+  Swords,
+  Layers,
 } from 'lucide-react';
+import { SecaoBrandCore } from '@/components/clients/brand-core/SecaoBrandCore';
+import { SECOES as SECOES_BC } from '@/lib/brandCore/campos';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -822,9 +828,18 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
       grupo: 'Cadastro',
       itens: [
         { valor: 'identity', rotulo: 'Identidade', ajuda: 'Nome, status, responsável e logo', Icone: Building2 },
+      ],
+    },
+    {
+      grupo: 'Brand Core',
+      itens: [
         { valor: 'onboarding', rotulo: 'Contexto', ajuda: 'Quem é o cliente, objetivos e público', Icone: Users },
+        { valor: 'bc_diagnosis', rotulo: 'Diagnóstico do perfil', ajuda: SECOES_BC.diagnosis.ajuda, Icone: ScanSearch },
+        { valor: 'bc_persona', rotulo: 'Personas', ajuda: SECOES_BC.persona.ajuda, Icone: UserRound },
+        { valor: 'bc_competitor', rotulo: 'Concorrência', ajuda: SECOES_BC.competitor.ajuda, Icone: Swords },
         { valor: 'branding', rotulo: 'Branding', ajuda: 'Posicionamento e identidade visual', Icone: Palette },
         { valor: 'voice', rotulo: 'Voz da marca', ajuda: 'Como a marca fala e o que evita', Icone: MessageSquare },
+        { valor: 'bc_offer', rotulo: 'Esteira de ofertas', ajuda: SECOES_BC.offer.ajuda, Icone: Layers },
       ],
     },
     {
@@ -989,6 +1004,11 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                   <TabsContent value="voice" className="mt-0 focus-visible:outline-none">
                     <VoiceTab formData={formData} setFormData={setFormData} />
                   </TabsContent>
+                  {(['diagnosis', 'persona', 'competitor', 'offer'] as const).map(t => (
+                    <TabsContent key={t} value={`bc_${t}`} className="mt-0 focus-visible:outline-none">
+                      <SecaoBrandCore tipo={t} clientId={client.id} />
+                    </TabsContent>
+                  ))}
                   <TabsContent value="contract" className="mt-0 focus-visible:outline-none">
                     <ContractTab formData={formData} setFormData={setFormData} clientId={client?.id} />
                   </TabsContent>
