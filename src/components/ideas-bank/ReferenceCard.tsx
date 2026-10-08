@@ -121,7 +121,7 @@ export const ReferenceCard: React.FC<Props> = ({
         </div>
       ) : img ? (
         reference.type === 'video' ? (
-          <video src={img} className="w-full" muted aria-label={reference.title} />
+          <video src={img} className="w-full" muted preload="metadata" playsInline disablePictureInPicture aria-label={reference.title} />
         ) : (
           <img src={img} alt={reference.title} className="w-full block" loading="lazy" />
         )

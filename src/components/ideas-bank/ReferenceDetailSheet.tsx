@@ -85,16 +85,16 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
               'block w-full rounded-xl border-0 bg-muted/40',
               emb.formato === 'horizontal' && 'aspect-video'
             )}
-            style={emb.formato === 'vertical' ? { height: 'min(64vh, 620px)' } : undefined}
+            style={emb.formato === 'vertical' ? { height: 'min(56vh, 520px)' } : undefined}
           />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Player oficial de {plataforma}. Se o criador apagar a publicação, o vídeo deixa de tocar; título e miniatura continuam salvos.
           </p>
         </>
       ) : img && reference.type === 'video' ? (
-        <video src={img} controls className="mx-auto block h-auto max-h-[64vh] w-auto max-w-full rounded-xl bg-black" />
+        <video src={img} controls preload="metadata" className="mx-auto block h-auto max-h-[min(56vh,520px)] w-auto max-w-full rounded-xl bg-black" />
       ) : img ? (
-        <img src={img} alt={reference.title} className="mx-auto block h-auto max-h-[64vh] w-auto max-w-full rounded-xl" />
+        <img src={img} alt={reference.title} className="mx-auto block h-auto max-h-[min(56vh,520px)] w-auto max-w-full rounded-xl" />
       ) : null}
     </div>
   );
@@ -161,12 +161,12 @@ export const ReferenceDetailSheet: React.FC<Props> = ({ reference, boardId, open
           </header>
 
           {/* Conteúdo com rolagem própria */}
-          <div key={aba} className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8">
+          <div key={aba} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6 [will-change:scroll-position] sm:px-8 sm:py-8">
             {aba === 'analise' ? (
               <AnalysisPanel reference={reference} onCriarCard={onCreateCard} />
             ) : (
               <div className={cn('grid gap-8', temMidia && 'lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-10')}>
-                {temMidia && <div className="lg:sticky lg:top-0 lg:self-start">{midia}</div>}
+                {temMidia && <div className="lg:self-start">{midia}</div>}
 
                 <div className="min-w-0 space-y-8">
                   <Secao titulo="Etapa no feed">
