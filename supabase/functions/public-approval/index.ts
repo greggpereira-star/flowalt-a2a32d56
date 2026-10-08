@@ -80,6 +80,8 @@ function estourouLimite(ip: string): boolean {
 }
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{40,128}$/;
+const ORDEM_ETAPAS = ["tema", "conteudo", "midia", "legenda"];
+const ROTULO_ETAPA: Record<string, string> = { tema: "Tema", conteudo: "Conteúdo", midia: "Mídia", legenda: "Legenda" };
 
 // A URL assinada sai com o endereco INTERNO do servidor (http://kong:8000), que o navegador do cliente nao alcanca.
 // Troca pelo endereco publico (SUPABASE_PUBLIC_URL) mantendo o caminho e o token.
@@ -256,7 +258,7 @@ Deno.serve(async (req) => {
 
       const pecas = [];
       for (const it of itens ?? []) {
-        const base = { id: it.id, kind: it.kind, caption: it.caption, file_name: it.file_name, body: it.body, url: null as string | null };
+        const base = { id: it.id, kind: it.kind, stage: it.stage ?? null, caption: it.caption, file_name: it.file_name, body: it.body, url: null as string | null };
         if (it.bucket && it.storage_path) {
           // So assina caminhos do proprio card: impede expor outro arquivo do bucket por um item mal montado.
           if (it.storage_path.startsWith(`${pedido.card_id}/`)) {
@@ -273,8 +275,18 @@ Deno.serve(async (req) => {
 
       const { data: ws } = await supabase.from("workspaces").select("name, logo_url, settings").eq("id", pedido.workspace_id).maybeSingle();
 
+      // Etapas (so no modo 'stages'), na ordem fixa do fluxo.
+      let etapas: any[] = [];
+      if (pedido.mode === "stages") {
+        const { data: decisoes } = await supabase
+          .from("approval_stage_decisions").select("stage, status, decided_at, decided_by_name").eq("request_id", pedido.id);
+        etapas = (decisoes ?? []).sort((a: any, b: any) => ORDEM_ETAPAS.indexOf(a.stage) - ORDEM_ETAPAS.indexOf(b.stage));
+      }
+
       return json({
         approval: {
+          mode: pedido.mode ?? "quick",
+          stages: etapas,
           status: pedido.status,
           round: pedido.round,
           title: pedido.title,
@@ -312,6 +324,86 @@ Deno.serve(async (req) => {
       await registrarEvento(supabase, pedido, "commented", nome, { length: texto.length }, ip, ua);
       await notificarEquipe(supabase, pedido, card, "approval_comment", "Novo comentário do cliente", `${nome} comentou em "${pedido.title}".`);
       return json({ ok: true });
+    }
+
+    // Pedido por etapas: a decisao e dada etapa por etapa (approve_stage / request_changes_stage).
+    if ((action === "approve" || action === "request_changes") && pedido.mode === "stages") {
+      return json({ error: "Este pedido é por etapas: responda cada etapa separadamente." }, 400);
+    }
+
+    // ===================== approve_stage / request_changes_stage =====================
+    if (action === "approve_stage" || action === "request_changes_stage") {
+      if (pedido.mode !== "stages") return json({ error: "Este pedido não tem etapas." }, 400);
+      const etapa = typeof body.stage === "string" ? body.stage : "";
+      if (!ORDEM_ETAPAS.includes(etapa)) return json({ error: "Etapa inválida." }, 400);
+      const aprovar = action === "approve_stage";
+      const texto = typeof body.message === "string" ? body.message.trim() : "";
+      if (nome.length < 2) return json({ error: "Informe seu nome para registrar a decisão." }, 400);
+      if (aprovar && body.consent !== true) return json({ error: "Confirme a aprovação para continuar." }, 400);
+      if (!aprovar && (texto.length < 3 || texto.length > 2000)) {
+        return json({ error: "Descreva o ajuste que você precisa (até 2000 caracteres)." }, 400);
+      }
+
+      const decididoEm = new Date().toISOString();
+      const { data: etapaAtualizada, error: erroEtapa } = await supabase
+        .from("approval_stage_decisions")
+        .update({
+          status: aprovar ? "approved" : "changes_requested", decided_at: decididoEm, decided_by_name: nome,
+          decided_by_email: email || null, decision_ip: ip, decision_ua: ua,
+        })
+        .eq("request_id", pedido.id).eq("stage", etapa).eq("status", "pending")
+        .select("id").maybeSingle();
+      if (erroEtapa) throw erroEtapa;
+      if (!etapaAtualizada) return json({ error: "Esta etapa já foi respondida." }, 409);
+
+      const rotulo = ROTULO_ETAPA[etapa];
+      if (!aprovar) {
+        await supabase.from("approval_comments").insert({
+          request_id: pedido.id, workspace_id: pedido.workspace_id, author_kind: "client", author_name: nome, body: `[${rotulo}] ${texto}`,
+        });
+      }
+      await registrarEvento(supabase, pedido, aprovar ? "stage_approved" : "stage_changes_requested", nome, { stage: etapa }, ip, ua);
+
+      // Fecha o pedido quando a ultima etapa recebe decisao: aprovado so se todas foram aprovadas.
+      const { data: todas } = await supabase.from("approval_stage_decisions").select("stage, status").eq("request_id", pedido.id);
+      const restantes = (todas ?? []).filter((s: any) => s.status === "pending").length;
+
+      if (restantes > 0) {
+        await notificarEquipe(
+          supabase, pedido, card, aprovar ? "approval_approved" : "approval_changes_requested",
+          aprovar ? `Cliente aprovou: ${rotulo}` : `Cliente pediu ajustes: ${rotulo}`,
+          `${nome} ${aprovar ? "aprovou" : "pediu ajustes em"} a etapa ${rotulo} de "${pedido.title}". Faltam ${restantes} ${restantes === 1 ? "etapa" : "etapas"}.`,
+        );
+        return json({ ok: true, decided_at: decididoEm, remaining: restantes });
+      }
+
+      const todasAprovadas = (todas ?? []).every((s: any) => s.status === "approved");
+      const certificado = todasAprovadas
+        ? await sha256Hex(JSON.stringify({ id: pedido.id, round: pedido.round, etapas: todas, nome, email, decididoEm }))
+        : null;
+      await supabase
+        .from("approval_requests")
+        .update({
+          status: todasAprovadas ? "approved" : "changes_requested", decided_at: decididoEm, decided_by_name: nome,
+          decided_by_email: email || null, decision_ip: ip, decision_ua: ua, certificate_hash: certificado,
+        })
+        .eq("id", pedido.id).eq("status", "pending");
+      await registrarEvento(supabase, pedido, todasAprovadas ? "approved" : "changes_requested", nome, { stages: true, certificate_hash: certificado }, ip, ua);
+
+      let moveu = false;
+      if (todasAprovadas && card?.current_stage === "aprovacao") {
+        moveu = await moverCard(supabase, card, "concluido", "delivered", `Aprovado pelo cliente (${nome}), rodada ${pedido.round}, todas as etapas`);
+      } else if (!todasAprovadas && card && ["aprovacao", "revisao"].includes(card.current_stage)) {
+        moveu = await moverCard(supabase, card, "em_producao", "in_progress", `Ajuste pedido pelo cliente (${nome}), rodada ${pedido.round}`);
+      }
+      await notificarEquipe(
+        supabase, pedido, card, todasAprovadas ? "approval_approved" : "approval_changes_requested",
+        todasAprovadas ? "Cliente aprovou todas as etapas" : "Cliente concluiu a revisão com ajustes",
+        todasAprovadas
+          ? `${nome} aprovou todas as etapas de "${pedido.title}" (rodada ${pedido.round})${moveu ? ". O card foi para Concluído." : "."}`
+          : `${nome} concluiu a revisão de "${pedido.title}" (rodada ${pedido.round}) com ajustes${moveu ? ". O card voltou para Em Produção." : "."}`,
+      );
+      return json({ ok: true, decided_at: decididoEm, remaining: 0, final: todasAprovadas ? "approved" : "changes_requested" });
     }
 
     // ===================== approve =====================

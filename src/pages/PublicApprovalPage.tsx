@@ -13,10 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { EtapaDeAprovacao, rotuloDaEtapa } from '@/hooks/useApprovals';
+import { EtapaPublica, EtapasDaAprovacao } from '@/components/approvals/EtapasDaAprovacao';
+import { ConversaDaAprovacao } from '@/components/approvals/ConversaDaAprovacao';
 
 interface Peca {
   id: string;
   kind: 'image' | 'video' | 'document' | 'text' | 'link';
+  stage: EtapaDeAprovacao | null;
   caption: string | null;
   file_name: string | null;
   body: string | null;
@@ -30,6 +34,8 @@ interface Mensagem {
   created_at: string;
 }
 interface Aprovacao {
+  mode?: 'quick' | 'stages';
+  stages?: EtapaPublica[];
   status: 'pending' | 'approved' | 'changes_requested';
   round: number;
   title: string;
@@ -80,6 +86,7 @@ export default function PublicApprovalPage() {
   const [dialogo, setDialogo] = useState<'aprovar' | 'ajustes' | null>(null);
   const [ajuste, setAjuste] = useState('');
   const [aceite, setAceite] = useState(false);
+  const [etapaEscolhida, setEtapaEscolhida] = useState<EtapaDeAprovacao | null>(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -141,6 +148,11 @@ export default function PublicApprovalPage() {
   }
 
   const aberto = dados.status === 'pending';
+  const porEtapas = dados.mode === 'stages' && (dados.stages?.length ?? 0) > 0;
+  // Etapa em foco: a escolhida; senao a primeira ainda sem decisao; senao a primeira.
+  const etapaAtiva: EtapaDeAprovacao | null = porEtapas
+    ? (dados.stages!.find(e => e.stage === etapaEscolhida)?.stage ?? dados.stages!.find(e => e.status === 'pending')?.stage ?? dados.stages![0].stage)
+    : null;
 
   return (
     <div className="min-h-screen bg-background" style={varsDaMarca(dados.brand_color ?? null)}>
@@ -159,7 +171,7 @@ export default function PublicApprovalPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-6 px-4 py-6 pb-32">
+      <main className={cn('mx-auto space-y-6 px-4 py-6 pb-32', porEtapas ? 'max-w-5xl' : 'max-w-2xl')}>
         <section>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-lg bg-muted px-2 py-1 text-[11px] font-bold tabular-nums">Rodada {dados.round}</span>
@@ -195,8 +207,23 @@ export default function PublicApprovalPage() {
           </div>
         )}
 
+        {porEtapas && etapaAtiva && (
+          <EtapasDaAprovacao
+            etapas={dados.stages!}
+            pecas={dados.items}
+            aberto={aberto}
+            etapaAtiva={etapaAtiva}
+            onEscolher={setEtapaEscolhida}
+            onAprovar={() => setDialogo('aprovar')}
+            onAjustes={() => setDialogo('ajustes')}
+            cliente={dados.client_name ?? 'Seu perfil'}
+            agencia={dados.workspace_name}
+            logoUrl={null}
+          />
+        )}
+
         <section className="space-y-4">
-          {dados.items.map(p => (
+          {(porEtapas ? [] : dados.items).map(p => (
             <figure key={p.id} className="overflow-hidden rounded-2xl border bg-card">
               {p.kind === 'image' && p.url && <img src={p.url} alt={p.file_name ?? ''} className="w-full" />}
               {p.kind === 'video' && p.url && <video src={p.url} controls playsInline className="w-full bg-black" />}
@@ -219,45 +246,20 @@ export default function PublicApprovalPage() {
           ))}
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Conversa</h2>
-          {dados.comments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
-          ) : (
-            <ul className="space-y-2">
-              {dados.comments.map(c => (
-                <li
-                  key={c.id}
-                  className={cn('max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm', c.author_kind === 'client' ? 'ml-auto bg-primary/10' : 'bg-muted')}
-                >
-                  <span className="block text-[11px] font-semibold text-muted-foreground">
-                    {c.author_name} · {format(new Date(c.created_at), "dd/MM 'às' HH:mm")}
-                  </span>
-                  <span className="whitespace-pre-wrap">{c.body}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {aberto && (
-            <div className="space-y-2 pt-1">
-              <Input value={nome} onChange={e => guardarNome(e.target.value)} placeholder="Seu nome" autoComplete="name" />
-              <div className="flex items-end gap-2">
-                <Textarea rows={2} value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Escreva um comentário ou uma dúvida" className="min-h-[44px] flex-1" />
-                <Button
-                  variant="outline"
-                  disabled={enviando || nome.trim().length < 2 || !mensagem.trim()}
-                  onClick={() => executar('comment', { message: mensagem }, 'Comentário enviado.')}
-                >
-                  Enviar
-                </Button>
-              </div>
-            </div>
-          )}
-        </section>
+        <ConversaDaAprovacao
+          mensagens={dados.comments}
+          aberto={aberto}
+          agencia={dados.workspace_name}
+          nome={nome}
+          onNome={guardarNome}
+          mensagem={mensagem}
+          onMensagem={setMensagem}
+          enviando={enviando}
+          onEnviar={() => executar('comment', { message: mensagem }, 'Mensagem enviada.')}
+        />
       </main>
 
-      {aberto && (
+      {aberto && !porEtapas && (
         <div className="fixed inset-x-0 bottom-0 border-t bg-card/95 p-3 backdrop-blur" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
           <div className="mx-auto flex max-w-2xl gap-2">
             <Button variant="outline" className="h-12 flex-1 rounded-xl" onClick={() => setDialogo('ajustes')}>
@@ -273,7 +275,7 @@ export default function PublicApprovalPage() {
       <Dialog open={dialogo === 'aprovar'} onOpenChange={o => !o && setDialogo(null)}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Aprovar esta entrega</DialogTitle>
+            <DialogTitle>{porEtapas ? `Aprovar ${rotuloDaEtapa(etapaAtiva!)}` : 'Aprovar esta entrega'}</DialogTitle>
             <DialogDescription>Fica registrado seu nome, a data e o horário da aprovação.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -288,8 +290,8 @@ export default function PublicApprovalPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogo(null)}>Voltar</Button>
-            <Button disabled={enviando || nome.trim().length < 2 || !aceite} onClick={() => executar('approve', { consent: true }, 'Aprovação registrada. Obrigado!')}>
-              <ShieldCheck className="mr-1.5 h-4 w-4" /> {enviando ? 'Enviando…' : 'Confirmar aprovação'}
+            <Button disabled={enviando || nome.trim().length < 2 || !aceite} onClick={() => executar(porEtapas ? 'approve_stage' : 'approve', { consent: true, stage: etapaAtiva }, porEtapas ? `Etapa ${rotuloDaEtapa(etapaAtiva!)} aprovada. Obrigado!` : 'Aprovação registrada. Obrigado!')}>
+              <ShieldCheck className="mr-1.5 h-4 w-4" /> {enviando ? 'Enviando…' : porEtapas ? `Confirmar aprovação de ${rotuloDaEtapa(etapaAtiva!)}` : 'Confirmar aprovação'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -298,7 +300,7 @@ export default function PublicApprovalPage() {
       <Dialog open={dialogo === 'ajustes'} onOpenChange={o => !o && setDialogo(null)}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Pedir ajustes</DialogTitle>
+            <DialogTitle>{porEtapas ? `Pedir ajuste em ${rotuloDaEtapa(etapaAtiva!)}` : 'Pedir ajustes'}</DialogTitle>
             <DialogDescription>Descreva o que precisa mudar. A equipe recebe na hora e envia uma nova versão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -313,7 +315,7 @@ export default function PublicApprovalPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogo(null)}>Voltar</Button>
-            <Button disabled={enviando || nome.trim().length < 2 || ajuste.trim().length < 3} onClick={() => executar('request_changes', { message: ajuste }, 'Pedido de ajustes enviado.')}>
+            <Button disabled={enviando || nome.trim().length < 2 || ajuste.trim().length < 3} onClick={() => executar(porEtapas ? 'request_changes_stage' : 'request_changes', { message: ajuste, stage: etapaAtiva }, 'Pedido de ajustes enviado.')}>
               {enviando ? 'Enviando…' : 'Enviar pedido de ajustes'}
             </Button>
           </DialogFooter>

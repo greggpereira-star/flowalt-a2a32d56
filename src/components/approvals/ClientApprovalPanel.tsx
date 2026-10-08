@@ -24,6 +24,9 @@ import { useAttachments } from '@/hooks/useAttachments';
 import {
   ApprovalBundle,
   ApprovalStatus,
+  ETAPAS_DE_APROVACAO,
+  EtapaDeAprovacao,
+  rotuloDaEtapa,
   useCancelApproval,
   useCardApprovals,
   useCreateApproval,
@@ -36,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -181,6 +185,10 @@ function NovoPedidoDialog({
   const [texto, setTexto] = useState('');
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set());
   const [dias, setDias] = useState(14);
+  const [modo, setModo] = useState<'quick' | 'stages'>('quick');
+  const [etapasAtivas, setEtapasAtivas] = useState<Set<EtapaDeAprovacao>>(new Set(['conteudo', 'midia', 'legenda']));
+  const [textosDasEtapas, setTextosDasEtapas] = useState<Record<string, string>>({});
+  const [midiasDaEtapa, setMidiasDaEtapa] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     if (open && card) {
@@ -197,11 +205,33 @@ function NovoPedidoDialog({
       return n;
     });
 
+  const alternarEtapa = (e: EtapaDeAprovacao) =>
+    setEtapasAtivas(prev => {
+      const n = new Set(prev);
+      n.has(e) ? n.delete(e) : n.add(e);
+      return n;
+    });
+  const alternarMidia = (id: string) =>
+    setMidiasDaEtapa(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
   const enviar = () => {
     if (!currentWorkspace?.id) return;
     const lista = (anexos ?? []).filter(a => escolhidos.has(a.id));
+    const porEtapas = modo === 'stages';
+    const etapas = ETAPAS_DE_APROVACAO.filter(e => etapasAtivas.has(e.chave)).map(e => ({
+      stage: e.chave,
+      texto: e.chave === 'midia' ? undefined : textosDasEtapas[e.chave],
+      anexos: e.chave === 'midia'
+        ? (anexos ?? []).filter(a => midiasDaEtapa.has(a.id)).map(a => ({ file_url: a.file_url, file_name: a.file_name, file_type: a.file_type }))
+        : undefined,
+    }));
     criar.mutate(
       {
+        ...(porEtapas ? { etapas } : {}),
         cardId,
         workspaceId: currentWorkspace.id,
         clientId: card?.client_id ?? null,
@@ -219,6 +249,8 @@ function NovoPedidoDialog({
           setEscolhidos(new Set());
           setTexto('');
           setMensagem('');
+          setTextosDasEtapas({});
+          setMidiasDaEtapa(new Set());
           const base: InfoLink = { link: r.link, token: r.token, requestId: r.requestId, email: emailCliente.trim() || null };
           // Se o e-mail do cliente foi informado, ja envia; se falhar, o link continua valendo e o dialogo avisa.
           if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailCliente.trim())) {
@@ -252,6 +284,75 @@ function NovoPedidoDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label>Como o cliente aprova</Label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Modo de aprovação">
+              {([
+                { v: 'quick', titulo: 'Rápida', desc: 'Uma decisão só: mídia e legenda juntas.' },
+                { v: 'stages', titulo: 'Em etapas', desc: 'Tema, Conteúdo, Mídia e Legenda, cada uma aprovada separada.' },
+              ] as const).map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  role="radio"
+                  aria-checked={modo === o.v}
+                  onClick={() => setModo(o.v)}
+                  className={cn('rounded-xl border p-3 text-left transition-colors', modo === o.v ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/50')}
+                >
+                  <span className="block text-sm font-semibold">{o.titulo}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{o.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {modo === 'stages' && (
+            <div className="space-y-2.5">
+              <Label>Etapas a enviar</Label>
+              {ETAPAS_DE_APROVACAO.map(e => {
+                const ativa = etapasAtivas.has(e.chave);
+                return (
+                  <div key={e.chave} className={cn('rounded-xl border p-3', ativa ? 'bg-card' : 'bg-muted/30')}>
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{e.rotulo}</p>
+                        <p className="text-xs text-muted-foreground">{e.dica}</p>
+                      </div>
+                      <Switch checked={ativa} onCheckedChange={() => alternarEtapa(e.chave)} aria-label={`Enviar ${e.rotulo}`} />
+                    </div>
+                    {ativa && e.chave !== 'midia' && (
+                      <Textarea
+                        rows={e.chave === 'conteudo' || e.chave === 'legenda' ? 4 : 2}
+                        className="mt-2.5"
+                        value={textosDasEtapas[e.chave] ?? ''}
+                        onChange={ev => setTextosDasEtapas(t => ({ ...t, [e.chave]: ev.target.value }))}
+                        placeholder={`Escreva ${e.chave === 'legenda' ? 'a legenda' : e.chave === 'tema' ? 'o tema' : 'o conteúdo'} que o cliente vai aprovar.`}
+                      />
+                    )}
+                    {ativa && e.chave === 'midia' && (
+                      (anexos ?? []).length === 0 ? (
+                        <p className="mt-2.5 rounded-lg border border-dashed p-2.5 text-xs text-muted-foreground">
+                          Este card ainda não tem arquivos. Anexe a arte ou o vídeo em "Arquivos & Anexos".
+                        </p>
+                      ) : (
+                        <ul className="mt-2.5 max-h-36 space-y-1 overflow-y-auto rounded-lg border p-1.5">
+                          {(anexos ?? []).map(a => (
+                            <li key={a.id}>
+                              <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-muted/60">
+                                <Checkbox checked={midiasDaEtapa.has(a.id)} onCheckedChange={() => alternarMidia(a.id)} />
+                                <span className="min-w-0 flex-1 truncate text-sm">{a.file_name}</span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className={cn('space-y-1.5', modo === 'stages' && 'hidden')}>
             <Label>Peças do card</Label>
             {(anexos ?? []).length === 0 ? (
               <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
@@ -271,7 +372,7 @@ function NovoPedidoDialog({
             )}
           </div>
 
-          <div className="space-y-1.5">
+          <div className={cn('space-y-1.5', modo === 'stages' && 'hidden')}>
             <Label htmlFor="ap-texto">Texto / legenda a aprovar (opcional)</Label>
             <Textarea id="ap-texto" rows={4} value={texto} onChange={e => setTexto(e.target.value)} placeholder="Cole aqui a legenda ou o texto do post." />
           </div>
@@ -363,6 +464,27 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
             )}
           </div>
 
+          {b.stages.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5" aria-label="Etapas do pedido">
+              {b.stages.map(e => (
+                <li
+                  key={e.id}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                    e.status === 'approved' && 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
+                    e.status === 'changes_requested' && 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300',
+                    e.status === 'pending' && 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+                  )}
+                >
+                  {rotuloDaEtapa(e.stage)}
+                  <span className="font-normal opacity-80">
+                    {e.status === 'approved' ? 'aprovado' : e.status === 'changes_requested' ? 'ajuste pedido' : 'pendente'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
           {r.status === 'approved' && (
             <div className="flex items-start gap-2.5 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
@@ -386,7 +508,7 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
             <ul className="space-y-1 text-sm">
               {b.items.map(i => (
                 <li key={i.id} className="truncate text-muted-foreground">
-                  • {i.kind === 'text' ? `Texto: ${(i.body ?? '').slice(0, 80)}${(i.body ?? '').length > 80 ? '…' : ''}` : i.file_name}
+                  • {i.stage ? `${rotuloDaEtapa(i.stage)}: ` : ''}{i.kind === 'text' ? `${i.stage ? '' : 'Texto: '}${(i.body ?? '').slice(0, 80)}${(i.body ?? '').length > 80 ? '…' : ''}` : i.file_name}
                 </li>
               ))}
             </ul>

@@ -11,11 +11,30 @@ const db = supabase as any;
 
 export type ApprovalStatus = 'pending' | 'approved' | 'changes_requested' | 'expired' | 'canceled';
 
+export type EtapaDeAprovacao = 'tema' | 'conteudo' | 'midia' | 'legenda';
+export const ETAPAS_DE_APROVACAO: { chave: EtapaDeAprovacao; rotulo: string; dica: string }[] = [
+  { chave: 'tema', rotulo: 'Tema', dica: 'A ideia do post, em poucas linhas.' },
+  { chave: 'conteudo', rotulo: 'Conteúdo', dica: 'Roteiro, texto da arte ou estrutura do carrossel.' },
+  { chave: 'midia', rotulo: 'Mídia', dica: 'A arte, o vídeo ou as imagens prontas.' },
+  { chave: 'legenda', rotulo: 'Legenda', dica: 'A legenda final, com hashtags.' },
+];
+export const rotuloDaEtapa = (e: EtapaDeAprovacao) => ETAPAS_DE_APROVACAO.find(x => x.chave === e)?.rotulo ?? e;
+
+export interface ApprovalStageDecision {
+  id: string;
+  request_id: string;
+  stage: EtapaDeAprovacao;
+  status: 'pending' | 'approved' | 'changes_requested';
+  decided_at: string | null;
+  decided_by_name: string | null;
+}
+
 export interface ApprovalRequest {
   id: string;
   workspace_id: string;
   card_id: string;
   status: ApprovalStatus;
+  mode: 'quick' | 'stages';
   round: number;
   title: string;
   message: string | null;
@@ -36,6 +55,7 @@ export interface ApprovalItem {
   id: string;
   request_id: string;
   kind: 'image' | 'video' | 'document' | 'text' | 'link';
+  stage: EtapaDeAprovacao | null;
   file_name: string | null;
   body: string | null;
   caption: string | null;
@@ -65,6 +85,7 @@ export interface ApprovalBundle {
   items: ApprovalItem[];
   comments: ApprovalComment[];
   events: ApprovalEvent[];
+  stages: ApprovalStageDecision[];
 }
 
 const keyDoCard = (cardId?: string) => ['approvals', cardId] as const;
@@ -104,6 +125,12 @@ export function useCardApprovals(cardId: string | undefined, enabled = true) {
     enabled: enabled && !!cardId,
   });
   useRealtimeSubscription({
+    table: 'approval_stage_decisions',
+    filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
+    queryKeys: [keyDoCard(cardId)],
+    enabled: enabled && !!cardId && !!currentWorkspace?.id,
+  });
+  useRealtimeSubscription({
     table: 'approval_comments',
     filter: currentWorkspace?.id ? `workspace_id=eq.${currentWorkspace.id}` : undefined,
     queryKeys: [keyDoCard(cardId)],
@@ -116,7 +143,7 @@ export function useCardApprovals(cardId: string | undefined, enabled = true) {
     queryFn: async (): Promise<ApprovalBundle[]> => {
       const { data: pedidos, error } = await db
         .from('approval_requests')
-        .select('id, workspace_id, card_id, status, round, title, message, client_name, client_email, requested_by, expires_at, view_count, first_viewed_at, last_viewed_at, decided_at, decided_by_name, certificate_hash, created_at')
+        .select('id, workspace_id, card_id, status, mode, round, title, message, client_name, client_email, requested_by, expires_at, view_count, first_viewed_at, last_viewed_at, decided_at, decided_by_name, certificate_hash, created_at')
         .eq('card_id', cardId)
         .order('round', { ascending: false });
       if (error) throw error;
@@ -124,18 +151,23 @@ export function useCardApprovals(cardId: string | undefined, enabled = true) {
       if (lista.length === 0) return [];
       const ids = lista.map(p => p.id);
 
-      const [itens, conversa, eventos] = await Promise.all([
-        db.from('approval_items').select('id, request_id, kind, file_name, body, caption, sort_order').in('request_id', ids).order('sort_order'),
+      const [itens, conversa, eventos, etapas] = await Promise.all([
+        db.from('approval_items').select('id, request_id, kind, stage, file_name, body, caption, sort_order').in('request_id', ids).order('sort_order'),
         db.from('approval_comments').select('id, request_id, author_kind, author_name, body, created_at').in('request_id', ids).order('created_at'),
         db.from('approval_events').select('id, request_id, type, actor_kind, actor_label, created_at').in('request_id', ids).order('created_at'),
+        db.from('approval_stage_decisions').select('id, request_id, stage, status, decided_at, decided_by_name').in('request_id', ids),
       ]);
-      for (const r of [itens, conversa, eventos]) if (r.error) throw r.error;
+      for (const r of [itens, conversa, eventos, etapas]) if (r.error) throw r.error;
+      const ordem = ETAPAS_DE_APROVACAO.map(e => e.chave);
 
       return lista.map(request => ({
         request,
         items: ((itens.data ?? []) as ApprovalItem[]).filter(i => i.request_id === request.id),
         comments: ((conversa.data ?? []) as ApprovalComment[]).filter(c => c.request_id === request.id),
         events: ((eventos.data ?? []) as ApprovalEvent[]).filter(e => e.request_id === request.id),
+        stages: ((etapas.data ?? []) as ApprovalStageDecision[])
+          .filter(e => e.request_id === request.id)
+          .sort((a, b) => ordem.indexOf(a.stage) - ordem.indexOf(b.stage)),
       }));
     },
   });
@@ -152,6 +184,8 @@ export interface NovoPedido {
   anexos: { file_url: string; file_name: string; file_type: string | null }[];
   texto?: string;
   expiraEmDias?: number;
+  /** Modo por etapas: so as etapas enviadas entram no pedido. Se vier, `anexos` e `texto` sao ignorados. */
+  etapas?: { stage: EtapaDeAprovacao; texto?: string; anexos?: { file_url: string; file_name: string; file_type: string | null }[] }[];
 }
 
 /** Cria o pedido da proxima rodada e devolve o link (o token so existe aqui, na hora de criar). */
@@ -161,7 +195,14 @@ export function useCreateApproval() {
   return useMutation({
     mutationFn: async (p: NovoPedido) => {
       if (!user?.id) throw new Error('Sessão expirada. Entre novamente.');
-      if (p.anexos.length === 0 && !p.texto?.trim()) throw new Error('Escolha pelo menos uma peça ou escreva o texto a aprovar.');
+      const porEtapas = !!p.etapas;
+      if (porEtapas) {
+        if (p.etapas!.length === 0) throw new Error('Marque pelo menos uma etapa para enviar.');
+        const vazia = p.etapas!.find(e => !e.texto?.trim() && !(e.anexos?.length));
+        if (vazia) throw new Error(`A etapa ${rotuloDaEtapa(vazia.stage)} está vazia. Preencha ou desmarque.`);
+      } else if (p.anexos.length === 0 && !p.texto?.trim()) {
+        throw new Error('Escolha pelo menos uma peça ou escreva o texto a aprovar.');
+      }
 
       const { data: ultimo } = await db
         .from('approval_requests').select('round').eq('card_id', p.cardId).order('round', { ascending: false }).limit(1).maybeSingle();
@@ -179,6 +220,7 @@ export function useCreateApproval() {
           client_id: p.clientId ?? null,
           token_hash,
           round,
+          mode: porEtapas ? 'stages' : 'quick',
           title: p.title.trim(),
           message: p.message?.trim() || null,
           client_name: p.clientName?.trim() || null,
@@ -195,7 +237,22 @@ export function useCreateApproval() {
         throw error;
       }
 
-      const itens = [
+      const itensDasEtapas = (p.etapas ?? []).flatMap((e, ei) => [
+        ...(e.anexos ?? []).map((a, i) => ({
+          request_id: pedido.id,
+          workspace_id: p.workspaceId,
+          stage: e.stage,
+          kind: tipoDoArquivo(a.file_type, a.file_name),
+          bucket: 'attachments',
+          storage_path: a.file_url,
+          file_name: a.file_name,
+          sort_order: ei * 100 + i,
+        })),
+        ...(e.texto?.trim()
+          ? [{ request_id: pedido.id, workspace_id: p.workspaceId, stage: e.stage, kind: 'text', body: e.texto.trim(), sort_order: ei * 100 + 99 }]
+          : []),
+      ]);
+      const itens = porEtapas ? itensDasEtapas : [
         ...p.anexos.map((a, i) => ({
           request_id: pedido.id,
           workspace_id: p.workspaceId,
@@ -210,9 +267,16 @@ export function useCreateApproval() {
           : []),
       ];
       const { error: erroItens } = await db.from('approval_items').insert(itens);
-      if (erroItens) {
+      let erroEtapas: any = null;
+      if (!erroItens && porEtapas) {
+        const r = await db.from('approval_stage_decisions').insert(
+          p.etapas!.map(e => ({ request_id: pedido.id, workspace_id: p.workspaceId, stage: e.stage })),
+        );
+        erroEtapas = r.error;
+      }
+      if (erroItens || erroEtapas) {
         await db.from('approval_requests').update({ status: 'canceled' }).eq('id', pedido.id);
-        throw erroItens;
+        throw erroItens ?? erroEtapas;
       }
 
       await db.from('approval_events').insert({
