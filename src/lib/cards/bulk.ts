@@ -6,11 +6,12 @@
 export interface CardComAutor {
   id: string;
   created_by?: string | null;
+  owner_id?: string | null;
 }
 
 /**
- * Arquivar segue a regra do menu de contexto: administrador/sócio arquiva qualquer card,
- * os demais só os que criaram.
+ * Arquivar segue a mesma regra que o banco aplica: administrador arquiva qualquer card,
+ * os demais só os que criaram ou em que são o responsável.
  */
 export function separarArquivaveis<T extends CardComAutor>(
   cards: T[],
@@ -19,7 +20,7 @@ export function separarArquivaveis<T extends CardComAutor>(
   const permitidos: T[] = [];
   const ignorados: T[] = [];
   for (const c of cards) {
-    if (podeArquivarTudo || (!!userId && c.created_by === userId)) permitidos.push(c);
+    if (podeArquivarTudo || (!!userId && (c.created_by === userId || c.owner_id === userId))) permitidos.push(c);
     else ignorados.push(c);
   }
   return { permitidos, ignorados };

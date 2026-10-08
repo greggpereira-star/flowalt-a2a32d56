@@ -59,7 +59,7 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
   
   // User can delete if they're admin OR they created the card
   const isCardCreator = card.created_by === user?.id;
-  const canDelete = canDeleteCards || isCardCreator;
+  const canDelete = canDeleteCards || isCardCreator || card.owner_id === user?.id;
   const statuses = (Object.entries(statusConfig) as [CardStatus, typeof statusConfig[CardStatus]][])
     .filter(([status]) => status !== 'briefing');
 
@@ -182,7 +182,7 @@ export const CardContextMenu: React.FC<CardContextMenuProps> = ({
           ) : (
             <Lock className="mr-2 h-4 w-4" />
           )}
-          {canDelete ? 'Arquivar card' : 'Você só pode excluir itens criados por você'}
+          {canDelete ? 'Arquivar card' : 'Só quem criou o card, o responsável ou um administrador pode arquivá-lo'}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

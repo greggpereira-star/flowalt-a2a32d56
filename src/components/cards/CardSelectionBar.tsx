@@ -141,7 +141,7 @@ export const CardSelectionBar: React.FC<Props> = ({ cards, spaceId, folderId }) 
         variant="ghost"
         className="h-10 gap-2 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive max-sm:h-16 max-sm:flex-col max-sm:gap-1.5 max-sm:rounded-xl max-sm:bg-destructive/5 max-sm:px-1 max-sm:text-xs"
         disabled={ocupado || permitidos.length === 0}
-        title={permitidos.length === 0 ? 'Você só pode arquivar cards criados por você' : undefined}
+        title={permitidos.length === 0 ? 'Só quem criou o card, o responsável ou um administrador pode arquivá-lo' : undefined}
         onClick={() => setConfirmando(true)}
       >
         <Archive className="h-4 w-4" />
@@ -163,7 +163,7 @@ export const CardSelectionBar: React.FC<Props> = ({ cards, spaceId, folderId }) 
             <AlertDialogTitle>Arquivar {nome(permitidos.length)}?</AlertDialogTitle>
             <AlertDialogDescription>
               Eles saem do quadro, mas não são apagados. Logo depois você pode desfazer pelo aviso que aparece.
-              {ignorados.length > 0 && ` ${nome(ignorados.length)} ${ignorados.length === 1 ? 'será ignorado' : 'serão ignorados'}, porque só quem criou o card ou um administrador pode arquivá-lo.`}
+              {ignorados.length > 0 && ` ${nome(ignorados.length)} ${ignorados.length === 1 ? 'será ignorado' : 'serão ignorados'}, porque só quem criou o card, o responsável ou um administrador pode arquivá-lo.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

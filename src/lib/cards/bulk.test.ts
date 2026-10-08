@@ -18,6 +18,10 @@ describe('separarArquivaveis', () => {
     expect(r.permitidos.map(c => c.id)).toEqual(['a']);
     expect(r.ignorados.map(c => c.id)).toEqual(['b', 'c']);
   });
+  it('o responsável do card também pode arquivar', () => {
+    const r = separarArquivaveis([{ id: 'x', created_by: 'u2', owner_id: 'u1' }, ...cards], { podeArquivarTudo: false, userId: 'u1' });
+    expect(r.permitidos.map(c => c.id)).toEqual(['x', 'a']);
+  });
   it('sem usuário nada é permitido, nem card sem autor', () => {
     const r = separarArquivaveis(cards, { podeArquivarTudo: false, userId: null });
     expect(r.permitidos).toHaveLength(0);
