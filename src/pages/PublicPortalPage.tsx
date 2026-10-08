@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, CheckCircle2, ChevronRight, Clock, Lock, MessageSquareWarning } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, Lock, MessageSquareWarning } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { varsDaMarca } from '@/lib/portal/marca';
-import { cn } from '@/lib/utils';
+import { CalendarioDoPortal, ItemDoCalendario } from '@/components/portal/CalendarioDoPortal';
 
 interface Pendente { id: string; title: string; round: number; sent_at: string }
 interface Decidido { id: string; title: string; round: number; status: 'approved' | 'changes_requested'; decided_at: string | null; decided_by_name: string | null }
-interface ItemDoCalendario { title: string; date: string; type: string | null; platform: string | null; situation: 'aguardando' | 'ajustes' | 'aprovado' | 'publicado' }
 interface Portal {
   client: { name: string; logo_url: string | null };
   agency: { name: string | null; logo_url: string | null; brand_color: string | null };
@@ -20,16 +19,8 @@ interface Portal {
   summary: { month: string; approved: number; changes: number; waiting: number; published: number };
 }
 
-const TIPOS: Record<string, string> = { post: 'Post', story: 'Story', reels: 'Reels', video: 'Vídeo', carousel: 'Carrossel', ad: 'Anúncio' };
-const SITUACAO: Record<ItemDoCalendario['situation'], { rotulo: string; classe: string }> = {
-  aguardando: { rotulo: 'Aguardando sua aprovação', classe: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
-  ajustes: { rotulo: 'Ajustes em andamento', classe: 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300' },
-  aprovado: { rotulo: 'Aprovado', classe: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' },
-  publicado: { rotulo: 'Publicado', classe: 'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300' },
-};
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
-const diaPorExtenso = (iso: string) => format(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))), "EEE, d 'de' MMM", { locale: ptBR });
 const quando = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
 
 async function carregarPortal(token: string): Promise<Portal> {
@@ -63,7 +54,7 @@ export default function PublicPortalPage() {
 
   if (carregando) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10">
+      <div className="mx-auto max-w-4xl space-y-4 px-4 py-10">
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-40 w-full rounded-2xl" />
         <Skeleton className="h-40 w-full rounded-2xl" />
@@ -84,25 +75,10 @@ export default function PublicPortalPage() {
   }
 
   const mesNome = MESES[Number(portal.summary.month.slice(5, 7)) - 1] ?? '';
-  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-  const proximos = portal.calendar.filter(c => c.date >= hoje);
-  const recentes = portal.calendar.filter(c => c.date < hoje).reverse();
-
-  const Item = ({ c }: { c: ItemDoCalendario }) => (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-3">
-      <div className="w-20 shrink-0 text-xs font-semibold text-muted-foreground first-letter:uppercase">{diaPorExtenso(c.date)}</div>
-      <div className="min-w-0 flex-1 basis-40">
-        <p className="line-clamp-2 text-sm font-semibold">{c.title}</p>
-        <p className="truncate text-xs text-muted-foreground">{[TIPOS[c.type ?? ''] ?? null, c.platform].filter(Boolean).join(' · ') || 'Peça'}</p>
-      </div>
-      <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold max-sm:ml-[92px]', SITUACAO[c.situation].classe)}>{SITUACAO[c.situation].rotulo}</span>
-    </li>
-  );
-
   return (
     <div className="min-h-screen bg-background" style={varsDaMarca(portal.agency.brand_color)}>
       <header className="border-b bg-card/60 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-4">
           {portal.agency.logo_url && <img src={portal.agency.logo_url} alt="" className="h-8 w-8 rounded-lg object-cover" />}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{portal.agency.name ?? 'Portal do cliente'}</p>
@@ -111,7 +87,7 @@ export default function PublicPortalPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 pb-20">
+      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8 pb-20">
         <section>
           <div className="flex items-center gap-3">
             {portal.client.logo_url && <img src={portal.client.logo_url} alt="" className="h-12 w-12 rounded-xl object-cover" />}
@@ -161,27 +137,7 @@ export default function PublicPortalPage() {
           </ul>
         </section>
 
-        <section aria-label="Calendário de publicações">
-          <h2 className="mb-1 flex items-center gap-2 text-[15px] font-bold"><CalendarDays className="h-4 w-4 text-primary" /> Calendário de publicações</h2>
-          {portal.calendar.length === 0 ? (
-            <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Quando houver peças com data de publicação, elas aparecem aqui.</p>
-          ) : (
-            <div className="rounded-2xl border bg-card px-4">
-              {proximos.length > 0 && (
-                <>
-                  <p className="pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Próximas</p>
-                  <ul className="divide-y divide-border/60">{proximos.map((c, i) => <Item key={`p${i}`} c={c} />)}</ul>
-                </>
-              )}
-              {recentes.length > 0 && (
-                <>
-                  <p className="border-t pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recentes</p>
-                  <ul className="divide-y divide-border/60">{recentes.map((c, i) => <Item key={`r${i}`} c={c} />)}</ul>
-                </>
-              )}
-            </div>
-          )}
-        </section>
+        <CalendarioDoPortal itens={portal.calendar} token={token} />
 
         <section aria-label="Histórico">
           <h2 className="mb-3 text-[15px] font-bold">Histórico de decisões</h2>

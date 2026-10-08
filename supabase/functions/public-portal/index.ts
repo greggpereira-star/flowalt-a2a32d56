@@ -104,8 +104,8 @@ Deno.serve(async (req) => {
 
     // Calendario: ultimo pedido de cada card (so o que ja foi enviado ao cliente), com a data de postagem do card
     const hoje = hojeSP();
-    const de = somaDias(hoje, -30);
-    const ate = somaDias(hoje, 90);
+    const de = somaDias(hoje, -120);
+    const ate = somaDias(hoje, 240);
     const vistos = new Set<string>();
     const calendario: any[] = [];
     for (const p of pedidos) {
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
         : p.status === "changes_requested" ? "ajustes"
         : p.status === "pending" && new Date(p.expires_at).getTime() > agora ? "aguardando"
         : "aguardando";
-      calendario.push({ title: p.title, date: data, type: f.piece_type ?? null, platform: f.platform ?? null, situation: situacao });
+      calendario.push({ id: p.id, title: p.title, date: data, type: f.piece_type ?? null, platform: f.platform ?? null, situation: situacao });
     }
     calendario.sort((a, b) => a.date.localeCompare(b.date));
 
