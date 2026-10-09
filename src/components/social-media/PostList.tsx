@@ -83,6 +83,7 @@ const STATUS_CONFIG: Record<SocialPostStatus, { label: string; variant: 'default
   publishing: { label: 'Publicando', variant: 'default', icon: <Send className="h-3 w-3" /> },
   published: { label: 'Publicado', variant: 'default', icon: <CheckCircle2 className="h-3 w-3" /> },
   failed: { label: 'Falhou', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
+  error: { label: 'Falhou', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
   archived: { label: 'Arquivado', variant: 'secondary', icon: <AlertCircle className="h-3 w-3" /> },
 };
 

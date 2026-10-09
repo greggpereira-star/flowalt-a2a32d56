@@ -36,6 +36,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { SocialPost, SocialPlatform, SocialPostStatus, MediaItem } from '@/hooks/useSocialPosts';
 import { useDeleteSocialPost, useApproveSocialPost, useScheduleSocialPost } from '@/hooks/useSocialPosts';
 
@@ -72,6 +73,7 @@ const statusConfig: Record<SocialPostStatus, { label: string; color: string; ico
   publishing: { label: 'Publicando...', color: 'bg-purple-100 text-purple-800', icon: Send },
   published: { label: 'Publicado', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
   failed: { label: 'Erro', color: 'bg-red-100 text-red-800', icon: AlertCircle },
+  error: { label: 'Erro', color: 'bg-red-100 text-red-800', icon: AlertCircle },
   archived: { label: 'Arquivado', color: 'bg-gray-100 text-gray-800', icon: Edit },
 };
 
@@ -108,6 +110,7 @@ export function SocialPostDetailSheet({
 }: SocialPostDetailSheetProps) {
   const deletePost = useDeleteSocialPost();
   const approvePost = useApproveSocialPost();
+  const schedulePost = useScheduleSocialPost();
 
   if (!post) return null;
 
@@ -124,6 +127,19 @@ export function SocialPostDetailSheet({
 
   const handleApprove = async () => {
     await approvePost.mutateAsync(post.id);
+  };
+
+  // Aprovado (ou rascunho com data) vira "agendado": a partir dai o agendador publica sozinho no horario.
+  const podeAgendar = ['approved', 'draft'].includes(post.status);
+  const handleSchedule = async () => {
+    if (!post.scheduled_at || new Date(post.scheduled_at).getTime() <= Date.now()) {
+      toast.error('Defina uma data e um horário futuros em Editar antes de agendar.');
+      return;
+    }
+    const quando = format(new Date(post.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    if (!window.confirm(`Agendar a publicação para ${quando}? O post será publicado automaticamente nesse horário.`)) return;
+    await schedulePost.mutateAsync({ postId: post.id, scheduledAt: post.scheduled_at });
+    onOpenChange(false);
   };
 
   // Parse media_urls safely
@@ -401,6 +417,12 @@ export function SocialPostDetailSheet({
               <Button onClick={handleApprove} className="flex-1">
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Aprovar
+              </Button>
+            )}
+            {podeAgendar && (
+              <Button onClick={handleSchedule} disabled={schedulePost.isPending} className="flex-1">
+                <Calendar className="h-4 w-4 mr-2" />
+                {schedulePost.isPending ? 'Agendando…' : 'Agendar publicação'}
               </Button>
             )}
             {['draft', 'pending_approval', 'approved', 'scheduled'].includes(post.status) && (

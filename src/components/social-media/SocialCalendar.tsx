@@ -96,6 +96,7 @@ const statusStyles: Record<SocialPostStatus, { bg: string; text: string; icon: R
   publishing: { bg: 'bg-purple-100', text: 'text-purple-800', icon: Loader2, label: 'Publicando' },
   published: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2, label: 'Publicado' },
   failed: { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle, label: 'Erro' },
+  error: { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle, label: 'Erro' },
   archived: { bg: 'bg-gray-100', text: 'text-gray-800', icon: FileText, label: 'Arquivado' },
 };
 
@@ -311,10 +312,12 @@ export function SocialCalendar({ clientId, onPostClick }: SocialCalendarProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="draft">Rascunho</SelectItem>
+              <SelectItem value="pending_approval">Aprovação</SelectItem>
+              <SelectItem value="approved">Aprovado</SelectItem>
               <SelectItem value="scheduled">Agendado</SelectItem>
               <SelectItem value="published">Publicado</SelectItem>
               <SelectItem value="failed">Erro</SelectItem>
-              <SelectItem value="draft">Rascunho</SelectItem>
             </SelectContent>
           </Select>
 

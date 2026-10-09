@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 export type SocialPlatform = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube' | 'twitter';
 export type SocialContentType = 'feed' | 'story' | 'reels' | 'carousel' | 'video' | 'short' | 'article';
-export type SocialPostStatus = 'draft' | 'pending_approval' | 'approved' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'archived';
+export type SocialPostStatus = 'draft' | 'pending_approval' | 'approved' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'error' | 'archived';
 export type ContentPillar = 'educational' | 'sales' | 'entertainment' | 'relationship' | 'institutional' | 'other';
 export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
 
@@ -438,7 +438,8 @@ export const useCalendarPosts = (startDate: string, endDate: string) => {
   return useSocialPosts({
     startDate,
     endDate,
-    // Include all relevant statuses: draft, scheduled, publishing (in progress), published, failed
-    status: ['draft', 'scheduled', 'publishing', 'published', 'failed'],
+    // Todos os estados que a pessoa precisa ver e acionar no calendario. Sem 'pending_approval' e 'approved', um post
+    // aguardando aprovacao (ou aprovado) sumia do calendario e nao havia onde clicar para aprova-lo ou agenda-lo.
+    status: ['draft', 'pending_approval', 'approved', 'scheduled', 'publishing', 'published', 'failed', 'error'],
   });
 };
