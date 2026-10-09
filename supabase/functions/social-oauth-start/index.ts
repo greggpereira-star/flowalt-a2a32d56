@@ -614,6 +614,16 @@ serve(async (req) => {
     if (isMetaProvider && !scopesToUse.includes('business_management')) {
       scopesToUse = ['business_management', ...scopesToUse];
     }
+
+    // Login do Facebook para Empresas: quando META_LOGIN_CONFIG_ID existe, as permissoes vem da configuracao do app (config_id)
+    // e o parametro scope nao e enviado. O callback valida contra exatamente as permissoes dessa configuracao.
+    const metaLoginConfigId = isMetaProvider ? (Deno.env.get('META_LOGIN_CONFIG_ID') ?? '').trim() : '';
+    if (metaLoginConfigId) {
+      scopesToUse = [
+        'pages_show_list', 'pages_read_engagement', 'pages_manage_posts',
+        'instagram_basic', 'instagram_content_publish', 'instagram_manage_insights', 'business_management',
+      ];
+    }
     const { error: stateError } = await supabase
       .from('oauth_states')
       .upsert({
@@ -638,7 +648,10 @@ serve(async (req) => {
     }
 
     // Build authorization URL
-    const redirectUri = `${supabaseUrl}${config.redirectPath}`;
+    // O retorno do login (OAuth) tem de ser o endereco PUBLICO da API, o mesmo cadastrado no app da Meta. Dentro do servidor
+    // SUPABASE_URL vale http://kong:8000 (interno), que a Meta recusa ("URL bloqueada"); SUPABASE_PUBLIC_URL e o publico.
+    const enderecoPublico = (Deno.env.get("SUPABASE_PUBLIC_URL") ?? supabaseUrl).replace(/\/$/, "");
+    const redirectUri = `${enderecoPublico}${config.redirectPath}`;
     const params = new URLSearchParams();
     
     params.set('client_id', clientId);
@@ -662,7 +675,9 @@ serve(async (req) => {
       params.set('prompt', 'consent');
     } else if (isMetaProvider) {
       // Meta (Facebook/Instagram) - comma-separated scopes, URL-encoded
-      if (scopesToUse.length > 0) {
+      if (metaLoginConfigId) {
+        params.set('config_id', metaLoginConfigId);
+      } else if (scopesToUse.length > 0) {
         params.set('scope', scopesToUse.join(','));
       }
       // PKCE is optional for Meta but recommended

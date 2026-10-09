@@ -492,7 +492,9 @@ serve(async (req) => {
     }
 
     // Exchange code for tokens
-    const redirectUri = `${supabaseUrl}/functions/v1/social-oauth-callback`;
+    // Tem de ser identico ao enviado no inicio do login: o endereco publico (nao o interno http://kong:8000).
+    const enderecoPublico = (Deno.env.get("SUPABASE_PUBLIC_URL") ?? supabaseUrl).replace(/\/$/, "");
+    const redirectUri = `${enderecoPublico}/functions/v1/social-oauth-callback`;
     let tokens = await exchangeCodeForToken(platform, code, redirectUri, codeVerifier);
 
     // For Meta platforms, try to get a long-lived token

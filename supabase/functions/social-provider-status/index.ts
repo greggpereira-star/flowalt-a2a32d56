@@ -171,7 +171,7 @@ serve(async (req) => {
         status,
         missing,
         configured,
-        redirect_uri: `${supabaseUrl}${config.redirectPath}`,
+        redirect_uri: `${(Deno.env.get("SUPABASE_PUBLIC_URL") ?? supabaseUrl).replace(/\/$/, "")}${config.redirectPath}`,
         displayName: config.displayName,
         portalUrl: config.portalUrl,
         activeConnections: count || 0,
