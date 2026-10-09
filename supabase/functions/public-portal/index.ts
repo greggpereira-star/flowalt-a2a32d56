@@ -6,6 +6,8 @@
 //  - link invalido ou revogado devolve sempre a mesma resposta;
 //  - SO sai o que ja foi enviado ao cliente em um pedido de aprovacao (ou ja foi publicado): cards ainda em
 //    planejamento interno, comentarios internos, anexos e notas da equipe nunca saem daqui;
+//  - o Brand Core so sai nas secoes que a equipe liberou (client_portal_access.brand_sections) e nas pastas marcadas como
+//    visiveis ao cliente (e abertas a toda a equipe); cada arquivo sai por URL assinada de 1 hora;
 //  - o titulo mostrado e o do pedido (escrito para o cliente), nao o titulo interno do card;
 //  - nenhum id de card ou de usuario vai na resposta; os ids de pedido servem para abrir a aprovacao pelo proprio portal.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -14,6 +16,26 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const TIPOS_BRAND = ["diagnosis", "persona", "competitor", "offer"];
+const SIGNED_URL_TTL = 3600;
+// A URL assinada sai com o endereco INTERNO do servidor (http://kong:8000), que o navegador do cliente nao alcanca.
+function urlPublica(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const interna = Deno.env.get("SUPABASE_URL");
+  const publica = Deno.env.get("SUPABASE_PUBLIC_URL");
+  if (interna && publica && url.startsWith(interna)) return publica.replace(/\/$/, "") + url.slice(interna.length);
+  return url;
+}
+// So texto, com tamanho limitado: o que o cliente recebe nunca carrega objeto aninhado.
+function dadosLimpos(data: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim()) out[k.slice(0, 40)] = v.slice(0, 4000);
+    }
+  }
+  return out;
+}
 const NAO_DISPONIVEL = "Este link não está mais disponível. Peça um novo link a quem enviou.";
 const TOKEN_RE = /^[A-Za-z0-9_-]{40,128}$/;
 const DIA_MS = 86_400_000;
@@ -124,6 +146,42 @@ Deno.serve(async (req) => {
     }
     calendario.sort((a, b) => a.date.localeCompare(b.date));
 
+    // Brand Core liberado ao cliente: so as secoes marcadas na equipe e so as pastas marcadas como visiveis ao cliente.
+    const secoes: string[] = (Array.isArray(acesso.brand_sections) ? acesso.brand_sections : []).filter((s: string) => TIPOS_BRAND.includes(s));
+    const [{ data: itensBrand }, { data: pastas }] = await Promise.all([
+      secoes.length
+        ? supabase.from("client_brand_items").select("kind, data, position, created_at")
+            .eq("client_id", acesso.client_id).eq("workspace_id", acesso.workspace_id).in("kind", secoes)
+            .order("position", { ascending: true }).order("created_at", { ascending: true }).limit(200)
+        : Promise.resolve({ data: [] as any[] }),
+      supabase.from("client_file_folders").select("id, name, position")
+        .eq("client_id", acesso.client_id).eq("workspace_id", acesso.workspace_id).eq("visible_to_client", true).eq("access", "team")
+        .order("position", { ascending: true }).order("name", { ascending: true }).limit(50),
+    ]);
+    const idsPastas = (pastas ?? []).map((p: any) => p.id);
+    const { data: arquivosBrand } = idsPastas.length
+      ? await supabase.from("client_files").select("folder_id, name, size_bytes, mime_type, storage_path, created_at")
+          .in("folder_id", idsPastas).eq("client_id", acesso.client_id).order("created_at", { ascending: false }).limit(300)
+      : { data: [] as any[] };
+
+    const brandSecoes: Record<string, Record<string, string>[]> = {};
+    (itensBrand ?? []).forEach((i: any) => {
+      brandSecoes[i.kind] = [...(brandSecoes[i.kind] ?? []), dadosLimpos(i.data)];
+    });
+    const brandPastas: any[] = [];
+    for (const p of pastas ?? []) {
+      const arquivos: any[] = [];
+      for (const a of (arquivosBrand ?? []).filter((x: any) => x.folder_id === p.id)) {
+        // So assina caminhos que pertencem ao proprio cliente e a esta pasta.
+        if (!a.storage_path.startsWith(`${acesso.workspace_id}/${acesso.client_id}/${p.id}/`)) continue;
+        const { data: assinada } = await supabase.storage.from("client-files").createSignedUrl(a.storage_path, SIGNED_URL_TTL, { download: a.name });
+        const url = urlPublica(assinada?.signedUrl);
+        if (url) arquivos.push({ name: a.name, size: a.size_bytes, mime: a.mime_type, url, added_at: a.created_at });
+      }
+      if (arquivos.length) brandPastas.push({ name: p.name, files: arquivos });
+    }
+    const brand = Object.keys(brandSecoes).length || brandPastas.length ? { sections: brandSecoes, folders: brandPastas } : null;
+
     // Resumo do mes (em Sao Paulo)
     const mes = hoje.slice(0, 7);
     const resumo = {
@@ -146,6 +204,7 @@ Deno.serve(async (req) => {
         history: historico,
         calendar: calendario,
         summary: resumo,
+        brand,
       },
     });
   } catch (e) {

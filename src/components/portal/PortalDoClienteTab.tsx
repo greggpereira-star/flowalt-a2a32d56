@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Copy, Eye, Link2, MessageCircle, Palette, ShieldOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { SECOES } from '@/lib/brandCore/campos';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useAcessoDoPortal, useGerarLinkDoPortal, useMarcaDaAgencia, useRevogarPortal } from '@/hooks/usePortalDoCliente';
+import { AcessoDoPortal, useAcessoDoPortal, useGerarLinkDoPortal, useMarcaDaAgencia, useRevogarPortal, useSalvarSecoesDoPortal } from '@/hooks/usePortalDoCliente';
 
 function LinkDialog({ link, onClose }: { link: string | null; onClose: () => void }) {
   const copiar = async () => {
@@ -41,6 +43,40 @@ function LinkDialog({ link, onClose }: { link: string | null; onClose: () => voi
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const SECOES_DO_PORTAL = ['diagnosis', 'persona', 'competitor', 'offer'] as const;
+
+/** Escolhe quais secoes do Brand Core o cliente ve no portal. Tudo desligado por padrao. */
+function BrandCoreNoPortal({ clientId, acesso }: { clientId: string; acesso: AcessoDoPortal | null | undefined }) {
+  const salvar = useSalvarSecoesDoPortal();
+  const ativas = acesso?.brand_sections ?? [];
+  const alternar = (tipo: string) => salvar.mutate({ clientId, tipo, ligar: !ativas.includes(tipo) });
+
+  return (
+    <section className="rounded-2xl border bg-card p-5">
+      <h3 className="text-[15px] font-bold">Brand Core no portal</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Escolha o que o cliente enxerga do material de marca dele. Ele vê todos os campos da seção liberada, em leitura. Seções desligadas não aparecem.
+        Os arquivos seguem a regra de cada pasta (Brand Core → Arquivos → "Mostrar ao cliente").
+      </p>
+      {!acesso ? (
+        <p className="mt-4 rounded-xl border border-dashed p-3 text-xs text-muted-foreground">Gere o link do portal acima para liberar seções.</p>
+      ) : (
+        <ul className="mt-4 divide-y rounded-xl border">
+          {SECOES_DO_PORTAL.map(t => (
+            <li key={t} className="flex items-center gap-3 px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{SECOES[t].titulo}</p>
+                <p className="truncate text-xs text-muted-foreground">{SECOES[t].ajuda}</p>
+              </div>
+              <Switch checked={ativas.includes(t)} disabled={salvar.isPending} onCheckedChange={() => alternar(t)} aria-label={`Mostrar ${SECOES[t].titulo} ao cliente`} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -145,6 +181,7 @@ export function PortalDoClienteTab({ clientId, clientName }: { clientId: string;
         )}
       </section>
 
+      <BrandCoreNoPortal clientId={clientId} acesso={acesso} />
       <CorDaMarca />
       <LinkDialog link={link} onClose={() => setLink(null)} />
     </div>

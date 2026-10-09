@@ -47,7 +47,10 @@ import {
   UserRound,
   Swords,
   Layers,
+  FolderOpen,
 } from 'lucide-react';
+import { ArquivosDoCliente } from '@/components/clients/brand-core/ArquivosDoCliente';
+import { useAuth } from '@/contexts/AuthContext';
 import { SecaoBrandCore } from '@/components/clients/brand-core/SecaoBrandCore';
 import { SECOES as SECOES_BC } from '@/lib/brandCore/campos';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -780,6 +783,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
   const deleteClient = useDeleteClientCard();
   const { data: members } = useWorkspaceMembers();
   const { canViewClientFinancials, isAdmin, isOwner } = usePermissions();
+  const { user: usuarioLogado } = useAuth();
   const { isEnabled: flagLigada } = useFeatureFlags();
   const portalLigado = flagLigada(FEATURE_FLAGS.CLIENT_PORTAL);
   const mensalLigado = flagLigada(FEATURE_FLAGS.MONTHLY_REPORT);
@@ -840,6 +844,7 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
         { valor: 'branding', rotulo: 'Branding', ajuda: 'Posicionamento e identidade visual', Icone: Palette },
         { valor: 'voice', rotulo: 'Voz da marca', ajuda: 'Como a marca fala e o que evita', Icone: MessageSquare },
         { valor: 'bc_offer', rotulo: 'Esteira de ofertas', ajuda: SECOES_BC.offer.ajuda, Icone: Layers },
+        { valor: 'bc_files', rotulo: 'Arquivos', ajuda: 'Documentos do cliente em pastas, com acesso por pasta e opção de mostrar ao cliente', Icone: FolderOpen },
       ],
     },
     {
@@ -1009,6 +1014,9 @@ export const ClientCardSheet: React.FC<ClientCardSheetProps> = ({
                       <SecaoBrandCore tipo={t} clientId={client.id} />
                     </TabsContent>
                   ))}
+                  <TabsContent value="bc_files" className="mt-0 focus-visible:outline-none">
+                    <ArquivosDoCliente clientId={client.id} meuId={usuarioLogado?.id ?? null} />
+                  </TabsContent>
                   <TabsContent value="contract" className="mt-0 focus-visible:outline-none">
                     <ContractTab formData={formData} setFormData={setFormData} clientId={client?.id} />
                   </TabsContent>

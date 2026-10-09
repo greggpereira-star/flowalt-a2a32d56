@@ -15,6 +15,8 @@ export interface AcessoDoPortal {
   last_seen_at: string | null;
   view_count: number;
   revoked_at: string | null;
+  /** Secoes do Brand Core liberadas ao cliente: diagnosis, persona, competitor, offer. */
+  brand_sections: string[];
 }
 
 export const linkDoPortal = (token: string) => `${window.location.origin}/portal/${token}`;
@@ -26,7 +28,7 @@ export function useAcessoDoPortal(clientId: string | undefined) {
     enabled: !!clientId,
     queryFn: async (): Promise<AcessoDoPortal | null> => {
       const { data, error } = await db
-        .from('client_portal_access').select('id, created_at, renewed_at, last_seen_at, view_count, revoked_at').eq('client_id', clientId).maybeSingle();
+        .from('client_portal_access').select('id, created_at, renewed_at, last_seen_at, view_count, revoked_at, brand_sections').eq('client_id', clientId).maybeSingle();
       if (error) throw error;
       return (data ?? null) as AcessoDoPortal | null;
     },
@@ -54,6 +56,30 @@ export function useGerarLinkDoPortal() {
     },
     onSuccess: (_r, v) => qc.invalidateQueries({ queryKey: ['portal-acesso', v.clientId] }),
     onError: (e: any) => toast.error(e?.message || 'Não foi possível gerar o link.'),
+  });
+}
+
+/**
+ * Liga ou desliga UMA secao do Brand Core no portal. Le a lista atual do banco antes de gravar, para nao apagar o que
+ * outra pessoa (ou outro clique) acabou de liberar.
+ */
+export function useSalvarSecoesDoPortal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ clientId, tipo, ligar }: { clientId: string; tipo: string; ligar: boolean }) => {
+      const { data: atual, error: erroLeitura } = await db.from('client_portal_access').select('brand_sections').eq('client_id', clientId).maybeSingle();
+      if (erroLeitura) throw erroLeitura;
+      const base: string[] = Array.isArray(atual?.brand_sections) ? atual.brand_sections : [];
+      const secoes = ligar ? Array.from(new Set([...base, tipo])) : base.filter(t => t !== tipo);
+      const { data, error } = await db.from('client_portal_access').update({ brand_sections: secoes }).eq('client_id', clientId).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Gere o link do portal antes de liberar seções.');
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ['portal-acesso', v.clientId] });
+      toast.success('Salvo.');
+    },
+    onError: (e: any) => toast.error(e?.message || 'Não foi possível salvar.'),
   });
 }
 

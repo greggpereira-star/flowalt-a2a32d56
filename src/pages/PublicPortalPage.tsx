@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { varsDaMarca } from '@/lib/portal/marca';
 import { CalendarioDoPortal, ItemDoCalendario } from '@/components/portal/CalendarioDoPortal';
+import { BrandCoreDoPortal, BrandDoPortal } from '@/components/portal/BrandCoreDoPortal';
 
 interface Pendente { id: string; title: string; round: number; sent_at: string }
 interface Decidido { id: string; title: string; round: number; status: 'approved' | 'changes_requested'; decided_at: string | null; decided_by_name: string | null }
@@ -17,6 +18,7 @@ interface Portal {
   history: Decidido[];
   calendar: ItemDoCalendario[];
   summary: { month: string; approved: number; changes: number; waiting: number; published: number };
+  brand: BrandDoPortal | null;
 }
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -138,6 +140,8 @@ export default function PublicPortalPage() {
         </section>
 
         <CalendarioDoPortal itens={portal.calendar} token={token} />
+
+        {portal.brand && <BrandCoreDoPortal brand={portal.brand} />}
 
         <section aria-label="Histórico">
           <h2 className="mb-3 text-[15px] font-bold">Histórico de decisões</h2>
