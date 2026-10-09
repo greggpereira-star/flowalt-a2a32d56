@@ -90,6 +90,35 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const didMountRef = useRef(false);
   const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
+  // Briefing de tráfego: o texto fica na tela a cada tecla e só é gravado depois de uma pausa na digitação.
+  // Gravar a cada tecla enfileirava dezenas de saves do card inteiro, e a resposta do servidor reescrevia o campo
+  // com o texto antigo ("comendo" letras de quem digita rápido).
+  const trafficPendingRef = useRef<{ cardId: string; data: TrafficBriefingData } | null>(null);
+  const trafficDirtyCardRef = useRef<string | null>(null);
+  const trafficTimerRef = useRef<number | undefined>(undefined);
+  const flushTrafficBriefing = () => {
+    window.clearTimeout(trafficTimerRef.current);
+    const pendente = trafficPendingRef.current;
+    if (!pendente) return saveQueueRef.current;
+    trafficPendingRef.current = null;
+    const gravar = () => updateCard.mutateAsync({ id: pendente.cardId, traffic_briefing_data: pendente.data as any });
+    saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(gravar).then(
+      () => {
+        // Sem edição nova durante o salvamento, a tela volta a seguir o servidor.
+        if (!trafficPendingRef.current && trafficDirtyCardRef.current === pendente.cardId) trafficDirtyCardRef.current = null;
+      },
+      () => { toast.error('Erro ao salvar alterações'); },
+    );
+    return saveQueueRef.current;
+  };
+  const flushTrafficRef = useRef(flushTrafficBriefing);
+  flushTrafficRef.current = flushTrafficBriefing;
+  // Ao trocar de card ou fechar o modal, grava o que ainda estava esperando a pausa.
+  useEffect(() => () => { void flushTrafficRef.current(); }, [cardId]);
+
+  // Último título/descrição vindos do servidor: o sync só sobrescreve o que a pessoa ainda não mexeu.
+  const servidorRef = useRef<{ cardId: string | null; title: string; description: string }>({ cardId: null, title: '', description: '' });
+
   /**
    * Reset session-bound UI state whenever the modal switches to a different
    * card (or is closed). Without this, reopening the modal could surface the
@@ -279,8 +308,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   // Sync state with card data
   useEffect(() => {
     if (card) {
-      setTitle(card.title);
-      setDescription(card.description || '');
+      const antes = servidorRef.current;
+      const trocouDeCard = antes.cardId !== card.id;
+      // Uma atualização em segundo plano não pode apagar o que está sendo digitado e ainda não foi salvo.
+      setTitle(prev => (trocouDeCard || prev === antes.title ? card.title : prev));
+      setDescription(prev => (trocouDeCard || prev === antes.description ? (card.description || '') : prev));
+      servidorRef.current = { cardId: card.id, title: card.title, description: card.description || '' };
       setStatus(card.status);
       setUrgency(card.urgency);
       setDueDate(card.due_date ? new Date(card.due_date) : undefined);
@@ -300,7 +333,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
         return safeBriefingData;
       });
 
-      if (card.traffic_briefing_data && typeof card.traffic_briefing_data === 'object' && !Array.isArray(card.traffic_briefing_data)) {
+      if (trafficDirtyCardRef.current === card.id) {
+        // Briefing de tráfego em edição: a tela é a fonte da verdade até gravar.
+      } else if (card.traffic_briefing_data && typeof card.traffic_briefing_data === 'object' && !Array.isArray(card.traffic_briefing_data)) {
         const tbd = card.traffic_briefing_data as Record<string, string>;
         setTrafficBriefingData({
           objective: tbd.objective || '',
@@ -400,7 +435,12 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
 
   const handleTrafficBriefingDataChange = (newData: TrafficBriefingData) => {
     setTrafficBriefingData(newData);
-    handleSave({ traffic_briefing_data: newData as any });
+    const alvo = cardRef.current?.id;
+    if (!alvo) return;
+    trafficDirtyCardRef.current = alvo;
+    trafficPendingRef.current = { cardId: alvo, data: newData };
+    window.clearTimeout(trafficTimerRef.current);
+    trafficTimerRef.current = window.setTimeout(() => { void flushTrafficRef.current(); }, 800);
   };
 
   const handleMarkBriefingComplete = async (targetCardId?: string, briefingDataOverride?: BriefingData) => {
@@ -449,6 +489,7 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
   const tentarFechar = () => {
     const naoSalva = !!card && (description || '') !== (card.description || '');
     if (naoSalva && !window.confirm('A descrição tem alterações que não foram salvas. Fechar e descartar?')) return;
+    void flushTrafficBriefing();
     onOpenChange(false);
   };
 
