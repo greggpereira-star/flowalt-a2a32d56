@@ -16,9 +16,10 @@ export const LandingNavbar: React.FC = () => {
   }, []);
 
   const links = [
-    { label: 'Recursos', href: '#features' },
-    { label: 'Como Funciona', href: '#how-it-works' },
-    { label: 'Benefícios', href: '#benefits' },
+    { label: 'Aprovação', href: '#aprovacao' },
+    { label: 'Portal do cliente', href: '#portal' },
+    { label: 'Brand Core', href: '#brand-core' },
+    { label: 'Perguntas', href: '#perguntas' },
   ];
 
   return (
@@ -30,9 +31,9 @@ export const LandingNavbar: React.FC = () => {
           : 'bg-transparent'
       )}
     >
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <a href="#" className="text-xl font-bold tracking-tight text-foreground">
+          <a href="#" className="font-display text-xl font-extrabold tracking-tight text-foreground">
             Flow<span className="text-primary">Alt</span>
           </a>
 
@@ -54,12 +55,17 @@ export const LandingNavbar: React.FC = () => {
               Entrar
             </Button>
             <Button size="sm" onClick={() => navigate('/auth')}>
-              Começar Grátis
+              Começar grátis
             </Button>
           </div>
 
           {/* Mobile */}
-          <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
+          <button
+            className="md:hidden p-2"
+            aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
@@ -83,7 +89,7 @@ export const LandingNavbar: React.FC = () => {
               Entrar
             </Button>
             <Button size="sm" onClick={() => navigate('/auth')}>
-              Começar Grátis
+              Começar grátis
             </Button>
           </div>
         </div>

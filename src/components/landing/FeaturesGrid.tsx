@@ -1,52 +1,36 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Zap, Gauge, Sparkles, GitBranch, Puzzle, BarChart3 } from 'lucide-react';
+import { BarChart3, BellRing, CalendarCheck, FileText, KanbanSquare, Workflow } from 'lucide-react';
 
-const features = [
-  { icon: Zap, title: 'Automações', desc: 'Crie regras que movem cards, notificam e atualizam status automaticamente.' },
-  { icon: Gauge, title: 'Velocidade', desc: 'Interface otimizada para performance. Ações em milissegundos, não segundos.' },
-  { icon: Sparkles, title: 'IA Integrada', desc: 'Estimativas inteligentes, sugestões e assistência contextual com IA.' },
-  { icon: GitBranch, title: 'Workflows', desc: 'Workflows visuais com stages, gates e aprovações configuráveis.' },
-  { icon: Puzzle, title: 'Integrações', desc: 'Conecte com as ferramentas que sua equipe já usa, sem atrito.' },
-  { icon: BarChart3, title: 'Analytics', desc: 'Dashboards em tempo real com métricas de produtividade e entrega.' },
+const ITENS = [
+  { Icone: KanbanSquare, t: 'Kanban, Lista e Tabela', d: 'O mesmo trabalho, do jeito que cada pessoa da equipe prefere olhar, com a última atualização de cada card.' },
+  { Icone: Workflow, t: 'Regras automáticas', d: 'Mova cards, avise as pessoas certas e mude prioridades sozinho, a partir de regras que você define.' },
+  { Icone: BellRing, t: 'Lembretes inteligentes', d: 'Prazos e pendências chegam a quem precisa, sem ninguém ter que cobrar manualmente.' },
+  { Icone: CalendarCheck, t: 'Publicação no Instagram e no Facebook', d: 'Agende e publique direto do card: feed, carrossel, reels e stories no Instagram.' },
+  { Icone: BarChart3, t: 'Financeiro por cliente', d: 'Fee, custos e margem de cada cliente, para saber quais contas realmente compensam.' },
+  { Icone: FileText, t: 'Relatório mensal', d: 'O rascunho do mês fica pronto para você revisar e enviar ao cliente.' },
 ];
 
 export const FeaturesGrid: React.FC = () => (
-  <section id="features" className="py-24 lg:py-32">
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center max-w-2xl mx-auto mb-16"
-      >
-        <p className="text-sm font-semibold text-primary mb-3 tracking-wide uppercase">Recursos</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-          Tudo que sua equipe precisa
+  <section id="recursos" className="scroll-mt-20 border-t bg-muted/20 py-20 lg:py-28" aria-labelledby="recursos-titulo">
+    <div className="mx-auto max-w-6xl px-6 lg:px-8">
+      <div className="max-w-2xl">
+        <h2 id="recursos-titulo" className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          O resto da operação roda junto.
         </h2>
-        <p className="text-muted-foreground text-lg">
-          Ferramentas poderosas que se adaptam ao seu fluxo de trabalho.
+        <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+          Aprovar é só uma parte. Para a agência inteira trabalhar no mesmo lugar, o Flowalt também cuida de tarefas, prazos, publicação e dinheiro.
         </p>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {features.map((f, i) => (
-          <motion.div
-            key={f.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.08 }}
-            className="group rounded-2xl border border-border/40 bg-card p-6 hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 transition-all duration-300"
-          >
-            <div className="mb-4 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-              <f.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground mb-2">{f.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-          </motion.div>
-        ))}
       </div>
+
+      <ul className="mt-12 grid gap-px overflow-hidden rounded-2xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
+        {ITENS.map(({ Icone, t, d }) => (
+          <li key={t} className="bg-card p-6">
+            <Icone className="h-5 w-5 text-primary" aria-hidden />
+            <p className="mt-4 font-semibold">{t}</p>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{d}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 );

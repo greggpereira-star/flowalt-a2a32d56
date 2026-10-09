@@ -1,50 +1,32 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Layers, Clock, Shuffle, AlertTriangle } from 'lucide-react';
 
-const pains = [
-  { icon: Layers, title: 'Ferramentas demais', desc: 'Sua equipe alterna entre 5+ plataformas todo dia, perdendo contexto e tempo.' },
-  { icon: Clock, title: 'Tempo perdido', desc: 'Horas desperdiçadas em tarefas repetitivas que poderiam ser automatizadas.' },
-  { icon: Shuffle, title: 'Falta de visibilidade', desc: 'Sem dashboard unificado, decisões são tomadas no escuro.' },
-  { icon: AlertTriangle, title: 'Processos quebrados', desc: 'Sem padronização, cada projeto vira um caos diferente.' },
+const LINHAS = [
+  { antes: 'Briefing solto no WhatsApp', agora: 'Briefing, personas e arquivos na ficha de cada cliente' },
+  { antes: 'Feedback em print de conversa', agora: 'Pedido de ajuste dentro do post, com histórico' },
+  { antes: 'Cliente que não quer criar conta', agora: 'Link que abre direto, sem login nem cadastro' },
+  { antes: 'Arte perdida em uma pasta do Drive', agora: 'Pastas por cliente, com acesso definido por pasta' },
 ];
 
 export const ProblemSection: React.FC = () => (
-  <section className="py-24 lg:py-32">
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center max-w-2xl mx-auto mb-16"
-      >
-        <p className="text-sm font-semibold text-primary mb-3 tracking-wide uppercase">O problema</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-          Gestão fragmentada custa caro
+  <section className="border-y bg-muted/20 py-20 lg:py-28" aria-labelledby="problema">
+    <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8">
+      <div>
+        <h2 id="problema" className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          Aprovar um post não deveria depender de cinco abas abertas.
         </h2>
-        <p className="text-muted-foreground text-lg">
-          Equipes perdem até 30% do tempo apenas alternando entre ferramentas e buscando informações.
+        <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+          O cliente pede sete alterações, você avisa o designer, ajusta a legenda e ainda procura a versão certa. O Flowalt põe cada coisa no lugar em que ela é encontrada.
         </p>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {pains.map((p, i) => (
-          <motion.div
-            key={p.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
-            className="group rounded-2xl border border-border/40 bg-card p-6 hover:shadow-lg hover:border-primary/20 transition-all duration-300"
-          >
-            <div className="mb-4 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-destructive/10 text-destructive">
-              <p.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground mb-2">{p.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
-          </motion.div>
-        ))}
       </div>
+
+      <ul className="divide-y rounded-2xl border bg-card">
+        {LINHAS.map(l => (
+          <li key={l.antes} className="grid gap-1 px-5 py-4 sm:grid-cols-2 sm:items-center sm:gap-6">
+            <span className="text-sm text-muted-foreground line-through decoration-muted-foreground/40">{l.antes}</span>
+            <span className="text-[15px] font-semibold">{l.agora}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 );
