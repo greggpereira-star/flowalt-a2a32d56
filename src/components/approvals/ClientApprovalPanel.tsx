@@ -12,6 +12,7 @@ import {
   Mail,
   MessageCircle,
   MessageSquareWarning,
+  Pencil,
   Send,
   ShieldCheck,
   XCircle,
@@ -39,6 +40,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EditarPedidoDialog } from '@/components/approvals/EditarPedidoDialog';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -421,7 +423,7 @@ function NovoPedidoDialog({
   );
 }
 
-function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: boolean; onNovoLink: (info: InfoLink) => void }) {
+function PedidoCard({ b, aberto, onNovoLink, onEditar }: { b: ApprovalBundle; aberto: boolean; onNovoLink: (info: InfoLink) => void; onEditar: (b: ApprovalBundle) => void }) {
   const { user } = useAuth();
   const renovar = useRenewApprovalLink();
   const cancelar = useCancelApproval();
@@ -555,6 +557,9 @@ function PedidoCard({ b, aberto, onNovoLink }: { b: ApprovalBundle; aberto: bool
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onEditar(b)}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar pedido
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -586,6 +591,8 @@ export function ClientApprovalPanel({ cardId }: { cardId: string }) {
   const { data, isLoading } = useCardApprovals(cardId);
   const [novo, setNovo] = useState(false);
   const [info, setInfo] = useState<InfoLink | null>(null);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const editando = (data ?? []).find(b => b.request.id === editandoId) ?? null;
 
   const temAberto = useMemo(() => (data ?? []).some(b => b.request.status === 'pending'), [data]);
 
@@ -604,7 +611,7 @@ export function ClientApprovalPanel({ cardId }: { cardId: string }) {
       ) : (
         <div className="space-y-2">
           {(data ?? []).map((b, i) => (
-            <PedidoCard key={b.request.id} b={b} aberto={i === 0} onNovoLink={setInfo} />
+            <PedidoCard key={b.request.id} b={b} aberto={i === 0} onNovoLink={setInfo} onEditar={x => setEditandoId(x.request.id)} />
           ))}
         </div>
       )}
@@ -614,6 +621,9 @@ export function ClientApprovalPanel({ cardId }: { cardId: string }) {
       </Button>
 
       <NovoPedidoDialog cardId={cardId} open={novo} onOpenChange={setNovo} onCreated={setInfo} />
+      {editando && editando.request.status === 'pending' && (
+        <EditarPedidoDialog bundle={editando} open onOpenChange={o => !o && setEditandoId(null)} />
+      )}
       <LinkDialog info={info} onClose={() => setInfo(null)} />
     </div>
   );

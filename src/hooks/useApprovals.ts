@@ -56,6 +56,7 @@ export interface ApprovalItem {
   request_id: string;
   kind: 'image' | 'video' | 'document' | 'text' | 'link';
   stage: EtapaDeAprovacao | null;
+  storage_path: string | null;
   file_name: string | null;
   body: string | null;
   caption: string | null;
@@ -106,6 +107,10 @@ export async function sha256Hex(texto: string): Promise<string> {
 
 export const linkDeAprovacao = (token: string) => `${window.location.origin}/aprovacao/${token}`;
 
+export function tipoDoArquivoDeAprovacao(tipo: string | null, nome: string): ApprovalItem['kind'] {
+  return tipoDoArquivo(tipo, nome);
+}
+
 function tipoDoArquivo(tipo: string | null, nome: string): ApprovalItem['kind'] {
   const t = (tipo ?? '').toLowerCase();
   const n = nome.toLowerCase();
@@ -152,7 +157,7 @@ export function useCardApprovals(cardId: string | undefined, enabled = true) {
       const ids = lista.map(p => p.id);
 
       const [itens, conversa, eventos, etapas] = await Promise.all([
-        db.from('approval_items').select('id, request_id, kind, stage, file_name, body, caption, sort_order').in('request_id', ids).order('sort_order'),
+        db.from('approval_items').select('id, request_id, kind, stage, storage_path, file_name, body, caption, sort_order').in('request_id', ids).order('sort_order'),
         db.from('approval_comments').select('id, request_id, author_kind, author_name, body, created_at').in('request_id', ids).order('created_at'),
         db.from('approval_events').select('id, request_id, type, actor_kind, actor_label, created_at').in('request_id', ids).order('created_at'),
         db.from('approval_stage_decisions').select('id, request_id, stage, status, decided_at, decided_by_name').in('request_id', ids),
@@ -347,6 +352,30 @@ export function useReplyApproval() {
     },
     onSuccess: (_r, { request }) => qc.invalidateQueries({ queryKey: keyDoCard(request.card_id) }),
     onError: (e: any) => toast.error(e?.message || 'Não foi possível enviar.'),
+  });
+}
+
+/** Edita um pedido em aberto (texto, midia e etapas ainda nao respondidas) sem trocar o link. Tudo ou nada, validado no banco. */
+export function useEditarPedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { request: ApprovalRequest; title: string; message: string; stages: unknown[]; notify: string | null }) => {
+      const { error } = await db.rpc('approval_editar_pedido', {
+        p_request: p.request.id, p_title: p.title, p_message: p.message, p_stages: p.stages, p_notify: p.notify,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: keyDoCard(v.request.card_id) });
+      toast.success('Pedido atualizado. O link continua o mesmo.');
+    },
+    onError: (e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('ja foi respondida')) toast.error('O cliente acabou de responder uma etapa que você alterou. Atualize a tela e confira.');
+      else if (m.includes('so pedidos em aberto')) toast.error('Este pedido já foi respondido e não pode mais ser editado. Envie uma nova rodada.');
+      else if (m.includes('sem permissao')) toast.error('Você não tem permissão para editar este pedido.');
+      else toast.error(m || 'Não foi possível salvar as alterações.');
+    },
   });
 }
 

@@ -104,6 +104,19 @@ export default function PublicApprovalPage() {
     carregar();
   }, [carregar]);
 
+  // Se a equipe editar o pedido, o cliente ve a versao nova ao voltar para a aba, sem precisar recarregar a pagina.
+  useEffect(() => {
+    const aoVoltar = () => {
+      if (document.visibilityState === 'visible') carregar();
+    };
+    document.addEventListener('visibilitychange', aoVoltar);
+    window.addEventListener('focus', aoVoltar);
+    return () => {
+      document.removeEventListener('visibilitychange', aoVoltar);
+      window.removeEventListener('focus', aoVoltar);
+    };
+  }, [carregar]);
+
   const guardarNome = (n: string) => {
     setNome(n);
     try { localStorage.setItem('flowalt_approval_name', n); } catch { /* sem armazenamento */ }
