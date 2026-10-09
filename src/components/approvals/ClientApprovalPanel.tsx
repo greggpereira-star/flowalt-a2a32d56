@@ -41,6 +41,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EditarPedidoDialog } from '@/components/approvals/EditarPedidoDialog';
+import { ProntoParaAgendar } from '@/components/approvals/ProntoParaAgendar';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -486,6 +487,8 @@ function PedidoCard({ b, aberto, onNovoLink, onEditar }: { b: ApprovalBundle; ab
               ))}
             </ul>
           )}
+
+          {r.status === 'approved' && aberto && <ProntoParaAgendar cardId={r.card_id} bundle={b} />}
 
           {r.status === 'approved' && (
             <div className="flex items-start gap-2.5 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200">

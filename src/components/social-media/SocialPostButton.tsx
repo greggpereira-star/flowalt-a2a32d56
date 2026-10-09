@@ -18,6 +18,10 @@ interface SocialPostButtonProps {
   clientId?: string | null;
   className?: string;
   variant?: 'default' | 'compact' | 'icon';
+  /** Texto do botao no lugar de "Gerar Postagem" (variante padrao). */
+  rotulo?: string;
+  /** Legenda ja aprovada, para a postagem nova abrir preenchida. */
+  legendaInicial?: string;
 }
 
 export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
@@ -25,6 +29,8 @@ export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
   clientId,
   className,
   variant = 'default',
+  rotulo,
+  legendaInicial,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { has, explain } = useEntitlementRegistry();
@@ -83,7 +89,7 @@ export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
               ) : (
                 <>
                   <Share2 className="h-4 w-4 mr-2" />
-                  {variant === 'compact' ? 'Social' : 'Gerar Postagem'}
+                  {variant === 'compact' ? 'Social' : (rotulo ?? 'Gerar Postagem')}
                 </>
               )}
               {postsCount > 0 && (
@@ -111,6 +117,7 @@ export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
         onOpenChange={setDialogOpen}
         cardId={cardId}
         clientId={clientId || undefined}
+        initialCaption={legendaInicial}
         onSuccess={() => setDialogOpen(false)}
       />
     </>

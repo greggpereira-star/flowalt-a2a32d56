@@ -398,9 +398,9 @@ Deno.serve(async (req) => {
       }
       await notificarEquipe(
         supabase, pedido, card, todasAprovadas ? "approval_approved" : "approval_changes_requested",
-        todasAprovadas ? "Cliente aprovou todas as etapas" : "Cliente concluiu a revisão com ajustes",
+        todasAprovadas ? "Cliente aprovou todas as etapas: pronto para agendar" : "Cliente concluiu a revisão com ajustes",
         todasAprovadas
-          ? `${nome} aprovou todas as etapas de "${pedido.title}" (rodada ${pedido.round})${moveu ? ". O card foi para Concluído." : "."}`
+          ? `${nome} aprovou todas as etapas de "${pedido.title}" (rodada ${pedido.round}). Pronto para agendar${moveu ? ". O card foi para Concluído." : "."}`
           : `${nome} concluiu a revisão de "${pedido.title}" (rodada ${pedido.round}) com ajustes${moveu ? ". O card voltou para Em Produção." : "."}`,
       );
       return json({ ok: true, decided_at: decididoEm, remaining: 0, final: todasAprovadas ? "approved" : "changes_requested" });
@@ -436,8 +436,8 @@ Deno.serve(async (req) => {
 
       await notificarEquipe(
         supabase, pedido, card, "approval_approved",
-        "Cliente aprovou a entrega",
-        `${nome} aprovou "${pedido.title}" (rodada ${pedido.round})${moveu ? ". O card foi para Concluído." : "."}`,
+        "Cliente aprovou: pronto para agendar",
+        `${nome} aprovou "${pedido.title}" (rodada ${pedido.round}). Pronto para agendar${moveu ? ". O card foi para Concluído." : "."}`,
       );
       return json({ ok: true, decided_at: decididoEm });
     }

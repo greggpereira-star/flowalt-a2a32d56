@@ -101,6 +101,8 @@ interface CreateSocialPostDialogProps {
   editPostId?: string; // If provided, opens in edit mode
   defaultPlatform?: SocialPlatform;
   defaultScheduledDate?: Date | null;
+  /** Legenda para abrir a postagem nova ja preenchida (ex.: a legenda aprovada pelo cliente). */
+  initialCaption?: string;
   onSuccess?: () => void;
 }
 
@@ -151,6 +153,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   editPostId,
   defaultPlatform,
   defaultScheduledDate,
+  initialCaption,
   onSuccess,
 }) => {
   const createPost = useCreateSocialPost();
@@ -271,7 +274,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setSelectedAssetId('');
       setContentType('');
       setTitle('');
-      setCaption('');
+      setCaption(initialCaption || '');
       setHashtagsInput('');
       setScheduledDate(defaultScheduledDate || undefined);
       setScheduledTime('12:00');
@@ -290,7 +293,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       setUserTagsInput('');
       setAltText('');
     }
-  }, [open, defaultPlatform, defaultScheduledDate, isEditMode]);
+  }, [open, defaultPlatform, defaultScheduledDate, initialCaption, isEditMode]);
 
   useEffect(() => {
     if (open && !isEditMode && !scheduledDate && cardPostDate) {
