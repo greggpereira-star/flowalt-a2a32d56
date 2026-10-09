@@ -228,6 +228,7 @@ export function PlatformConnectionWizard({
     asset_meta: Record<string, unknown>;
   }>>([]);
   const [requiresUpgrade, setRequiresUpgrade] = useState(false);
+  const [assetSearch, setAssetSearch] = useState("");
   const [planLimit, setPlanLimit] = useState<number | null>(null);
   const [showScopeRetry, setShowScopeRetry] = useState(false);
   const [requiresReauth, setRequiresReauth] = useState(false);
@@ -1314,7 +1315,16 @@ export function PlatformConnectionWizard({
                 <span className="ml-2 text-muted-foreground">Buscando ativos...</span>
               </div>
             ) : availableAssets.length > 0 ? (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
+              <div className="space-y-3">
+              {availableAssets.length > 6 && (
+                <Input
+                  value={assetSearch}
+                  onChange={(e) => setAssetSearch(e.target.value)}
+                  placeholder={`Buscar entre ${availableAssets.length} contas`}
+                  aria-label="Buscar conta"
+                />
+              )}
+              <div className="space-y-3 max-h-[36vh] overflow-y-auto pr-1">
                 {/* Select all toggle */}
                 <button
                   onClick={handleSelectAll}
@@ -1338,7 +1348,9 @@ export function PlatformConnectionWizard({
                   </Badge>
                 </button>
 
-                {availableAssets.map((asset) => (
+                {availableAssets
+                  .filter((asset) => !assetSearch.trim() || asset.asset_name.toLowerCase().includes(assetSearch.trim().toLowerCase()))
+                  .map((asset) => (
                   <button
                     key={`${asset.asset_type}_${asset.asset_id}`}
                     onClick={() => handleToggleAsset(asset)}
@@ -1370,6 +1382,7 @@ export function PlatformConnectionWizard({
                     </div>
                   </button>
                 ))}
+              </div>
               </div>
             ) : requiresReauth && isMetaPlatform ? (
               // Need to re-authenticate with additional scopes
@@ -1552,7 +1565,7 @@ export function PlatformConnectionWizard({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {getDialogTitle()}
