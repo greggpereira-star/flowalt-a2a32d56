@@ -142,9 +142,37 @@ Deno.serve(async (req) => {
         : p.status === "changes_requested" ? "ajustes"
         : p.status === "pending" && new Date(p.expires_at).getTime() > agora ? "aguardando"
         : "aguardando";
-      calendario.push({ id: p.id, title: p.title, date: data, type: f.piece_type ?? null, platform: f.platform ?? null, situation: situacao });
+      calendario.push({ id: p.id, title: p.title, date: data, type: f.piece_type ?? null, platform: f.platform ?? null, situation: situacao, thumb: null, media: null });
     }
     calendario.sort((a, b) => a.date.localeCompare(b.date));
+
+    // Miniaturas do feed: a primeira midia (de preferencia imagem) do pedido de cada peca. Assina so caminhos do proprio
+    // card do pedido (URL de 1 hora) e no maximo 60 pecas, as mais proximas de hoje.
+    const cardDoPedido = new Map<string, string>(pedidos.map((p: any) => [p.id, p.card_id]));
+    const hojeMs = Date.parse(hoje + "T00:00:00Z");
+    const alvo = [...calendario].sort((a, b) => Math.abs(Date.parse(a.date + "T00:00:00Z") - hojeMs) - Math.abs(Date.parse(b.date + "T00:00:00Z") - hojeMs)).slice(0, 60);
+    if (alvo.length) {
+      const { data: midias } = await supabase.from("approval_items")
+        .select("request_id, kind, storage_path, sort_order")
+        .in("request_id", alvo.map((c) => c.id)).in("kind", ["image", "video"]).not("storage_path", "is", null)
+        .order("sort_order", { ascending: true });
+      const escolhida = new Map<string, any>();
+      for (const m of midias ?? []) {
+        const atual = escolhida.get(m.request_id);
+        if (!atual || (atual.kind === "video" && m.kind === "image")) escolhida.set(m.request_id, m);
+      }
+      const validas = [...escolhida.entries()].filter(([rid, m]) => m.storage_path.startsWith(`${cardDoPedido.get(rid)}/`));
+      if (validas.length) {
+        const { data: assinadas } = await supabase.storage.from("attachments").createSignedUrls(validas.map(([, m]) => m.storage_path), SIGNED_URL_TTL);
+        const urlPorCaminho = new Map<string, string>();
+        (assinadas ?? []).forEach((a: any) => { if (a?.signedUrl && a.path) urlPorCaminho.set(a.path, urlPublica(a.signedUrl) as string); });
+        for (const [rid, m] of validas) {
+          const item = calendario.find((c) => c.id === rid);
+          const url = urlPorCaminho.get(m.storage_path);
+          if (item && url) { item.thumb = url; item.media = m.kind; }
+        }
+      }
+    }
 
     // Brand Core liberado ao cliente: so as secoes marcadas na equipe e so as pastas marcadas como visiveis ao cliente.
     const secoes: string[] = (Array.isArray(acesso.brand_sections) ? acesso.brand_sections : []).filter((s: string) => TIPOS_BRAND.includes(s));

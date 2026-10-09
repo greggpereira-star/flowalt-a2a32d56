@@ -12,6 +12,9 @@ export interface ItemDoCalendario {
   type: string | null;
   platform: string | null;
   situation: 'aguardando' | 'ajustes' | 'aprovado' | 'publicado';
+  /** Miniatura da midia aprovada (URL assinada de 1 hora) e o tipo dela; nulos quando o pedido nao tem midia. */
+  thumb?: string | null;
+  media?: 'image' | 'video' | null;
 }
 
 const TIPOS: Record<string, string> = { post: 'Post', story: 'Story', reels: 'Reels', video: 'Vídeo', carousel: 'Carrossel', ad: 'Anúncio' };

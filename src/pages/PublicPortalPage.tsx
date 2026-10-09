@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { varsDaMarca } from '@/lib/portal/marca';
 import { CalendarioDoPortal, ItemDoCalendario } from '@/components/portal/CalendarioDoPortal';
 import { BrandCoreDoPortal, BrandDoPortal } from '@/components/portal/BrandCoreDoPortal';
+import { FeedDoPortal } from '@/components/portal/FeedDoPortal';
 
 interface Pendente { id: string; title: string; round: number; sent_at: string }
 interface Decidido { id: string; title: string; round: number; status: 'approved' | 'changes_requested'; decided_at: string | null; decided_by_name: string | null }
@@ -140,6 +141,8 @@ export default function PublicPortalPage() {
         </section>
 
         <CalendarioDoPortal itens={portal.calendar} token={token} />
+
+        <FeedDoPortal itens={portal.calendar} token={token} cliente={portal.client.name} logoUrl={portal.client.logo_url} />
 
         {portal.brand && <BrandCoreDoPortal brand={portal.brand} />}
 
