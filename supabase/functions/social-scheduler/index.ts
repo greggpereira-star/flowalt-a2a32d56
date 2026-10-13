@@ -23,6 +23,8 @@ interface SocialPost {
   retry_count: number;
   max_retries: number;
   error_code: string | null;
+  platform_connection_id?: string | null;
+  platform_asset_id?: string | null;
 }
 
 interface PublishResult {
@@ -41,6 +43,8 @@ interface PlatformCredentials {
   platform_account_type: string;
   account_id: string;
   linked_page_id?: string;
+  /** Token da conta de destino (pagina), resolvido a partir da conta escolhida no post. Tem prioridade sobre os demais. */
+  resolved_access_token?: string;
 }
 
 // Classify errors as retryable or not
@@ -1144,6 +1148,110 @@ async function publishInstagramCarousel(
   };
 }
 
+
+// ============================================
+// DESTINATION RESOLUTION
+// ============================================
+
+const META_ASSET_TYPE_BY_PLATFORM: Record<string, string> = {
+  instagram: 'instagram_business',
+  facebook: 'facebook_page',
+};
+
+type TargetResolution =
+  | { ok: true; creds: Record<string, unknown>; label: string }
+  | { ok: false; code: string; message: string };
+
+/**
+ * Descobre EXATAMENTE em qual conta o post deve ser publicado.
+ * Nunca escolhe "a primeira" nem "a principal": ou o post aponta a conta, ou existe uma unica possibilidade.
+ */
+async function resolvePostTarget(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  post: SocialPost,
+): Promise<TargetResolution> {
+  // 1) Conexao (login da plataforma)
+  let connection: Record<string, unknown> | null = null;
+  if (post.platform_connection_id) {
+    const { data } = await supabase
+      .from('social_platforms')
+      .select('*')
+      .eq('id', post.platform_connection_id)
+      .eq('workspace_id', post.workspace_id)
+      .eq('platform', post.platform)
+      .eq('is_active', true)
+      .maybeSingle();
+    connection = data;
+    if (!connection) {
+      return { ok: false, code: 'NO_CREDENTIALS', message: 'A conexão escolhida para este post não está mais ativa. Reconecte a conta ou escolha outra.' };
+    }
+  } else {
+    const { data } = await supabase
+      .from('social_platforms')
+      .select('*')
+      .eq('workspace_id', post.workspace_id)
+      .eq('platform', post.platform)
+      .eq('is_active', true);
+    if (!data || data.length === 0) {
+      return { ok: false, code: 'NO_CREDENTIALS', message: 'Nenhuma conexão ativa encontrada para esta plataforma' };
+    }
+    if (data.length > 1) {
+      return { ok: false, code: 'ACCOUNT_NOT_SELECTED', message: 'Este post não indica em qual conta publicar e há mais de uma conectada. Edite o post e escolha a conta.' };
+    }
+    connection = data[0];
+  }
+
+  // 2) Plataformas fora da Meta nao tem contas por conexao
+  const assetType = META_ASSET_TYPE_BY_PLATFORM[post.platform];
+  if (!assetType) {
+    return { ok: true, creds: connection as Record<string, unknown>, label: String(connection.account_name ?? post.platform) };
+  }
+
+  // 3) Conta de destino dentro da conexao
+  const { data: assets } = await supabase
+    .from('social_platform_assets')
+    .select('asset_id, asset_name, asset_type, asset_meta')
+    .eq('platform_connection_id', connection.id)
+    .eq('asset_type', assetType)
+    .eq('is_active', true);
+  const activeAssets = (assets ?? []) as Array<{ asset_id: string; asset_name: string; asset_type: string; asset_meta: Record<string, unknown> | null }>;
+
+  let target: (typeof activeAssets)[number] | null = null;
+  if (post.platform_asset_id) {
+    target = activeAssets.find((a) => a.asset_id === post.platform_asset_id) ?? null;
+    if (!target) {
+      return { ok: false, code: 'ASSET_NOT_ACTIVE', message: 'A conta escolhida para este post não está ativa nesta conexão. O post não foi publicado em nenhuma outra conta.' };
+    }
+  } else if (activeAssets.length === 1) {
+    target = activeAssets[0];
+  } else {
+    return {
+      ok: false,
+      code: 'ACCOUNT_NOT_SELECTED',
+      message: activeAssets.length === 0
+        ? 'Nenhuma conta ativa nesta conexão para publicar.'
+        : 'Este post não indica em qual conta publicar e a conexão tem mais de uma ativa. Edite o post e escolha a conta.',
+    };
+  }
+
+  const pageToken = typeof target.asset_meta?.page_access_token === 'string' ? target.asset_meta.page_access_token : undefined;
+  return {
+    ok: true,
+    label: target.asset_name,
+    creds: {
+      ...connection,
+      platform_account_type: target.asset_type,
+      account_id: target.asset_id,
+      account_name: target.asset_name,
+      // O token da conexao pertence a conta "principal"; usar o da conta de destino ou o do login, nunca o de outra conta.
+      asset_token_encrypted: undefined,
+      page_access_token_encrypted: undefined,
+      resolved_access_token: pageToken,
+    },
+  };
+}
+
 // ============================================
 // MAIN PUBLISHER ROUTER
 // ============================================
@@ -1152,7 +1260,9 @@ async function publishToplatform(post: SocialPost, credentials: PlatformCredenti
   // Get appropriate token (page token for Meta assets)
   // Priority: asset_token_encrypted (Page token saved during asset selection) > page_access_token_encrypted > access_token_encrypted
   // Using the Page Access Token is CRITICAL for publishing to Facebook Pages and Instagram Business accounts
-  const accessToken = credentials.asset_token_encrypted 
+  const accessToken = credentials.resolved_access_token
+    ? credentials.resolved_access_token
+    : credentials.asset_token_encrypted 
     ? decryptToken(credentials.asset_token_encrypted)
     : credentials.page_access_token_encrypted 
       ? decryptToken(credentials.page_access_token_encrypted)
@@ -1393,7 +1503,9 @@ serve(async (req) => {
         error_code,
         processing_started_at,
         platform_post_id,
-        published_at
+        published_at,
+        platform_connection_id,
+        platform_asset_id
       `)
       .eq("status", "scheduled")
       .lte("scheduled_at", now)
@@ -1549,24 +1661,18 @@ serve(async (req) => {
           .select("id")
           .single();
 
-        // Get platform credentials for this workspace
-        // CRITICAL: Check both is_active AND connection_status to ensure the account is properly connected
-        const { data: platformCreds } = await supabase
-          .from("social_platforms")
-          .select("*")
-          .eq("workspace_id", post.workspace_id)
-          .eq("platform", post.platform)
-          .eq("is_active", true)
-          .single();
+        // Resolve a conta de destino exata do post (conexao + pagina/Instagram escolhidos)
+        const target = await resolvePostTarget(supabase, post as unknown as SocialPost);
+        const platformCreds = target.ok ? target.creds : null;
 
         // Validate platform connection status
         if (!platformCreds) {
           const errorResult = {
             status: "failed",
-            error_message: "Nenhuma conexão ativa encontrada para esta plataforma",
-            error_code: "NO_CREDENTIALS",
-            last_error_code: "NO_CREDENTIALS",
-            last_error_message: "No active platform connection found",
+            error_message: target.ok ? "Nenhuma conexão ativa encontrada para esta plataforma" : target.message,
+            error_code: target.ok ? "NO_CREDENTIALS" : target.code,
+            last_error_code: target.ok ? "NO_CREDENTIALS" : target.code,
+            last_error_message: target.ok ? "No active platform connection found" : target.message,
             processing_completed_at: new Date().toISOString(),
             processing_started_at: null,
             job_id: null,
@@ -1583,8 +1689,8 @@ serve(async (req) => {
               .from("social_jobs")
               .update({
                 status: "failed",
-                error_code: "NO_CREDENTIALS",
-                error_message: "No active platform connection",
+                error_code: target.ok ? "NO_CREDENTIALS" : target.code,
+                error_message: target.ok ? "No active platform connection" : target.message,
                 latency_ms: Date.now() - postStartTime,
                 completed_at: new Date().toISOString(),
               })
@@ -1598,7 +1704,7 @@ serve(async (req) => {
             entity_type: "social_post",
             entity_id: post.id,
             payload: {
-              reason: "no_credentials",
+              reason: target.ok ? "no_credentials" : target.code.toLowerCase(),
               platform: post.platform,
               card_id: post.card_id,
               job_id: jobId,

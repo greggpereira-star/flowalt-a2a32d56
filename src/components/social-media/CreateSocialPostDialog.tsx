@@ -257,15 +257,19 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   // Set asset ID when editing and assets are loaded
   useEffect(() => {
     if (isEditMode && existingPost?.platform_connection_id && availableAssets && availableAssets.length > 0) {
-      // Find asset that matches the platform_connection_id
-      const matchingAsset = availableAssets.find(
-        a => a.platform_connection_id === existingPost.platform_connection_id
-      );
+      // Prefer the exact account stored in the post; the connection alone can hold many accounts.
+      const matchingAsset =
+        (existingPost.platform_asset_id
+          ? availableAssets.find(
+              a => a.platform_connection_id === existingPost.platform_connection_id && a.asset_id === existingPost.platform_asset_id
+            )
+          : undefined) ??
+        availableAssets.find(a => a.platform_connection_id === existingPost.platform_connection_id);
       if (matchingAsset) {
         setSelectedAssetId(matchingAsset.id);
       }
     }
-  }, [isEditMode, existingPost?.platform_connection_id, availableAssets]);
+  }, [isEditMode, existingPost?.platform_connection_id, existingPost?.platform_asset_id, availableAssets]);
 
   // Reset form when dialog opens (for create mode)
   useEffect(() => {
@@ -491,6 +495,8 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
       if (isEditMode && editPostId) {
         // Update existing post
         const updateInput: UpdateSocialPostInput = {
+          platform_connection_id: selectedAsset.platform_connection_id,
+          platform_asset_id: selectedAsset.asset_id,
           platform: platform as SocialPlatform,
           content_type: contentType as SocialContentType,
           title: title || undefined,
@@ -526,6 +532,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
           card_id: cardId || null,
           client_id: clientId || null,
           platform_connection_id: selectedAsset.platform_connection_id,
+          platform_asset_id: selectedAsset.asset_id,
           platform: platform as SocialPlatform,
           content_type: contentType as SocialContentType,
           title: title || undefined,

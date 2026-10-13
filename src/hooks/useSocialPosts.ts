@@ -36,6 +36,7 @@ export interface SocialPost {
   card_id: string | null;
   client_id: string | null;
   platform_connection_id: string | null;
+  platform_asset_id: string | null;
   title: string | null;
   caption: string | null;
   hashtags: string[];
@@ -88,6 +89,8 @@ export interface CreateSocialPostInput {
   card_id?: string | null; // Optional - posts can be created without a card
   client_id?: string | null;
   platform_connection_id: string; // Required - must link to a connected account
+  /** Conta de destino dentro da conexao (pagina ou Instagram). O agendador publica somente nela. */
+  platform_asset_id?: string | null;
   title?: string; // Title for calendar display
   caption?: string;
   hashtags?: string[];
@@ -272,6 +275,7 @@ export const useCreateSocialPost = () => {
           card_id: input.card_id || null,
           client_id: input.client_id || null,
           platform_connection_id: input.platform_connection_id,
+          platform_asset_id: input.platform_asset_id ?? null,
           title: input.title,
           caption: input.caption,
           hashtags: input.hashtags,
