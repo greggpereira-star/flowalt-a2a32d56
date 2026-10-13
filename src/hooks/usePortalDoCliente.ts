@@ -17,6 +17,8 @@ export interface AcessoDoPortal {
   revoked_at: string | null;
   /** Secoes do Brand Core liberadas ao cliente: diagnosis, persona, competitor, offer. */
   brand_sections: string[];
+  /** O servidor guarda uma copia cifrada do link, entao e possivel avisar o cliente por e-mail. */
+  avisosAtivos: boolean;
 }
 
 export const linkDoPortal = (token: string) => `${window.location.origin}/portal/${token}`;
@@ -30,7 +32,9 @@ export function useAcessoDoPortal(clientId: string | undefined) {
       const { data, error } = await db
         .from('client_portal_access').select('id, created_at, renewed_at, last_seen_at, view_count, revoked_at, brand_sections').eq('client_id', clientId).maybeSingle();
       if (error) throw error;
-      return (data ?? null) as AcessoDoPortal | null;
+      if (!data) return null;
+      const { count } = await db.from('client_portal_access').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('token_enc', 'is', null);
+      return { ...data, avisosAtivos: (count ?? 0) > 0 } as AcessoDoPortal;
     },
   });
 }
@@ -46,11 +50,18 @@ export function useGerarLinkDoPortal() {
       const token = gerarToken();
       const token_hash = await sha256Hex(token);
       if (jaExiste) {
-        const { error } = await db.from('client_portal_access').update({ token_hash, renewed_at: new Date().toISOString(), revoked_at: null }).eq('client_id', clientId);
+        const { error } = await db.from('client_portal_access').update({ token_hash, token_enc: null, renewed_at: new Date().toISOString(), revoked_at: null }).eq('client_id', clientId);
         if (error) throw error;
       } else {
         const { error } = await db.from('client_portal_access').insert({ workspace_id: currentWorkspace.id, client_id: clientId, token_hash, created_by: user.id });
         if (error) throw error;
+      }
+      // Guarda a copia cifrada no servidor para os e-mails de aviso; se falhar, o link continua valendo.
+      try {
+        const { data, error } = await supabase.functions.invoke('portal-aviso', { body: { action: 'guardar', client_id: clientId, portal_token: token } });
+        if (error || data?.error) throw new Error('falhou');
+      } catch {
+        toast.message('Link gerado, mas o aviso por e-mail do portal não foi ativado. Gere o link de novo para tentar outra vez.');
       }
       return { link: linkDoPortal(token) };
     },

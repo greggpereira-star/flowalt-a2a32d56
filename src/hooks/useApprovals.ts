@@ -31,6 +31,8 @@ export interface ApprovalStageDecision {
 
 export interface ApprovalRequest {
   id: string;
+  /** Entregue pelo portal do cliente (sem link proprio). */
+  via_portal?: boolean;
   workspace_id: string;
   card_id: string;
   status: ApprovalStatus;
@@ -189,6 +191,8 @@ export interface NovoPedido {
   anexos: { file_url: string; file_name: string; file_type: string | null }[];
   texto?: string;
   expiraEmDias?: number;
+  /** Entrega pelo portal do cliente: o pedido aparece la e nao ha link proprio para guardar. */
+  viaPortal?: boolean;
   /** Modo por etapas: so as etapas enviadas entram no pedido. Se vier, `anexos` e `texto` sao ignorados. */
   etapas?: { stage: EtapaDeAprovacao; texto?: string; anexos?: { file_url: string; file_name: string; file_type: string | null }[] }[];
 }
@@ -230,6 +234,7 @@ export function useCreateApproval() {
           message: p.message?.trim() || null,
           client_name: p.clientName?.trim() || null,
           client_email: p.clientEmail?.trim() || null,
+          via_portal: !!p.viaPortal,
           requested_by: user.id,
           expires_at: new Date(Date.now() + dias * 86_400_000).toISOString(),
         })
@@ -454,6 +459,27 @@ export function useApprovalsOverview(enabled = true) {
         naoVistos: aguardando.filter(l => l.view_count === 0).length,
         semRespostaHa2Dias: aguardando.filter(l => diasDesde(l.created_at) >= 2).length,
       };
+    },
+  });
+}
+
+/** Avisa o cliente por e-mail que ha pedidos esperando no portal (funcao de borda usa a copia cifrada do link do portal). */
+export function useAvisarPortal() {
+  return useMutation({
+    mutationFn: async ({ clientId, to, requestIds }: { clientId: string; to: string; requestIds?: string[] }) => {
+      const { data, error } = await supabase.functions.invoke('portal-aviso', { body: { action: 'avisar', client_id: clientId, to, request_ids: requestIds } });
+      if (error) {
+        let msg = 'Não foi possível enviar o aviso agora.';
+        try {
+          const corpo = await (error as any).context?.json?.();
+          if (corpo?.error) msg = corpo.error;
+        } catch {
+          /* mantem a mensagem padrao */
+        }
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      return data as { ok: true; to: string; pedidos: number };
     },
   });
 }

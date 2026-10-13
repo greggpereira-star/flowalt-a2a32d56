@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.approval-send-email]
 verify_jwt = false
 
+[functions.portal-aviso]
+verify_jwt = false
+
 [functions.approval-reminders]
 verify_jwt = false
 

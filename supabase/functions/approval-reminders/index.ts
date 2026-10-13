@@ -88,6 +88,20 @@ async function sendEmail(para: string, assunto: string, html: string, de: string
   return r.ok;
 }
 
+// Credencial usada no e-mail do lembrete: o portal (pedidos via_portal) ou o link do proprio pedido.
+// deno-lint-ignore no-explicit-any
+async function credencialDoLembrete(supabase: any, p: any): Promise<{ token: string | null; confere: boolean; link: string } | null> {
+  if (p.via_portal) {
+    const { data: ac } = await supabase.from("client_portal_access").select("token_enc, token_hash, revoked_at").eq("client_id", p.client_id).maybeSingle();
+    if (!ac?.token_enc || ac.revoked_at) return null;
+    const token = await decifrar(ac.token_enc);
+    return { token, confere: !!token && (await sha256Hex(token)) === ac.token_hash, link: `${APP_URL}/portal/${token}` };
+  }
+  if (!p.token_enc) return null;
+  const token = await decifrar(p.token_enc);
+  return { token, confere: !!token && (await sha256Hex(token)) === p.token_hash, link: `${APP_URL}/aprovacao/${token}` };
+}
+
 Deno.serve(async (req) => {
   if ((req.headers.get("authorization") || "") !== `Bearer ${SERVICE_KEY}`) return json({ error: "Não autorizado." }, 401);
 
@@ -144,9 +158,12 @@ Deno.serve(async (req) => {
       let enviadoAoCliente = false;
       let motivoEquipe = "O cliente ainda não respondeu.";
 
-      if (p.client_email && p.token_enc) {
-        const token = await decifrar(p.token_enc);
-        if (token && (await sha256Hex(token)) === p.token_hash) {
+      // Pedido enviado pelo portal: o lembrete aponta o portal (token guardado cifrado no acesso do cliente); os demais,
+      // o link do proprio pedido.
+      const cred = p.client_email ? await credencialDoLembrete(supabase, p) : null;
+      if (p.client_email && cred) {
+        const token = cred.token;
+        if (token && cred.confere) {
           if (dryRun) {
             enviadoAoCliente = true;
           } else {
@@ -156,7 +173,7 @@ Deno.serve(async (req) => {
             ]);
             const agencia = (ws?.name || "Equipe").replace(/[<>",]/g, "").slice(0, 60);
             const marca = marcaDoEmail(ws?.settings);
-            const link = `${APP_URL}/aprovacao/${token}`;
+            const link = cred.link;
             const vale = new Date(p.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
             const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:auto;padding:24px;color:#111">
               <p style="font-size:13px;color:#666;margin:0 0 16px">${esc(agencia)}</p>
@@ -176,7 +193,11 @@ Deno.serve(async (req) => {
           motivoEquipe = "O link original mudou, então não foi possível reenviar por e-mail.";
         }
       } else {
-        motivoEquipe = p.client_email ? "O pedido foi enviado antes dos lembretes por e-mail." : "O pedido foi enviado sem e-mail do cliente.";
+        motivoEquipe = !p.client_email
+          ? "O pedido foi enviado sem e-mail do cliente."
+          : p.via_portal
+            ? "O aviso por e-mail do portal não está ativo para este cliente (gere o link do portal de novo)."
+            : "O pedido foi enviado antes dos lembretes por e-mail.";
       }
 
       if (enviadoAoCliente) resumo.lembretes_cliente++;

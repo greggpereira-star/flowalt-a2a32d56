@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAttachments } from '@/hooks/useAttachments';
+import { useAcessoDoPortal } from '@/hooks/usePortalDoCliente';
 import {
   ApprovalBundle,
   ApprovalStatus,
@@ -33,6 +34,7 @@ import {
   useCreateApproval,
   useRenewApprovalLink,
   useReplyApproval,
+  useAvisarPortal,
   useSendApprovalEmail,
 } from '@/hooks/useApprovals';
 import { Button } from '@/components/ui/button';
@@ -163,6 +165,7 @@ function NovoPedidoDialog({
   const enviarEmail = useSendApprovalEmail();
   const { data: anexos } = useAttachments(cardId);
   const criar = useCreateApproval();
+  const avisarPortal = useAvisarPortal();
 
   const { data: card } = useQuery({
     queryKey: ['approval-card-info', cardId],
@@ -180,6 +183,12 @@ function NovoPedidoDialog({
       return { ...(data as { title: string; client_id: string | null; client_cards: { name: string } | null }), ultimoEmail };
     },
   });
+
+  const { data: portal } = useAcessoDoPortal(card?.client_id ?? undefined);
+  const portalAtivo = !!portal && !portal.revoked_at;
+  const [entrega, setEntrega] = useState<'portal' | 'link' | null>(null);
+  // Com portal ativo, o padrao e entregar la; sem portal (ou cliente avulso) so existe o link do pedido.
+  const viaPortal = portalAtivo && (entrega ?? 'portal') === 'portal';
 
   const [titulo, setTitulo] = useState('');
   const [mensagem, setMensagem] = useState('');
@@ -245,6 +254,7 @@ function NovoPedidoDialog({
         anexos: lista.map(a => ({ file_url: a.file_url, file_name: a.file_name, file_type: a.file_type })),
         texto,
         expiraEmDias: dias,
+        viaPortal,
       },
       {
         onSuccess: async r => {
@@ -254,6 +264,23 @@ function NovoPedidoDialog({
           setMensagem('');
           setTextosDasEtapas({});
           setMidiasDaEtapa(new Set());
+          if (viaPortal) {
+            // Entregue no portal: nao ha link para guardar. Se houver e-mail, o cliente e avisado.
+            const mail = emailCliente.trim();
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail) && portal?.avisosAtivos && card?.client_id) {
+              try {
+                await avisarPortal.mutateAsync({ clientId: card.client_id, to: mail, requestIds: [r.requestId] });
+                toast.success(`Enviado ao portal. O cliente foi avisado em ${mail}.`);
+              } catch (e: any) {
+                toast.error(`Está no portal, mas o aviso não foi enviado: ${e?.message || 'tente de novo'}`);
+              }
+            } else if (mail && !portal?.avisosAtivos) {
+              toast.message('Enviado ao portal. Para avisar por e-mail, gere o link do portal de novo na aba Portal do cliente.');
+            } else {
+              toast.success('Enviado ao portal do cliente.');
+            }
+            return;
+          }
           const base: InfoLink = { link: r.link, token: r.token, requestId: r.requestId, email: emailCliente.trim() || null };
           // Se o e-mail do cliente foi informado, ja envia; se falhar, o link continua valendo e o dialogo avisa.
           if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailCliente.trim())) {
@@ -385,9 +412,36 @@ function NovoPedidoDialog({
             <Textarea id="ap-msg" rows={2} value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Ex.: Oi! Segue o post da semana para você aprovar." />
           </div>
 
+          {portalAtivo && (
+            <div className="space-y-1.5" role="radiogroup" aria-label="Como o cliente recebe">
+              <Label>Como o cliente recebe</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { v: 'portal', t: 'Pelo portal', d: 'O pedido aparece no portal do cliente. Sem link novo a cada post.' },
+                  { v: 'link', t: 'Link só deste post', d: 'Um link avulso, para este pedido apenas.' },
+                ] as const).map(o => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    role="radio"
+                    aria-checked={(entrega ?? 'portal') === o.v}
+                    onClick={() => setEntrega(o.v)}
+                    className={cn('rounded-xl border p-3 text-left transition-colors', (entrega ?? 'portal') === o.v ? 'border-primary bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-muted/50')}
+                  >
+                    <p className="text-sm font-semibold">{o.t}</p>
+                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{o.d}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label htmlFor="ap-email-cli">E-mail do cliente (opcional)</Label>
-            <Input id="ap-email-cli" type="email" inputMode="email" value={emailCliente} onChange={e => setEmailCliente(e.target.value)} placeholder="Se preencher, enviamos o link por e-mail" />
+            <Label htmlFor="ap-email-cli">{viaPortal ? 'E-mail para avisar o cliente (opcional)' : 'E-mail do cliente (opcional)'}</Label>
+            <Input id="ap-email-cli" type="email" inputMode="email" value={emailCliente} onChange={e => setEmailCliente(e.target.value)} placeholder={viaPortal ? 'Se preencher, avisamos por e-mail que há pedido no portal' : 'Se preencher, enviamos o link por e-mail'} />
+            {viaPortal && portal && !portal.avisosAtivos && (
+              <p className="text-xs text-amber-600">Aviso por e-mail indisponível para este portal: gere o link do portal de novo na aba Portal do cliente.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -396,7 +450,7 @@ function NovoPedidoDialog({
               <Input id="ap-cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ap-dias">O link vale por</Label>
+              <Label htmlFor="ap-dias">{viaPortal ? 'O pedido vale por' : 'O link vale por'}</Label>
               <select
                 id="ap-dias"
                 value={dias}
@@ -416,7 +470,7 @@ function NovoPedidoDialog({
             Cancelar
           </Button>
           <Button onClick={enviar} disabled={criar.isPending}>
-            <Send className="mr-1.5 h-4 w-4" /> {criar.isPending ? 'Criando…' : emailCliente.trim() ? 'Gerar link e enviar' : 'Gerar link'}
+            <Send className="mr-1.5 h-4 w-4" /> {criar.isPending ? 'Enviando…' : viaPortal ? (emailCliente.trim() ? 'Enviar ao portal e avisar' : 'Enviar ao portal') : emailCliente.trim() ? 'Gerar link e enviar' : 'Gerar link'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -563,6 +617,9 @@ function PedidoCard({ b, aberto, onNovoLink, onEditar }: { b: ApprovalBundle; ab
                 <Button size="sm" variant="outline" onClick={() => onEditar(b)}>
                   <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar pedido
                 </Button>
+                {r.via_portal ? (
+                  <p className="self-center text-xs text-muted-foreground">Entregue no portal do cliente, sem link próprio.</p>
+                ) : (
                 <Button
                   size="sm"
                   variant="outline"
@@ -571,6 +628,7 @@ function PedidoCard({ b, aberto, onNovoLink, onEditar }: { b: ApprovalBundle; ab
                 >
                   <Link2 className="mr-1.5 h-3.5 w-3.5" /> Gerar novo link
                 </Button>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
