@@ -614,7 +614,7 @@ serve(async (req) => {
     
     const { data: publishedPosts, error: fetchError } = await supabase
       .from("social_posts")
-      .select("id, workspace_id, platform, platform_post_id, metrics, metrics_updated_at")
+      .select("id, workspace_id, platform, platform_post_id, platform_connection_id, metrics, metrics_updated_at")
       .eq("status", "published")
       .not("platform_post_id", "is", null)
       .gte("published_at", sevenDaysAgo)
@@ -650,13 +650,17 @@ serve(async (req) => {
         }
 
         // Get platform credentials to fetch metrics
-        const { data: platformCreds } = await supabase
+        // A conexao do proprio post (a mesma usada para publicar). Sem ela, so vale se houver UMA conexao ativa:
+        // com varias, escolher "a primeira" misturaria contas, e .single() falharia.
+        let consultaCreds = supabase
           .from("social_platforms")
           .select("access_token_encrypted, platform_account_type")
           .eq("workspace_id", post.workspace_id)
           .eq("platform", post.platform)
-          .eq("is_active", true)
-          .single();
+          .eq("is_active", true);
+        if (post.platform_connection_id) consultaCreds = consultaCreds.eq("id", post.platform_connection_id);
+        const { data: credsLista } = await consultaCreds.limit(2);
+        const platformCreds = credsLista && credsLista.length === 1 ? credsLista[0] : null;
 
         if (!platformCreds?.access_token_encrypted) {
           logger.info(`No credentials for ${post.platform} in workspace ${post.workspace_id}`);
