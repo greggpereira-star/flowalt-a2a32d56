@@ -1253,6 +1253,35 @@ async function resolvePostTarget(
 }
 
 // ============================================
+// LINK DO POST (permalink) E RETORNO AO CARD
+// ============================================
+
+function accessTokenDe(credentials: PlatformCredentials): string {
+  return credentials.resolved_access_token
+    ? credentials.resolved_access_token
+    : credentials.asset_token_encrypted
+      ? decryptToken(credentials.asset_token_encrypted)
+      : credentials.page_access_token_encrypted
+        ? decryptToken(credentials.page_access_token_encrypted)
+        : decryptToken(credentials.access_token_encrypted);
+}
+
+/**
+ * A API devolve o ID da midia, e instagram.com/p/<id> nao abre. O endereco publico (com o codigo curto) vem do campo
+ * permalink. Falha aqui nunca derruba a publicacao: o post ja esta no ar.
+ */
+async function buscarPermalinkInstagram(mediaId: string, accessToken: string): Promise<string | null> {
+  try {
+    const r = await fetch(`https://graph.facebook.com/v${GRAPH_VERSION}/${mediaId}?fields=permalink&access_token=${encodeURIComponent(accessToken)}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j.permalink === 'string' && j.permalink.startsWith('https://') ? j.permalink : null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================
 // MAIN PUBLISHER ROUTER
 // ============================================
 
@@ -1782,11 +1811,32 @@ serve(async (req) => {
           // Success - update post with ATOMIC safety check
           // CRITICAL: Only update if the post is still in a publishing state
           // This prevents overwriting if another process already handled it
+          // Endereco publico do post: no Instagram vem do permalink; nas demais, o que o publicador devolveu.
+          let linkDoPost: string | null = result.platform_url ?? null;
+          if (post.platform === 'instagram' && result.platform_post_id) {
+            const permalink = await buscarPermalinkInstagram(
+              result.platform_post_id,
+              accessTokenDe(platformCreds as unknown as PlatformCredentials),
+            );
+            if (permalink) linkDoPost = permalink;
+          }
+
+          // Devolve o link ao card (campo "link do post"): e o que marca o post como publicado no feed editorial e no portal.
+          if (post.card_id && linkDoPost) {
+            const { error: erroLink } = await supabase
+              .from("card_custom_fields")
+              .upsert(
+                { card_id: post.card_id, field_key: "post_link", field_value: linkDoPost, updated_at: new Date().toISOString() },
+                { onConflict: "card_id,field_key" },
+              );
+            if (erroLink) logger.warn(`Nao foi possivel gravar post_link no card ${post.card_id}: ${erroLink.message}`);
+          }
+
           const updatePayload = {
             status: "published",
             published_at: new Date().toISOString(),
             platform_post_id: result.platform_post_id,
-            platform_url: result.platform_url,
+            platform_url: linkDoPost,
             error_message: null,
             error_code: null,
             last_error_code: null,

@@ -22,6 +22,8 @@ interface SocialPostButtonProps {
   rotulo?: string;
   /** Legenda ja aprovada, para a postagem nova abrir preenchida. */
   legendaInicial?: string;
+  /** Midias ja aprovadas (arquivos do card), copiadas para a postagem nova. */
+  midiasIniciais?: { path: string; name: string; type: 'image' | 'video' }[];
 }
 
 export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
@@ -31,6 +33,7 @@ export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
   variant = 'default',
   rotulo,
   legendaInicial,
+  midiasIniciais,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { has, explain } = useEntitlementRegistry();
@@ -118,6 +121,7 @@ export const SocialPostButton: React.FC<SocialPostButtonProps> = ({
         cardId={cardId}
         clientId={clientId || undefined}
         initialCaption={legendaInicial}
+        initialMedia={midiasIniciais}
         onSuccess={() => setDialogOpen(false)}
       />
     </>

@@ -103,6 +103,8 @@ interface CreateSocialPostDialogProps {
   defaultScheduledDate?: Date | null;
   /** Legenda para abrir a postagem nova ja preenchida (ex.: a legenda aprovada pelo cliente). */
   initialCaption?: string;
+  /** Midias aprovadas (arquivos privados do card) que a postagem nova ja traz anexadas. */
+  initialMedia?: { path: string; name: string; type: 'image' | 'video' }[];
   onSuccess?: () => void;
 }
 
@@ -154,6 +156,7 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
   defaultPlatform,
   defaultScheduledDate,
   initialCaption,
+  initialMedia,
   onSuccess,
 }) => {
   const createPost = useCreateSocialPost();
@@ -340,6 +343,38 @@ export const CreateSocialPostDialog: React.FC<CreateSocialPostDialogProps> = ({
 
     return urlData.publicUrl;
   }, [currentWorkspace?.id]);
+
+  // Midias ja aprovadas pelo cliente: baixa do armazenamento privado do card e sobe para o bucket publico das postagens
+  // (a Meta precisa de um endereco publico para buscar a imagem ou o video).
+  const initialMediaKey = (initialMedia ?? []).map(m => m.path).join('|');
+  useEffect(() => {
+    if (!open || isEditMode || !initialMedia?.length || !currentWorkspace?.id) return;
+    let cancelado = false;
+    setMedia(initialMedia.map(m => ({ id: `aprovada-${m.path}`, url: '', type: m.type, preview: '', uploading: true })));
+    (async () => {
+      for (const m of initialMedia) {
+        const id = `aprovada-${m.path}`;
+        try {
+          const { data: blob, error } = await supabase.storage.from('attachments').download(m.path);
+          if (error || !blob) throw error ?? new Error('arquivo indisponivel');
+          const arquivo = new File([blob], m.name || m.path.split('/').pop() || 'midia', { type: blob.type });
+          const url = await uploadMedia(arquivo);
+          if (cancelado) return;
+          if (!url) throw new Error('upload falhou');
+          setMedia(prev => prev.map(x => (x.id === id ? { ...x, url, preview: url, uploading: false, uploaded: true } : x)));
+        } catch (e) {
+          console.error('Midia aprovada nao copiada', e);
+          if (cancelado) return;
+          setMedia(prev => prev.filter(x => x.id !== id));
+          toast.error(`Não consegui trazer "${m.name}" para a postagem. Anexe o arquivo manualmente.`);
+        }
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEditMode, initialMediaKey, currentWorkspace?.id, uploadMedia]);
 
   const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

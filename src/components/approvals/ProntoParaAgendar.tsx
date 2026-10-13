@@ -33,7 +33,15 @@ export function ProntoParaAgendar({ cardId, clientId, bundle }: { cardId: string
   const { data: campos } = useCardCustomFields(cardId);
 
   const legenda = useMemo(() => legendaAprovada(bundle), [bundle]);
-  const midias = bundle.items.filter(i => i.kind !== 'text').length;
+  // Midias aprovadas: no modo por etapas, so as da etapa Midia; no rapido, todas. Documentos nao viram anexo da postagem.
+  const midiasAprovadas = useMemo(
+    () =>
+      bundle.items
+        .filter(i => (i.kind === 'image' || i.kind === 'video') && i.storage_path && (bundle.request.mode === 'stages' ? i.stage === 'midia' : true))
+        .map(i => ({ path: i.storage_path as string, name: i.file_name || 'midia', type: i.kind as 'image' | 'video' })),
+    [bundle],
+  );
+  const midias = midiasAprovadas.length;
   const dataDePostagem = campos?.find(c => c.field_key === 'post_date')?.field_value || null;
   const dataFormatada = useMemo(() => {
     if (!dataDePostagem || !/^\d{4}-\d{2}-\d{2}/.test(dataDePostagem)) return null;
@@ -89,7 +97,7 @@ export function ProntoParaAgendar({ cardId, clientId, bundle }: { cardId: string
       {rascunho && <p className="mt-3 text-xs text-muted-foreground">Já existe um rascunho deste conteúdo no menu Marketing.</p>}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <SocialPostButton cardId={cardId} clientId={clientId} rotulo="Preparar postagem" legendaInicial={legenda} />
+        <SocialPostButton cardId={cardId} clientId={clientId} rotulo="Preparar postagem" legendaInicial={legenda} midiasIniciais={midiasAprovadas} />
         {legenda && (
           <Button size="sm" variant="ghost" onClick={copiar}>
             <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar legenda
