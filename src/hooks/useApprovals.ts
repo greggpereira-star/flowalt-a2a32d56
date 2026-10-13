@@ -150,7 +150,7 @@ export function useCardApprovals(cardId: string | undefined, enabled = true) {
     queryFn: async (): Promise<ApprovalBundle[]> => {
       const { data: pedidos, error } = await db
         .from('approval_requests')
-        .select('id, workspace_id, card_id, status, mode, round, title, message, client_name, client_email, requested_by, expires_at, view_count, first_viewed_at, last_viewed_at, decided_at, decided_by_name, certificate_hash, created_at')
+        .select('id, workspace_id, card_id, status, mode, round, title, message, client_name, client_email, requested_by, expires_at, view_count, first_viewed_at, last_viewed_at, decided_at, decided_by_name, certificate_hash, created_at, via_portal')
         .eq('card_id', cardId)
         .order('round', { ascending: false });
       if (error) throw error;
