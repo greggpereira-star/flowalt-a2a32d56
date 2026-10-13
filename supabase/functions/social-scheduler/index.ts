@@ -1719,7 +1719,8 @@ serve(async (req) => {
         const connectionStatus = (platformCreds as any).connection_status;
         const accountName = (platformCreds as any).account_name || 'Unknown';
         
-        if (connectionStatus && connectionStatus !== 'connected' && connectionStatus !== 'pending_assets') {
+        // 'expiring' = o prazo ainda nao venceu (aviso de renovacao); so 'expired', 'disconnected' etc. bloqueiam a publicacao.
+        if (connectionStatus && connectionStatus !== 'connected' && connectionStatus !== 'pending_assets' && connectionStatus !== 'expiring') {
           logger.warn(`Platform connection for post ${post.id} has status '${connectionStatus}' - account @${accountName} needs reconnection`);
           
           const errorResult = {

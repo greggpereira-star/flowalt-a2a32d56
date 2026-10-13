@@ -514,10 +514,14 @@ serve(async (req) => {
     // For Meta platforms, validate scopes via debug_token
     let scopesArray: string[] = tokens.scope?.split(/[,\s]+/).filter(Boolean) || [];
     let scopeValidation: ScopeValidationResult | null = null;
+    // Prazo real de acesso aos dados da conta (debug_token). O token da Meta pode vir sem expires_at e, ainda assim, o app
+    // perde o acesso quando data_access_expires_at chega; sem esse prazo o sistema nao sabe quando pedir a reconexao.
+    let dataAccessExpiresAtSec: number | null = null;
     
     if (isMetaPlatform && tokens.access_token) {
       try {
         const debugResult = await debugToken(tokens.access_token);
+        dataAccessExpiresAtSec = debugResult.data?.data_access_expires_at || null;
         scopeValidation = validateMetaScopes(debugResult, requestedScopes);
         
         // Use scopes from debug_token as source of truth
@@ -588,8 +592,13 @@ serve(async (req) => {
     const accountInfo = await fetchAccountInfo(platform, tokens.access_token);
 
     // Calculate token expiration
-    const tokenExpiresAt = tokens.expires_in
-      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+    // O que vencer primeiro: o token (expires_in) ou o acesso do app aos dados (data_access_expires_at).
+    const candidatosDeValidade = [
+      tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
+      dataAccessExpiresAtSec ? dataAccessExpiresAtSec * 1000 : null,
+    ].filter((v): v is number => typeof v === 'number' && v > Date.now());
+    const tokenExpiresAt = candidatosDeValidade.length > 0
+      ? new Date(Math.min(...candidatosDeValidade)).toISOString()
       : null;
 
     // Store platform connection
