@@ -3,11 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, Loader2, Maximize, Minimize, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Maximize, Minimize, Rows3, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
+import { ColunaDoMonitor } from '@/components/monitor/ColunaDoMonitor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCards, type Card } from '@/hooks/useCards';
 import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
@@ -16,10 +17,13 @@ import { useClientCards } from '@/hooks/useClientCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useSpace } from '@/hooks/useSpaces';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { criarDestaques, type Destaques } from '@/lib/monitor/destaques';
 import { montarPainelDoDia, prazoDe, proximaAcao, responsaveisDoCard, type CardDoMonitor } from '@/lib/monitor/demandasDoDia';
 import { cn } from '@/lib/utils';
 
 const BUSCA_DE_SEGURANCA_MS = 60_000;
+// Colunas: >= 1280 px dividem a tela; abaixo disso cada uma ocupa quase toda a largura e a seguinte aparece de relance.
+const LARGURA_DA_COLUNA = 'w-[82vw] min-w-[300px] max-w-[460px] shrink-0 xl:w-auto xl:min-w-0 xl:max-w-none xl:flex-1';
 const SEM_ATUALIZAR_MS = 3 * 60_000;
 const DESTAQUE_DA_NOVA_MS = 10_000;
 const CONFIRMACAO_MS = 4_000;
@@ -101,7 +105,9 @@ export default function MonitorPage() {
   const [cardAberto, setCardAberto] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [movendo, setMovendo] = useState<string | null>(null);
-  const [novas, setNovas] = useState<Set<string>>(new Set());
+  const [novas, setNovas] = useState<ReadonlySet<string>>(new Set());
+  const [compacto, setCompacto] = useState(() => guardado('monitor-compacto', false));
+  const [rotacao, setRotacao] = useState(() => guardado('monitor-rolagem', true));
 
   const { tentarTransicao, aviso } = useCardStatusTransition({ aoAbrirCard: (c: Card) => setCardAberto(c.id) });
 
@@ -182,10 +188,20 @@ export default function MonitorPage() {
     [cards, agora, apenasMinhas, user?.id, vinculos],
   );
 
-  // Demanda que entra no painel enquanto a tela esta aberta ganha destaque (e som, se ligado). A primeira carga nao conta.
+  // Demanda que entra no painel enquanto a tela esta aberta ganha destaque por 10 s (e som, se ligado). A primeira carga nao conta.
+  // Cada demanda tem o seu proprio cronometro (criarDestaques): um cronometro unico preso a um efeito era cancelado a cada
+  // recalculo do painel, e a marca "Nova" ficava na tela por minutos quando entravam duas demandas seguidas.
+  const destaquesRef = useRef<Destaques | null>(null);
+  if (!destaquesRef.current) destaquesRef.current = criarDestaques(DESTAQUE_DA_NOVA_MS, setNovas);
+  useEffect(() => () => destaquesRef.current?.limpar(), []);
+  const somLigadoRef = useRef(somLigado);
+  somLigadoRef.current = somLigado;
+
   const vistas = useRef<Set<string> | null>(null);
   useEffect(() => {
     vistas.current = null;
+    destaquesRef.current?.limpar();
+    setNovas(new Set());
   }, [apenasMinhas, spaceId]);
   useEffect(() => {
     if (!cardsQuery.isSuccess) return;
@@ -197,17 +213,9 @@ export default function MonitorPage() {
     const chegaram = ids.filter(id => !vistas.current!.has(id));
     ids.forEach(id => vistas.current!.add(id));
     if (chegaram.length === 0) return;
-    setNovas(prev => new Set([...prev, ...chegaram]));
-    if (somLigado) tocarAviso();
-    const t = setTimeout(() => {
-      setNovas(prev => {
-        const proximo = new Set(prev);
-        chegaram.forEach(id => proximo.delete(id));
-        return proximo;
-      });
-    }, DESTAQUE_DA_NOVA_MS);
-    return () => clearTimeout(t);
-  }, [painel, cardsQuery.isSuccess, somLigado]);
+    destaquesRef.current!.marcar(chegaram);
+    if (somLigadoRef.current) tocarAviso();
+  }, [painel, cardsQuery.isSuccess]);
 
   const responsavelPorId = useMemo(() => {
     const mapa = new Map<string, Responsavel>();
@@ -259,7 +267,10 @@ export default function MonitorPage() {
 
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold tracking-tight">Demandas do dia{space?.name ? ` · ${space.name}` : ''}</h1>
-          <p className="text-sm text-slate-400 first-letter:uppercase">{dataPorExtenso}</p>
+          <p className="text-sm text-slate-400 first-letter:uppercase">
+            {dataPorExtenso}
+            <span className="xl:hidden"> · deslize para o lado para ver todas as etapas</span>
+          </p>
         </div>
 
         <dl className="ml-auto flex items-center gap-6 text-center" aria-label="Resumo do dia">
@@ -305,6 +316,36 @@ export default function MonitorPage() {
           <button
             type="button"
             onClick={() => {
+              setCompacto(v => {
+                guardar('monitor-compacto', !v);
+                return !v;
+              });
+            }}
+            aria-pressed={compacto}
+            aria-label="Cartões compactos"
+            title="Cartões compactos: cabem mais demandas na tela"
+            className={cn('rounded-lg p-2.5 ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10')}
+          >
+            <Rows3 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRotacao(v => {
+                guardar('monitor-rolagem', !v);
+                return !v;
+              });
+            }}
+            aria-pressed={rotacao}
+            aria-label="Rolagem automática das colunas"
+            title={rotacao ? 'Rolagem automática ligada: as colunas passam de página sozinhas' : 'Rolagem automática desligada'}
+            className={cn('rounded-lg p-2.5 ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10')}
+          >
+            <ChevronsDown className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               setSomLigado(v => {
                 guardar('monitor-som', !v);
                 if (!v) tocarAviso();
@@ -330,116 +371,117 @@ export default function MonitorPage() {
         </div>
       </header>
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 md:grid-cols-2 xl:grid-cols-4 xl:overflow-hidden">
+      {/* Largura >= 1280 px: as quatro colunas dividem a tela. Abaixo disso: trilho horizontal com encaixe (cada coluna ocupa
+          quase toda a largura e a seguinte aparece de relance), em vez de empilhar e jogar as etapas finais para baixo da dobra. */}
+      <main className="flex min-h-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden p-4 [scrollbar-color:theme(colors.slate.600)_transparent] [scrollbar-width:thin] xl:snap-none xl:overflow-x-hidden">
         {cardsQuery.isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl bg-white/5" />)
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className={cn('min-h-[16rem] rounded-2xl bg-white/5', LARGURA_DA_COLUNA)} />
+          ))
         ) : cardsQuery.isError ? (
-          <p className="col-span-full m-auto text-lg text-amber-300">Não foi possível carregar as demandas. Tentando de novo em instantes.</p>
+          <p className="m-auto text-lg text-amber-300">Não foi possível carregar as demandas. Tentando de novo em instantes.</p>
         ) : painel.contagem.pendentes === 0 ? (
-          <div className="col-span-full m-auto text-center">
+          <div className="m-auto text-center">
             <p className="text-3xl font-bold">Tudo em dia</p>
             <p className="mt-2 text-lg text-slate-400">Nenhuma demanda pendente para hoje{apenasMinhas ? ' com você como responsável' : ''}.</p>
           </div>
         ) : (
           painel.colunas.map(col => (
-            <section key={col.chave} aria-label={col.rotulo} className="flex min-h-0 flex-col rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
-              <h2 className="flex items-center justify-between px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                {col.rotulo}
-                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-sm tabular-nums">{col.itens.length}</span>
-              </h2>
-              <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 pb-3">
-                {col.itens.length === 0 && <li className="px-1 py-6 text-center text-sm text-slate-500">Nada aqui</li>}
-                {col.itens.map(card => {
-                  const prazo = prazoDe(card, agora);
-                  const responsaveis = responsaveisDoCard(card, vinculos)
-                    .map(id => responsavelPorId.get(id))
-                    .filter((r): r is Responsavel => !!r);
-                  const cliente = card.client_id ? clientePorId.get(card.client_id) : undefined;
-                  const urg = URGENCIA[card.urgency ?? ''];
-                  const confirmar = confirmando === card.id;
-                  const acao = proximaAcao(card.status);
-                  return (
-                    <li
-                      key={card.id}
-                      className={cn(
-                        'rounded-xl border-l-4 bg-slate-900 p-4 shadow-lg ring-1 ring-white/10 transition-shadow',
-                        prazo === 'atrasada' ? 'border-l-red-500' : prazo === 'hoje' ? 'border-l-amber-400' : 'border-l-slate-600',
-                        novas.has(card.id) && 'animate-pulse ring-2 ring-emerald-400',
-                      )}
-                    >
-                      {novas.has(card.id) && <p className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-300">Nova</p>}
-                      <button type="button" onClick={() => setCardAberto(card.id)} className="block w-full text-left">
-                        <span className="line-clamp-3 text-xl font-semibold leading-snug">{card.title}</span>
-                      </button>
-                      {cliente && <p className="mt-1 truncate text-sm text-slate-400">{cliente}</p>}
+            <ColunaDoMonitor key={col.chave} rotulo={col.rotulo} total={col.itens.length} rotacaoAtiva={rotacao && !cardAberto} className={cn('snap-start', LARGURA_DA_COLUNA)}>
+              {col.itens.length === 0 && <li className="px-1 py-6 text-center text-sm text-slate-400">Nada aqui</li>}
+              {col.itens.map(card => {
+                const prazo = prazoDe(card, agora);
+                const responsaveis = responsaveisDoCard(card, vinculos)
+                  .map(id => responsavelPorId.get(id))
+                  .filter((r): r is Responsavel => !!r);
+                const cliente = card.client_id ? clientePorId.get(card.client_id) : undefined;
+                const urg = URGENCIA[card.urgency ?? ''];
+                const confirmar = confirmando === card.id;
+                const acao = proximaAcao(card.status);
+                const nova = novas.has(card.id);
+                return (
+                  <li
+                    key={card.id}
+                    data-demanda
+                    className={cn(
+                      'shrink-0 rounded-xl border-l-4 bg-slate-900 shadow-lg ring-1 ring-white/10',
+                      compacto ? 'p-3' : 'p-4',
+                      prazo === 'atrasada' ? 'border-l-red-500' : prazo === 'hoje' ? 'border-l-amber-400' : 'border-l-slate-600',
+                      nova && 'ring-2 ring-emerald-400',
+                    )}
+                  >
+                    {nova && <p className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-300 motion-safe:animate-pulse">Nova</p>}
+                    <button type="button" onClick={() => setCardAberto(card.id)} className="block w-full text-left">
+                      <span className={cn('font-semibold leading-snug', compacto ? 'line-clamp-2 text-base' : 'line-clamp-3 text-xl')}>{card.title}</span>
+                    </button>
+                    {cliente && <p className={cn('truncate text-slate-400', compacto ? 'text-xs' : 'mt-1 text-sm')}>{cliente}</p>}
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold',
-                            prazo === 'atrasada' ? 'bg-red-500/20 text-red-300' : prazo === 'hoje' ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-slate-300',
-                          )}
-                        >
-                          {prazo === 'atrasada' && <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
-                          {prazo === 'atrasada' && card.due_date
-                            ? `Atrasada há ${formatDistanceToNowStrict(new Date(card.due_date), { locale: ptBR })}`
-                            : prazo === 'hoje' && card.due_date
-                              ? `Hoje às ${hora(card.due_date)}`
-                              : prazo === 'futuro' && card.due_date
-                                ? `Prazo ${diaMes(card.due_date)}`
-                                : 'Sem prazo'}
-                        </span>
-                        {urg && <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold ring-1', urg.classe)}>{urg.rotulo}</span>}
-                      </div>
+                    <div className={cn('flex flex-wrap items-center gap-2 text-sm', compacto ? 'mt-2' : 'mt-3')}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold',
+                          prazo === 'atrasada' ? 'bg-red-500/20 text-red-300' : prazo === 'hoje' ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-slate-300',
+                        )}
+                      >
+                        {prazo === 'atrasada' && <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
+                        {prazo === 'atrasada' && card.due_date
+                          ? `Atrasada há ${formatDistanceToNowStrict(new Date(card.due_date), { locale: ptBR })}`
+                          : prazo === 'hoje' && card.due_date
+                            ? `Hoje às ${hora(card.due_date)}`
+                            : prazo === 'futuro' && card.due_date
+                              ? `Prazo ${diaMes(card.due_date)}`
+                              : 'Sem prazo'}
+                      </span>
+                      {urg && <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold ring-1', urg.classe)}>{urg.rotulo}</span>}
+                    </div>
 
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {responsaveis.length > 0 ? (
-                            <>
-                              <div className="flex -space-x-2">
-                                {responsaveis.slice(0, 3).map((r, idx) => (
-                                  <Avatar key={idx} className="h-7 w-7 ring-2 ring-slate-900">
-                                    {r.avatar && <AvatarImage src={r.avatar} alt="" />}
-                                    <AvatarFallback className="bg-slate-700 text-xs">{r.nome.charAt(0).toUpperCase()}</AvatarFallback>
-                                  </Avatar>
-                                ))}
-                              </div>
-                              <span className="truncate text-sm text-slate-300">
-                                {responsaveis.slice(0, 2).map(r => r.nome.split(' ')[0]).join(', ')}
-                                {responsaveis.length > 2 ? ` +${responsaveis.length - 2}` : ''}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-sm text-slate-500">Sem responsável</span>
-                          )}
-                        </div>
-                        {acao && (
-                          <button
-                            type="button"
-                            onClick={() => avancar(card)}
-                            disabled={!!movendo}
-                            aria-label={confirmar ? `Confirmar: ${acao.rotulo} — ${card.title}` : `${acao.rotulo}: ${card.title}`}
-                            className={cn(
-                              'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
-                              confirmar ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-white/10 text-slate-100 hover:bg-white/20',
-                            )}
-                          >
-                            {movendo === card.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            ) : acao.para === 'delivered' ? (
-                              <Check className="h-4 w-4" aria-hidden />
-                            ) : (
-                              <ArrowRight className="h-4 w-4" aria-hidden />
-                            )}
-                            {movendo === card.id ? 'Movendo…' : confirmar ? 'Confirmar?' : acao.rotulo}
-                          </button>
+                    <div className={cn('flex items-center justify-between gap-2', compacto ? 'mt-2' : 'mt-3')}>
+                      <div className="flex min-w-0 items-center gap-2">
+                        {responsaveis.length > 0 ? (
+                          <>
+                            <div className="flex -space-x-2">
+                              {responsaveis.slice(0, 3).map((r, idx) => (
+                                <Avatar key={idx} className={cn('ring-2 ring-slate-900', compacto ? 'h-6 w-6' : 'h-7 w-7')}>
+                                  {r.avatar && <AvatarImage src={r.avatar} alt="" />}
+                                  <AvatarFallback className="bg-slate-700 text-xs">{r.nome.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                              ))}
+                            </div>
+                            <span className="truncate text-sm text-slate-300">
+                              {responsaveis.slice(0, 2).map(r => r.nome.split(' ')[0]).join(', ')}
+                              {responsaveis.length > 2 ? ` +${responsaveis.length - 2}` : ''}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-slate-400">Sem responsável</span>
                         )}
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+                      {acao && (
+                        <button
+                          type="button"
+                          onClick={() => avancar(card)}
+                          disabled={!!movendo}
+                          aria-label={confirmar ? `Confirmar: ${acao.rotulo} — ${card.title}` : `${acao.rotulo}: ${card.title}`}
+                          className={cn(
+                            'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
+                            confirmar ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-white/10 text-slate-100 hover:bg-white/20',
+                          )}
+                        >
+                          {movendo === card.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                          ) : acao.para === 'delivered' ? (
+                            <Check className="h-4 w-4" aria-hidden />
+                          ) : (
+                            <ArrowRight className="h-4 w-4" aria-hidden />
+                          )}
+                          {movendo === card.id ? 'Movendo…' : confirmar ? 'Confirmar?' : acao.rotulo}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ColunaDoMonitor>
           ))
         )}
       </main>
