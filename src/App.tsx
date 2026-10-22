@@ -17,6 +17,7 @@ const Index = lazy(() => import("./pages/Index"));
 // Home V2 em preview: convive com a Home atual ate ser aprovada.
 const HomePageV2 = lazy(() => import("./pages/HomePage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
+const MonitorPage = lazy(() => import("./pages/MonitorPage"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NewWorkspace = lazy(() => import("./pages/NewWorkspace"));
@@ -104,6 +105,13 @@ const ProtectedLayout = () => (
   </AuthGuard>
 );
 
+// Modo monitor: exige login, mas fica fora do AppLayout para ocupar a tela inteira (sem menu lateral).
+const MonitorLayout = () => (
+  <AuthGuard>
+    <Outlet />
+  </AuthGuard>
+);
+
 // Helper component to ensure tools are only rendered when authenticated
 const ConditionalTools = () => {
   const { session, loading } = useAuth();
@@ -158,6 +166,10 @@ const App = () => (
                 <Route path="/portal/:token/aprovacao/:id" element={<PublicApprovalPage />} />
                 
                 
+                <Route element={<MonitorLayout />}>
+                  <Route path="/monitor/:spaceId" element={<MonitorPage />} />
+                </Route>
+
                 {/* Protected Routes with shared AppLayout */}
                 <Route element={<ProtectedLayout />}>
                   <Route path="/" element={<HomePageV2 />} />

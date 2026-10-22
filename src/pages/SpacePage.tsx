@@ -38,6 +38,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNewUiBeta } from '@/hooks/useNewUiBeta';
+import { Tv } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -516,6 +517,19 @@ const SpacePage: React.FC = () => {
                     {activeView.view_type === 'calendar' && <Calendar className="h-3 w-3" />}
                     {activeView.view_type === 'table' ? 'tabela' : activeView.view_type}
                   </Badge>
+                )}
+
+                {/* Demandas do dia em tela cheia, para deixar num monitor */}
+                {!ehIdeiasNovo && spaceId && (
+                  <Button
+                    variant="outline"
+                    className="h-9 gap-2 px-3"
+                    onClick={() => navigate(`/monitor/${spaceId}`)}
+                    title="Abrir as demandas do dia em tela cheia, para deixar num monitor"
+                  >
+                    <Tv className="h-4 w-4" />
+                    <span className="hidden lg:inline">Modo monitor</span>
+                  </Button>
                 )}
 
                 {/* Add Button */}
