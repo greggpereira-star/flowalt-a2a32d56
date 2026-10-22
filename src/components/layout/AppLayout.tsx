@@ -9,7 +9,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { GlobalTimerChip } from '@/components/time/GlobalTimerChip';
 import { DynamicBreadcrumb } from './DynamicBreadcrumb';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
-import { useRealtimeNotifications } from '@/hooks/useRealtimeCards';
+import { useRealtimeCards, useRealtimeNotifications } from '@/hooks/useRealtimeCards';
 import { cn } from '@/lib/utils';
 
 const UnifiedAlertsCenter = lazy(() => import('@/components/notifications/UnifiedAlertsCenter').then(module => ({ default: module.UnifiedAlertsCenter })));
@@ -90,6 +90,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, spaceId, folderI
 
   // Enable realtime notifications
   useRealtimeNotifications();
+  useRealtimeCards();
   const beta = useNewUiBeta();
 
   // If a parent already rendered AppLayout (ProtectedLayout does), just render children.

@@ -4,7 +4,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useSpace } from '@/hooks/useSpaces';
 import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useCards, useCardsByFolder } from '@/hooks/useCards';
-import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useShortcutEvent } from '@/hooks/useGlobalShortcuts';
 import { useSocialMediaTracking } from '@/hooks/useSocialMediaTracking';
 // Kanban (colunas) é a view padrão do espaço — fica no bundle principal para
@@ -163,9 +162,6 @@ const SpacePage: React.FC = () => {
       } as any);
     }
   }, [activeFolderId, spaceId, cards?.length, trackEvent]);
-
-  // Enable realtime updates for cards
-  useRealtimeCards(spaceId);
 
   // Lock body scrolling: only the Kanban area should scroll
   useEffect(() => {
