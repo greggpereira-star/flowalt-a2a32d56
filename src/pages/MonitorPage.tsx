@@ -14,10 +14,12 @@ import { useCards, type Card } from '@/hooks/useCards';
 import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
 import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
 import { useModoEscuroNaTela } from '@/hooks/useModoEscuroNaTela';
+import { useVersaoNova } from '@/hooks/useVersaoNova';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useSpace } from '@/hooks/useSpaces';
 import { useWorkspaceMembers } from '@/hooks/useWorkspaceMembers';
+import { estadoDaConexao } from '@/lib/monitor/conexao';
 import { criarDestaques, type Destaques } from '@/lib/monitor/destaques';
 import { montarPainelDoDia, prazoDe, proximaAcao, responsaveisDoCard, type CardDoMonitor } from '@/lib/monitor/demandasDoDia';
 import { cn } from '@/lib/utils';
@@ -25,7 +27,6 @@ import { cn } from '@/lib/utils';
 const BUSCA_DE_SEGURANCA_MS = 60_000;
 // Colunas: >= 1280 px dividem a tela; abaixo disso cada uma ocupa quase toda a largura e a seguinte aparece de relance.
 const LARGURA_DA_COLUNA = 'w-[82vw] min-w-[300px] max-w-[460px] shrink-0 xl:w-auto xl:min-w-0 xl:max-w-none xl:flex-1';
-const SEM_ATUALIZAR_MS = 3 * 60_000;
 const DESTAQUE_DA_NOVA_MS = 10_000;
 const CONFIRMACAO_MS = 4_000;
 // Foco do teclado visivel em tudo que e clicavel (antes: outline none, sem nenhuma pista de onde o foco estava).
@@ -113,6 +114,7 @@ export default function MonitorPage() {
   const { data: vinculosBrutos } = useCardMemberAssignments({ includeInactive: true });
 
   useModoEscuroNaTela();
+  const versaoNova = useVersaoNova();
 
   // Esta tela fica fora do layout do app (que e quem normalmente abre os canais), entao abre o canal das demandas aqui.
   useRealtimeCards();
@@ -281,8 +283,14 @@ export default function MonitorPage() {
     }
   };
 
-  const semAtualizar = Date.now() - cardsQuery.dataUpdatedAt > SEM_ATUALIZAR_MS;
-  const ao_vivo = online && !semAtualizar && !cardsQuery.isError;
+  const conexao = estadoDaConexao({ online, erro: cardsQuery.isError, ultimaAtualizacaoMs: cardsQuery.dataUpdatedAt, agoraMs: agora.getTime() });
+
+  // Versao nova publicada: recarrega sozinho quando nao ha ninguem usando a tela. Em tela cheia (API do navegador) a recarga
+  // tiraria a tela do modo cheio, entao so avisa e deixa a pessoa decidir; com F11 a recarga mantem a tela cheia.
+  const ocupado = !!cardAberto || !!movendo || !!confirmando;
+  useEffect(() => {
+    if (versaoNova && !ocupado && !document.fullscreenElement) window.location.reload();
+  }, [versaoNova, ocupado]);
   const dataPorExtenso = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long' });
 
   return (
@@ -290,7 +298,7 @@ export default function MonitorPage() {
       <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 px-6 py-4">
         <Link
           to={spaceId ? `/space/${spaceId}` : '/'}
-          className={cn('flex items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-white', FOCO)}
+          className={cn('flex min-h-11 items-center gap-2 rounded-lg px-3 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-white', FOCO)}
           aria-label="Voltar ao quadro do espaço"
         >
           <ArrowLeft className="h-4 w-4" /> Quadro
@@ -331,12 +339,22 @@ export default function MonitorPage() {
         </dl>
 
         <div className="flex items-center gap-2">
+          {versaoNova && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className={cn('inline-flex min-h-11 items-center rounded-lg bg-amber-400 px-3 text-sm font-bold text-slate-950 hover:bg-amber-300', FOCO)}
+            >
+              Nova versão: recarregar
+            </button>
+          )}
           <span
-            className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold', ao_vivo ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300')}
+            className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold', conexao.ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300')}
             role="status"
+            title={conexao.detalhe}
           >
-            {ao_vivo ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-            {ao_vivo ? 'Ao vivo' : online ? 'Sem atualizar' : 'Sem conexão'}
+            {conexao.ok ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+            {conexao.rotulo}
           </span>
           <label className="sr-only" htmlFor="monitor-pessoa">Filtrar por pessoa</label>
           <select
@@ -348,7 +366,7 @@ export default function MonitorPage() {
             }}
             title="Mostrar só as demandas de uma pessoa"
             className={cn(
-              'max-w-[11rem] rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium ring-1',
+              'min-h-11 max-w-[11rem] rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium ring-1',
               pessoa === 'todos' ? 'text-slate-300 ring-white/20' : 'text-white ring-sky-400',
               FOCO,
             )}
@@ -370,7 +388,7 @@ export default function MonitorPage() {
             aria-pressed={compacto}
             aria-label="Cartões compactos"
             title="Cartões compactos: cabem mais demandas na tela"
-            className={cn('rounded-lg p-2.5 ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
+            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
           >
             <Rows3 className="h-4 w-4" />
           </button>
@@ -385,7 +403,7 @@ export default function MonitorPage() {
             aria-pressed={rotacao}
             aria-label="Rolagem automática das colunas"
             title={rotacao ? 'Rolagem automática ligada: as colunas passam de página sozinhas' : 'Rolagem automática desligada'}
-            className={cn('rounded-lg p-2.5 ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
+            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
           >
             <ChevronsDown className="h-4 w-4" />
           </button>
@@ -401,7 +419,7 @@ export default function MonitorPage() {
             aria-pressed={somLigado}
             aria-label={somLigado ? 'Desligar o aviso sonoro' : 'Ligar o aviso sonoro'}
             title={somLigado ? 'Aviso sonoro ligado' : 'Aviso sonoro desligado'}
-            className={cn('rounded-lg p-2.5 text-slate-300 ring-1 ring-white/20 hover:bg-white/10', FOCO)}
+            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 ring-1 ring-white/20 hover:bg-white/10', FOCO)}
           >
             {somLigado ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
@@ -409,7 +427,7 @@ export default function MonitorPage() {
             type="button"
             onClick={alternarTelaCheia}
             aria-label={telaCheia ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
-            className={cn('inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
+            className={cn('inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
           >
             {telaCheia ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
             {telaCheia ? 'Sair' : 'Tela cheia'}
@@ -450,9 +468,10 @@ export default function MonitorPage() {
                     key={card.id}
                     data-demanda
                     className={cn(
-                      'shrink-0 rounded-xl border-l-4 bg-slate-900 shadow-lg ring-1 ring-white/10',
+                      'shrink-0 rounded-xl shadow-lg ring-1',
                       compacto ? 'p-3' : 'p-4',
-                      prazo === 'atrasada' ? 'border-l-red-500' : prazo === 'hoje' ? 'border-l-amber-400' : 'border-l-slate-600',
+                      // O prazo se le no cartao inteiro (fundo e contorno), nao numa faixa lateral.
+                      prazo === 'atrasada' ? 'bg-red-950/40 ring-red-500/60' : prazo === 'hoje' ? 'bg-slate-900 ring-amber-400/50' : 'bg-slate-900 ring-white/10',
                       nova && 'ring-2 ring-emerald-400',
                     )}
                   >
@@ -509,7 +528,7 @@ export default function MonitorPage() {
                           disabled={!!movendo}
                           aria-label={confirmar ? `Confirmar: ${acao.rotulo} — ${card.title}` : `${acao.rotulo}: ${card.title}`}
                           className={cn(
-                            'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
+                            'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
                             confirmar ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-white/10 text-slate-100 hover:bg-white/20',
                             FOCO,
                           )}
