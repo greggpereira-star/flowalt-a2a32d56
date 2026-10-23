@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Maximize, Minimize, Rows3, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Maximize, Minimize, Rows3, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -295,50 +295,72 @@ export default function MonitorPage() {
 
   return (
     <div className="dark flex h-screen flex-col overflow-hidden bg-slate-950 text-slate-50">
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 px-6 py-4">
-        <Link
-          to={spaceId ? `/space/${spaceId}` : '/'}
-          className={cn('flex min-h-11 items-center gap-2 rounded-lg px-3 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-white', FOCO)}
-          aria-label="Voltar ao quadro do espaço"
-        >
-          <ArrowLeft className="h-4 w-4" /> Quadro
-        </Link>
-
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight">Demandas do dia{space?.name ? ` · ${space.name}` : ''}</h1>
-          <p className="text-sm text-slate-400 first-letter:uppercase">
-            {dataPorExtenso}
-            <span className="xl:hidden"> · deslize para o lado para ver todas as etapas</span>
-          </p>
+      {/* Tres zonas numa mesma altura (52 px): onde estou, como esta o dia, como ajusto a tela. O dia vem em celulas de mesma
+          estrutura (rotulo em cima, numero embaixo, na mesma linha de base) e o relogio e a mais uma celula, nao um destaque
+          concorrente. Os ajustes, de uso raro, ficam agrupados num so painel discreto; so "Tela cheia" tem cor cheia. */}
+      <header className="flex flex-wrap items-center gap-x-8 gap-y-4 border-b border-white/10 px-6 py-4">
+        <div className="order-1 flex min-w-0 items-center gap-4">
+          <Link
+            to={spaceId ? `/space/${spaceId}` : '/'}
+            aria-label="Voltar ao quadro do espaço"
+            title="Voltar ao quadro"
+            className={cn('inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white', FOCO)}
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold leading-tight tracking-tight">Demandas do dia{space?.name ? ` · ${space.name}` : ''}</h1>
+            <p className="text-sm leading-snug text-slate-400 first-letter:uppercase">
+              {dataPorExtenso}
+              <span className="xl:hidden"> · deslize para ver mais</span>
+            </p>
+          </div>
         </div>
 
-        <dl className="ml-auto flex items-center gap-6 text-center" aria-label="Resumo do dia">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-400">Para fazer</dt>
-            <dd className="text-3xl font-bold tabular-nums">{painel.contagem.paraFazer}</dd>
+        <div className="order-3 flex w-full items-stretch justify-between min-[1640px]:order-2 min-[1640px]:ml-auto min-[1640px]:w-auto min-[1640px]:justify-start">
+          <dl className="flex items-stretch divide-x divide-white/10" aria-label="Resumo do dia">
+            <div className="flex flex-col gap-1.5 pr-6">
+              <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Para fazer</dt>
+              <dd className="text-3xl font-semibold leading-none tabular-nums">{painel.contagem.paraFazer}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5 px-6">
+              <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Atrasadas</dt>
+              <dd className={cn('text-3xl font-semibold leading-none tabular-nums', painel.contagem.atrasadasParaFazer > 0 ? 'text-red-400' : 'text-slate-200')}>
+                {painel.contagem.atrasadasParaFazer}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1.5 px-6">
+              <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Em aprovação</dt>
+              <dd className="flex items-baseline gap-2">
+                <span className="text-3xl font-semibold leading-none tabular-nums">{painel.contagem.emAprovacao}</span>
+                {painel.contagem.atrasadasEmAprovacao > 0 && (
+                  <span className="rounded-md bg-amber-400/15 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
+                    {painel.contagem.atrasadasEmAprovacao} {painel.contagem.atrasadasEmAprovacao === 1 ? 'atrasada' : 'atrasadas'}
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1.5 px-6">
+              <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Feitas hoje</dt>
+              <dd className="text-3xl font-semibold leading-none tabular-nums text-emerald-400">{painel.contagem.feitasHoje}</dd>
+            </div>
+          </dl>
+          <div className="flex flex-col gap-1.5 min-[1640px]:border-l min-[1640px]:border-white/10 min-[1640px]:pl-6">
+            <span
+              role="status"
+              title={conexao.detalhe}
+              className={cn('inline-flex max-w-[15rem] items-center gap-1.5 text-xs font-medium uppercase tracking-wider', conexao.ok ? 'text-emerald-300' : 'text-amber-300')}
+            >
+              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', conexao.ok ? 'bg-emerald-400' : 'bg-amber-400')} aria-hidden />
+              <span className="truncate">{conexao.rotulo}</span>
+            </span>
+            <time className="text-3xl font-semibold leading-none tabular-nums text-slate-100">
+              {agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+            </time>
           </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-400">Atrasadas</dt>
-            <dd className={cn('text-3xl font-bold tabular-nums', painel.contagem.atrasadasParaFazer > 0 ? 'text-red-400' : 'text-slate-200')}>{painel.contagem.atrasadasParaFazer}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-400">Em aprovação</dt>
-            <dd className="text-3xl font-bold tabular-nums">{painel.contagem.emAprovacao}</dd>
-            {painel.contagem.atrasadasEmAprovacao > 0 && (
-              <dd className="text-xs font-medium text-amber-300">{painel.contagem.atrasadasEmAprovacao} {painel.contagem.atrasadasEmAprovacao === 1 ? 'atrasada' : 'atrasadas'}</dd>
-            )}
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-400">Feitas hoje</dt>
-            <dd className="text-3xl font-bold tabular-nums text-emerald-400">{painel.contagem.feitasHoje}</dd>
-          </div>
-          <div className="border-l border-white/10 pl-6">
-            <dt className="sr-only">Hora</dt>
-            <dd className="text-4xl font-bold tabular-nums">{agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}</dd>
-          </div>
-        </dl>
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="order-2 ml-auto flex items-center gap-3 min-[1640px]:order-3 min-[1640px]:ml-0">
           {versaoNova && (
             <button
               type="button"
@@ -348,88 +370,79 @@ export default function MonitorPage() {
               Nova versão: recarregar
             </button>
           )}
-          <span
-            className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold', conexao.ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300')}
-            role="status"
-            title={conexao.detalhe}
-          >
-            {conexao.ok ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-            {conexao.rotulo}
-          </span>
-          <label className="sr-only" htmlFor="monitor-pessoa">Filtrar por pessoa</label>
-          <select
-            id="monitor-pessoa"
-            value={pessoa}
-            onChange={e => {
-              setPessoa(e.target.value);
-              guardarTexto(`monitor-pessoa:${spaceId}`, e.target.value);
-            }}
-            title="Mostrar só as demandas de uma pessoa"
-            className={cn(
-              'min-h-11 max-w-[11rem] rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium ring-1',
-              pessoa === 'todos' ? 'text-slate-300 ring-white/20' : 'text-white ring-sky-400',
-              FOCO,
-            )}
-          >
-            {opcoesDePessoa.map(o => (
-              <option key={o.id} value={o.id}>
-                {o.id === 'todos' ? 'Todas as pessoas' : o.nome}
-              </option>
+          <div className="inline-flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/10" role="group" aria-label="Ajustes da tela">
+            <label className="sr-only" htmlFor="monitor-pessoa">Filtrar por pessoa</label>
+            <select
+              id="monitor-pessoa"
+              value={pessoa}
+              onChange={e => {
+                setPessoa(e.target.value);
+                guardarTexto(`monitor-pessoa:${spaceId}`, e.target.value);
+              }}
+              title="Mostrar só as demandas de uma pessoa"
+              className={cn(
+                'h-11 max-w-[12rem] rounded-lg bg-transparent pl-3 pr-2 text-sm font-medium transition-colors hover:bg-white/10',
+                pessoa === 'todos' ? 'text-slate-200' : 'bg-sky-400/15 text-sky-200 ring-1 ring-sky-400/40',
+                FOCO,
+              )}
+            >
+              {opcoesDePessoa.map(o => (
+                <option key={o.id} value={o.id}>
+                  {o.id === 'todos' ? 'Todas as pessoas' : o.nome}
+                </option>
+              ))}
+            </select>
+            <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
+            {[
+              {
+                chave: 'compacto',
+                ligado: compacto,
+                alternar: () => setCompacto(v => { guardar('monitor-compacto', !v); return !v; }),
+                rotulo: 'Cartões compactos',
+                dica: compacto ? 'Cartões compactos ligados: cabem mais demandas na tela' : 'Cartões compactos desligados',
+                icone: <Rows3 className="h-5 w-5" aria-hidden />,
+              },
+              {
+                chave: 'rolagem',
+                ligado: rotacao,
+                alternar: () => setRotacao(v => { guardar('monitor-rolagem', !v); return !v; }),
+                rotulo: 'Rolagem automática das colunas',
+                dica: rotacao ? 'Rolagem automática ligada: as colunas passam de página sozinhas' : 'Rolagem automática desligada',
+                icone: <ChevronsDown className="h-5 w-5" aria-hidden />,
+              },
+              {
+                chave: 'som',
+                ligado: somLigado,
+                alternar: () => setSomLigado(v => { guardar('monitor-som', !v); if (!v) tocarAviso(); return !v; }),
+                rotulo: somLigado ? 'Desligar o aviso sonoro' : 'Ligar o aviso sonoro',
+                dica: somLigado ? 'Aviso sonoro ligado' : 'Aviso sonoro desligado',
+                icone: somLigado ? <Volume2 className="h-5 w-5" aria-hidden /> : <VolumeX className="h-5 w-5" aria-hidden />,
+              },
+            ].map(t => (
+              <button
+                key={t.chave}
+                type="button"
+                onClick={t.alternar}
+                aria-pressed={t.ligado}
+                aria-label={t.rotulo}
+                title={t.dica}
+                className={cn(
+                  'inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors',
+                  t.ligado ? 'bg-sky-400/15 text-sky-300 ring-1 ring-sky-400/40' : 'text-slate-400 hover:bg-white/10 hover:text-slate-200',
+                  FOCO,
+                )}
+              >
+                {t.icone}
+              </button>
             ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              setCompacto(v => {
-                guardar('monitor-compacto', !v);
-                return !v;
-              });
-            }}
-            aria-pressed={compacto}
-            aria-label="Cartões compactos"
-            title="Cartões compactos: cabem mais demandas na tela"
-            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
-          >
-            <Rows3 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setRotacao(v => {
-                guardar('monitor-rolagem', !v);
-                return !v;
-              });
-            }}
-            aria-pressed={rotacao}
-            aria-label="Rolagem automática das colunas"
-            title={rotacao ? 'Rolagem automática ligada: as colunas passam de página sozinhas' : 'Rolagem automática desligada'}
-            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
-          >
-            <ChevronsDown className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSomLigado(v => {
-                guardar('monitor-som', !v);
-                if (!v) tocarAviso();
-                return !v;
-              });
-            }}
-            aria-pressed={somLigado}
-            aria-label={somLigado ? 'Desligar o aviso sonoro' : 'Ligar o aviso sonoro'}
-            title={somLigado ? 'Aviso sonoro ligado' : 'Aviso sonoro desligado'}
-            className={cn('inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 ring-1 ring-white/20 hover:bg-white/10', FOCO)}
-          >
-            {somLigado ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </button>
+          </div>
           <button
             type="button"
             onClick={alternarTelaCheia}
             aria-label={telaCheia ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
-            className={cn('inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
+            className={cn('inline-flex h-[52px] items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
           >
-            {telaCheia ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            {telaCheia ? <Minimize className="h-5 w-5" aria-hidden /> : <Maximize className="h-5 w-5" aria-hidden />}
             {telaCheia ? 'Sair' : 'Tela cheia'}
           </button>
         </div>
