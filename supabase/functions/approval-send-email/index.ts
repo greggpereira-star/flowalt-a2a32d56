@@ -4,6 +4,7 @@
 // (no banco ha apenas o hash), entao o navegador o entrega a esta funcao, que confere o hash, o workspace e o
 // estado do pedido antes de enviar. O token nao e gravado nem registrado em log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { criarCifra } from "../_shared/cifra-de-links.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,27 +29,10 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// Guarda o token cifrado (AES-GCM, chave derivada da chave de servico) so quando o pedido e enviado por e-mail,
-// para a rotina de lembretes reenviar o MESMO link. O banco sozinho nao revela o token.
-async function cifrar(token: string): Promise<string | null> {
-  try {
-    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!), "HKDF", false, ["deriveKey"]);
-    const chave = await crypto.subtle.deriveKey(
-      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("flowalt-approval-token-v1") },
-      base, { name: "AES-GCM", length: 256 }, false, ["encrypt"],
-    );
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const cifrado = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, chave, new TextEncoder().encode(token)));
-    const junto = new Uint8Array(iv.length + cifrado.length);
-    junto.set(iv); junto.set(cifrado, iv.length);
-    let bin = "";
-    junto.forEach((b) => (bin += String.fromCharCode(b)));
-    return btoa(bin);
-  } catch (e) {
-    console.error("cifrar falhou", e);
-    return null;
-  }
-}
+// A cifra dos links guardados vem de um segredo PROPRIO do app (APP_TOKEN_SECRET), separado da chave de servico: assim trocar a
+// chave de servico nao deixa os links guardados ilegiveis. A chave de servico entra so como "legado", para ler o que foi gravado
+// antes da separacao. Veja _shared/cifra-de-links.ts.
+const { cifrar } = criarCifra({ atual: Deno.env.get("APP_TOKEN_SECRET"), legado: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") });
 
 
 // Cor da marca da agencia (workspaces.settings.brand_color) para o botao dos e-mails ao cliente, com texto claro ou

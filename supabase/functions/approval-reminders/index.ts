@@ -13,6 +13,7 @@
 //
 // Protecao: exige a chave de servico no cabecalho Authorization. dry_run=1 so conta, nao envia nem grava.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { criarCifra } from "../_shared/cifra-de-links.ts";
 
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_FLOWALT") || Deno.env.get("RESEND_API_KEY");
@@ -39,23 +40,10 @@ function enderecoRemetente(): string {
   return (m ? m[1] : raw).trim();
 }
 
-// Mesma cifra do approval-send-email (AES-GCM, chave derivada da chave de servico).
-async function chaveDoToken(): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(SERVICE_KEY), "HKDF", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("flowalt-approval-token-v1") },
-    base, { name: "AES-GCM", length: 256 }, false, ["decrypt"],
-  );
-}
-async function decifrar(valor: string): Promise<string | null> {
-  try {
-    const bin = Uint8Array.from(atob(valor), (c) => c.charCodeAt(0));
-    const plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bin.slice(0, 12) }, await chaveDoToken(), bin.slice(12));
-    return new TextDecoder().decode(plano);
-  } catch {
-    return null;
-  }
-}
+// A cifra dos links guardados vem de um segredo PROPRIO do app (APP_TOKEN_SECRET), separado da chave de servico: assim trocar a
+// chave de servico nao deixa os links guardados ilegiveis. A chave de servico entra so como "legado", para ler o que foi gravado
+// antes da separacao. Veja _shared/cifra-de-links.ts.
+const { decifrar } = criarCifra({ atual: Deno.env.get("APP_TOKEN_SECRET"), legado: SERVICE_KEY });
 
 
 // Cor da marca da agencia (workspaces.settings.brand_color) para o botao dos e-mails ao cliente, com texto claro ou

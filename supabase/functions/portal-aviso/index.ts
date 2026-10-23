@@ -6,6 +6,7 @@
 //  - avisar: manda ao cliente um e-mail com o botao "Abrir portal" e a lista dos pedidos pendentes. Usa a copia cifrada,
 //    entao a equipe nao precisa ter o link na mao. O token nunca e registrado em log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { criarCifra } from "../_shared/cifra-de-links.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,42 +32,10 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// Mesma cifra do approval-send-email e do approval-reminders (AES-GCM, chave derivada da chave de servico).
-async function chaveDeCifra(usos: KeyUsage[]): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!), "HKDF", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("flowalt-approval-token-v1") },
-    base, { name: "AES-GCM", length: 256 }, false, usos,
-  );
-}
-
-async function cifrar(token: string): Promise<string | null> {
-  try {
-    const chave = await chaveDeCifra(["encrypt"]);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const cifrado = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, chave, new TextEncoder().encode(token)));
-    const junto = new Uint8Array(iv.length + cifrado.length);
-    junto.set(iv); junto.set(cifrado, iv.length);
-    let bin = "";
-    junto.forEach((b) => (bin += String.fromCharCode(b)));
-    return btoa(bin);
-  } catch (e) {
-    console.error("cifrar falhou", e);
-    return null;
-  }
-}
-
-async function decifrar(enc: string): Promise<string | null> {
-  try {
-    const chave = await chaveDeCifra(["decrypt"]);
-    const bin = atob(enc);
-    const bytes = new Uint8Array([...bin].map((c) => c.charCodeAt(0)));
-    const plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.slice(0, 12) }, chave, bytes.slice(12));
-    return new TextDecoder().decode(plano);
-  } catch {
-    return null;
-  }
-}
+// A cifra dos links guardados vem de um segredo PROPRIO do app (APP_TOKEN_SECRET), separado da chave de servico: assim trocar a
+// chave de servico nao deixa os links guardados ilegiveis. A chave de servico entra so como "legado", para ler o que foi gravado
+// antes da separacao. Veja _shared/cifra-de-links.ts.
+const { cifrar, decifrar } = criarCifra({ atual: Deno.env.get("APP_TOKEN_SECRET"), legado: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") });
 
 function marcaDoEmail(settings: any): { fundo: string; texto: string } {
   const hex = typeof settings?.brand_color === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.brand_color) ? settings.brand_color : "#3947df";
