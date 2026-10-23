@@ -294,7 +294,7 @@ export default function MonitorPage() {
   const dataPorExtenso = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long' });
 
   return (
-    <div className="dark flex h-screen flex-col overflow-hidden bg-slate-950 text-slate-50">
+    <div className="dark flex h-screen h-dvh flex-col overflow-hidden bg-slate-950 text-slate-50 selection:bg-sky-400/30">
       {/* Tres zonas numa mesma altura (52 px): onde estou, como esta o dia, como ajusto a tela. O dia vem em celulas de mesma
           estrutura (rotulo em cima, numero embaixo, na mesma linha de base) e o relogio e a mais uma celula, nao um destaque
           concorrente. Os ajustes, de uso raro, ficam agrupados num so painel discreto; so "Tela cheia" tem cor cheia. */}
@@ -317,21 +317,21 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        <div className="order-3 flex w-full items-stretch justify-between min-[1640px]:order-2 min-[1640px]:ml-auto min-[1640px]:w-auto min-[1640px]:justify-start">
-          <dl className="flex items-stretch divide-x divide-white/10" aria-label="Resumo do dia">
-            <div className="flex flex-col gap-1.5 pr-6">
+        <div className="order-3 flex w-full flex-wrap items-stretch justify-between gap-y-4 min-[1640px]:order-2 min-[1640px]:ml-auto min-[1640px]:w-auto min-[1640px]:justify-start">
+          <dl className="grid w-full grid-cols-4 items-stretch divide-x divide-white/10 sm:flex sm:w-auto" aria-label="Resumo do dia">
+            <div className="flex min-w-0 flex-col justify-between gap-1.5 pr-3 sm:pr-6">
               <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Para fazer</dt>
               <dd className="text-3xl font-semibold leading-none tabular-nums">{painel.contagem.paraFazer}</dd>
             </div>
-            <div className="flex flex-col gap-1.5 px-6">
+            <div className="flex min-w-0 flex-col justify-between gap-1.5 px-3 sm:px-6">
               <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Atrasadas</dt>
               <dd className={cn('text-3xl font-semibold leading-none tabular-nums', painel.contagem.atrasadasParaFazer > 0 ? 'text-red-400' : 'text-slate-200')}>
                 {painel.contagem.atrasadasParaFazer}
               </dd>
             </div>
-            <div className="flex flex-col gap-1.5 px-6">
+            <div className="flex min-w-0 flex-col justify-between gap-1.5 px-3 sm:px-6">
               <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Em aprovação</dt>
-              <dd className="flex items-baseline gap-2">
+              <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-none">
                 <span className="text-3xl font-semibold leading-none tabular-nums">{painel.contagem.emAprovacao}</span>
                 {painel.contagem.atrasadasEmAprovacao > 0 && (
                   <span className="rounded-md bg-amber-400/15 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
@@ -340,12 +340,12 @@ export default function MonitorPage() {
                 )}
               </dd>
             </div>
-            <div className="flex flex-col gap-1.5 px-6">
+            <div className="flex min-w-0 flex-col justify-between gap-1.5 px-3 sm:px-6">
               <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Feitas hoje</dt>
               <dd className="text-3xl font-semibold leading-none tabular-nums text-emerald-400">{painel.contagem.feitasHoje}</dd>
             </div>
           </dl>
-          <div className="flex flex-col gap-1.5 min-[1640px]:border-l min-[1640px]:border-white/10 min-[1640px]:pl-6">
+          <div className="flex w-full items-center justify-between gap-1.5 sm:w-auto sm:flex-col sm:items-stretch sm:justify-start min-[1640px]:border-l min-[1640px]:border-white/10 min-[1640px]:pl-6">
             <span
               role="status"
               title={conexao.detalhe}
@@ -354,13 +354,13 @@ export default function MonitorPage() {
               <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', conexao.ok ? 'bg-emerald-400' : 'bg-amber-400')} aria-hidden />
               <span className="truncate">{conexao.rotulo}</span>
             </span>
-            <time className="text-3xl font-semibold leading-none tabular-nums text-slate-100">
+            <time dateTime={agora.toISOString()} className="text-3xl font-semibold leading-none tabular-nums text-slate-100">
               {agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
             </time>
           </div>
         </div>
 
-        <div className="order-2 ml-auto flex items-center gap-3 min-[1640px]:order-3 min-[1640px]:ml-0">
+        <div className="order-2 ml-auto flex flex-wrap items-center justify-end gap-3 min-[1640px]:order-3 min-[1640px]:ml-0">
           {versaoNova && (
             <button
               type="button"
@@ -381,7 +381,7 @@ export default function MonitorPage() {
               }}
               title="Mostrar só as demandas de uma pessoa"
               className={cn(
-                'h-11 max-w-[12rem] rounded-lg bg-transparent pl-3 pr-2 text-sm font-medium transition-colors hover:bg-white/10',
+                'h-11 max-w-[7.5rem] rounded-lg bg-transparent pl-3 pr-2 sm:max-w-[12rem] text-sm font-medium transition-colors hover:bg-white/10',
                 pessoa === 'todos' ? 'text-slate-200' : 'bg-sky-400/15 text-sky-200 ring-1 ring-sky-400/40',
                 FOCO,
               )}
@@ -440,10 +440,10 @@ export default function MonitorPage() {
             type="button"
             onClick={alternarTelaCheia}
             aria-label={telaCheia ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
-            className={cn('inline-flex h-[52px] items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
+            className={cn('inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-primary px-3.5 text-sm sm:px-4 font-semibold text-primary-foreground hover:opacity-90', FOCO)}
           >
             {telaCheia ? <Minimize className="h-5 w-5" aria-hidden /> : <Maximize className="h-5 w-5" aria-hidden />}
-            {telaCheia ? 'Sair' : 'Tela cheia'}
+            <span className="hidden sm:inline">{telaCheia ? 'Sair' : 'Tela cheia'}</span>
           </button>
         </div>
       </header>
@@ -481,7 +481,7 @@ export default function MonitorPage() {
                     key={card.id}
                     data-demanda
                     className={cn(
-                      'shrink-0 rounded-xl shadow-lg ring-1',
+                      'relative shrink-0 rounded-xl shadow-lg ring-1',
                       compacto ? 'p-3' : 'p-4',
                       // O prazo se le no cartao inteiro (fundo e contorno), nao numa faixa lateral.
                       prazo === 'atrasada' ? 'bg-red-950/40 ring-red-500/60' : prazo === 'hoje' ? 'bg-slate-900 ring-amber-400/50' : 'bg-slate-900 ring-white/10',
@@ -489,7 +489,7 @@ export default function MonitorPage() {
                     )}
                   >
                     {nova && <p className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-300 motion-safe:animate-pulse">Nova</p>}
-                    <button type="button" onClick={() => setCardAberto(card.id)} className={cn('block w-full rounded-md text-left', FOCO)}>
+                    <button type="button" onClick={() => setCardAberto(card.id)} className={cn('block w-full rounded-md text-left after:absolute after:inset-0 after:rounded-xl', FOCO)}>
                       <span className={cn('font-semibold leading-snug', compacto ? 'line-clamp-2 text-base' : 'line-clamp-3 text-xl')}>{card.title}</span>
                     </button>
                     {cliente && <p className={cn('truncate text-slate-400', compacto ? 'text-xs' : 'mt-1 text-sm')}>{cliente}</p>}
@@ -541,7 +541,7 @@ export default function MonitorPage() {
                           disabled={!!movendo}
                           aria-label={confirmar ? `Confirmar: ${acao.rotulo} — ${card.title}` : `${acao.rotulo}: ${card.title}`}
                           className={cn(
-                            'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
+                            'relative z-10 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
                             confirmar ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-white/10 text-slate-100 hover:bg-white/20',
                             FOCO,
                           )}
