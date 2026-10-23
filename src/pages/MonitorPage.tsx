@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNowStrict } from 'date-fns';
@@ -7,7 +7,6 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Max
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CardDetailSheet } from '@/components/cards/CardDetailSheet';
 import { ColunaDoMonitor } from '@/components/monitor/ColunaDoMonitor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCards, type Card } from '@/hooks/useCards';
@@ -23,6 +22,12 @@ import { estadoDaConexao } from '@/lib/monitor/conexao';
 import { criarDestaques, type Destaques } from '@/lib/monitor/destaques';
 import { montarPainelDoDia, prazoDe, proximaAcao, responsaveisDoCard, type CardDoMonitor } from '@/lib/monitor/demandasDoDia';
 import { cn } from '@/lib/utils';
+
+// A ficha da demanda arrasta o editor de texto e o gerador de PDF (~0,8 MB). O monitor so a abre depois de um clique, entao ela
+// fica fora do carregamento inicial e e baixada com a tela ociosa, para o primeiro clique nao esperar rede.
+const carregarFicha = () => import('@/components/cards/CardDetailSheet');
+const CardDetailSheet = lazy(() => carregarFicha().then(m => ({ default: m.CardDetailSheet })));
+const PRECARGA_DA_FICHA_MS = 8_000;
 
 const BUSCA_DE_SEGURANCA_MS = 60_000;
 // Colunas: >= 1280 px dividem a tela; abaixo disso cada uma ocupa quase toda a largura e a seguinte aparece de relance.
@@ -126,6 +131,8 @@ export default function MonitorPage() {
   const [telaCheia, setTelaCheia] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [cardAberto, setCardAberto] = useState<string | null>(null);
+  // Depois da primeira abertura a ficha fica montada (fechada), para a animacao de saida e as proximas aberturas.
+  const [fichaPedida, setFichaPedida] = useState(false);
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [movendo, setMovendo] = useState<string | null>(null);
   const [novas, setNovas] = useState<ReadonlySet<string>>(new Set());
@@ -133,6 +140,19 @@ export default function MonitorPage() {
   const [rotacao, setRotacao] = useState(() => guardado('monitor-rolagem', true));
 
   const { tentarTransicao, aviso } = useCardStatusTransition({ aoAbrirCard: (c: Card) => setCardAberto(c.id) });
+
+  useEffect(() => {
+    if (cardAberto) setFichaPedida(true);
+  }, [cardAberto]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const ociosa = (window as any).requestIdleCallback as undefined | ((f: () => void, o?: { timeout: number }) => number);
+      if (ociosa) ociosa(() => void carregarFicha().catch(() => undefined), { timeout: 10_000 });
+      else void carregarFicha().catch(() => undefined);
+    }, PRECARGA_DA_FICHA_MS);
+    return () => clearTimeout(t);
+  }, []);
 
   // Relogio e virada do dia: recalcula o painel a cada 30 s, entao a meia-noite o quadro troca sozinho.
   useEffect(() => {
@@ -566,7 +586,11 @@ export default function MonitorPage() {
       </main>
 
       {aviso}
-      <CardDetailSheet cardId={cardAberto || undefined} open={!!cardAberto} onOpenChange={aberto => !aberto && setCardAberto(null)} />
+      {fichaPedida && (
+        <Suspense fallback={null}>
+          <CardDetailSheet cardId={cardAberto || undefined} open={!!cardAberto} onOpenChange={aberto => !aberto && setCardAberto(null)} />
+        </Suspense>
+      )}
     </div>
   );
 }
