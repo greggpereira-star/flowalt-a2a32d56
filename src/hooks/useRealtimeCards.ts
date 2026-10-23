@@ -90,6 +90,13 @@ export const useRealtimeCards = (_spaceId?: string) => {
       if (cardId) queryClient.invalidateQueries({ queryKey: ['card', cardId] });
     });
 
+    // Responsaveis da demanda: a troca de responsavel aparece na hora. Exige card_members na publicacao supabase_realtime.
+    abrir('card-members-rt', 'card_members', undefined, payload => {
+      atualizar();
+      const cardId = (payload.new as any)?.card_id ?? (payload.old as any)?.card_id;
+      if (cardId) queryClient.invalidateQueries({ queryKey: ['card', cardId] });
+    });
+
     abrir('card-folders-rt', 'card_folders', undefined, payload => {
       atualizar();
       const cardId = (payload.new as any)?.card_id ?? (payload.old as any)?.card_id;
