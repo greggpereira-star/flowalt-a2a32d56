@@ -99,8 +99,22 @@ export interface EscopoDoResponsavel {
 
 export interface PainelDoDia<T extends CardDoMonitor> {
   colunas: { chave: ColunaDoMonitor; rotulo: string; itens: T[] }[];
-  contagem: { pendentes: number; atrasadas: number; feitasHoje: number };
+  contagem: {
+    /** Tudo o que aparece no painel. */
+    pendentes: number;
+    atrasadas: number;
+    /** Trabalho que a equipe ainda precisa fazer agora: A fazer, Em producao e Revisao. */
+    paraFazer: number;
+    atrasadasParaFazer: number;
+    /** Ja no fim do fluxo, esperando aprovacao: nao e trabalho de quem produz e nao deve alarmar como atraso de producao. */
+    emAprovacao: number;
+    atrasadasEmAprovacao: number;
+    feitasHoje: number;
+  };
 }
+
+/** Colunas em que a equipe ainda tem trabalho a fazer (todas menos a de aprovacao). */
+const COLUNAS_DE_TRABALHO: ColunaDoMonitor[] = ['a_fazer', 'em_producao', 'revisao'];
 
 export function montarPainelDoDia<T extends CardDoMonitor>(
   cards: T[],
@@ -119,11 +133,18 @@ export function montarPainelDoDia<T extends CardDoMonitor>(
   }));
 
   const visiveis = colunas.flatMap(c => c.itens);
+  const atrasada = (c: T) => prazoDe(c, agora) === 'atrasada';
+  const deTrabalho = colunas.filter(c => COLUNAS_DE_TRABALHO.includes(c.chave)).flatMap(c => c.itens);
+  const deAprovacao = colunas.filter(c => c.chave === 'aprovacao').flatMap(c => c.itens);
   return {
     colunas,
     contagem: {
       pendentes: visiveis.length,
-      atrasadas: visiveis.filter(c => prazoDe(c, agora) === 'atrasada').length,
+      atrasadas: visiveis.filter(atrasada).length,
+      paraFazer: deTrabalho.length,
+      atrasadasParaFazer: deTrabalho.filter(atrasada).length,
+      emAprovacao: deAprovacao.length,
+      atrasadasEmAprovacao: deAprovacao.filter(atrasada).length,
       feitasHoje: doEscopo.filter(c => c.status === 'delivered' && !!c.completed_at && diaDeSaoPaulo(c.completed_at) === hoje).length,
     },
   };

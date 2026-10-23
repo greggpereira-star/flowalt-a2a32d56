@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCards, type Card } from '@/hooks/useCards';
 import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
 import { useCardMemberAssignments } from '@/hooks/useCardMemberAssignments';
+import { useModoEscuroNaTela } from '@/hooks/useModoEscuroNaTela';
 import { useClientCards } from '@/hooks/useClientCards';
 import { useRealtimeCards } from '@/hooks/useRealtimeCards';
 import { useSpace } from '@/hooks/useSpaces';
@@ -27,6 +28,8 @@ const LARGURA_DA_COLUNA = 'w-[82vw] min-w-[300px] max-w-[460px] shrink-0 xl:w-au
 const SEM_ATUALIZAR_MS = 3 * 60_000;
 const DESTAQUE_DA_NOVA_MS = 10_000;
 const CONFIRMACAO_MS = 4_000;
+// Foco do teclado visivel em tudo que e clicavel (antes: outline none, sem nenhuma pista de onde o foco estava).
+const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
 
 const URGENCIA: Record<string, { rotulo: string; classe: string }> = {
   critical: { rotulo: 'Crítica', classe: 'bg-red-500/20 text-red-300 ring-red-500/40' },
@@ -46,6 +49,21 @@ const guardado = (chave: string, padrao: boolean): boolean => {
 const guardar = (chave: string, valor: boolean) => {
   try {
     localStorage.setItem(chave, valor ? '1' : '0');
+  } catch {
+    /* sem armazenamento: a escolha vale so ate fechar a tela */
+  }
+};
+
+const lerTexto = (chave: string, padrao: string): string => {
+  try {
+    return localStorage.getItem(chave) ?? padrao;
+  } catch {
+    return padrao;
+  }
+};
+const guardarTexto = (chave: string, valor: string) => {
+  try {
+    localStorage.setItem(chave, valor);
   } catch {
     /* sem armazenamento: a escolha vale so ate fechar a tela */
   }
@@ -94,11 +112,14 @@ export default function MonitorPage() {
   // includeInactive: sem isso o hook esconde os vinculos de cards entregues e a conta de "feitas hoje" perde os responsaveis.
   const { data: vinculosBrutos } = useCardMemberAssignments({ includeInactive: true });
 
+  useModoEscuroNaTela();
+
   // Esta tela fica fora do layout do app (que e quem normalmente abre os canais), entao abre o canal das demandas aqui.
   useRealtimeCards();
 
   const [agora, setAgora] = useState(() => new Date());
-  const [apenasMinhas, setApenasMinhas] = useState(() => guardado('monitor-minhas', false));
+  // 'todos' ou o id de uma pessoa; lembrado por espaco, porque cada monitor mostra um setor.
+  const [pessoa, setPessoa] = useState<string>(() => lerTexto(`monitor-pessoa:${spaceId}`, 'todos'));
   const [somLigado, setSomLigado] = useState(() => guardado('monitor-som', false));
   const [telaCheia, setTelaCheia] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -184,8 +205,8 @@ export default function MonitorPage() {
 
   const cards = (cardsQuery.data ?? []) as Card[];
   const painel = useMemo(
-    () => montarPainelDoDia<Card & CardDoMonitor>(cards as (Card & CardDoMonitor)[], agora, apenasMinhas && user?.id ? { usuario: user.id, vinculos } : null),
-    [cards, agora, apenasMinhas, user?.id, vinculos],
+    () => montarPainelDoDia<Card & CardDoMonitor>(cards as (Card & CardDoMonitor)[], agora, pessoa !== 'todos' ? { usuario: pessoa, vinculos } : null),
+    [cards, agora, pessoa, vinculos],
   );
 
   // Demanda que entra no painel enquanto a tela esta aberta ganha destaque por 10 s (e som, se ligado). A primeira carga nao conta.
@@ -202,7 +223,7 @@ export default function MonitorPage() {
     vistas.current = null;
     destaquesRef.current?.limpar();
     setNovas(new Set());
-  }, [apenasMinhas, spaceId]);
+  }, [pessoa, spaceId]);
   useEffect(() => {
     if (!cardsQuery.isSuccess) return;
     const ids = painel.colunas.flatMap(c => c.itens.map(i => i.id));
@@ -222,6 +243,16 @@ export default function MonitorPage() {
     (membros ?? []).forEach(m => mapa.set(m.user_id, { nome: m.profile?.full_name || m.profile?.email || 'Sem nome', avatar: m.profile?.avatar_url ?? null }));
     return mapa;
   }, [membros]);
+
+  const opcoesDePessoa = useMemo(() => {
+    const todos = [...responsavelPorId.entries()]
+      .filter(([id]) => id !== user?.id)
+      .sort((a, b) => a[1].nome.localeCompare(b[1].nome, 'pt-BR'))
+      .map(([id, r]) => ({ id, nome: r.nome }));
+    const eu = user?.id ? [{ id: user.id, nome: `Eu${responsavelPorId.get(user.id) ? ` (${responsavelPorId.get(user.id)!.nome.split(' ')[0]})` : ''}` }] : [];
+    return [{ id: 'todos', nome: 'Todos' }, ...eu, ...todos];
+  }, [responsavelPorId, user?.id]);
+  const nomeDaPessoa = pessoa === 'todos' ? null : (responsavelPorId.get(pessoa)?.nome.split(' ')[0] ?? 'essa pessoa');
 
   const clientePorId = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -259,7 +290,7 @@ export default function MonitorPage() {
       <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 px-6 py-4">
         <Link
           to={spaceId ? `/space/${spaceId}` : '/'}
-          className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-white"
+          className={cn('flex items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-white', FOCO)}
           aria-label="Voltar ao quadro do espaço"
         >
           <ArrowLeft className="h-4 w-4" /> Quadro
@@ -275,12 +306,19 @@ export default function MonitorPage() {
 
         <dl className="ml-auto flex items-center gap-6 text-center" aria-label="Resumo do dia">
           <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-400">Pendentes</dt>
-            <dd className="text-3xl font-bold tabular-nums">{painel.contagem.pendentes}</dd>
+            <dt className="text-xs uppercase tracking-wide text-slate-400">Para fazer</dt>
+            <dd className="text-3xl font-bold tabular-nums">{painel.contagem.paraFazer}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-slate-400">Atrasadas</dt>
-            <dd className={cn('text-3xl font-bold tabular-nums', painel.contagem.atrasadas > 0 ? 'text-red-400' : 'text-slate-200')}>{painel.contagem.atrasadas}</dd>
+            <dd className={cn('text-3xl font-bold tabular-nums', painel.contagem.atrasadasParaFazer > 0 ? 'text-red-400' : 'text-slate-200')}>{painel.contagem.atrasadasParaFazer}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-400">Em aprovação</dt>
+            <dd className="text-3xl font-bold tabular-nums">{painel.contagem.emAprovacao}</dd>
+            {painel.contagem.atrasadasEmAprovacao > 0 && (
+              <dd className="text-xs font-medium text-amber-300">{painel.contagem.atrasadasEmAprovacao} {painel.contagem.atrasadasEmAprovacao === 1 ? 'atrasada' : 'atrasadas'}</dd>
+            )}
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-slate-400">Feitas hoje</dt>
@@ -300,19 +338,27 @@ export default function MonitorPage() {
             {ao_vivo ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
             {ao_vivo ? 'Ao vivo' : online ? 'Sem atualizar' : 'Sem conexão'}
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              setApenasMinhas(v => {
-                guardar('monitor-minhas', !v);
-                return !v;
-              });
+          <label className="sr-only" htmlFor="monitor-pessoa">Filtrar por pessoa</label>
+          <select
+            id="monitor-pessoa"
+            value={pessoa}
+            onChange={e => {
+              setPessoa(e.target.value);
+              guardarTexto(`monitor-pessoa:${spaceId}`, e.target.value);
             }}
-            aria-pressed={apenasMinhas}
-            className={cn('rounded-lg px-3 py-2 text-sm font-medium ring-1 transition-colors', apenasMinhas ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10')}
+            title="Mostrar só as demandas de uma pessoa"
+            className={cn(
+              'max-w-[11rem] rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium ring-1',
+              pessoa === 'todos' ? 'text-slate-300 ring-white/20' : 'text-white ring-sky-400',
+              FOCO,
+            )}
           >
-            Só as minhas
-          </button>
+            {opcoesDePessoa.map(o => (
+              <option key={o.id} value={o.id}>
+                {o.id === 'todos' ? 'Todas as pessoas' : o.nome}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={() => {
@@ -324,7 +370,7 @@ export default function MonitorPage() {
             aria-pressed={compacto}
             aria-label="Cartões compactos"
             title="Cartões compactos: cabem mais demandas na tela"
-            className={cn('rounded-lg p-2.5 ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10')}
+            className={cn('rounded-lg p-2.5 ring-1 transition-colors', compacto ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
           >
             <Rows3 className="h-4 w-4" />
           </button>
@@ -339,7 +385,7 @@ export default function MonitorPage() {
             aria-pressed={rotacao}
             aria-label="Rolagem automática das colunas"
             title={rotacao ? 'Rolagem automática ligada: as colunas passam de página sozinhas' : 'Rolagem automática desligada'}
-            className={cn('rounded-lg p-2.5 ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10')}
+            className={cn('rounded-lg p-2.5 ring-1 transition-colors', rotacao ? 'bg-white text-slate-900 ring-white' : 'text-slate-300 ring-white/20 hover:bg-white/10', FOCO)}
           >
             <ChevronsDown className="h-4 w-4" />
           </button>
@@ -355,7 +401,7 @@ export default function MonitorPage() {
             aria-pressed={somLigado}
             aria-label={somLigado ? 'Desligar o aviso sonoro' : 'Ligar o aviso sonoro'}
             title={somLigado ? 'Aviso sonoro ligado' : 'Aviso sonoro desligado'}
-            className="rounded-lg p-2.5 text-slate-300 ring-1 ring-white/20 hover:bg-white/10"
+            className={cn('rounded-lg p-2.5 text-slate-300 ring-1 ring-white/20 hover:bg-white/10', FOCO)}
           >
             {somLigado ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
@@ -363,7 +409,7 @@ export default function MonitorPage() {
             type="button"
             onClick={alternarTelaCheia}
             aria-label={telaCheia ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className={cn('inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90', FOCO)}
           >
             {telaCheia ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
             {telaCheia ? 'Sair' : 'Tela cheia'}
@@ -383,7 +429,7 @@ export default function MonitorPage() {
         ) : painel.contagem.pendentes === 0 ? (
           <div className="m-auto text-center">
             <p className="text-3xl font-bold">Tudo em dia</p>
-            <p className="mt-2 text-lg text-slate-400">Nenhuma demanda pendente para hoje{apenasMinhas ? ' com você como responsável' : ''}.</p>
+            <p className="mt-2 text-lg text-slate-400">Nenhuma demanda pendente para hoje{nomeDaPessoa ? ` com ${nomeDaPessoa} como responsável` : ''}.</p>
           </div>
         ) : (
           painel.colunas.map(col => (
@@ -411,7 +457,7 @@ export default function MonitorPage() {
                     )}
                   >
                     {nova && <p className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-300 motion-safe:animate-pulse">Nova</p>}
-                    <button type="button" onClick={() => setCardAberto(card.id)} className="block w-full text-left">
+                    <button type="button" onClick={() => setCardAberto(card.id)} className={cn('block w-full rounded-md text-left', FOCO)}>
                       <span className={cn('font-semibold leading-snug', compacto ? 'line-clamp-2 text-base' : 'line-clamp-3 text-xl')}>{card.title}</span>
                     </button>
                     {cliente && <p className={cn('truncate text-slate-400', compacto ? 'text-xs' : 'mt-1 text-sm')}>{cliente}</p>}
@@ -465,6 +511,7 @@ export default function MonitorPage() {
                           className={cn(
                             'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
                             confirmar ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-white/10 text-slate-100 hover:bg-white/20',
+                            FOCO,
                           )}
                         >
                           {movendo === card.id ? (

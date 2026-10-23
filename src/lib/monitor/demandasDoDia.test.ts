@@ -74,7 +74,15 @@ describe('montarPainelDoDia', () => {
 
   it('conta pendentes, atrasadas e feitas hoje', () => {
     const { contagem } = montarPainelDoDia(cards, AGORA);
-    expect(contagem).toEqual({ pendentes: 7, atrasadas: 3, feitasHoje: 1 });
+    expect(contagem).toEqual({
+      pendentes: 7,
+      atrasadas: 3,
+      paraFazer: 6, // a fazer (4) + em producao (1) + revisao (1)
+      atrasadasParaFazer: 2,
+      emAprovacao: 1,
+      atrasadasEmAprovacao: 1,
+      feitasHoje: 1,
+    });
   });
 
   it('filtra pelo responsavel: vinculado em card_members ou, sem vinculo, o owner_id; inclui as feitas hoje', () => {
@@ -106,7 +114,7 @@ describe('montarPainelDoDia', () => {
   it('sem nada para fazer, devolve colunas vazias e zeros', () => {
     const painel = montarPainelDoDia([], AGORA);
     expect(painel.colunas.every(c => c.itens.length === 0)).toBe(true);
-    expect(painel.contagem).toEqual({ pendentes: 0, atrasadas: 0, feitasHoje: 0 });
+    expect(painel.contagem).toEqual({ pendentes: 0, atrasadas: 0, paraFazer: 0, atrasadasParaFazer: 0, emAprovacao: 0, atrasadasEmAprovacao: 0, feitasHoje: 0 });
   });
 });
 
@@ -123,5 +131,21 @@ describe('proximaAcao', () => {
     ['backlog', 'briefing', 'todo', 'in_progress', 'review'].forEach(st => expect(proximaAcao(st)?.para).not.toBe('delivered'));
     expect(proximaAcao('delivered')).toBeNull();
     expect(proximaAcao('archived')).toBeNull();
+  });
+});
+
+describe('contagem separada: o atraso na aprovacao nao infla o alarme de producao', () => {
+  it('atrasadas na aprovacao ficam fora de "atrasadasParaFazer"', () => {
+    const cards = [
+      card({ id: 'p1', status: 'in_progress', due_date: '2026-10-21T12:00:00Z' }),
+      card({ id: 'a1', status: 'approved', due_date: '2026-10-19T12:00:00Z' }),
+      card({ id: 'a2', status: 'approved', due_date: '2026-10-20T12:00:00Z' }),
+      card({ id: 'a3', status: 'approved', due_date: '2026-10-20T15:00:00Z' }),
+    ];
+    const { contagem } = montarPainelDoDia(cards, AGORA);
+    expect(contagem.atrasadas).toBe(4); // total, como antes
+    expect(contagem.atrasadasParaFazer).toBe(1);
+    expect(contagem.atrasadasEmAprovacao).toBe(3);
+    expect(contagem.paraFazer + contagem.emAprovacao).toBe(contagem.pendentes);
   });
 });
