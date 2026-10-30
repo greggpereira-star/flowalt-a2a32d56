@@ -15,10 +15,12 @@ const notificationIcons: Record<string, React.ReactNode> = {
   weekly_mvp: <Trophy className="h-4 w-4 text-warning" />,
   team_goal: <Trophy className="h-4 w-4 text-success" />,
   season_end: <Trophy className="h-4 w-4 text-warning" />,
+  mission_done: <Trophy className="h-4 w-4 text-success" />,
+  mission_week: <Trophy className="h-4 w-4 text-primary" />,
 };
 
 // Avisos da gamificacao abrem a tela de Gamificacao.
-const TIPOS_DE_GAMIFICACAO = new Set(['ranking_change', 'weekly_mvp', 'team_goal', 'level_up', 'season_end']);
+const TIPOS_DE_GAMIFICACAO = new Set(['ranking_change', 'weekly_mvp', 'team_goal', 'level_up', 'season_end', 'mission_done', 'mission_week']);
 
 export function NotificationToast() {
   const { user } = useAuth();

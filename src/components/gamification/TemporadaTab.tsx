@@ -129,6 +129,7 @@ export function TemporadaTab() {
               <li><span className="font-semibold text-foreground">{P.movimentacao} pts</span> por movimentação de etapa (até {P.movimentacaoMaxPorDia} por dia)</li>
               <li><span className="font-semibold text-foreground">{P.diaComAcao} pts</span> por dia útil com ação</li>
               <li><span className="font-semibold text-foreground">{P.hora} pts</span> por hora no cronômetro</li>
+              <li className="sm:col-span-2"><span className="font-semibold text-foreground">+3 a +10 pts</span> por missão da semana (cobrar e destravar cards parados), na aba Ranking</li>
             </ul>
           </details>
         </CardContent>

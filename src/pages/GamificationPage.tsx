@@ -32,6 +32,7 @@ import { MetaDoTimeAdmin } from '@/components/gamification/MetaDoTimeAdmin';
 import { useSearchParams } from 'react-router-dom';
 import { TemporadaTab } from '@/components/gamification/TemporadaTab';
 import { PremioDaTemporadaAdmin } from '@/components/gamification/PremioDaTemporadaAdmin';
+import { MissoesDaSemanaCard } from '@/components/gamification/MissoesDaSemanaCard';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -119,6 +120,7 @@ export default function GamificationPage() {
                   <Desafios semana={meusUltimos7} />
                 </div>
                 <MetaDoTimeCard />
+                <MissoesDaSemanaCard />
                 <Destaques jogadores={jogadores} rotuloPeriodo={rotuloPeriodo} onSelecionar={setCriterio} />
                 <RankingCompleto jogadores={jogadores} pesos={pesos} meuId={eu?.user_id} criterio={criterio} onCriterio={setCriterio} />
                 {goals.length > 0 && <WeeklyGoalsCard />}
