@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   CheckCircle2,
   Clock,
@@ -190,42 +191,128 @@ export function Podio({ jogadores, meuId }: { jogadores: Jogador[]; meuId?: stri
 // ---------------------------------------------------------------------------
 // Destaques por categoria
 // ---------------------------------------------------------------------------
-export function Destaques({ jogadores }: { jogadores: Jogador[] }) {
+export function Destaques({ jogadores, rotuloPeriodo, onSelecionar }: { jogadores: Jogador[]; rotuloPeriodo: string; onSelecionar?: (c: Criterio) => void }) {
   const ranking = jogadores.filter(j => j.participa);
   const lider = (valor: (j: Jogador) => number) => {
     const ord = [...ranking].sort((a, b) => valor(b) - valor(a));
     return ord[0] && valor(ord[0]) > 0 ? ord[0] : null;
   };
+  // Comentário vale 2 e movimentação 1: é a mesma conta do critério "Colaboração" do ranking logo abaixo.
+  const pontosColaboracao = (j: Jogador) => j.comentarios * 2 + j.movimentacoes;
+
+  // Texto das etiquetas: 700 no claro e 300 no escuro, para passar de 4,5:1 sobre o fundo translúcido (antes 600 nos dois temas: 3:1).
   const itens = [
-    { titulo: 'Mais entregas', icone: <CheckCircle2 className="h-4 w-4" />, j: lider(j => j.entregas), valor: (j: Jogador) => `${j.entregas} cards`, cor: 'text-green-600 bg-green-500/10' },
-    { titulo: 'Mais constante', icone: <Flame className="h-4 w-4" />, j: lider(j => j.dias_ativos), valor: (j: Jogador) => `${j.dias_ativos} dias úteis com ação`, cor: 'text-orange-600 bg-orange-500/10' },
-    { titulo: 'Mais colaborativo', icone: <MessageSquare className="h-4 w-4" />, j: lider(j => j.comentarios * 2 + j.movimentacoes), valor: (j: Jogador) => `${j.comentarios} comentários · ${j.movimentacoes} movimentações`, cor: 'text-blue-600 bg-blue-500/10' },
-    { titulo: 'Mais horas', icone: <Clock className="h-4 w-4" />, j: lider(j => j.horas), valor: (j: Jogador) => `${j.horas}h`, cor: 'text-purple-600 bg-purple-500/10' },
+    {
+      chave: 'entregas', titulo: 'Mais entregas', descricao: 'Quem mais entregou cards no período', criterio: 'entregas' as Criterio,
+      icone: <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />,
+      tag: 'bg-green-500/10 text-green-700 dark:bg-green-400/15 dark:text-green-300', anel: 'ring-green-500/25',
+      j: lider(j => j.entregas), numero: (j: Jogador) => `${j.entregas}`, unidade: 'cards entregues', detalhe: null as null | ((j: Jogador) => string),
+      vazio: ['Ninguém entregou ainda', 'Entregue um card no período para aparecer aqui.'],
+    },
+    {
+      chave: 'constancia', titulo: 'Mais constante', descricao: 'Quem agiu em mais dias úteis (comentou, moveu, criou ou entregou card, ou lançou horas)', criterio: 'constancia' as Criterio,
+      icone: <Flame className="h-3.5 w-3.5" aria-hidden />,
+      tag: 'bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300', anel: 'ring-orange-500/25',
+      j: lider(j => j.dias_ativos), numero: (j: Jogador) => `${j.dias_ativos}`, unidade: 'dias úteis com ação', detalhe: null,
+      vazio: ['Ninguém agiu ainda', 'Comente, mova ou entregue um card para aparecer aqui.'],
+    },
+    {
+      chave: 'colaboracao', titulo: 'Mais colaborativo', descricao: 'Comentários valem 2 pontos e movimentações de etapa valem 1', criterio: 'colaboracao' as Criterio,
+      icone: <MessageSquare className="h-3.5 w-3.5" aria-hidden />,
+      tag: 'bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300', anel: 'ring-blue-500/25',
+      j: lider(pontosColaboracao), numero: (j: Jogador) => `${pontosColaboracao(j)}`, unidade: 'pontos',
+      detalhe: (j: Jogador) => `${j.comentarios} comentários · ${j.movimentacoes} movimentações`,
+      vazio: ['Ninguém colaborou ainda', 'Comente ou mova um card para aparecer aqui.'],
+    },
+    {
+      chave: 'horas', titulo: 'Mais horas', descricao: 'Quem mais registrou horas no cronômetro', criterio: 'horas' as Criterio,
+      icone: <Clock className="h-3.5 w-3.5" aria-hidden />,
+      tag: 'bg-purple-500/10 text-purple-700 dark:bg-purple-400/15 dark:text-purple-300', anel: 'ring-purple-500/25',
+      j: lider(j => j.horas), numero: (j: Jogador) => `${j.horas}`, unidade: 'horas registradas', detalhe: null,
+      vazio: ['Ninguém registrou horas ainda', 'Inicie o cronômetro em um card para assumir este destaque.'],
+    },
   ];
 
+  const abrirNoRanking = (c: Criterio) => {
+    onSelecionar?.(c);
+    const reduzir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('ranking-completo')?.scrollIntoView({ behavior: reduzir ? 'auto' : 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {itens.map(i => (
-        <Card key={i.titulo}>
-          <CardContent className="p-4">
-            <div className={cn('mb-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium', i.cor)}>
-              {i.icone} {i.titulo}
-            </div>
-            {i.j ? (
-              <div className="flex items-center gap-2">
-                <Foto j={i.j} className="h-9 w-9" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{i.j.name.split(' ')[0]}</p>
-                  <p className="text-xs text-muted-foreground">{i.valor(i.j)}</p>
+    <section aria-labelledby="destaques-titulo" className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="destaques-titulo" className="text-sm font-semibold">Destaques</h2>
+        <p className="text-xs text-muted-foreground">{rotuloPeriodo}</p>
+      </div>
+      <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {itens.map(i => {
+          const nome = i.j?.name.split(' ')[0] ?? '';
+          const conteudo = (
+            <Card
+              className={cn(
+                'h-full transition-[transform,box-shadow] duration-200',
+                i.j && 'group-hover:shadow-md motion-safe:group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-primary group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background',
+              )}
+            >
+              {/* Respiro igual nos quatro lados (16 px, 20 px a partir de sm). Não usar CardContent aqui: o pt-0 dele zerava o topo. */}
+              <div className="flex h-full flex-col gap-4 p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', i.tag)}>
+                    {i.icone}
+                    {i.titulo}
+                  </span>
+                  {i.j && (
+                    <ArrowRight
+                      className="h-4 w-4 shrink-0 text-muted-foreground transition-[transform,color] group-hover:text-foreground motion-safe:group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  )}
                 </div>
+
+                {i.j ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Foto j={i.j} className={cn('h-11 w-11 shrink-0 ring-2', i.anel)} />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold leading-tight" title={i.j.name}>{nome}</p>
+                        <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+                          <span className="text-2xl font-bold leading-none tracking-tight tabular-nums">{i.numero(i.j)}</span>
+                          <span className="text-xs text-muted-foreground">{i.unidade}</span>
+                        </p>
+                      </div>
+                    </div>
+                    {i.detalhe && <p className="mt-auto text-xs text-muted-foreground">{i.detalhe(i.j)}</p>}
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{i.vazio[0]}</p>
+                    <p className="text-xs leading-snug text-muted-foreground">{i.vazio[1]}</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Ninguém ainda. A vaga é sua.</p>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+            </Card>
+          );
+          return (
+            <li key={i.chave} className="min-w-0">
+              {i.j ? (
+                <button
+                  type="button"
+                  onClick={() => abrirNoRanking(i.criterio)}
+                  title={i.descricao}
+                  aria-label={`${i.titulo}: ${nome}, ${i.numero(i.j)} ${i.unidade}. Ver no ranking.`}
+                  className="group block h-full w-full rounded-2xl text-left focus-visible:outline-none"
+                >
+                  {conteudo}
+                </button>
+              ) : (
+                <div className="h-full" title={i.descricao}>{conteudo}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -282,7 +369,7 @@ export function Desafios({ semana }: { semana: any | null }) {
 // ---------------------------------------------------------------------------
 // Ranking completo, com ordenação por critério
 // ---------------------------------------------------------------------------
-type Criterio = 'score' | 'entregas' | 'constancia' | 'colaboracao' | 'horas';
+export type Criterio = 'score' | 'entregas' | 'constancia' | 'colaboracao' | 'horas';
 const CRITERIOS: { id: Criterio; rotulo: string }[] = [
   { id: 'score', rotulo: 'Geral' },
   { id: 'entregas', rotulo: 'Entregas' },
@@ -291,8 +378,13 @@ const CRITERIOS: { id: Criterio; rotulo: string }[] = [
   { id: 'horas', rotulo: 'Horas' },
 ];
 
-export function RankingCompleto({ jogadores, pesos, meuId }: { jogadores: Jogador[]; pesos: Pesos; meuId?: string }) {
-  const [criterio, setCriterio] = useState<Criterio>('score');
+export function RankingCompleto({ jogadores, pesos, meuId, criterio: criterioDeFora, onCriterio }: { jogadores: Jogador[]; pesos: Pesos; meuId?: string; criterio?: Criterio; onCriterio?: (c: Criterio) => void }) {
+  const [interno, setInterno] = useState<Criterio>('score');
+  const criterio = criterioDeFora ?? interno;
+  const setCriterio = (c: Criterio) => {
+    setInterno(c);
+    onCriterio?.(c);
+  };
 
   const lista = useMemo(() => {
     const ranking = jogadores.filter(j => j.participa);
@@ -317,7 +409,7 @@ export function RankingCompleto({ jogadores, pesos, meuId }: { jogadores: Jogado
   };
 
   return (
-    <Card>
+    <Card id="ranking-completo" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" /> Ranking da equipe

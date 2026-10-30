@@ -10,6 +10,7 @@ import {
   Conquistas,
   Desafios,
   Destaques,
+  type Criterio,
   Niveis,
   Podio,
   RankingCompleto,
@@ -38,6 +39,7 @@ export default function GamificationPage() {
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === 'admin' || currentRole === 'owner';
   const [periodo, setPeriodo] = useState<Periodo>(30);
+  const [criterio, setCriterio] = useState<Criterio>('score');
 
   const { jogadores, eu, pesos, meusUltimos7, carregando, erro } = useGamificationData(periodo);
   const { data: medalhasTime = [] } = useMedalhasDoTime();
@@ -106,8 +108,8 @@ export default function GamificationPage() {
                   <Podio jogadores={jogadores} meuId={eu?.user_id} />
                   <Desafios semana={meusUltimos7} />
                 </div>
-                <Destaques jogadores={jogadores} />
-                <RankingCompleto jogadores={jogadores} pesos={pesos} meuId={eu?.user_id} />
+                <Destaques jogadores={jogadores} rotuloPeriodo={rotuloPeriodo} onSelecionar={setCriterio} />
+                <RankingCompleto jogadores={jogadores} pesos={pesos} meuId={eu?.user_id} criterio={criterio} onCriterio={setCriterio} />
                 {goals.length > 0 && <WeeklyGoalsCard />}
                 {history.length >= 2 && <RankingChart />}
               </>
