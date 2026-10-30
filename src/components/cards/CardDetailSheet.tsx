@@ -20,7 +20,7 @@ import {
 } from './card-detail';
 import { BriefingDialog } from './BriefingDialog';
 import type { BriefingData } from './BriefingForm';
-import { normalizeBriefingData, isBriefingContentComplete } from './briefingDataUtils';
+import { normalizeBriefingData, isBriefingContentComplete, isBriefingSatisfied, rotulosDosCamposFaltando } from './briefingDataUtils';
 import { TrafficBriefingForm, type TrafficBriefingData } from './TrafficBriefingForm';
 import { AccessDeniedState, DestructiveActionGuard } from '@/components/governance';
 import { SocialMediaCardFields } from '@/components/social-media/SocialMediaCardFields';
@@ -43,7 +43,7 @@ import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { AvisoSemBriefing } from './SemBriefingTag';
+import { emAndamento as etapaEmAndamento, encerrado as etapaEncerrada } from './SemBriefingTag';
 
 interface CardDetailSheetProps {
   cardId: string | null;
@@ -596,11 +596,11 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
                       <div className="pt-1">
-                        <AvisoSemBriefing
-                          card={{ status, card_type: (card as any).card_type, briefing_data: briefingData, traffic_briefing_data: isTrafficSpace ? trafficBriefingData : null }}
-                        />
                         <CardBriefingSection
-                          isCompleted={card.briefing_completed || false}
+                          isCompleted={isBriefingSatisfied({ card_type: (card as any).card_type, briefing_data: briefingData, traffic_briefing_data: isTrafficSpace ? trafficBriefingData : null })}
+                          emAndamento={etapaEmAndamento(status)}
+                          encerrado={etapaEncerrada(status)}
+                          faltando={rotulosDosCamposFaltando(briefingData)}
                           briefingData={briefingData}
                           onOpenBriefing={() => setBriefingDialogOpen(true)}
                         />

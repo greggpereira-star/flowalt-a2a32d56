@@ -25,6 +25,7 @@ import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ehAberto } from '@/lib/metrics/definicoes';
 import { atividadeParada, descricaoDaAtividade, diasSemAtividade, tempoCurto } from '@/lib/cards/atividade';
+import { SemBriefingTag, cardSemBriefing } from './SemBriefingTag';
 
 interface TaskCardProps {
   card: Card;
@@ -107,14 +108,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
     if (assignees.length === 0) {
       excecoes.push({ chave: 'resp', texto: 'Sem responsável', titulo: 'Nenhuma pessoa responsável por este card', tom: 'w', icone: <UserX className="h-3 w-3" /> });
-    }
-
-    // O briefing só é exigido a partir de Em Produção; antes disso é esperado que esteja pendente.
-    const emEtapaDeBriefing =
-      ['em_producao', 'revisao', 'aprovacao'].includes(card.current_stage ?? '') ||
-      ['in_progress', 'review'].includes(card.status);
-    if (card.card_type !== 'quick' && !card.briefing_completed && emEtapaDeBriefing) {
-      excecoes.push({ chave: 'briefing', texto: 'Briefing pendente', titulo: 'O briefing deste card ainda não foi concluído', tom: 'w', icone: <FileWarning className="h-3 w-3" /> });
     }
 
     const diasParado = Math.floor((agora - new Date(card.updated_at).getTime()) / 86_400_000);
@@ -235,6 +228,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             )}
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-1">
+            {cardSemBriefing(card) && (
+              <div>
+                <SemBriefingTag card={card} compact />
+              </div>
+            )}
             <CardRiskIndicators card={card} />
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -385,6 +383,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <BanknoteIcon className="h-2.5 w-2.5" />
             Não faturável
           </Badge>
+        )}
+
+        {/* Briefing ausente: etiqueta unica */}
+        {cardSemBriefing(card) && (
+          <div>
+            <SemBriefingTag card={card} compact />
+          </div>
         )}
 
         {/* Risk indicators */}

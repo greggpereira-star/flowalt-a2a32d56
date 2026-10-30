@@ -39,7 +39,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Assignee } from './CardAssignees';
-import { SemBriefingTag, cardSemBriefing } from './SemBriefingTag';
 
 interface KanbanBoardProps {
   cards: Card[];
@@ -95,11 +94,6 @@ const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
   }, [deps]);
   
   const indicators = [];
-  
-  // Etiqueta "Sem briefing" (olha o conteudo do briefing, como o fluxo; card rapido e card entregue nunca mostram).
-  if (cardSemBriefing(card)) {
-    indicators.push(<SemBriefingTag key="briefing" card={card} compact />);
-  }
   
   if (checklists && checklists.length > 0 && checklistProgress < 100) {
     indicators.push(

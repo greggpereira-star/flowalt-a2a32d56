@@ -15,6 +15,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
+import { ToastAction } from '@/components/ui/toast';
 
 /**
  * Troca de etapa de um card com as MESMAS regras do quadro Kanban: valida os gates do fluxo (checklist,
@@ -176,7 +177,12 @@ export function useCardStatusTransition({ aoAbrirCard }: { aoAbrirCard: (card: C
       semBriefing
         ? {
             title: 'Card movido sem briefing',
-            description: `Movido para ${statusConfig[targetStatus].label}. O card ficou marcado como "Sem briefing": complete o briefing o quanto antes.`,
+            description: `Movido para ${statusConfig[targetStatus].label}. Falta preencher o briefing.`,
+            action: (
+              <ToastAction altText="Preencher o briefing" onClick={() => aoAbrirCard(card)}>
+                Preencher
+              </ToastAction>
+            ),
           }
         : {
             title: 'Card movido',

@@ -66,17 +66,7 @@ export const CardRiskIndicators: React.FC<CardRiskIndicatorsProps> = ({
     });
   }
 
-  // Briefing pending for cards in progress
-  if (!card.briefing_completed && ['in_progress', 'review'].includes(card.status)) {
-    indicators.push({
-      type: 'briefing_pending',
-      icon: AlertTriangle,
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-500/10',
-      label: 'Sem briefing',
-      tooltip: 'Este card está em execução sem briefing completo. Isso pode gerar retrabalho.',
-    });
-  }
+  // O aviso de briefing ausente NAO fica aqui: e a etiqueta unica SemBriefingTag (regra por conteudo), no TaskCard.
 
   // High urgency without due date
   if (['high', 'critical'].includes(card.urgency) && !card.due_date) {

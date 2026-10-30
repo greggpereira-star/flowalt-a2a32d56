@@ -117,3 +117,13 @@ export const isBriefingSatisfied = (card: {
     isTrafficBriefingContentComplete(card.traffic_briefing_data)
   );
 };
+
+const ROTULO_DO_CAMPO: Partial<Record<keyof BriefingData, string>> = { context: 'Contexto', deliverables: 'Entregáveis' };
+
+/** Rotulos dos campos obrigatorios que ainda nao atingem o minimo (mesma regra do isBriefingContentComplete). */
+export const rotulosDosCamposFaltando = (briefingData: unknown): string[] => {
+  const data = normalizeBriefingData(briefingData);
+  return REQUIRED_BRIEFING_FIELDS
+    .filter(({ field, minLength }) => briefingPlainTextLength(data[field]) < minLength)
+    .map(({ field }) => ROTULO_DO_CAMPO[field] ?? String(field));
+};
