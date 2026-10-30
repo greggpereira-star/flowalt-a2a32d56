@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Gift, Swords, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,29 @@ export function MetaDoTimeAdmin() {
   const [alvo, setAlvo] = useState('');
   const [recompensa, setRecompensa] = useState('');
 
+  // O formulario mostra o que ja esta salvo para o tipo escolhido (alvo e recompensa). Antes ele esvaziava depois de salvar,
+  // parecia que nada tinha sido gravado e uma nova atualizacao com a recompensa em branco apagava a anterior.
+  const existente = metas.find(m => m.tipo === tipo);
+  useEffect(() => {
+    if (existente) {
+      setAlvo(String(existente.alvo));
+      setRecompensa(existente.recompensa ?? '');
+    }
+  }, [existente?.id, existente?.alvo, existente?.recompensa]);
+
+  const escolherTipo = (t: TipoDeMeta) => {
+    setTipo(t);
+    const e = metas.find(m => m.tipo === t);
+    setAlvo(e ? String(e.alvo) : '');
+    setRecompensa(e?.recompensa ?? '');
+  };
+
   const fechadas = historico.filter(s => s.semana_inicio < semana).slice(-4);
   const alvoNumero = Number(alvo);
   const valido = Number.isInteger(alvoNumero) && alvoNumero >= 1 && alvoNumero <= 1000;
 
   const usarModelo = (t: TipoDeMeta) => {
-    setTipo(t);
+    escolherTipo(t);
     const s = sugerirAlvo(t, historico, semana);
     if (s != null) setAlvo(String(s));
   };
@@ -34,11 +51,7 @@ export function MetaDoTimeAdmin() {
     criar.mutate(
       { tipo, alvo: alvoNumero, recompensa },
       {
-        onSuccess: () => {
-          toast.success('Meta do time criada para esta semana');
-          setAlvo('');
-          setRecompensa('');
-        },
+        onSuccess: () => toast.success(existente ? 'Meta do time atualizada' : 'Meta do time criada para esta semana'),
         onError: () => toast.error('Não foi possível salvar a meta. Tente de novo.'),
       },
     );
@@ -81,7 +94,7 @@ export function MetaDoTimeAdmin() {
         <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
           <div className="space-y-1.5">
             <Label htmlFor="meta-tipo">Tipo de meta</Label>
-            <Select value={tipo} onValueChange={v => setTipo(v as TipoDeMeta)}>
+            <Select value={tipo} onValueChange={v => escolherTipo(v as TipoDeMeta)}>
               <SelectTrigger id="meta-tipo">
                 <SelectValue />
               </SelectTrigger>
