@@ -115,7 +115,7 @@ export function CartaoVoce({ eu, jogadores, rotuloPeriodo }: { eu: Jogador | nul
             <div>
               <div className="mb-1 flex justify-between text-xs text-muted-foreground">
                 <span>Score {eu.score}/100</span>
-                <span>{eu.entregas} entregas · {eu.dias_ativos} dias ativos</span>
+                <span>{eu.entregas} entregas · {eu.dias_ativos} dias úteis com ação</span>
               </div>
               <Progress value={eu.score} className="h-2.5" />
             </div>
@@ -198,7 +198,7 @@ export function Destaques({ jogadores }: { jogadores: Jogador[] }) {
   };
   const itens = [
     { titulo: 'Mais entregas', icone: <CheckCircle2 className="h-4 w-4" />, j: lider(j => j.entregas), valor: (j: Jogador) => `${j.entregas} cards`, cor: 'text-green-600 bg-green-500/10' },
-    { titulo: 'Mais constante', icone: <Flame className="h-4 w-4" />, j: lider(j => j.dias_ativos), valor: (j: Jogador) => `${j.dias_ativos} dias ativos`, cor: 'text-orange-600 bg-orange-500/10' },
+    { titulo: 'Mais constante', icone: <Flame className="h-4 w-4" />, j: lider(j => j.dias_ativos), valor: (j: Jogador) => `${j.dias_ativos} dias úteis com ação`, cor: 'text-orange-600 bg-orange-500/10' },
     { titulo: 'Mais colaborativo', icone: <MessageSquare className="h-4 w-4" />, j: lider(j => j.comentarios * 2 + j.movimentacoes), valor: (j: Jogador) => `${j.comentarios} comentários · ${j.movimentacoes} movimentações`, cor: 'text-blue-600 bg-blue-500/10' },
     { titulo: 'Mais horas', icone: <Clock className="h-4 w-4" />, j: lider(j => j.horas), valor: (j: Jogador) => `${j.horas}h`, cor: 'text-purple-600 bg-purple-500/10' },
   ];
@@ -235,7 +235,7 @@ export function Destaques({ jogadores }: { jogadores: Jogador[] }) {
 export function Desafios({ semana }: { semana: any | null }) {
   const lista = [
     { titulo: 'Entregar 3 cards', atual: semana?.entregas ?? 0, meta: 3, icone: <CheckCircle2 className="h-4 w-4" /> },
-    { titulo: 'Ficar ativo em 4 dias', atual: semana?.dias_ativos ?? 0, meta: 4, icone: <Flame className="h-4 w-4" /> },
+    { titulo: 'Agir em 4 dias úteis', atual: semana?.dias_ativos ?? 0, meta: 4, icone: <Flame className="h-4 w-4" /> },
     { titulo: 'Comentar em 5 cards', atual: semana?.comentarios ?? 0, meta: 5, icone: <MessageSquare className="h-4 w-4" /> },
     { titulo: 'Registrar 5h no cronômetro', atual: Math.floor(Number(semana?.horas ?? 0)), meta: 5, icone: <Clock className="h-4 w-4" /> },
   ];
@@ -369,7 +369,7 @@ export function RankingCompleto({ jogadores, pesos, meuId }: { jogadores: Jogado
                 </p>
                 <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                   <span>{j.entregas} entregas</span>
-                  <span>{j.dias_ativos} dias ativos</span>
+                  <span>{j.dias_ativos} dias úteis com ação</span>
                   <span>{j.comentarios} comentários</span>
                   {j.streak_atual > 0 && (
                     <span className="inline-flex items-center gap-0.5 text-orange-600">
@@ -559,7 +559,7 @@ export function Niveis({ jogadores, eu, pesos }: { jogadores: Jogador[]; eu: Jog
           <CardContent className="space-y-2 text-sm">
             {[
               ['Entregas', pesos.entrega],
-              ['Constância (dias ativos)', pesos.constancia],
+              ['Constância (dias úteis com ação)', pesos.constancia],
               ['Colaboração', pesos.colaboracao],
               ['Horas no cronômetro', pesos.horas],
             ].map(([nome, peso]) => (

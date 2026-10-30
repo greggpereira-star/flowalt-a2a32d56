@@ -35,7 +35,7 @@ const PADRAO: Config = {
   peso_colaboracao: 20,
   peso_horas: 10,
   meta_entregas: 12,
-  meta_dias: 20,
+  meta_dias: 18,
   meta_colaboracao: 40,
   meta_horas: 20,
   valor_atraso: 70,
@@ -43,16 +43,16 @@ const PADRAO: Config = {
 
 const PESOS: { chave: keyof Config; rotulo: string; ajuda: string }[] = [
   { chave: 'peso_entrega', rotulo: 'Entregas', ajuda: 'Cards concluídos em que a pessoa é responsável' },
-  { chave: 'peso_constancia', rotulo: 'Constância', ajuda: 'Dias em que a pessoa usou o sistema' },
+  { chave: 'peso_constancia', rotulo: 'Constância', ajuda: 'Dias úteis em que a pessoa agiu: comentou, moveu, criou ou entregou card, ou lançou horas' },
   { chave: 'peso_colaboracao', rotulo: 'Colaboração', ajuda: 'Comentários, movimentações e cards criados' },
   { chave: 'peso_horas', rotulo: 'Horas registradas', ajuda: 'Tempo apontado no cronômetro' },
 ];
 
 const METAS: { chave: keyof Config; rotulo: string; ajuda: string; max: number }[] = [
-  { chave: 'meta_entregas', rotulo: 'Meta de entregas', ajuda: 'cards em 30 dias para pontuar o máximo', max: 500 },
-  { chave: 'meta_dias', rotulo: 'Meta de dias ativos', ajuda: 'dias em 30 para pontuar o máximo', max: 31 },
-  { chave: 'meta_colaboracao', rotulo: 'Meta de colaboração', ajuda: 'ações (comentário vale 2) para o máximo', max: 1000 },
-  { chave: 'meta_horas', rotulo: 'Meta de horas', ajuda: 'horas em 30 dias para o máximo', max: 744 },
+  { chave: 'meta_entregas', rotulo: 'Meta de entregas', ajuda: 'cards em 30 dias (a meta vale 80% do peso; o dobro vale 100%)', max: 500 },
+  { chave: 'meta_dias', rotulo: 'Meta de dias com ação', ajuda: 'dias úteis com ação em 30 dias para pontuar o máximo', max: 31 },
+  { chave: 'meta_colaboracao', rotulo: 'Meta de colaboração', ajuda: 'ações, comentário vale 2 (a meta vale 80% do peso; o dobro vale 100%)', max: 1000 },
+  { chave: 'meta_horas', rotulo: 'Meta de horas', ajuda: 'horas em 30 dias (a meta vale 80% do peso; o dobro vale 100%)', max: 744 },
 ];
 
 export function RankingConfigDialog({ workspaceId }: { workspaceId: string }) {
@@ -115,7 +115,7 @@ export function RankingConfigDialog({ workspaceId }: { workspaceId: string }) {
         <DialogHeader>
           <DialogTitle>Configurar pontuação do ranking</DialogTitle>
           <DialogDescription>
-            O score de 0 a 100 é a soma dos quatro pesos. Cada peso é atingido por inteiro quando a pessoa bate a meta correspondente.
+            O score de 0 a 100 é a soma dos quatro pesos. Entregas, colaboração e horas: bater a meta vale 80% do peso, e os outros 20% se ganham até o dobro da meta. Constância: o peso inteiro na meta.
           </DialogDescription>
         </DialogHeader>
 
@@ -148,7 +148,7 @@ export function RankingConfigDialog({ workspaceId }: { workspaceId: string }) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">Metas para pontuar o máximo</p>
+            <p className="mb-2 text-sm font-medium">Metas</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {METAS.map(m => (
                 <div key={m.chave} className="space-y-1">

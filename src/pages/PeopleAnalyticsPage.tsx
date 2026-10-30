@@ -320,7 +320,7 @@ export default function PeopleAnalyticsPage() {
 
   // Export to CSV
   const exportToCSV = () => {
-    const headers = ['Posição', 'Nome', 'Cargo', 'Score (30 dias)', 'Entrega', 'Constância', 'Colaboração', 'Horas', 'Dias ativos', 'Nível', 'XP', 'Cards Concluídos (30 dias)', 'Cards em Aberto', 'Horas Registradas (30 dias)'];
+    const headers = ['Posição', 'Nome', 'Cargo', 'Score (30 dias)', 'Entrega', 'Constância', 'Colaboração', 'Horas', 'Dias úteis com ação', 'Nível', 'XP', 'Cards Concluídos (30 dias)', 'Cards em Aberto', 'Horas Registradas (30 dias)'];
     const rows = overallStats.equipe.map((m, i) => [
       i + 1,
       m.name,
@@ -538,7 +538,7 @@ export default function PeopleAnalyticsPage() {
                         {overallStats.topPerformer.score}/100
                       </Badge>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {overallStats.topPerformer.cards_completed} concluídos · {overallStats.topPerformer.dias_ativos} dias ativos
+                        {overallStats.topPerformer.cards_completed} concluídos · {overallStats.topPerformer.dias_ativos} dias úteis com ação
                       </p>
                     </div>
                   </div>
@@ -581,7 +581,7 @@ export default function PeopleAnalyticsPage() {
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                           <span>{member.cards_completed} concluídos</span>
                           <span>{member.cards_open} em aberto</span>
-                          <span>{member.dias_ativos} dias ativos</span>
+                          <span>{member.dias_ativos} dias úteis com ação</span>
                           <span>{member.comentarios} comentários</span>
                           <span className="inline-flex items-center gap-1">
                             <Medal className="h-3 w-3" />
