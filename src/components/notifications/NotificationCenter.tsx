@@ -25,6 +25,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
   ranking_change: <Trophy className="h-4 w-4 text-yellow-500" />,
   weekly_mvp: <Trophy className="h-4 w-4 text-yellow-500" />,
   team_goal: <Trophy className="h-4 w-4 text-green-500" />,
+  season_end: <Trophy className="h-4 w-4 text-yellow-500" />,
   mention: <AtSign className="h-4 w-4 text-blue-500" />,
   approval_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
   approval_changes_requested: <AlertTriangle className="h-4 w-4 text-rose-500" />,
@@ -56,8 +57,8 @@ export function NotificationCenter() {
     }
 
     // Avisos da gamificacao (ranking, MVP, meta do time, nivel) abrem a tela de Gamificacao
-    if (['ranking_change', 'weekly_mvp', 'team_goal', 'level_up'].includes(notification.type)) {
-      navigate('/gamification');
+    if (['ranking_change', 'weekly_mvp', 'team_goal', 'level_up', 'season_end'].includes(notification.type)) {
+      navigate(typeof notification.metadata?.route === 'string' ? notification.metadata.route : '/gamification');
       return;
     }
 

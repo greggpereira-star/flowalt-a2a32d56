@@ -29,6 +29,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { MetaDoTimeCard } from '@/components/gamification/MetaDoTimeCard';
 import { MetaDoTimeAdmin } from '@/components/gamification/MetaDoTimeAdmin';
+import { useSearchParams } from 'react-router-dom';
+import { TemporadaTab } from '@/components/gamification/TemporadaTab';
+import { PremioDaTemporadaAdmin } from '@/components/gamification/PremioDaTemporadaAdmin';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -41,6 +44,10 @@ export default function GamificationPage() {
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === 'admin' || currentRole === 'owner';
   const [periodo, setPeriodo] = useState<Periodo>(30);
+  // O aviso de fim de temporada abre direto na aba certa (?aba=temporada)
+  const [params] = useSearchParams();
+  const abaPedida = params.get('aba');
+  const abaInicial = ['ranking', 'temporada', 'conquistas', 'niveis'].includes(abaPedida ?? '') ? (abaPedida as string) : 'ranking';
   const [criterio, setCriterio] = useState<Criterio>('score');
 
   const { jogadores, eu, pesos, meusUltimos7, carregando, erro } = useGamificationData(periodo);
@@ -85,9 +92,10 @@ export default function GamificationPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="ranking" className="space-y-6">
+        <Tabs defaultValue={abaInicial} className="space-y-6">
           <TabsList>
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
+            <TabsTrigger value="temporada">Temporada</TabsTrigger>
             <TabsTrigger value="conquistas">Conquistas</TabsTrigger>
             <TabsTrigger value="niveis">Níveis</TabsTrigger>
             {isAdmin && <TabsTrigger value="admin">Gerenciar Metas</TabsTrigger>}
@@ -119,6 +127,10 @@ export default function GamificationPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="temporada">
+            <TemporadaTab />
+          </TabsContent>
+
           <TabsContent value="conquistas">
             <Conquistas jogadores={jogadores} meuId={eu?.user_id} medalhasTime={medalhasTime} />
           </TabsContent>
@@ -130,6 +142,7 @@ export default function GamificationPage() {
           {isAdmin && (
             <TabsContent value="admin">
               <div className="space-y-6">
+                <PremioDaTemporadaAdmin />
                 <MetaDoTimeAdmin />
                 <WeeklyGoalsAdmin />
               </div>
