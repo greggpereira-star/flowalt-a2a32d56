@@ -157,7 +157,7 @@ export function Podio({ jogadores, meuId }: { jogadores: Jogador[]; meuId?: stri
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" /> Pódio
         </CardTitle>
-        <CardDescription>Os três com maior score no período</CardDescription>
+        <CardDescription>Os três com maior score no período. O nível abaixo do nome é vitalício (pelo XP de todo o histórico) e não define a posição.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-end justify-center gap-2 sm:gap-6">
@@ -172,7 +172,7 @@ export function Podio({ jogadores, meuId }: { jogadores: Jogador[]; meuId?: stri
                 <p className={cn('mt-2 w-full truncate text-sm font-semibold', j.user_id === meuId && 'text-primary')}>
                   {j.name.split(' ')[0]}
                 </p>
-                <p className="text-xs text-muted-foreground">{j.nivel_icone} {j.nivel_nome}</p>
+                <p className="w-full truncate text-xs text-muted-foreground" title="Nível vitalício, pelo XP de todo o histórico. Não define a posição no pódio.">{j.nivel_icone} Nível {j.nivel} · {j.nivel_nome}</p>
                 <div className={cn('mt-2 flex w-full flex-col items-center justify-start rounded-t-lg bg-gradient-to-b pt-2', m.fundo, altura)}>
                   <span className={cn('text-2xl font-black', m.texto)}>{m.rotulo}</span>
                   <span className="text-sm font-bold tabular-nums">{j.score}</span>
@@ -199,7 +199,7 @@ export function Destaques({ jogadores }: { jogadores: Jogador[] }) {
   const itens = [
     { titulo: 'Mais entregas', icone: <CheckCircle2 className="h-4 w-4" />, j: lider(j => j.entregas), valor: (j: Jogador) => `${j.entregas} cards`, cor: 'text-green-600 bg-green-500/10' },
     { titulo: 'Mais constante', icone: <Flame className="h-4 w-4" />, j: lider(j => j.dias_ativos), valor: (j: Jogador) => `${j.dias_ativos} dias ativos`, cor: 'text-orange-600 bg-orange-500/10' },
-    { titulo: 'Mais colaborativo', icone: <MessageSquare className="h-4 w-4" />, j: lider(j => j.comentarios * 2 + j.movimentacoes), valor: (j: Jogador) => `${j.comentarios} comentários`, cor: 'text-blue-600 bg-blue-500/10' },
+    { titulo: 'Mais colaborativo', icone: <MessageSquare className="h-4 w-4" />, j: lider(j => j.comentarios * 2 + j.movimentacoes), valor: (j: Jogador) => `${j.comentarios} comentários · ${j.movimentacoes} movimentações`, cor: 'text-blue-600 bg-blue-500/10' },
     { titulo: 'Mais horas', icone: <Clock className="h-4 w-4" />, j: lider(j => j.horas), valor: (j: Jogador) => `${j.horas}h`, cor: 'text-purple-600 bg-purple-500/10' },
   ];
 
