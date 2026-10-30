@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AtSign, Calendar, Award, UserPlus, AlertTriangle, Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AtSign, Calendar, Award, UserPlus, AlertTriangle, Bell, Trophy } from 'lucide-react';
 
 const notificationIcons: Record<string, React.ReactNode> = {
   mention: <AtSign className="h-4 w-4 text-primary" />,
@@ -10,10 +11,17 @@ const notificationIcons: Record<string, React.ReactNode> = {
   badge_earned: <Award className="h-4 w-4 text-warning" />,
   assignment: <UserPlus className="h-4 w-4 text-success" />,
   webhook_failure: <AlertTriangle className="h-4 w-4 text-destructive" />,
+  ranking_change: <Trophy className="h-4 w-4 text-warning" />,
+  weekly_mvp: <Trophy className="h-4 w-4 text-warning" />,
+  team_goal: <Trophy className="h-4 w-4 text-success" />,
 };
+
+// Avisos da gamificacao abrem a tela de Gamificacao.
+const TIPOS_DE_GAMIFICACAO = new Set(['ranking_change', 'weekly_mvp', 'team_goal', 'level_up']);
 
 export function NotificationToast() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const hasSubscribed = useRef(false);
 
   useEffect(() => {
@@ -47,7 +55,7 @@ export function NotificationToast() {
             action: {
               label: 'Ver',
               onClick: () => {
-                // Could navigate here if needed
+                if (TIPOS_DE_GAMIFICACAO.has(notification.type)) navigate('/gamification');
               },
             },
           });

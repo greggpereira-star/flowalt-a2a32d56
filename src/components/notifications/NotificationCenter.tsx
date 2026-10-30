@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle, Zap, BellRing } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, AlertTriangle, Calendar, Award, AtSign, UserPlus, Building2, FileText, CheckCircle, XCircle, Zap, BellRing, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,9 @@ const notificationIcons: Record<string, React.ReactNode> = {
   webhook_failure: <AlertTriangle className="h-4 w-4 text-destructive" />,
   card_overdue: <Calendar className="h-4 w-4 text-orange-500" />,
   badge_earned: <Award className="h-4 w-4 text-yellow-500" />,
+  ranking_change: <Trophy className="h-4 w-4 text-yellow-500" />,
+  weekly_mvp: <Trophy className="h-4 w-4 text-yellow-500" />,
+  team_goal: <Trophy className="h-4 w-4 text-green-500" />,
   mention: <AtSign className="h-4 w-4 text-blue-500" />,
   approval_approved: <CheckCircle className="h-4 w-4 text-green-500" />,
   approval_changes_requested: <AlertTriangle className="h-4 w-4 text-rose-500" />,
@@ -49,6 +52,12 @@ export function NotificationCenter() {
     // Mencao no chat abre o canal
     if (notification.type === 'chat_mention' && notification.metadata?.channel_id) {
       navigate(`/conversas?canal=${notification.metadata.channel_id as string}`);
+      return;
+    }
+
+    // Avisos da gamificacao (ranking, MVP, meta do time, nivel) abrem a tela de Gamificacao
+    if (['ranking_change', 'weekly_mvp', 'team_goal', 'level_up'].includes(notification.type)) {
+      navigate('/gamification');
       return;
     }
 

@@ -497,13 +497,16 @@ export function Conquistas({
   medalhasTime: { user_id: string; badge_type: string; earned_at: string }[];
 }) {
   const totalMembros = Math.max(1, jogadores.length);
-  const minhas = new Map(medalhasTime.filter(m => m.user_id === meuId).map(m => [m.badge_type, m.earned_at]));
+  // So conta quem esta ativo na equipe: antes o total incluia quem saiu e a raridade passava de 100% ("12/8").
+  const idsAtivos = new Set(jogadores.map(j => j.user_id));
+  const medalhasAtivas = medalhasTime.filter(m => idsAtivos.has(m.user_id));
+  const minhas = new Map(medalhasAtivas.filter(m => m.user_id === meuId).map(m => [m.badge_type, m.earned_at]));
   const porTipo = new Map<string, number>();
-  medalhasTime.forEach(m => porTipo.set(m.badge_type, (porTipo.get(m.badge_type) ?? 0) + 1));
+  medalhasAtivas.forEach(m => porTipo.set(m.badge_type, (porTipo.get(m.badge_type) ?? 0) + 1));
 
   const todas = Object.values(BADGE_DEFINITIONS);
   const conquistadas = todas.filter(b => minhas.has(b.type)).length;
-  const recentes = medalhasTime.filter(m => BADGE_DEFINITIONS[m.badge_type]).slice(0, 8);
+  const recentes = medalhasAtivas.filter(m => BADGE_DEFINITIONS[m.badge_type]).slice(0, 8);
   const nome = (id: string) => jogadores.find(j => j.user_id === id);
 
   const raridade = (tipo: string) => {

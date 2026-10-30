@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Maximize, Minimize, Rows3, Volume2, VolumeX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronsDown, Loader2, Maximize, Minimize, Rows3, Trophy, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 // A ficha da demanda arrasta o editor de texto e o gerador de PDF (~0,8 MB). O monitor so a abre depois de um clique, entao ela
 // fica fora do carregamento inicial e e baixada com a tela ociosa, para o primeiro clique nao esperar rede.
 import { SemBriefingTag } from '@/components/cards/SemBriefingTag';
+import { PlacarDaSemana } from '@/components/monitor/PlacarDaSemana';
 const carregarFicha = () => import('@/components/cards/CardDetailSheet');
 const CardDetailSheet = lazy(() => carregarFicha().then(m => ({ default: m.CardDetailSheet })));
 const PRECARGA_DA_FICHA_MS = 8_000;
@@ -139,6 +140,7 @@ export default function MonitorPage() {
   const [novas, setNovas] = useState<ReadonlySet<string>>(new Set());
   const [compacto, setCompacto] = useState(() => guardado('monitor-compacto', false));
   const [rotacao, setRotacao] = useState(() => guardado('monitor-rolagem', true));
+  const [placar, setPlacar] = useState(() => guardado('monitor-placar', true));
 
   const { tentarTransicao, aviso } = useCardStatusTransition({ aoAbrirCard: (c: Card) => setCardAberto(c.id) });
 
@@ -432,6 +434,14 @@ export default function MonitorPage() {
                 icone: <ChevronsDown className="h-5 w-5" aria-hidden />,
               },
               {
+                chave: 'placar',
+                ligado: placar,
+                alternar: () => setPlacar(v => { guardar('monitor-placar', !v); return !v; }),
+                rotulo: 'Placar da semana',
+                dica: placar ? 'Placar da semana ligado: top 3 e meta do time' : 'Placar da semana desligado',
+                icone: <Trophy className="h-5 w-5" aria-hidden />,
+              },
+              {
                 chave: 'som',
                 ligado: somLigado,
                 alternar: () => setSomLigado(v => { guardar('monitor-som', !v); if (!v) tocarAviso(); return !v; }),
@@ -468,6 +478,8 @@ export default function MonitorPage() {
           </button>
         </div>
       </header>
+
+      {placar && <PlacarDaSemana />}
 
       {/* Largura >= 1280 px: as quatro colunas dividem a tela. Abaixo disso: trilho horizontal com encaixe (cada coluna ocupa
           quase toda a largura e a seguinte aparece de relance), em vez de empilhar e jogar as etapas finais para baixo da dobra. */}

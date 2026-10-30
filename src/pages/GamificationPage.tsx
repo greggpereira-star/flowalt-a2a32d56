@@ -27,6 +27,8 @@ import { usePageTracking } from '@/hooks/usePageTracking';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { MetaDoTimeCard } from '@/components/gamification/MetaDoTimeCard';
+import { MetaDoTimeAdmin } from '@/components/gamification/MetaDoTimeAdmin';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -108,6 +110,7 @@ export default function GamificationPage() {
                   <Podio jogadores={jogadores} meuId={eu?.user_id} />
                   <Desafios semana={meusUltimos7} />
                 </div>
+                <MetaDoTimeCard />
                 <Destaques jogadores={jogadores} rotuloPeriodo={rotuloPeriodo} onSelecionar={setCriterio} />
                 <RankingCompleto jogadores={jogadores} pesos={pesos} meuId={eu?.user_id} criterio={criterio} onCriterio={setCriterio} />
                 {goals.length > 0 && <WeeklyGoalsCard />}
@@ -126,7 +129,10 @@ export default function GamificationPage() {
 
           {isAdmin && (
             <TabsContent value="admin">
-              <WeeklyGoalsAdmin />
+              <div className="space-y-6">
+                <MetaDoTimeAdmin />
+                <WeeklyGoalsAdmin />
+              </div>
             </TabsContent>
           )}
         </Tabs>
