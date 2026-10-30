@@ -35,6 +35,7 @@ import { PremioDaTemporadaAdmin } from '@/components/gamification/PremioDaTempor
 import { MissoesDaSemanaCard } from '@/components/gamification/MissoesDaSemanaCard';
 import { MissoesDiariasCard } from '@/components/gamification/MissoesDiariasCard';
 import { TrilhasDeConquista } from '@/components/gamification/TrilhasDeConquista';
+import { KudosTab } from '@/components/gamification/KudosTab';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -50,7 +51,7 @@ export default function GamificationPage() {
   // O aviso de fim de temporada abre direto na aba certa (?aba=temporada)
   const [params] = useSearchParams();
   const abaPedida = params.get('aba');
-  const abaInicial = ['ranking', 'temporada', 'conquistas', 'niveis'].includes(abaPedida ?? '') ? (abaPedida as string) : 'ranking';
+  const abaInicial = ['ranking', 'temporada', 'conquistas', 'kudos', 'niveis'].includes(abaPedida ?? '') ? (abaPedida as string) : 'ranking';
   const [criterio, setCriterio] = useState<Criterio>('score');
 
   const { jogadores, eu, pesos, meusUltimos7, carregando, erro } = useGamificationData(periodo);
@@ -100,6 +101,7 @@ export default function GamificationPage() {
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
             <TabsTrigger value="temporada">Temporada</TabsTrigger>
             <TabsTrigger value="conquistas">Conquistas</TabsTrigger>
+            <TabsTrigger value="kudos">Kudos</TabsTrigger>
             <TabsTrigger value="niveis">Níveis</TabsTrigger>
             {isAdmin && <TabsTrigger value="admin">Gerenciar Metas</TabsTrigger>}
           </TabsList>
@@ -134,6 +136,10 @@ export default function GamificationPage() {
 
           <TabsContent value="temporada">
             <TemporadaTab />
+          </TabsContent>
+
+          <TabsContent value="kudos">
+            <KudosTab />
           </TabsContent>
 
           <TabsContent value="conquistas">
