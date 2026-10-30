@@ -33,6 +33,7 @@ import { useSearchParams } from 'react-router-dom';
 import { TemporadaTab } from '@/components/gamification/TemporadaTab';
 import { PremioDaTemporadaAdmin } from '@/components/gamification/PremioDaTemporadaAdmin';
 import { MissoesDaSemanaCard } from '@/components/gamification/MissoesDaSemanaCard';
+import { MissoesDiariasCard } from '@/components/gamification/MissoesDiariasCard';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -119,6 +120,7 @@ export default function GamificationPage() {
                   <Podio jogadores={jogadores} meuId={eu?.user_id} />
                   <Desafios semana={meusUltimos7} />
                 </div>
+                <MissoesDiariasCard />
                 <MetaDoTimeCard />
                 <MissoesDaSemanaCard />
                 <Destaques jogadores={jogadores} rotuloPeriodo={rotuloPeriodo} onSelecionar={setCriterio} />
