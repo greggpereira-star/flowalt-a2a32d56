@@ -119,6 +119,8 @@ export interface TransitionValidationResult {
   allowed: boolean;
   gates: GateValidationResult[];
   failedGates: GateValidationResult[];
+  /** Avisos que NAO bloqueiam a transicao (hoje: briefing ausente). Quem move mostra o alerta e registra o que faltou. */
+  warnings?: GateValidationResult[];
   requiresReason: boolean;
   isBackward: boolean;
 }
@@ -298,6 +300,7 @@ export const validateTransition = async (
       allowed: false,
       gates: [],
       failedGates: [{ passed: false, gate: 'stage_exists', message: 'Etapa não encontrada no workflow' }],
+      warnings: [],
       requiresReason: false,
       isBackward: false,
     };
@@ -355,25 +358,23 @@ export const validateTransition = async (
     }
   }
 
-  // Gate: Briefing
-  // Roles that can bypass briefing requirement: owner, admin, finance, coordinator, super_admin
-  const briefingExemptRoles = ['owner', 'admin', 'finance', 'coordinator', 'super_admin'];
-  const isBriefingExempt = briefingExemptRoles.includes(userRole);
-  
+  // Gate: Briefing (AVISO, nao bloqueio)
+  // Pedido da equipe: o card precisa poder andar no quadro mesmo sem briefing. A etapa continua declarando requires_briefing,
+  // mas a falta agora gera um aviso: a transicao passa, o que faltou fica no historico (gates_failed) e o card ganha a marca
+  // "Sem briefing" ate o briefing ser preenchido. Antes, so owner, admin, financeiro e coordenador passavam sem briefing.
+  const warnings: GateValidationResult[] = [];
   if (targetStage.requires_briefing) {
-    if (briefingCompleted || isBriefingExempt) {
+    if (briefingCompleted) {
       gates.push({
         passed: true,
         gate: 'briefing_completed',
-        message: isBriefingExempt && !briefingCompleted 
-          ? 'Briefing dispensado pelo cargo' 
-          : 'Briefing completo',
+        message: 'Briefing completo',
       });
     } else {
-      failedGates.push({
+      warnings.push({
         passed: false,
         gate: 'briefing_completed',
-        message: 'Complete o briefing antes de avançar para esta etapa',
+        message: 'Card movido sem briefing: complete o briefing o quanto antes',
       });
     }
   }
@@ -416,6 +417,7 @@ export const validateTransition = async (
     allowed: failedGates.length === 0,
     gates,
     failedGates,
+    warnings,
     requiresReason,
     isBackward,
   };

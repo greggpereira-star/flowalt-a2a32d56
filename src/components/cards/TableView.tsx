@@ -18,6 +18,7 @@ import { useCardStatusTransition } from '@/hooks/useCardStatusTransition';
 import { CelulaEtapa, CelulaPrazo, CelulaPrioridade, CelulaResponsavel, IconeSemResponsavel } from './CelulasEditaveis';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
+import { SemBriefingTag } from './SemBriefingTag';
 
 interface TableViewProps {
   cards: Card[];
@@ -212,6 +213,7 @@ export const TableView: React.FC<TableViewProps> = ({ cards, onCardClick, onAddC
 
                         <div role="cell" className="flex min-w-0 items-center px-3 py-2">
                           <span className="truncate font-medium">{card.title}</span>
+                          <SemBriefingTag card={card} compact className="ml-2" />
                         </div>
 
                         <div role="cell" className="flex items-stretch">

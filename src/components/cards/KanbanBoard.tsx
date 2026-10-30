@@ -39,6 +39,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import type { Card } from '@/hooks/useCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import type { Assignee } from './CardAssignees';
+import { SemBriefingTag, cardSemBriefing } from './SemBriefingTag';
 
 interface KanbanBoardProps {
   cards: Card[];
@@ -95,23 +96,9 @@ const CardBlockIndicators: React.FC<{ card: Card }> = ({ card }) => {
   
   const indicators = [];
   
-  // Only show briefing indicator for 'full' cards that don't have briefing completed
-  // Quick cards (card_type === 'quick') never show briefing indicator
-  const isQuickCard = (card as any).card_type === 'quick';
-  
-  if (!isQuickCard && !card.briefing_completed) {
-    indicators.push(
-      <Tooltip key="briefing">
-        <TooltipTrigger asChild>
-          <div className="p-1 rounded-full bg-amber-500/20">
-            <FileText className="h-3 w-3 text-amber-600" />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <p className="text-xs">Briefing pendente</p>
-        </TooltipContent>
-      </Tooltip>
-    );
+  // Etiqueta "Sem briefing" (olha o conteudo do briefing, como o fluxo; card rapido e card entregue nunca mostram).
+  if (cardSemBriefing(card)) {
+    indicators.push(<SemBriefingTag key="briefing" card={card} compact />);
   }
   
   if (checklists && checklists.length > 0 && checklistProgress < 100) {

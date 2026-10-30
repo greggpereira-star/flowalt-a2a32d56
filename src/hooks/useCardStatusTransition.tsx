@@ -17,8 +17,8 @@ import type { Card } from '@/hooks/useCards';
 import type { CardStatus } from '@/lib/supabase';
 
 /**
- * Troca de etapa de um card com as MESMAS regras do quadro Kanban: valida os gates do fluxo (briefing, checklist,
- * dependências), registra a transição, mostra o aviso de bloqueio e permite forçar com justificativa quem tem papel para isso.
+ * Troca de etapa de um card com as MESMAS regras do quadro Kanban: valida os gates do fluxo (checklist,
+ * dependências; o briefing só AVISA e marca o card), registra a transição, mostra o aviso de bloqueio e permite forçar com justificativa quem tem papel para isso.
  * A lógica de `attemptTransition` é a mesma do KanbanBoard; qualquer mudança de regra precisa ser feita nos dois.
  */
 export function useCardStatusTransition({ aoAbrirCard }: { aoAbrirCard: (card: Card) => void }) {
@@ -164,15 +164,25 @@ export function useCardStatusTransition({ aoAbrirCard }: { aoAbrirCard: (card: C
       workflowId: defaultWorkflow.id,
       transitionType: 'normal',
       gatesPassed: validation.gates.map(g => g.gate),
+      // avisos (ex.: briefing ausente) ficam no historico da transicao
+      gatesFailed: (validation.warnings ?? []).map(g => g.gate),
     });
 
     // Also update legacy status for compatibility
     await updateCard.mutateAsync({ id: card.id, status: targetStatus });
     
-    toast({
-      title: 'Card movido',
-      description: `Movido para ${statusConfig[targetStatus].label}`,
-    });
+    const semBriefing = (validation.warnings ?? []).some(w => w.gate === 'briefing_completed');
+    toast(
+      semBriefing
+        ? {
+            title: 'Card movido sem briefing',
+            description: `Movido para ${statusConfig[targetStatus].label}. O card ficou marcado como "Sem briefing": complete o briefing o quanto antes.`,
+          }
+        : {
+            title: 'Card movido',
+            description: `Movido para ${statusConfig[targetStatus].label}`,
+          },
+    );
   }, [defaultWorkflow, stages, transitions, currentRole, transitionCard, updateCard, toast]);
 
   const mudarEtapa = async (card: Card, novaEtapa: CardStatus) => {

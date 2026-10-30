@@ -43,6 +43,7 @@ import { useClients } from '@/hooks/useClients';
 import { useClientCards } from '@/hooks/useClientCards';
 import type { CardStatus, CardUrgency } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { AvisoSemBriefing } from './SemBriefingTag';
 
 interface CardDetailSheetProps {
   cardId: string | null;
@@ -595,6 +596,9 @@ export const CardDetailSheet: React.FC<CardDetailSheetProps> = ({
                     {/* Briefing Section - Only for non-quick cards */}
                     {!isQuickCard && (
                       <div className="pt-1">
+                        <AvisoSemBriefing
+                          card={{ status, card_type: (card as any).card_type, briefing_data: briefingData, traffic_briefing_data: isTrafficSpace ? trafficBriefingData : null }}
+                        />
                         <CardBriefingSection
                           isCompleted={card.briefing_completed || false}
                           briefingData={briefingData}

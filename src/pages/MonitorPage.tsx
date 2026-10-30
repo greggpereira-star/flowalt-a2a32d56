@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 
 // A ficha da demanda arrasta o editor de texto e o gerador de PDF (~0,8 MB). O monitor so a abre depois de um clique, entao ela
 // fica fora do carregamento inicial e e baixada com a tela ociosa, para o primeiro clique nao esperar rede.
+import { SemBriefingTag } from '@/components/cards/SemBriefingTag';
 const carregarFicha = () => import('@/components/cards/CardDetailSheet');
 const CardDetailSheet = lazy(() => carregarFicha().then(m => ({ default: m.CardDetailSheet })));
 const PRECARGA_DA_FICHA_MS = 8_000;
@@ -531,6 +532,7 @@ export default function MonitorPage() {
                               : 'Sem prazo'}
                       </span>
                       {urg && <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold ring-1', urg.classe)}>{urg.rotulo}</span>}
+                      <SemBriefingTag card={card} compact />
                     </div>
 
                     <div className={cn('flex items-center justify-between gap-2', compacto ? 'mt-2' : 'mt-3')}>
