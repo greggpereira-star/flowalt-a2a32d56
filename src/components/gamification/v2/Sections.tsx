@@ -323,7 +323,7 @@ export function Desafios({ semana }: { semana: any | null }) {
   const lista = [
     { titulo: 'Entregar 3 cards', atual: semana?.entregas ?? 0, meta: 3, icone: <CheckCircle2 className="h-4 w-4" /> },
     { titulo: 'Agir em 4 dias úteis', atual: semana?.dias_ativos ?? 0, meta: 4, icone: <Flame className="h-4 w-4" /> },
-    { titulo: 'Comentar em 5 cards', atual: semana?.comentarios ?? 0, meta: 5, icone: <MessageSquare className="h-4 w-4" /> },
+    { titulo: 'Fazer 5 comentários', atual: semana?.comentarios ?? 0, meta: 5, icone: <MessageSquare className="h-4 w-4" /> },
     { titulo: 'Registrar 5h no cronômetro', atual: Math.floor(Number(semana?.horas ?? 0)), meta: 5, icone: <Clock className="h-4 w-4" /> },
   ];
   const feitos = lista.filter(l => l.atual >= l.meta).length;
@@ -336,7 +336,7 @@ export function Desafios({ semana }: { semana: any | null }) {
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" /> Desafios da semana
             </CardTitle>
-            <CardDescription>Últimos 7 dias · {feitos} de {lista.length} concluídos</CardDescription>
+            <CardDescription>Últimos 7 dias · {feitos} de {lista.length} concluídos · não rendem XP</CardDescription>
           </div>
           {feitos === lista.length && (
             <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white">
