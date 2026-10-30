@@ -34,6 +34,7 @@ import { TemporadaTab } from '@/components/gamification/TemporadaTab';
 import { PremioDaTemporadaAdmin } from '@/components/gamification/PremioDaTemporadaAdmin';
 import { MissoesDaSemanaCard } from '@/components/gamification/MissoesDaSemanaCard';
 import { MissoesDiariasCard } from '@/components/gamification/MissoesDiariasCard';
+import { TrilhasDeConquista } from '@/components/gamification/TrilhasDeConquista';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -136,7 +137,10 @@ export default function GamificationPage() {
           </TabsContent>
 
           <TabsContent value="conquistas">
-            <Conquistas jogadores={jogadores} meuId={eu?.user_id} medalhasTime={medalhasTime} />
+            <div className="space-y-6">
+              <TrilhasDeConquista jogadores={jogadores} meuId={eu?.user_id} />
+              <Conquistas jogadores={jogadores} meuId={eu?.user_id} medalhasTime={medalhasTime} />
+            </div>
           </TabsContent>
 
           <TabsContent value="niveis">
