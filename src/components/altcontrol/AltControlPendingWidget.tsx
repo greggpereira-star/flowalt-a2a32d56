@@ -124,12 +124,14 @@ export const AltControlPendingWidget: React.FC<AltControlPendingWidgetProps> = (
           <CardDescription>Propostas e aprovações comerciais</CardDescription>
         </CardHeader>
         <CardContent className={cn(novo && 'p-5 pt-0')}>
-          <div className={cn('flex flex-col items-center justify-center py-6 text-center', novo && 'max-sm:py-2')}>
-            <div className={cn('mb-3 rounded-full bg-muted p-3', novo && 'max-sm:hidden')}>
-              <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+          <div className={cn('flex flex-col items-center justify-center py-6 text-center', novo && 'flex-row flex-wrap justify-start gap-3 py-1 text-left')}>
+            <div className={cn('mb-3 rounded-full bg-muted p-3', novo && 'mb-0 p-2')}>
+              <CheckCircle2 className={cn('h-6 w-6 text-muted-foreground', novo && 'h-5 w-5')} />
             </div>
-            <p className="mb-1 text-sm font-medium">Tudo em dia!</p>
-            <p className="mb-3 text-xs text-muted-foreground">Nenhuma pendência no momento.</p>
+            <div className={cn(novo && 'min-w-0 flex-1')}>
+              <p className={cn('mb-1 text-sm font-medium', novo && 'mb-0')}>Tudo em dia!</p>
+              <p className={cn('mb-3 text-xs text-muted-foreground', novo && 'mb-0')}>Nenhuma pendência no momento.</p>
+            </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/altcontrol')}>
               Ver Propostas
               <ArrowRight className="ml-2 h-3 w-3" />

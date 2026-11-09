@@ -119,14 +119,16 @@ export function MyTasksWidget({ tasks, isLoading, novo }: MyTasksWidgetProps) {
         )}
 
         {!isLoading && visible.length === 0 && (
-          <div className={cn('flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-8 text-center', novo && 'max-sm:py-5')}>
-            <span className={cn('flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50', novo && 'max-sm:hidden')}>
+          <div className={cn('flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-8 text-center', novo && 'flex-row justify-start gap-3 px-4 py-3 text-left')}>
+            <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50', novo && 'h-9 w-9')}>
               <ListChecks className="h-5 w-5 text-emerald-600" strokeWidth={1.5} />
             </span>
-            <p className={cn('mt-3 text-sm font-medium text-slate-900', novo && 'max-sm:mt-0')}>Tudo em dia!</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Você não tem tarefas pendentes no momento.
-            </p>
+            <div>
+              <p className={cn('mt-3 text-sm font-medium text-slate-900', novo && 'mt-0')}>Tudo em dia!</p>
+              <p className={cn('mt-1 text-sm text-slate-500', novo && 'mt-0')}>
+                Você não tem tarefas pendentes no momento.
+              </p>
+            </div>
           </div>
         )}
 

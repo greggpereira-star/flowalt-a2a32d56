@@ -65,17 +65,26 @@ export function TodayAgenda({ events, isLoading, error, onRetry, novo }: TodayAg
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('/calendar')}>
-            <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
-            Agendar
-          </Button>
-          <Button size="sm" onClick={() => navigate('/calendar')}>
-            Ver agenda
+          {!novo && (
+            <Button variant="outline" size="sm" onClick={() => navigate('/calendar')}>
+              <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
+              Agendar
+            </Button>
+          )}
+          <Button size="sm" variant={novo ? 'outline' : 'default'} onClick={() => navigate('/calendar')}>
+            {novo ? (
+              <>
+                <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
+                Abrir agenda
+              </>
+            ) : (
+              'Ver agenda'
+            )}
           </Button>
         </div>
       </div>
 
-      <div className="mt-5 flex-1">
+      <div className={cn('mt-5 flex-1', novo && 'mt-[13px]')}>
         {isLoading && (
           <div className="space-y-3" aria-busy="true">
             {[0, 1, 2].map((i) => (
@@ -96,7 +105,7 @@ export function TodayAgenda({ events, isLoading, error, onRetry, novo }: TodayAg
         )}
 
         {!isLoading && !error && events.length === 0 && (
-          <div className={cn('flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center', novo && 'max-sm:py-5')}>
+          <div className={cn('flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center', novo && 'py-6 max-sm:py-5')}>
             <span className={cn('flex h-11 w-11 items-center justify-center rounded-full bg-slate-100', novo && 'max-sm:hidden')}>
               <CalendarDays className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
             </span>

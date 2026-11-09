@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 
 export type ModuleName = 
+  | 'home'
   | 'dashboard'
   | 'calendar'
   | 'coordination'
@@ -21,7 +22,7 @@ export type ModuleName =
 
 // Map routes to module names
 const ROUTE_TO_MODULE: Record<string, ModuleName> = {
-  '/': 'dashboard',
+  '/': 'home',
   '/dashboard': 'dashboard',
   '/calendar': 'calendar',
   '/coordination': 'coordination',
