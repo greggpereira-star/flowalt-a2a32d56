@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Heart, Trash2 } from 'lucide-react';
+import { Medal, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ function Foto({ nome, url, className }: { nome: string | null; url: string | nul
   );
 }
 
-/** Reconhecimento entre colegas: 3 palmas por semana, sem pontos. Existe para o jogo nao ficar so competitivo. */
+/** Reconhecimento entre colegas: 3 kudos por semana, sem pontos. Existe para o jogo nao ficar so competitivo. */
 export function KudosTab() {
   const { kudos, carregando, indisponivel } = useKudos();
   const restantes = useKudosRestantes();
@@ -72,17 +72,17 @@ export function KudosTab() {
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-pink-500" aria-hidden /> Dar kudos
+                <Medal className="h-5 w-5 text-primary" aria-hidden /> Dar kudos
               </CardTitle>
               <CardDescription className="mt-1 max-w-xl">
-                Reconheça um colega pelo que ele fez. É só elogio: não dá pontos nem muda o ranking. Uma palma por colega por semana.
+                Reconheça um colega pelo que ele fez. É só elogio: não dá pontos nem muda o ranking. Um por colega por semana.
               </CardDescription>
             </div>
             {restantes !== null && (
               <div className="text-right text-xs text-muted-foreground">
                 <div className="mb-1 flex justify-end gap-1" aria-hidden>
                   {Array.from({ length: KUDOS_POR_SEMANA }, (_, i) => (
-                    <Heart key={i} className={cn('h-4 w-4', i < restantes ? 'fill-pink-500 text-pink-500' : 'text-muted-foreground/40')} />
+                    <Medal key={i} className={cn('h-4 w-4', i < restantes ? 'text-primary' : 'text-muted-foreground/40')} />
                   ))}
                 </div>
                 <p>{rotuloDeRestantes(restantes)}</p>
@@ -118,7 +118,7 @@ export function KudosTab() {
                   onClick={() => setCategoria(c.chave)}
                   className={cn(
                     'rounded-full border px-3 py-1 text-xs font-medium transition',
-                    categoria === c.chave ? 'border-pink-500 bg-pink-500/10 text-pink-700 dark:text-pink-300' : 'text-muted-foreground hover:bg-muted',
+                    categoria === c.chave ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted',
                   )}
                 >
                   {c.rotulo}
@@ -147,7 +147,7 @@ export function KudosTab() {
           </div>
 
           <Button type="button" onClick={enviar} disabled={!podeEnviar}>
-            <Heart className="mr-2 h-4 w-4" aria-hidden /> Enviar kudos
+            <Medal className="mr-2 h-4 w-4" aria-hidden /> Enviar kudos
           </Button>
         </CardContent>
       </Card>
@@ -167,9 +167,9 @@ export function KudosTab() {
                   <div className="flex items-center gap-2.5">
                     <Foto nome={k.de_nome} url={k.de_avatar} className="h-8 w-8 shrink-0" />
                     <p className="min-w-0 flex-1 text-sm">
-                      <strong>{primeiro(k.de_nome)}</strong> reconheceu <strong>{primeiro(k.para_nome)}</strong>
+                      <strong>{primeiro(k.de_nome)}</strong> deu kudos a <strong>{primeiro(k.para_nome)}</strong>
                     </p>
-                    <span className="shrink-0 rounded-full bg-pink-500/10 px-2 py-0.5 text-[11px] font-semibold text-pink-700 dark:text-pink-300">{rotuloDaCategoria(k.categoria)}</span>
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{rotuloDaCategoria(k.categoria)}</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{k.motivo}</p>
                   <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
@@ -180,7 +180,7 @@ export function KudosTab() {
                         className="inline-flex items-center gap-1 hover:text-destructive"
                         disabled={remover.isPending}
                         onClick={() => {
-                          if (window.confirm('Remover este kudos? A palma volta para quem deu.')) {
+                          if (window.confirm('Remover este kudos? Ele volta para quem deu.')) {
                             remover.mutate(k.id, { onError: () => toast.error('Não foi possível remover. Tente de novo.') });
                           }
                         }}

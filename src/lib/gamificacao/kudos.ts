@@ -43,8 +43,8 @@ export function validarMotivo(texto: string): string | null {
 }
 
 export function rotuloDeRestantes(restantes: number): string {
-  if (restantes <= 0) return 'Suas palmas desta semana acabaram. Voltam na segunda.';
-  return restantes === 1 ? 'Você tem 1 palma esta semana.' : `Você tem ${restantes} palmas esta semana.`;
+  if (restantes <= 0) return 'Seus kudos desta semana acabaram. Voltam na segunda.';
+  return restantes === 1 ? 'Você tem 1 kudos esta semana.' : `Você tem ${restantes} kudos esta semana.`;
 }
 
 const ERROS: Record<string, string> = {
@@ -53,7 +53,7 @@ const ERROS: Record<string, string> = {
   categoria_invalida: 'Escolha uma das categorias.',
   motivo_curto: `Conte o motivo com pelo menos ${MOTIVO_MIN} caracteres.`,
   motivo_longo: `O motivo passou de ${MOTIVO_MAX} caracteres.`,
-  limite_semanal: 'Suas palmas desta semana acabaram. Voltam na segunda.',
+  limite_semanal: 'Seus kudos desta semana acabaram. Voltam na segunda.',
   colega_repetido: 'Você já deu kudos a esse colega esta semana. Reconheça outra pessoa.',
 };
 

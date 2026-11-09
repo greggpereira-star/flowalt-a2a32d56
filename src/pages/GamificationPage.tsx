@@ -36,6 +36,8 @@ import { MissoesDaSemanaCard } from '@/components/gamification/MissoesDaSemanaCa
 import { MissoesDiariasCard } from '@/components/gamification/MissoesDiariasCard';
 import { TrilhasDeConquista } from '@/components/gamification/TrilhasDeConquista';
 import { KudosTab } from '@/components/gamification/KudosTab';
+import { LinhaDoTempoCard } from '@/components/gamification/LinhaDoTempoCard';
+import { DuelosCard } from '@/components/gamification/DuelosCard';
 
 const PERIODOS: { valor: Periodo; rotulo: string; longo: string }[] = [
   { valor: 7, rotulo: 'Semana', longo: 'últimos 7 dias' },
@@ -126,6 +128,8 @@ export default function GamificationPage() {
                 <MissoesDiariasCard />
                 <MetaDoTimeCard />
                 <MissoesDaSemanaCard />
+                <DuelosCard />
+                <LinhaDoTempoCard />
                 <Destaques jogadores={jogadores} rotuloPeriodo={rotuloPeriodo} onSelecionar={setCriterio} />
                 <RankingCompleto jogadores={jogadores} pesos={pesos} meuId={eu?.user_id} criterio={criterio} onCriterio={setCriterio} />
                 {goals.length > 0 && <WeeklyGoalsCard />}

@@ -13,8 +13,8 @@ describe('validarMotivo', () => {
 
 describe('rotuloDeRestantes', () => {
   it('singular, plural e sem palmas', () => {
-    expect(rotuloDeRestantes(3)).toBe('Você tem 3 palmas esta semana.');
-    expect(rotuloDeRestantes(1)).toBe('Você tem 1 palma esta semana.');
+    expect(rotuloDeRestantes(3)).toBe('Você tem 3 kudos esta semana.');
+    expect(rotuloDeRestantes(1)).toBe('Você tem 1 kudos esta semana.');
     expect(rotuloDeRestantes(0)).toMatch(/acabaram/);
   });
 });
